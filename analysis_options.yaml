@@ -1,0 +1,34 @@
+analyzer:
+  errors:
+    avoid_function_literals_in_foreach_calls: ignore
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    - always_use_package_imports
+    - always_declare_return_types
+    - always_put_control_body_on_new_line
+    - always_put_required_named_parameters_first
+    - annotate_overrides
+    - avoid_bool_literals_in_conditional_expressions
+    - avoid_escaping_inner_quotes
+    - avoid_final_parameters
+    - avoid_multiple_declarations_per_line
+    - camel_case_types
+    - cascade_invocations
+    - curly_braces_in_flow_control_structures
+    - directives_ordering
+    - empty_catches
+    - empty_constructor_bodies
+    - file_names
+    - implicit_call_tearoffs
+    - leading_newlines_in_multiline_strings
+    - no_leading_underscores_for_local_identifiers
+    - require_trailing_commas
+    - sized_box_for_whitespace
+    - sized_box_shrink_expand
+    - sort_child_properties_last
+    - unnecessary_brace_in_string_interps
+    - unnecessary_parenthesis
+    - prefer_double_quotes
+    - depend_on_referenced_packages

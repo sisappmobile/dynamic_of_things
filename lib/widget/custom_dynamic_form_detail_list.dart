@@ -1,0 +1,305 @@
+// ignore_for_file: always_specify_types, use_build_context_synchronously, empty_catches, cascade_invocations, always_put_required_named_parameters_first
+
+import "package:base/base.dart";
+import "package:dynamic_of_things/helper/bottom_sheets.dart";
+import "package:dynamic_of_things/helper/dynamic_forms.dart";
+import "package:dynamic_of_things/model/header_form.dart";
+import "package:easy_localization/easy_localization.dart";
+import "package:flutter/material.dart";
+
+class CustomDynamicFormDetailList extends StatefulWidget {
+  final bool readOnly;
+  final String? customerId;
+  final HeaderForm headerForm;
+  final DetailForm detailForm;
+  final void Function()? onRefresh;
+
+  const CustomDynamicFormDetailList({
+    super.key,
+    required this.readOnly,
+    required this.customerId,
+    required this.headerForm,
+    required this.detailForm,
+    this.onRefresh,
+  });
+
+  @override
+  State<CustomDynamicFormDetailList> createState() => CustomDynamicFormDetailListState();
+}
+
+class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList> with AutomaticKeepAliveClientMixin {
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+
+    List<ListColumn> columns = widget.detailForm.columns.where((element) => !element.primaryKey).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: Dimensions.size20,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ...addButton(),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: Dimensions.size10,
+        ),
+        ListenableBuilder(
+            listenable: widget.detailForm,
+            builder: (context, child) {
+              return Expanded(
+                child: ListView.separated(
+                  itemCount: widget.detailForm.data.length,
+                  separatorBuilder: (BuildContext context, int index) {
+                    return Divider(
+                      color: AppColors.outline(),
+                      height: 0,
+                    );
+                  },
+                  itemBuilder: (BuildContext context, int index) {
+                    Map<String, dynamic> map = widget.detailForm.data[index];
+
+                    List<Widget> widgets = [];
+
+                    for (int i = 0; i < columns.length; i++) {
+                      if (i % 2 == 0) {
+                        List<Widget> children = [];
+
+                        ListColumn lcLeft = columns[i];
+
+                        children.add(
+                          childrenWidget(
+                            description: lcLeft.description,
+                            value: DynamicForms.spell(
+                              type: lcLeft.type,
+                              value: map[lcLeft.name],
+                            ),
+                            left: true,
+                          ),
+                        );
+
+                        if (i + 1 < columns.length) {
+                          ListColumn lcRight = columns[i + 1];
+
+                          children.add(
+                            SizedBox(
+                              width: Dimensions.size20,
+                            ),
+                          );
+
+                          children.add(
+                            childrenWidget(
+                              description: lcRight.description,
+                              value: DynamicForms.spell(
+                                type: lcRight.type,
+                                value: map[lcRight.name],
+                              ),
+                              left: false,
+                            ),
+                          );
+                        }
+
+                        widgets.add(
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: children,
+                          ),
+                        );
+
+                        if (i + 2 < columns.length) {
+                          widgets.add(
+                            SizedBox(
+                              height: Dimensions.size20,
+                            ),
+                          );
+                        }
+                      }
+                    }
+
+                    return InkWell(
+                      onTap: () {
+
+                        BottomSheets.popupMenu(
+                          context: context,
+                          menuItems: [
+                            MenuItem(
+                              iconData: Icons.visibility,
+                              title: "Lihat Data",
+                              onTap: () async {
+                                Navigators.pop();
+
+                                await BottomSheets.detailDynamicForm(
+                                  context: context,
+                                  customerId: widget.customerId,
+                                  readOnly: isReadOnly(),
+                                  headerForm: widget.headerForm,
+                                  template: widget.detailForm.template,
+                                  data: widget.detailForm.data[index],
+                                  onSaved: (data) {},
+                                );
+                              },
+                            ),
+                            MenuItem(
+                              iconData: Icons.edit,
+                              title: "common_edit_data".tr(),
+                              onTap: !isReadOnly() ? () async {
+                                Navigators.pop();
+
+                                await BottomSheets.detailDynamicForm(
+                                  context: context,
+                                  customerId: widget.customerId,
+                                  readOnly: isReadOnly(),
+                                  headerForm: widget.headerForm,
+                                  template: widget.detailForm.template,
+                                  data: Map<String, dynamic>.from(widget.detailForm.data[index]),
+                                  onSaved: (data) {
+                                    widget.detailForm.updateRow(data, index);
+
+                                    if (widget.detailForm.hasOnChangeEvent) {
+                                      if (widget.onRefresh != null) {
+                                        widget.onRefresh!();
+                                      }
+                                    }
+                                  },
+                                );
+                              } : null,
+                            ),
+                            MenuItem(
+                              iconData: Icons.delete,
+                              title: "common_delete_data".tr(),
+                              onTap: (!isReadOnly() && hasDeleteAccess()) ? () {
+                                BaseDialogs.confirmation(
+                                  title: "common_delete_data_confirmation".tr(),
+                                  positiveCallback: () {
+                                    Navigators.pop();
+
+                                    widget.detailForm.deleteRow(index);
+
+                                    if (widget.detailForm.hasOnChangeEvent) {
+                                      if (widget.onRefresh != null) {
+                                        widget.onRefresh!();
+                                      }
+                                    }
+                                  },
+                                );
+                              } : null,
+                            ),
+                          ],
+                        );
+                      },
+                      child: Container(
+                        width: MediaQuery.of(context).size.width,
+                        padding: EdgeInsets.all(Dimensions.size20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: widgets,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+        ),
+      ],
+    );
+  }
+
+  @override
+  bool get wantKeepAlive => true;
+
+  Widget childrenWidget({
+    required String description,
+    required String value,
+    required bool left,
+  }) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: left ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+        children: [
+          Text(
+            description,
+            textAlign: left ? TextAlign.start : TextAlign.end,
+          ),
+          Text(
+            value,
+            textAlign: left ? TextAlign.start : TextAlign.end,
+            style: TextStyle(
+              fontSize: Dimensions.text16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> addButton() {
+    if (!isReadOnly() && hasAddAccess()) {
+      return [
+        SizedBox(
+          height: Dimensions.size10,
+        ),
+        SizedBox(
+          height: Dimensions.size50,
+          child: OutlinedButton(
+            onPressed: () async {
+              await BottomSheets.detailDynamicForm(
+                context: context,
+                customerId: widget.customerId,
+                readOnly: isReadOnly(),
+                headerForm: widget.headerForm,
+                template: widget.detailForm.template,
+                data: {},
+                onSaved: (data) {
+                  widget.detailForm.addRow(data);
+
+                  if (widget.detailForm.hasOnChangeEvent) {
+                    if (widget.onRefresh != null) {
+                      widget.onRefresh!();
+                    }
+                  }
+                },
+              );
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.add,
+                ),
+                SizedBox(
+                  width: Dimensions.size5,
+                ),
+                Text(
+                  "common_add".tr(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ];
+    }
+
+    return [];
+  }
+
+  bool isReadOnly() {
+    return widget.readOnly;
+  }
+
+  bool hasAddAccess() {
+    return widget.headerForm.template.actions.any((element) => element.resourceId == "BTN_ADD_DETAIL");
+  }
+
+  bool hasDeleteAccess() {
+    return widget.headerForm.template.actions.any((element) => element.resourceId == "BTN_DEL_DETAIL");
+  }
+}
