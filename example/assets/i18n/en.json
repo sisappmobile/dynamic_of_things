@@ -66,5 +66,8 @@
   "choose_file": "Choose file",
   "record_video": "Record video",
   "take_photo": "Take photo",
-  "delete": "Delete"
+  "delete": "Delete",
+  "dynamic_chart": "Dynamic chart",
+  "of": "Of",
+  "filter": "Filter"
 }

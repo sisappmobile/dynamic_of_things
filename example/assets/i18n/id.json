@@ -67,5 +67,8 @@
   "choose_file": "Pilih file",
   "record_video": "Rekam video",
   "take_photo": "Ambil foto",
-  "delete": "Hapus"
+  "delete": "Hapus",
+  "dynamic_chart": "Diagram dinamis",
+  "of": "Dari",
+  "filter": "Filter"
 }

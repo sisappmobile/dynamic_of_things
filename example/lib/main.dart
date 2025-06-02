@@ -10,10 +10,8 @@ import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dar
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_report/dynamic_report_bloc.dart";
-import "package:dynamic_of_things/widget/simple_app_bar.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
-import "package:flutter/services.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:get/get.dart";
 import "package:go_router/go_router.dart";
@@ -22,7 +20,7 @@ import "package:loader_overlay/loader_overlay.dart";
 import "package:smooth_corner/smooth_corner.dart";
 
 const String baseUrl = "https://192.168.90.202:8443/salesforce/api/";
-const String sessionId = "af6a02d50b974ffda8797ab46843d1db7ef86f82e72a11020ae00e964f542983";
+const String sessionId = "fe5588e7e18113434baa0179014c645e27ace9caeb5808b61a876d9bd8660fac";
 const String salt = "72e4425c484016c95677d1a2513681ff8e2b2459b11e68c8b67cc7b7fe60c422b629eb45d1a5b236c3df0031860c98f4b0f58c2497212ee20d58a833b9a3ea1d";
 
 final GoRouter goRouter = GoRouter(
@@ -288,23 +286,13 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     Theme.of(context);
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle(
-        statusBarColor: AppColors.surfaceContainerLowest(),
-        statusBarIconBrightness: AppColors.brightnessInverse(),
-        systemNavigationBarColor: AppColors.surface(),
-        systemNavigationBarIconBrightness: AppColors.brightnessInverse(),
+    return BaseScaffold(
+      appBar: BaseAppBar(
+        context: context,
+        name: "Home",
       ),
-      child: SafeArea(
-        child: Scaffold(
-          body: Column(
-            children: [
-              appBar(),
-              body(),
-            ],
-          ),
-        ),
-      ),
+      contentBuilder: body,
+      statusBuilder: () => BaseBodyStatus.loaded,
     );
   }
 
@@ -320,10 +308,6 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
     super.didChangePlatformBrightness();
 
     setState(() {});
-  }
-
-  Widget appBar() {
-    return SimpleAppBar(title: "Home");
   }
 
   Widget body() {
@@ -385,40 +369,38 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
       );
     }
 
-    return Expanded(
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.fromLTRB(
-          Dimensions.size15,
-          Dimensions.size15,
-          Dimensions.size15,
-          0,
-        ),
-        child: Wrap(
-          direction: Axis.horizontal,
-          spacing: Dimensions.size10,
-          runSpacing: Dimensions.size10,
-          children: [
-            item(
-              backgroundColor: AppColors.surfaceContainerLowest(),
-              fontColor: AppColors.onSurface(),
-              iconData: Icons.dynamic_form,
-              title: "Dynamic Form & Report",
-              onTap: () async {
-                await context.push("/dynamic-forms/menus");
-              },
-            ),
-            item(
-              backgroundColor: AppColors.surfaceContainerLowest(),
-              fontColor: AppColors.onSurface(),
-              iconData: Icons.dashboard_outlined,
-              title: "Dynamic Chart",
-              onTap: () async {
-                await context.push("/dynamic-charts");
-              },
-            ),
-          ],
-        ),
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        Dimensions.size15,
+        Dimensions.size15,
+        Dimensions.size15,
+        0,
+      ),
+      child: Wrap(
+        direction: Axis.horizontal,
+        spacing: Dimensions.size10,
+        runSpacing: Dimensions.size10,
+        children: [
+          item(
+            backgroundColor: AppColors.surfaceContainerLowest(),
+            fontColor: AppColors.onSurface(),
+            iconData: Icons.dynamic_form,
+            title: "Dynamic Form & Report",
+            onTap: () async {
+              await context.push("/dynamic-forms/menus");
+            },
+          ),
+          item(
+            backgroundColor: AppColors.surfaceContainerLowest(),
+            fontColor: AppColors.onSurface(),
+            iconData: Icons.dashboard_outlined,
+            title: "Dynamic Chart",
+            onTap: () async {
+              await context.push("/dynamic-charts");
+            },
+          ),
+        ],
       ),
     );
   }

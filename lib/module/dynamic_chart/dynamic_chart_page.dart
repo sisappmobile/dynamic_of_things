@@ -55,24 +55,19 @@ class DynamicChartPageState extends State<DynamicChartPage> with WidgetsBindingO
           context.loaderOverlay.hide();
         }
       },
-      child: Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          title: Text(
-            "dynamic_chart".tr(),
-          ),
+      child: BaseScaffold(
+        statusBuilder: () {
+          if (listResponse != null) {
+            return BaseBodyStatus.loaded;
+          }
+
+          return BaseBodyStatus.loading;
+        },
+        appBar: BaseAppBar(
+          context: context,
+          name: "dynamic_chart".tr(),
         ),
-        body: SafeArea(
-          child: RefreshIndicator(
-            onRefresh: () async {
-              refresh();
-            },
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: body(),
-            ),
-          ),
-        ),
+        contentBuilder: body,
       ),
     );
   }
@@ -96,35 +91,39 @@ class DynamicChartPageState extends State<DynamicChartPage> with WidgetsBindingO
   }
 
   Widget body() {
-    if (listResponse != null) {
-      return Container(
-        padding: EdgeInsets.all(Dimensions.size20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Wrap(
-              direction: Axis.horizontal,
-              spacing: Dimensions.size10,
-              runSpacing: Dimensions.size10,
-              children: listResponse!.charts.whereType<Summary>().map((e) {
-                return SummaryWidget(summary: e);
-              }).toList(),
-            ),
-            SizedBox(height: Dimensions.size10),
-            Wrap(
-              direction: Axis.vertical,
-              spacing: Dimensions.size10,
-              runSpacing: Dimensions.size10,
-              children: listResponse!.charts.whereNot((element) => element is Summary).map((e) {
-                return ChartWidget(chart: e);
-              }).toList(),
-            ),
-          ],
+    return RefreshIndicator(
+      onRefresh: () async {
+        refresh();
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Container(
+          padding: EdgeInsets.all(Dimensions.size15),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Wrap(
+                direction: Axis.horizontal,
+                spacing: Dimensions.size10,
+                runSpacing: Dimensions.size10,
+                children: listResponse!.charts.whereType<Summary>().map((e) {
+                  return SummaryWidget(summary: e);
+                }).toList(),
+              ),
+              SizedBox(height: Dimensions.size10),
+              Wrap(
+                direction: Axis.vertical,
+                spacing: Dimensions.size10,
+                runSpacing: Dimensions.size10,
+                children: listResponse!.charts.whereNot((element) => element is Summary).map((e) {
+                  return ChartWidget(chart: e);
+                }).toList(),
+              ),
+            ],
+          ),
         ),
-      );
-    }
-
-    return const SizedBox.shrink();
+      ),
+    );
   }
 }
 
@@ -409,9 +408,9 @@ class ChartWidgetState extends State<ChartWidget> {
         child: Container(
           height: Dimensions.size100 * 3,
           margin: EdgeInsets.fromLTRB(
-            Dimensions.size20,
-            Dimensions.size20,
-            Dimensions.size20,
+            Dimensions.size15,
+            Dimensions.size15,
+            Dimensions.size15,
             0,
           ),
           decoration: ShapeDecoration(
@@ -435,7 +434,7 @@ class ChartWidgetState extends State<ChartWidget> {
               smoothness: 1,
               side: BorderSide(color: AppColors.outline()),
             ),
-            color: AppColors.surface(),
+            color: AppColors.surfaceContainerLowest(),
           ),
           padding: EdgeInsets.all(
             Dimensions.size15,

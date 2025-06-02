@@ -106,7 +106,7 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
       } catch (e, stack) {
         print(stack);
 
-        String message = "common_something_wrong".tr();
+        String message = "something_wrong_please_try_again".tr();
 
         if ("Exception" != e.toString()) {
           message = e.toString().substring(11);
@@ -138,7 +138,7 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
       } catch (e, stack) {
         print(stack);
 
-        String message = "common_something_wrong".tr();
+        String message = "something_wrong_please_try_again".tr();
 
         if ("Exception" != e.toString()) {
           message = e.toString().substring(11);

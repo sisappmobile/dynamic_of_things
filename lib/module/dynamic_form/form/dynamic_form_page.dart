@@ -11,12 +11,9 @@ import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_event.da
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_state.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_detail_list.dart";
-import "package:dynamic_of_things/widget/simple_bottom_bar.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
-import "package:flutter/services.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
-import "package:go_router/go_router.dart";
 import "package:loader_overlay/loader_overlay.dart";
 
 class DynamicFormPage extends StatefulWidget {
@@ -187,24 +184,25 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
 
         }
       },
-      child: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: SystemUiOverlayStyle(
-          statusBarColor: AppColors.surfaceContainerLowest(),
-          statusBarIconBrightness: AppColors.brightnessInverse(),
-          systemNavigationBarColor: AppColors.surfaceContainerLowest(),
-          systemNavigationBarIconBrightness: AppColors.brightnessInverse(),
+      child: BaseScaffold(
+        statusBuilder: () {
+          if (loading) {
+            return BaseBodyStatus.loading;
+          } else {
+            if (headerForm != null) {
+              return BaseBodyStatus.loaded;
+            } else {
+              return BaseBodyStatus.fail;
+            }
+          }
+        },
+        appBar: BaseAppBar(
+          context: context,
+          name: headerForm?.template.title ?? "",
+          description: label(),
         ),
-        child: SafeArea(
-          child: Scaffold(
-            body: Column(
-              children: [
-                appBar(),
-                body(),
-                bottomBar(),
-              ],
-            ),
-          ),
-        ),
+        contentBuilder: body,
+        bottomNavigationBar: bottomBar(),
       ),
     );
   }
@@ -254,188 +252,82 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
     }
   }
 
-  Widget appBar() {
-    Widget topWidget() {
-      Widget backButton() {
-        if (context.canPop()) {
-          return Container(
-            margin: EdgeInsets.only(
-              right: Dimensions.size5,
-            ),
-            child: IconButton(
-              onPressed: () {
-                context.pop();
-              },
-              icon: const Icon(
-                Icons.turn_left,
-              ),
-            ),
-          );
-        }
-
-        return Container(
-          margin: EdgeInsets.only(
-            right: Dimensions.size10,
-          ),
-        );
+  String label() {
+    if (StringUtils.isNotNullOrEmpty(widget.dataId) || widget.headerForm != null) {
+      if (widget.readOnly) {
+        return "view".tr();
+      } else {
+        return "edit".tr();
       }
+    } else {
+      return "add".tr();
+    }
+  }
 
-      Widget subtitle() {
-        String label() {
-          if (StringUtils.isNotNullOrEmpty(widget.dataId) || widget.headerForm != null) {
-            if (widget.readOnly) {
-              return "view".tr();
-            } else {
-              return "edit".tr();
-            }
-          } else {
-            return "add".tr();
-          }
-        }
-
-        return Text(
-          label(),
-          style: TextStyle(
-            fontSize: Dimensions.text12,
-            fontWeight: FontWeight.w500,
+  Widget bottomWidget() {
+    if (tabController != null) {
+      return TabBar(
+        controller: tabController!,
+        isScrollable: true,
+        tabAlignment: TabAlignment.start,
+        tabs: [
+          Tab(
+            text: "main".tr().toUpperCase(),
           ),
-        );
-      }
-
-      return Container(
-        padding: EdgeInsets.all(Dimensions.size15),
-        child: Row(
-          children: [
-            backButton(),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    headerForm?.template.title ?? "",
-                    style: TextStyle(
-                      fontSize: Dimensions.text16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  subtitle(),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ...headerForm!.detailForms.map((e) {
+            return Tab(
+              text: e.template.title.toUpperCase(),
+            );
+          }),
+        ],
       );
     }
 
-    Widget bottomWidget() {
-      if (tabController != null) {
-        return TabBar(
-          controller: tabController!,
-          isScrollable: true,
-          tabAlignment: TabAlignment.start,
-          tabs: [
-            Tab(
-              text: "main".tr().toUpperCase(),
-            ),
-            ...headerForm!.detailForms.map((e) {
-              return Tab(
-                text: e.template.title.toUpperCase(),
-              );
-            }),
-          ],
-        );
-      }
-
-      return const SizedBox.shrink();
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest(),
-        border: Border(
-          bottom: BorderSide(
-            color: AppColors.outline(),
-          ),
-        ),
-      ),
-      child: Column(
-        children: [
-          topWidget(),
-          bottomWidget(),
-        ],
-      ),
-    );
+    return const SizedBox.shrink();
   }
 
   Widget body() {
-    if (loading) {
-      return Expanded(
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: CustomShimmer(),
-        ),
-      );
-    } else {
-      if (headerForm != null) {
-        if (tabController != null) {
-          return Expanded(
-            child: Form(
-              key: globalKey,
-              child: TabBarView(
-                controller: tabController,
-                children: [
-                  CustomDynamicForm(
-                    readOnly: widget.readOnly,
-                    customerId: widget.customerId,
-                    headerForm: headerForm!,
-                    template: headerForm!.template,
-                    data: headerForm!.data,
-                  ),
-                  ...headerForm!.detailForms.map((detailForm) {
-                    return CustomDynamicFormDetailList(
-                      readOnly: widget.readOnly,
-                      customerId: widget.customerId,
-                      headerForm: headerForm!,
-                      detailForm: detailForm,
-                    );
-                  }),
-                ],
-              ),
+    if (tabController != null) {
+      return Form(
+        key: globalKey,
+        child: TabBarView(
+          controller: tabController,
+          children: [
+            CustomDynamicForm(
+              readOnly: widget.readOnly,
+              customerId: widget.customerId,
+              headerForm: headerForm!,
+              template: headerForm!.template,
+              data: headerForm!.data,
             ),
-          );
-        } else {
-          return Expanded(
-            child: Form(
-              key: globalKey,
-              child: CustomDynamicForm(
+            ...headerForm!.detailForms.map((detailForm) {
+              return CustomDynamicFormDetailList(
                 readOnly: widget.readOnly,
                 customerId: widget.customerId,
                 headerForm: headerForm!,
-                template: headerForm!.template,
-                data: headerForm!.data,
-              ),
-            ),
-          );
-        }
-      } else {
-        return Expanded(
-          child: RefreshIndicator(
-            onRefresh: () async {
-              refresh();
-            },
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: BaseWidgets.loadingFail(),
-            ),
-          ),
-        );
-      }
+                detailForm: detailForm,
+              );
+            }),
+          ],
+        ),
+      );
+    } else {
+      return Form(
+        key: globalKey,
+        child: CustomDynamicForm(
+          readOnly: widget.readOnly,
+          customerId: widget.customerId,
+          headerForm: headerForm!,
+          template: headerForm!.template,
+          data: headerForm!.data,
+        ),
+      );
     }
   }
 
   Widget bottomBar() {
     if (headerForm != null && !widget.readOnly) {
-      return SimpleBottomBar(
+      return BaseBottomBar(
         children: [
           FilledButton.icon(
             onPressed: () async {

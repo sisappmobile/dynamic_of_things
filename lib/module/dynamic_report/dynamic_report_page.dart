@@ -110,27 +110,27 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
           context.loaderOverlay.hide();
         }
       },
-      child: Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          title: Column(
-            children: [
-              Text(
-                widget.dynamicFormMenuItem.name,
-                style: TextStyle(
-                  fontSize: Dimensions.text16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                widget.dynamicFormCategoryItem.name,
-                style: TextStyle(
-                  fontSize: Dimensions.text14,
-                ),
-              ),
-            ],
-          ),
-          actions: [
+      child: BaseScaffold(
+        statusBuilder: () {
+          if (template != null) {
+            if (loading) {
+              return BaseBodyStatus.loading;
+            } else {
+              if (dataResponse != null) {
+                return BaseBodyStatus.loaded;
+              } else {
+                return BaseBodyStatus.fail;
+              }
+            }
+          }
+
+          return BaseBodyStatus.loading;
+        },
+        appBar: BaseAppBar(
+          context: context,
+          name: widget.dynamicFormMenuItem.name,
+          description: widget.dynamicFormCategoryItem.name,
+          trailings: [
             IconButton(
               onPressed: () async {
                 await openFilter();
@@ -160,14 +160,8 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
             ),
           ],
         ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              Expanded(child: body()),
-              bottomBar(),
-            ],
-          ),
-        ),
+        contentBuilder: body,
+        bottomNavigationBar: bottomBar(),
       ),
     );
   }
@@ -254,120 +248,94 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
   }
 
   Widget body() {
-    if (template != null) {
-      if (loading) {
-        return SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: CustomShimmer(),
-        );
-      } else {
-        if (dataResponse != null) {
-          return ListView.separated(
-            physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: dataResponse!.rows.length,
-            separatorBuilder: (BuildContext context, int index) {
-              return Divider(
-                color: AppColors.outline(),
-                height: 0,
-              );
-            },
-            itemBuilder: (BuildContext context, int index) {
-              Map<String, dynamic> map = dataResponse!.rows[index];
+    return RefreshIndicator(
+      onRefresh: () async {
+        refresh();
+      },
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: dataResponse!.rows.length,
+        separatorBuilder: (BuildContext context, int index) {
+          return Divider(
+            color: AppColors.outline(),
+            height: 0,
+          );
+        },
+        itemBuilder: (BuildContext context, int index) {
+          Map<String, dynamic> map = dataResponse!.rows[index];
 
-              List<Widget> widgets = [];
+          List<Widget> widgets = [];
 
-              for (int i = 0; i < template!.fields.length; i++) {
-                if (i % 2 == 0) {
-                  List<Widget> children = [];
+          for (int i = 0; i < template!.fields.length; i++) {
+            if (i % 2 == 0) {
+              List<Widget> children = [];
 
-                  Field leftField = template!.fields[i];
+              Field leftField = template!.fields[i];
 
-                  children.add(
-                    childrenWidget(
-                      description: leftField.caption,
-                      value: DynamicForms.spell(
-                        type: leftField.type,
-                        value: map[leftField.name],
-                      ),
-                      left: true,
-                    ),
-                  );
-
-                  if (i + 1 < template!.fields.length) {
-                    Field rightField = template!.fields[i + 1];
-
-                    children.add(
-                      SizedBox(
-                        width: Dimensions.size20,
-                      ),
-                    );
-
-                    children.add(
-                      childrenWidget(
-                        description: rightField.caption,
-                        value: DynamicForms.spell(
-                          type: rightField.type,
-                          value: map[rightField.name],
-                        ),
-                        left: false,
-                      ),
-                    );
-                  }
-
-                  widgets.add(
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: children,
-                    ),
-                  );
-
-                  if (i + 2 < template!.fields.length) {
-                    widgets.add(
-                      SizedBox(
-                        height: Dimensions.size10,
-                      ),
-                    );
-                  }
-                }
-              }
-
-              return Container(
-                width: MediaQuery.of(context).size.width,
-                padding: EdgeInsets.all(Dimensions.size20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: widgets,
+              children.add(
+                childrenWidget(
+                  description: leftField.caption,
+                  value: DynamicForms.spell(
+                    type: leftField.type,
+                    value: map[leftField.name],
+                  ),
+                  left: true,
                 ),
               );
-            },
-          );
-        } else {
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: BaseWidgets.loadingFail(),
-          );
-        }
-      }
-    }
 
-    return const SizedBox.shrink();
+              if (i + 1 < template!.fields.length) {
+                Field rightField = template!.fields[i + 1];
+
+                children.add(
+                  SizedBox(
+                    width: Dimensions.size20,
+                  ),
+                );
+
+                children.add(
+                  childrenWidget(
+                    description: rightField.caption,
+                    value: DynamicForms.spell(
+                      type: rightField.type,
+                      value: map[rightField.name],
+                    ),
+                    left: false,
+                  ),
+                );
+              }
+
+              widgets.add(
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: children,
+                ),
+              );
+
+              if (i + 2 < template!.fields.length) {
+                widgets.add(
+                  SizedBox(
+                    height: Dimensions.size10,
+                  ),
+                );
+              }
+            }
+          }
+
+          return Container(
+            width: MediaQuery.of(context).size.width,
+            padding: EdgeInsets.all(Dimensions.size20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: widgets,
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Widget bottomBar() {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: Dimensions.size15,
-        vertical: Dimensions.size10,
-      ),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: AppColors.outline(),
-          ),
-        ),
-        color: AppColors.surface(),
-      ),
-      child: Row(
+    return BaseBottomBar(
         children: [
           Text(
             dataInfo(
@@ -437,7 +405,6 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
             ],
           ),
         ],
-      ),
     );
   }
 
@@ -458,7 +425,7 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
         until = dataSize;
       }
 
-      return "$start - $until ${"of".tr()} $dataSize";
+      return "$start - $until ${"of".tr().toLowerCase()} $dataSize";
     } else {
       return "loading".tr();
     }

@@ -168,7 +168,7 @@ class BottomSheets {
                               ),
                               borderSide: BorderSide.none,
                             ),
-                            hintText: "common_search".tr(),
+                            hintText: "search".tr(),
                           ),
                           onChanged: (String value) {
                             setState(() {

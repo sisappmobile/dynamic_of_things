@@ -11,10 +11,8 @@ import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_page.dar
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_event.dart";
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_state.dart";
-import "package:dynamic_of_things/widget/simple_app_bar.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
-import "package:flutter/services.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:loader_overlay/loader_overlay.dart";
 
@@ -86,25 +84,33 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
           context.loaderOverlay.hide();
         }
       },
-      child: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: SystemUiOverlayStyle(
-          statusBarColor: AppColors.surfaceContainerLowest(),
-          statusBarIconBrightness: AppColors.brightnessInverse(),
-          systemNavigationBarColor: AppColors.surface(),
-          systemNavigationBarIconBrightness: AppColors.brightnessInverse(),
+      child: BaseScaffold(
+        statusBuilder: () {
+          if (loading) {
+            return BaseBodyStatus.loading;
+          } else {
+            if (listResponse != null) {
+              if (filteredDatas().isNotEmpty) {
+                return BaseBodyStatus.loaded;
+              } else {
+                return BaseBodyStatus.empty;
+              }
+            } else {
+              return BaseBodyStatus.fail;
+            }
+          }
+        },
+        appBar: BaseAppBar(
+          context: context,
+          name: widget.dynamicFormMenuItem.name,
+          tecSearch: tecSearch,
+          onChanged: (value) {
+            setState(() {});
+          },
         ),
-        child: SafeArea(
-          child: Scaffold(
-            body: Column(
-              children: [
-                appBar(),
-                body(),
-              ],
-            ),
-            floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-            floatingActionButton: floatingActionButton(),
-          ),
-        ),
+        contentBuilder: body,
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        floatingActionButton: floatingActionButton(),
       ),
     );
   }
@@ -152,223 +158,169 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
     );
   }
 
-  Widget appBar() {
-    return SimpleAppBar(
-      title: widget.dynamicFormMenuItem.name,
-      tecSearch: tecSearch,
-      onChanged: (value) {
-        setState(() {});
-      },
-    );
-  }
-
   Widget body() {
-    if (loading) {
-      return Expanded(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            refresh();
-          },
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: BaseWidgets.shimmer(),
-          ),
-        ),
-      );
-    } else {
-      if (listResponse != null) {
-        if (filteredDatas().isNotEmpty) {
-          List<Field> fields = listResponse!.fields.where((element) => !element.primaryKey).toList();
+    List<Field> fields = listResponse!.fields.where((element) => !element.primaryKey).toList();
 
-          Field? primaryKey = listResponse!.fields.firstWhereOrNull((element) => element.primaryKey);
+    Field? primaryKey = listResponse!.fields.firstWhereOrNull((element) => element.primaryKey);
 
-          return Expanded(
-            child: RefreshIndicator(
-              onRefresh: () async {
-                refresh();
-              },
-              child: ListView.separated(
-                physics: const AlwaysScrollableScrollPhysics(),
-                itemCount: filteredDatas().length,
-                separatorBuilder: (BuildContext context, int index) {
-                  return Divider(
-                    color: AppColors.outline(),
-                    height: 0,
-                  );
-                },
-                itemBuilder: (BuildContext context, int index) {
-                  Map<String, dynamic> map = filteredDatas()[index];
+    return RefreshIndicator(
+      onRefresh: () async {
+        refresh();
+      },
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: filteredDatas().length,
+        separatorBuilder: (BuildContext context, int index) {
+          return Divider(
+            color: AppColors.outline(),
+            height: 0,
+          );
+        },
+        itemBuilder: (BuildContext context, int index) {
+          Map<String, dynamic> map = filteredDatas()[index];
 
-                  List<Widget> widgets = [];
+          List<Widget> widgets = [];
 
-                  for (int i = 0; i < fields.length; i++) {
-                    if (i % 2 == 0) {
-                      List<Widget> children = [];
+          for (int i = 0; i < fields.length; i++) {
+            if (i % 2 == 0) {
+              List<Widget> children = [];
 
-                      Field leftField = fields[i];
+              Field leftField = fields[i];
 
-                      children.add(
-                        childrenWidget(
-                          description: leftField.description,
-                          value: DynamicForms.spell(
-                            type: leftField.type,
-                            value: map[leftField.name],
-                          ),
-                          left: true,
-                        ),
-                      );
+              children.add(
+                childrenWidget(
+                  description: leftField.description,
+                  value: DynamicForms.spell(
+                    type: leftField.type,
+                    value: map[leftField.name],
+                  ),
+                  left: true,
+                ),
+              );
 
-                      if (i + 1 < fields.length) {
-                        Field rightField = fields[i + 1];
+              if (i + 1 < fields.length) {
+                Field rightField = fields[i + 1];
 
-                        children.add(
-                          SizedBox(
-                            width: Dimensions.size15,
-                          ),
-                        );
+                children.add(
+                  SizedBox(
+                    width: Dimensions.size15,
+                  ),
+                );
 
-                        children.add(
-                          childrenWidget(
-                            description: rightField.description,
-                            value: DynamicForms.spell(
-                              type: rightField.type,
-                              value: map[rightField.name],
-                            ),
-                            left: false,
-                          ),
-                        );
-                      }
-
-                      widgets.add(
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: children,
-                        ),
-                      );
-
-                      if (i + 2 < fields.length) {
-                        widgets.add(
-                          SizedBox(
-                            height: Dimensions.size10,
-                          ),
-                        );
-                      }
-                    }
-                  }
-
-                  return InkWell(
-                    onTap: () async {
-                      if (primaryKey != null) {
-                        List<MenuItem> menuItems = [
-                          MenuItem(
-                            iconData: Icons.visibility,
-                            title: "Lihat Data",
-                            onTap: hasViewAccess() ? () async {
-                              Navigators.pop();
-
-                              await Navigators.push(
-                                DynamicFormPage(
-                                  dynamicFormMenuItem: widget.dynamicFormMenuItem,
-                                  readOnly: true,
-                                  dataId: map[primaryKey.name].toString(),
-                                  customerId: widget.customerId,
-                                ),
-                              );
-
-                              refresh();
-                            } : null,
-                          ),
-                          MenuItem(
-                            iconData: Icons.edit,
-                            title: "edit".tr(),
-                            onTap: hasEditAccess() ? () async {
-                              Navigators.pop();
-
-                              await Navigators.push(
-                                DynamicFormPage(
-                                  dynamicFormMenuItem: widget.dynamicFormMenuItem,
-                                  readOnly: false,
-                                  dataId: map[primaryKey.name].toString(),
-                                  customerId: widget.customerId,
-                                ),
-                              );
-
-                              refresh();
-                            } : null,
-                          ),
-                        ];
-
-                        listResponse!.actions.where((element) => !StringUtils.inList(element.resourceId, ["BTN_CREATE", "BTN_EDIT", "BTN_VIEW"])).forEach((element) {
-                          MenuItem menuItem = MenuItem(
-                            title: element.name,
-                            onTap: () {
-                              Navigators.pop();
-
-                              BaseDialogs.confirmation(
-                                title: "are_you_sure_want_to_proceed".tr(),
-                                positiveCallback: () {
-                                  context.read<DynamicFormListBloc>().add(
-                                    DynamicFormListCustomAction(
-                                      actionId: element.id,
-                                      formId: widget.dynamicFormMenuItem.id,
-                                      dataId: map[primaryKey.name].toString(),
-                                      customerId: widget.customerId,
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                          );
-
-                          menuItems.add(menuItem);
-                        });
-
-                        BottomSheets.popupMenu(
-                          context: context,
-                          menuItems: menuItems,
-                        );
-                      }
-                    },
-                    child: Container(
-                      width: MediaQuery.of(context).size.width,
-                      padding: EdgeInsets.all(Dimensions.size15),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: widgets,
-                      ),
+                children.add(
+                  childrenWidget(
+                    description: rightField.description,
+                    value: DynamicForms.spell(
+                      type: rightField.type,
+                      value: map[rightField.name],
                     ),
+                    left: false,
+                  ),
+                );
+              }
+
+              widgets.add(
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: children,
+                ),
+              );
+
+              if (i + 2 < fields.length) {
+                widgets.add(
+                  SizedBox(
+                    height: Dimensions.size10,
+                  ),
+                );
+              }
+            }
+          }
+
+          return InkWell(
+            onTap: () async {
+              if (primaryKey != null) {
+                List<MenuItem> menuItems = [
+                  MenuItem(
+                    iconData: Icons.visibility,
+                    title: "Lihat Data",
+                    onTap: hasViewAccess() ? () async {
+                      Navigators.pop();
+
+                      await Navigators.push(
+                        DynamicFormPage(
+                          dynamicFormMenuItem: widget.dynamicFormMenuItem,
+                          readOnly: true,
+                          dataId: map[primaryKey.name].toString(),
+                          customerId: widget.customerId,
+                        ),
+                      );
+
+                      refresh();
+                    } : null,
+                  ),
+                  MenuItem(
+                    iconData: Icons.edit,
+                    title: "edit".tr(),
+                    onTap: hasEditAccess() ? () async {
+                      Navigators.pop();
+
+                      await Navigators.push(
+                        DynamicFormPage(
+                          dynamicFormMenuItem: widget.dynamicFormMenuItem,
+                          readOnly: false,
+                          dataId: map[primaryKey.name].toString(),
+                          customerId: widget.customerId,
+                        ),
+                      );
+
+                      refresh();
+                    } : null,
+                  ),
+                ];
+
+                listResponse!.actions.where((element) => !StringUtils.inList(element.resourceId, ["BTN_CREATE", "BTN_EDIT", "BTN_VIEW"])).forEach((element) {
+                  MenuItem menuItem = MenuItem(
+                    title: element.name,
+                    onTap: () {
+                      Navigators.pop();
+
+                      BaseDialogs.confirmation(
+                        title: "are_you_sure_want_to_proceed".tr(),
+                        positiveCallback: () {
+                          context.read<DynamicFormListBloc>().add(
+                            DynamicFormListCustomAction(
+                              actionId: element.id,
+                              formId: widget.dynamicFormMenuItem.id,
+                              dataId: map[primaryKey.name].toString(),
+                              customerId: widget.customerId,
+                            ),
+                          );
+                        },
+                      );
+                    },
                   );
-                },
-              ),
-            ),
-          );
-        } else {
-          return Expanded(
-            child: RefreshIndicator(
-              onRefresh: () async {
-                refresh();
-              },
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: BaseWidgets.noData(),
-              ),
-            ),
-          );
-        }
-      } else {
-        return Expanded(
-          child: RefreshIndicator(
-            onRefresh: () async {
-              refresh();
+
+                  menuItems.add(menuItem);
+                });
+
+                BottomSheets.popupMenu(
+                  context: context,
+                  menuItems: menuItems,
+                );
+              }
             },
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: BaseWidgets.loadingFail(),
+            child: Container(
+              width: MediaQuery.of(context).size.width,
+              padding: EdgeInsets.all(Dimensions.size15),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: widgets,
+              ),
             ),
-          ),
-        );
-      }
-    }
+          );
+        },
+      ),
+    );
   }
 
   Widget childrenWidget({

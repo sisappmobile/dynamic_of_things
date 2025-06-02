@@ -148,7 +148,7 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
                             ),
                             MenuItem(
                               iconData: Icons.edit,
-                              title: "common_edit_data".tr(),
+                              title: "edit".tr(),
                               onTap: !isReadOnly() ? () async {
                                 Navigators.pop();
 
@@ -173,10 +173,10 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
                             ),
                             MenuItem(
                               iconData: Icons.delete,
-                              title: "common_delete_data".tr(),
+                              title: "delete".tr(),
                               onTap: (!isReadOnly() && hasDeleteAccess()) ? () {
                                 BaseDialogs.confirmation(
-                                  title: "common_delete_data_confirmation".tr(),
+                                  title: "are_you_sure_want_to_proceed".tr(),
                                   positiveCallback: () {
                                     Navigators.pop();
 
@@ -279,7 +279,7 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
                   width: Dimensions.size5,
                 ),
                 Text(
-                  "common_add".tr(),
+                  "add".tr(),
                 ),
               ],
             ),

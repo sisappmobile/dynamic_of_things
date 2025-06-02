@@ -79,14 +79,14 @@ class Formats {
       }
     }
 
-    return defaultString ?? "common_n/a".tr();
+    return defaultString ?? "N/A";
   }
 
   static String time(TimeOfDay? timeOfDay, {String? defaultString}) {
     if (timeOfDay != null) {
       return const DefaultMaterialLocalizations().formatTimeOfDay(timeOfDay, alwaysUse24HourFormat: true);
     } else {
-      return defaultString ?? "common_n/a".tr();
+      return defaultString ?? "N/A";
     }
   }
 
@@ -99,7 +99,7 @@ class Formats {
       }
     }
 
-    return defaultString ?? "common_n/a".tr();
+    return defaultString ?? "N/A";
   }
 
   static Map<String, dynamic> convert(Map<String, dynamic> map) {

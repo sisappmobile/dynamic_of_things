@@ -72,7 +72,7 @@ class CustomDynamicFormDetailFormState extends State<CustomDynamicFormDetailForm
           Icons.save,
         ),
         label: Text(
-          "common_save".tr().toUpperCase(),
+          "save".tr().toUpperCase(),
         ),
       );
     }
@@ -86,7 +86,7 @@ class CustomDynamicFormDetailFormState extends State<CustomDynamicFormDetailForm
         formState.currentState!.save();
 
         BaseDialogs.confirmation(
-          title: "common_add_data_dialog_title".tr(),
+          title: "are_you_sure_want_to_proceed".tr(),
           positiveCallback: () {
             widget.onSaved(widget.data);
 
