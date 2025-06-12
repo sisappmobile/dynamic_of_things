@@ -10,10 +10,9 @@ dependencies:
   flutter:
     sdk: flutter
   base:
-    # git:
-      # url: https://github.com/sisappmobile/base.git
-      # ref: 1.0.2
-    path: /Volumes/MI3-SSD/project/flutter/base
+    git:
+      url: https://github.com/sisappmobile/base.git
+      ref: 1.0.3
 
   # inherited from base
   get: 4.6.6

@@ -1,26 +1,32 @@
 import "dart:convert";
+import "dart:io";
 
 import "package:base/base.dart";
 import "package:crypto/crypto.dart" as crypto;
+import "package:device_info/device_info.dart";
 import "package:dio/dio.dart";
+import "package:dio/io.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
 import "package:dynamic_of_things/helper/dot_routes.dart";
+import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_report/dynamic_report_bloc.dart";
 import "package:easy_localization/easy_localization.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
-import "package:get/get.dart";
+import "package:get/get.dart" as g;
 import "package:go_router/go_router.dart";
 import "package:intl/date_symbol_data_local.dart";
 import "package:loader_overlay/loader_overlay.dart";
 import "package:smooth_corner/smooth_corner.dart";
 
+const String sessionIdKey = "sessionId";
+const String usernameKey = "username";
 const String baseUrl = "https://192.168.90.202:8443/salesforce/api/";
-const String sessionId = "af6a02d50b974ffda8797ab46843d1db7ef86f82e72a11020ae00e964f542983";
 const String salt = "72e4425c484016c95677d1a2513681ff8e2b2459b11e68c8b67cc7b7fe60c422b629eb45d1a5b236c3df0031860c98f4b0f58c2497212ee20d58a833b9a3ea1d";
 
 final GoRouter goRouter = GoRouter(
@@ -31,10 +37,23 @@ final GoRouter goRouter = GoRouter(
         return HomePage();
       },
     ),
+    GoRoute(
+      path: "/sign-in",
+      builder: (context, state) {
+        return SignInPage();
+      },
+    ),
     ...dotRoutes,
   ],
   initialLocation: "/",
-  navigatorKey: Get.key,
+  redirect: (context, state) {
+    if (!BasePreferences.getInstance().contain(sessionIdKey)) {
+      return "/sign-in";
+    }
+
+    return null;
+  },
+  navigatorKey: g.Get.key,
 );
 
 Future<void> main() async {
@@ -44,14 +63,14 @@ Future<void> main() async {
 
   await EasyLocalization.ensureInitialized();
 
-  AppColors.lightColorScheme = ColorScheme.fromSeed(seedColor: Colors.purple, brightness: Brightness.light);
-  AppColors.darkColorScheme = ColorScheme.fromSeed(seedColor: Colors.purple, brightness: Brightness.dark);
+  AppColors.lightColorScheme = ColorScheme.fromSeed(seedColor: Colors.teal, brightness: Brightness.light);
+  AppColors.darkColorScheme = ColorScheme.fromSeed(seedColor: Colors.teal, brightness: Brightness.dark);
 
   DotApis.getInstance().init(
     baseUrl,
     InterceptorsWrapper(
       onRequest: (options, handler) {
-        options.headers["sfa-session-id"] = sessionId;
+        options.headers["sfa-session-id"] = BasePreferences.getInstance().getString(sessionIdKey);
         options.headers["sfa-timestamp"] = DateTime.now().millisecondsSinceEpoch.toString();
         options.headers["sfa-security-code"] = crypto.sha256.convert(utf8.encode('$salt${options.headers["sfa-session-id"]}${options.headers["sfa-timestamp"]}')).toString();
 
@@ -265,6 +284,223 @@ class DismissKeyboard extends StatelessWidget {
   }
 }
 
+class SignInPage extends StatefulWidget {
+  const SignInPage({
+    super.key,
+  });
+
+  @override
+  SignInPageState createState() => SignInPageState();
+}
+
+class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
+  final TextEditingController tecUsername = TextEditingController();
+  final TextEditingController tecPassword = TextEditingController();
+  final GlobalKey<FormState> formState = GlobalKey<FormState>(debugLabel: "formState");
+
+  bool obscurePassword = true;
+
+  String deviceId = "0000000000000000";
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addObserver(this);
+
+    getDeviceId();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BaseScaffold(
+      appBar: BaseAppBar(
+        context: context,
+        name: "Login",
+        description: "Device id : $deviceId",
+      ),
+      contentBuilder: () {
+        return SingleChildScrollView(
+        child: Container(
+          padding: EdgeInsets.all(Dimensions.size20),
+          child: Column(
+            children: [
+              Form(
+                key: formState,
+                child: AutofillGroup(
+                  child: Column(
+                    children: [
+                      BaseWidgets.text(
+                        label: "Username",
+                        mandatory: true,
+                        readonly: false,
+                        controller: tecUsername,
+                        prefixIcon: const Icon(Icons.account_circle),
+                      ),
+                      SizedBox(height: Dimensions.size15),
+                      BaseWidgets.text(
+                        label: "Password",
+                        mandatory: true,
+                        readonly: false,
+                        controller: tecPassword,
+                        obscureText: obscurePassword,
+                        prefixIcon: const Icon(Icons.password),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              obscurePassword = !obscurePassword;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: Dimensions.size15),
+              SizedBox(
+                width: Dimensions.screenWidth,
+                child: FilledButton(
+                  onPressed: () async {
+                    if (formState.currentState != null && formState.currentState!.validate()) {
+                      try {
+                        context.loaderOverlay.show();
+
+                        Dio dio = Dio(
+                          BaseOptions(
+                            baseUrl: baseUrl,
+                            connectTimeout: const Duration(seconds: 60),
+                            receiveTimeout: const Duration(seconds: 60),
+                            contentType: Headers.jsonContentType,
+                          ),
+                        );
+
+                        dio.interceptors.add(
+                          LogInterceptor(
+                            requestBody: true,
+                            responseBody: true,
+                            error: true,
+                            request: true,
+                            requestHeader: true,
+                            responseHeader: true,
+                          ),
+                        );
+
+                        (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+                          HttpClient httpClient = HttpClient()..badCertificateCallback = (cert, host, port) => true;
+
+                          return httpClient;
+                        };
+
+                        String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+
+                        Response response = await dio.post(
+                          "v1/sign-in",
+                          data: {
+                            "T": timestamp,
+                            "P": sha256("$salt${tecUsername.text}$timestamp"),
+                            "UN": tecUsername.text,
+                            "PW": sha256(tecUsername.text + tecPassword.text),
+                            "MD": deviceId,
+                            "AV": "",
+                            "TD": "",
+                            "OS": "",
+                            "FT": "",
+                          },
+                        );
+
+                        if (response.statusCode == 200) {
+                          Map<String, dynamic> json = response.data;
+
+                          int responseCode = Formats.tryParseNumber(json["RC"]).toInt();
+
+                          if (responseCode == 0) {
+                            await BasePreferences.getInstance().setString(sessionIdKey, json["SI"]);
+                            await BasePreferences.getInstance().setString(usernameKey, json["UN"]);
+
+                            context.go("/");
+                          } else {
+                            BaseOverlays.error(message: json["RM"]);
+                          }
+                        }
+                      } catch (e, stack) {
+                        if (kDebugMode) {
+                          print(stack);
+                        }
+
+                        BaseOverlays.error(message: "Something wrong, please try again");
+                      } finally {
+                        context.loaderOverlay.hide();
+                      }
+                    }
+                  },
+                  child: Text("Login"),
+                ),
+              ),
+            ],
+          ),
+        ),
+        );
+      },
+      statusBuilder: () => BaseBodyStatus.loaded,
+    );
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    super.didChangePlatformBrightness();
+
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+
+    WidgetsBinding.instance.removeObserver(this);
+  }
+
+  String sha256(String? data) {
+    if (data != null) {
+      List<int> encode = utf8.encode(data);
+
+      return crypto.sha256.convert(encode).toString();
+    }
+
+    return "";
+  }
+
+  void getDeviceId() async {
+    if (kReleaseMode) {
+      DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
+
+      if (Platform.isIOS) {
+        deviceId = "0000000000000000";
+      } else {
+        AndroidDeviceInfo androidDeviceInfo = await deviceInfoPlugin.androidInfo;
+
+        deviceId = androidDeviceInfo.androidId.toString();
+      }
+    } else {
+      if (Platform.isIOS) {
+        deviceId = "0000000000000000";
+      } else {
+        deviceId = "d4db82b1a0b16901";
+      }
+    }
+
+    setState(() {});
+  }
+}
+
+
+
+
+
+
 class HomePage extends StatefulWidget {
   const HomePage({
     super.key,
@@ -290,6 +526,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
       appBar: BaseAppBar(
         context: context,
         name: "Home",
+        description: BasePreferences.getInstance().getString(usernameKey),
       ),
       contentBuilder: body,
       statusBuilder: () => BaseBodyStatus.loaded,
@@ -398,6 +635,22 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
             title: "Dynamic Chart",
             onTap: () async {
               await context.push("/dynamic-charts");
+            },
+          ),
+          item(
+            backgroundColor: AppColors.errorContainer(),
+            fontColor: AppColors.onErrorContainer(),
+            iconData: Icons.logout,
+            title: "Sign Out",
+            onTap: () async {
+              await BaseDialogs.confirmation(
+                title: "Are you sure want to proceed?",
+                positiveCallback: () async {
+                  await BasePreferences.getInstance().clear();
+
+                  context.go("/");
+                },
+              );
             },
           ),
         ],
