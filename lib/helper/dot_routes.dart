@@ -3,6 +3,7 @@ import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_page.dar
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_page.dart";
 import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_page.dart";
 import "package:dynamic_of_things/module/dynamic_report/dynamic_report_page.dart";
+import "package:dynamic_of_things/widget/custom_dynamic_form_detail_form.dart";
 import "package:go_router/go_router.dart";
 
 final List<GoRoute> dotRoutes = [
@@ -34,6 +35,20 @@ final List<GoRoute> dotRoutes = [
         dataId: extra["dataId"],
         customerId: extra["customerId"],
         headerForm: extra["headerForm"],
+      );
+    },
+  ),
+  GoRoute(
+    path: "/dynamic-form-details",
+    builder: (context, state) {
+      Map<String, dynamic> extra = state.extra as Map<String, dynamic>;
+
+      return CustomDynamicFormDetailForm(
+        customerId: extra["customerId"],
+        readOnly: extra["readOnly"],
+        headerForm: extra["headerForm"],
+        template: extra["template"],
+        data: extra["data"] ?? {},
       );
     },
   ),

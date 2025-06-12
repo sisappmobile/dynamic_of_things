@@ -14,6 +14,7 @@ import "package:dynamic_of_things/widget/custom_dynamic_form_detail_list.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
+import "package:go_router/go_router.dart";
 import "package:loader_overlay/loader_overlay.dart";
 
 class DynamicFormPage extends StatefulWidget {
@@ -37,8 +38,6 @@ class DynamicFormPage extends StatefulWidget {
 }
 
 class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObserver, TickerProviderStateMixin {
-  TabController? tabController;
-
   HeaderForm? headerForm;
 
   GlobalKey<FormState> globalKey = GlobalKey<FormState>();
@@ -59,14 +58,6 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
 
         loading = false;
 
-        if (headerForm!.detailForms.isNotEmpty) {
-          tabController = TabController(
-            length: headerForm!.detailForms.length + 1,
-            vsync: this,
-            initialIndex: 0,
-          );
-        }
-
         setState(() {});
       });
     } else {
@@ -81,7 +72,6 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
         if (state is DynamicFormCreateLoading) {
           loading = true;
           headerForm = null;
-          tabController = null;
 
           setState(() {});
         } else if (state is DynamicFormCreateSuccess) {
@@ -91,21 +81,12 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
 
           loading = false;
 
-          if (headerForm!.detailForms.isNotEmpty) {
-            tabController = TabController(
-              length: headerForm!.detailForms.length + 1,
-              vsync: this,
-              initialIndex: 0,
-            );
-          }
-
           setState(() {});
         } else if (state is DynamicFormCreateFinished) {
 
         } else if (state is DynamicFormViewLoading) {
           loading = true;
           headerForm = null;
-          tabController = null;
 
           setState(() {});
         } else if (state is DynamicFormViewSuccess) {
@@ -115,14 +96,6 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
 
           loading = false;
 
-          if (headerForm!.detailForms.isNotEmpty) {
-            tabController = TabController(
-              length: headerForm!.detailForms.length + 1,
-              vsync: this,
-              initialIndex: 0,
-            );
-          }
-
           setState(() {});
         } else if (state is DynamicFormViewFinished) {
 
@@ -130,7 +103,6 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
           setState(() {
             loading = true;
             headerForm = null;
-            tabController = null;
           });
         } else if (state is DynamicFormEditSuccess) {
           headerForm = state.headerForm;
@@ -138,14 +110,6 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
           await DynamicForms.decode(headerForm: headerForm!);
 
           loading = false;
-
-          if (headerForm!.detailForms.isNotEmpty) {
-            tabController = TabController(
-              length: headerForm!.detailForms.length + 1,
-              vsync: this,
-              initialIndex: 0,
-            );
-          }
 
           setState(() {});
         } else if (state is DynamicFormEditFinished) {
@@ -155,13 +119,12 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
         } else if (state is DynamicFormSaveSuccess) {
           await BaseOverlays.success(message: "data_has_been_successfully_saved".tr());
 
-          Navigators.pop();
+          context.pop();
         } else if (state is DynamicFormSaveFinished) {
           context.loaderOverlay.hide();
         } else if (state is DynamicFormRefreshLoading) {
           loading = true;
           headerForm = null;
-          tabController = null;
 
           setState(() {});
         } else if (state is DynamicFormRefreshSuccess) {
@@ -170,14 +133,6 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
           await DynamicForms.decode(headerForm: headerForm!);
 
           loading = false;
-
-          if (headerForm!.detailForms.isNotEmpty) {
-            tabController = TabController(
-              length: headerForm!.detailForms.length + 1,
-              vsync: this,
-              initialIndex: 0,
-            );
-          }
 
           setState(() {});
         } else if (state is DynamicFormRefreshFinished) {
@@ -264,34 +219,11 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
     }
   }
 
-  Widget bottomWidget() {
-    if (tabController != null) {
-      return TabBar(
-        controller: tabController!,
-        isScrollable: true,
-        tabAlignment: TabAlignment.start,
-        tabs: [
-          Tab(
-            text: "main".tr().toUpperCase(),
-          ),
-          ...headerForm!.detailForms.map((e) {
-            return Tab(
-              text: e.template.title.toUpperCase(),
-            );
-          }),
-        ],
-      );
-    }
-
-    return const SizedBox.shrink();
-  }
-
   Widget body() {
-    if (tabController != null) {
-      return Form(
-        key: globalKey,
-        child: TabBarView(
-          controller: tabController,
+    return Form(
+      key: globalKey,
+      child: SingleChildScrollView(
+        child: Column(
           children: [
             CustomDynamicForm(
               readOnly: widget.readOnly,
@@ -306,23 +238,21 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
                 customerId: widget.customerId,
                 headerForm: headerForm!,
                 detailForm: detailForm,
+                onRefresh: () {
+                  context.read<DynamicFormBloc>().add(
+                    DynamicFormRefresh(
+                      formId: headerForm!.template.id,
+                      customerId: widget.customerId,
+                      headerForm: headerForm!,
+                    ),
+                  );
+                },
               );
             }),
           ],
         ),
-      );
-    } else {
-      return Form(
-        key: globalKey,
-        child: CustomDynamicForm(
-          readOnly: widget.readOnly,
-          customerId: widget.customerId,
-          headerForm: headerForm!,
-          template: headerForm!.template,
-          data: headerForm!.data,
-        ),
-      );
-    }
+      ),
+    );
   }
 
   Widget bottomBar() {

@@ -5,6 +5,7 @@ import "package:dynamic_of_things/model/header_form.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
+import "package:go_router/go_router.dart";
 
 class CustomDynamicFormDetailForm extends StatefulWidget {
   final String? customerId;
@@ -12,7 +13,6 @@ class CustomDynamicFormDetailForm extends StatefulWidget {
   final HeaderForm headerForm;
   final Template template;
   final Map<String, dynamic> data;
-  final void Function(Map<String, dynamic> data) onSaved;
 
   const CustomDynamicFormDetailForm({
     super.key,
@@ -21,32 +21,52 @@ class CustomDynamicFormDetailForm extends StatefulWidget {
     required this.headerForm,
     required this.template,
     required this.data,
-    required this.onSaved,
   });
 
   @override
   State<CustomDynamicFormDetailForm> createState() => CustomDynamicFormDetailFormState();
 }
 
-class CustomDynamicFormDetailFormState extends State<CustomDynamicFormDetailForm> {
+class CustomDynamicFormDetailFormState extends State<CustomDynamicFormDetailForm> with WidgetsBindingObserver {
   GlobalKey<FormState> formState = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
+
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: Text(
-          widget.template.title,
-        ),
+    return BaseScaffold(
+      appBar: BaseAppBar(
+        context: context,
+        name: widget.template.title,
       ),
-      body: Form(
-        key: formState,
+      contentBuilder: body,
+      bottomNavigationBar: bottomBar(),
+    );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+
+    WidgetsBinding.instance.removeObserver(this);
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    super.didChangePlatformBrightness();
+
+    setState(() {});
+  }
+
+  Widget body() {
+    return Form(
+      key: formState,
+      child: SingleChildScrollView(
         child: CustomDynamicForm(
           readOnly: widget.readOnly,
           customerId: widget.customerId,
@@ -55,25 +75,21 @@ class CustomDynamicFormDetailFormState extends State<CustomDynamicFormDetailForm
           data: widget.data,
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: floatingActionButton(),
     );
   }
 
-  Widget floatingActionButton() {
+  Widget bottomBar() {
     if (!widget.readOnly) {
-      return FloatingActionButton.extended(
-        backgroundColor: AppColors.tertiaryContainer(),
-        foregroundColor: AppColors.onTertiaryContainer(),
-        onPressed: () async {
-          save();
-        },
-        icon: const Icon(
-          Icons.save,
-        ),
-        label: Text(
-          "save".tr().toUpperCase(),
-        ),
+      return BaseBottomBar(
+        children: [
+          FilledButton.icon(
+            onPressed: () async {
+              save();
+            },
+            icon: const Icon(Icons.save),
+            label: Text("save".tr()),
+          ),
+        ],
       );
     }
 
@@ -88,9 +104,7 @@ class CustomDynamicFormDetailFormState extends State<CustomDynamicFormDetailForm
         BaseDialogs.confirmation(
           title: "are_you_sure_want_to_proceed".tr(),
           positiveCallback: () {
-            widget.onSaved(widget.data);
-
-            Navigators.pop();
+            context.pop(widget.data);
           },
         );
       }

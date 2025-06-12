@@ -8,10 +8,9 @@ import "package:basic_utils/basic_utils.dart";
 import "package:dynamic_of_things/helper/custom_attachments.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/model/dynamic_form_resource_response.dart";
-import "package:dynamic_of_things/model/header_form.dart";
-import "package:dynamic_of_things/widget/custom_dynamic_form_detail_form.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
+import "package:go_router/go_router.dart";
 import "package:photo_view/photo_view.dart";
 import "package:video_player/video_player.dart";
 
@@ -33,7 +32,7 @@ class BottomSheets {
               ),
               IconButton(
                 onPressed: () async {
-                  Navigators.pop();
+                  context.pop();
                 },
                 style: IconButton.styleFrom(
                   backgroundColor: AppColors.primaryContainer(),
@@ -87,41 +86,10 @@ class BottomSheets {
     );
   }
 
-  static Future<dynamic> detailDynamicForm({
-    required BuildContext context,
-    required String? customerId,
-    required bool readOnly,
-    required HeaderForm headerForm,
-    required Template template,
-    required Map<String, dynamic> data,
-    required void Function(Map<String, dynamic> data) onSaved,
-  }) async {
-    return await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, setState) {
-            return CustomDynamicFormDetailForm(
-              customerId: customerId,
-              readOnly: readOnly,
-              headerForm: headerForm,
-              template: template,
-              data: data,
-              onSaved: onSaved,
-            );
-          },
-        );
-      },
-    );
-  }
-
-  static Future<dynamic> dynamicFormSpinner({
+  static Future<Map<String, dynamic>?> dynamicFormSpinner({
     required BuildContext context,
     required String title,
     required DynamicFormResourceResponse dynamicFormResourceResponse,
-    required void Function(Map<String, dynamic> selectedItem) onSelected,
   }) async {
     TextEditingController textEditingController = TextEditingController();
 
@@ -300,9 +268,7 @@ class BottomSheets {
 
                         return InkWell(
                           onTap: () async {
-                            onSelected(item);
-
-                            Navigators.pop();
+                            context.pop(item);
                           },
                           child: Container(
                             width: MediaQuery.of(context).size.width,

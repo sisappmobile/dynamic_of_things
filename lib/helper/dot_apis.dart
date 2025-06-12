@@ -35,6 +35,8 @@ class DotApis {
       ),
     );
 
+    dio.interceptors.add(interceptor);
+
     dio.interceptors.add(
       LogInterceptor(
         requestBody: true,
@@ -45,8 +47,6 @@ class DotApis {
         responseHeader: true,
       ),
     );
-
-    dio.interceptors.add(interceptor);
 
     (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
       HttpClient httpClient = HttpClient()..badCertificateCallback = (cert, host, port) => true;
@@ -302,6 +302,36 @@ class DotApis {
 
     if (response.statusCode == 200) {
       return HeaderForm.fromJson(response.data);
+    }
+
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> dynamicFormSelect({
+    required String formId,
+    required String name,
+    required dynamic value,
+    String? customerId,
+  }) async {
+    Map<String, String> headers = {};
+
+    if (StringUtils.isNotNullOrEmpty(customerId)) {
+      headers["sfa-customer-id"] = customerId!;
+    }
+
+    Response response = await dio.post(
+      "v2/dynamic-forms/templates/$formId/select",
+      options: Options(
+        headers: headers,
+      ),
+      queryParameters: {
+        "name": name,
+        "value": value,
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return response.data;
     }
 
     return null;

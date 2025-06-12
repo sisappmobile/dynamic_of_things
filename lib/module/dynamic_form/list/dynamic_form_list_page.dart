@@ -14,6 +14,7 @@ import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_sta
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
+import "package:go_router/go_router.dart";
 import "package:loader_overlay/loader_overlay.dart";
 
 class DynamicFormListPage extends StatefulWidget {
@@ -244,7 +245,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
                     iconData: Icons.visibility,
                     title: "Lihat Data",
                     onTap: hasViewAccess() ? () async {
-                      Navigators.pop();
+                      context.pop();
 
                       await Navigators.push(
                         DynamicFormPage(
@@ -262,7 +263,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
                     iconData: Icons.edit,
                     title: "edit".tr(),
                     onTap: hasEditAccess() ? () async {
-                      Navigators.pop();
+                      context.pop();
 
                       await Navigators.push(
                         DynamicFormPage(
@@ -282,7 +283,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
                   MenuItem menuItem = MenuItem(
                     title: element.name,
                     onTap: () {
-                      Navigators.pop();
+                      context.pop();
 
                       BaseDialogs.confirmation(
                         title: "are_you_sure_want_to_proceed".tr(),

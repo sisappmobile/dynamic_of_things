@@ -32,6 +32,8 @@ class CustomDynamicFormState extends State<CustomDynamicForm> with AutomaticKeep
     super.build(context);
 
     return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.all(Dimensions.size15),
       itemCount: widget.template.sections.length,
       separatorBuilder: (context, index) {

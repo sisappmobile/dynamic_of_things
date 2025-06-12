@@ -379,14 +379,16 @@ class Field with ChangeNotifier {
         return Formats.dateTime(value);
       } else if (type == DynamicFormFieldType.DROPDOWN_DATA.name) {
         if (link != null) {
-          String linkValue = data[link!.target];
+          if (data.containsKey(link!.target)) {
+            String linkValue = data[link!.target];
 
-          if (StringUtils.isNotNullOrEmpty(linkValue)) {
-            return linkValue;
+            if (StringUtils.isNotNullOrEmpty(linkValue)) {
+              return linkValue;
+            }
           }
         }
 
-        return value;
+        return value.toString();
       } else {
         return value.toString();
       }

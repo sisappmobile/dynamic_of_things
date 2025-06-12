@@ -6,6 +6,7 @@ import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
+import "package:go_router/go_router.dart";
 
 class CustomDynamicFormDetailList extends StatefulWidget {
   final bool readOnly;
@@ -32,183 +33,194 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
   Widget build(BuildContext context) {
     super.build(context);
 
-    List<ListColumn> columns = widget.detailForm.columns.where((element) => !element.primaryKey).toList();
+    return ListenableBuilder(
+      listenable: widget.detailForm,
+      builder: (context, child) {
+        if (empty()) {
+          return const SizedBox.shrink();
+        } else {
+          List<ListColumn> columns = widget.detailForm.columns.where((element) => !element.primaryKey).toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: Dimensions.size20,
-          ),
-          child: Column(
+          return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ...addButton(),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: Dimensions.size10,
-        ),
-        ListenableBuilder(
-            listenable: widget.detailForm,
-            builder: (context, child) {
-              return Expanded(
-                child: ListView.separated(
-                  itemCount: widget.detailForm.data.length,
-                  separatorBuilder: (BuildContext context, int index) {
-                    return Divider(
-                      color: AppColors.outline(),
-                      height: 0,
-                    );
-                  },
-                  itemBuilder: (BuildContext context, int index) {
-                    Map<String, dynamic> map = widget.detailForm.data[index];
+              Container(
+                padding: EdgeInsets.all(Dimensions.size15),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.detailForm.template.title.toUpperCase(),
+                      style: TextStyle(
+                        color: AppColors.primary(),
+                        fontSize: Dimensions.text18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    ...addButton(),
+                  ],
+                ),
+              ),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: widget.detailForm.data.length,
+                separatorBuilder: (BuildContext context, int index) {
+                  return Divider(
+                    color: AppColors.outline(),
+                    height: 0,
+                  );
+                },
+                itemBuilder: (BuildContext context, int index) {
+                  Map<String, dynamic> map = widget.detailForm.data[index];
 
-                    List<Widget> widgets = [];
+                  List<Widget> widgets = [];
 
-                    for (int i = 0; i < columns.length; i++) {
-                      if (i % 2 == 0) {
-                        List<Widget> children = [];
+                  for (int i = 0; i < columns.length; i++) {
+                    if (i % 2 == 0) {
+                      List<Widget> children = [];
 
-                        ListColumn lcLeft = columns[i];
+                      ListColumn lcLeft = columns[i];
+
+                      children.add(
+                        childrenWidget(
+                          description: lcLeft.description,
+                          value: DynamicForms.spell(
+                            type: lcLeft.type,
+                            value: map[lcLeft.name],
+                          ),
+                          left: true,
+                        ),
+                      );
+
+                      if (i + 1 < columns.length) {
+                        ListColumn lcRight = columns[i + 1];
+
+                        children.add(
+                          SizedBox(
+                            width: Dimensions.size15,
+                          ),
+                        );
 
                         children.add(
                           childrenWidget(
-                            description: lcLeft.description,
+                            description: lcRight.description,
                             value: DynamicForms.spell(
-                              type: lcLeft.type,
-                              value: map[lcLeft.name],
+                              type: lcRight.type,
+                              value: map[lcRight.name],
                             ),
-                            left: true,
+                            left: false,
                           ),
                         );
+                      }
 
-                        if (i + 1 < columns.length) {
-                          ListColumn lcRight = columns[i + 1];
+                      widgets.add(
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: children,
+                        ),
+                      );
 
-                          children.add(
-                            SizedBox(
-                              width: Dimensions.size20,
-                            ),
-                          );
-
-                          children.add(
-                            childrenWidget(
-                              description: lcRight.description,
-                              value: DynamicForms.spell(
-                                type: lcRight.type,
-                                value: map[lcRight.name],
-                              ),
-                              left: false,
-                            ),
-                          );
-                        }
-
+                      if (i + 2 < columns.length) {
                         widgets.add(
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: children,
+                          SizedBox(
+                            height: Dimensions.size15,
                           ),
                         );
-
-                        if (i + 2 < columns.length) {
-                          widgets.add(
-                            SizedBox(
-                              height: Dimensions.size20,
-                            ),
-                          );
-                        }
                       }
                     }
+                  }
 
-                    return InkWell(
-                      onTap: () {
+                  return InkWell(
+                    onTap: () {
 
-                        BottomSheets.popupMenu(
-                          context: context,
-                          menuItems: [
-                            MenuItem(
-                              iconData: Icons.visibility,
-                              title: "Lihat Data",
-                              onTap: () async {
-                                Navigators.pop();
+                      BottomSheets.popupMenu(
+                        context: context,
+                        menuItems: [
+                          MenuItem(
+                            iconData: Icons.visibility,
+                            title: "Lihat Data",
+                            onTap: () async {
+                              context.pop();
 
-                                await BottomSheets.detailDynamicForm(
-                                  context: context,
-                                  customerId: widget.customerId,
-                                  readOnly: isReadOnly(),
-                                  headerForm: widget.headerForm,
-                                  template: widget.detailForm.template,
-                                  data: widget.detailForm.data[index],
-                                  onSaved: (data) {},
-                                );
-                              },
-                            ),
-                            MenuItem(
-                              iconData: Icons.edit,
-                              title: "edit".tr(),
-                              onTap: !isReadOnly() ? () async {
-                                Navigators.pop();
+                              await context.push(
+                                "/dynamic-form-details",
+                                extra: {
+                                  "customerId": widget.customerId,
+                                  "readOnly": isReadOnly(),
+                                  "headerForm": widget.headerForm,
+                                  "template": widget.detailForm.template,
+                                  "data": widget.detailForm.data[index],
+                                },
+                              );
+                            },
+                          ),
+                          MenuItem(
+                            iconData: Icons.edit,
+                            title: "edit".tr(),
+                            onTap: !isReadOnly() ? () async {
+                              context.pop();
 
-                                await BottomSheets.detailDynamicForm(
-                                  context: context,
-                                  customerId: widget.customerId,
-                                  readOnly: isReadOnly(),
-                                  headerForm: widget.headerForm,
-                                  template: widget.detailForm.template,
-                                  data: Map<String, dynamic>.from(widget.detailForm.data[index]),
-                                  onSaved: (data) {
-                                    widget.detailForm.updateRow(data, index);
+                              Map<String, dynamic>? result = await context.push(
+                                "/dynamic-form-details",
+                                extra: {
+                                  "customerId": widget.customerId,
+                                  "readOnly": isReadOnly(),
+                                  "headerForm": widget.headerForm,
+                                  "template": widget.detailForm.template,
+                                  "data": Map<String, dynamic>.from(widget.detailForm.data[index]),
+                                },
+                              );
 
-                                    if (widget.detailForm.hasOnChangeEvent) {
-                                      if (widget.onRefresh != null) {
-                                        widget.onRefresh!();
-                                      }
+                              if (result != null) {
+                                widget.detailForm.updateRow(result, index);
+
+                                if (widget.detailForm.hasOnChangeEvent) {
+                                  if (widget.onRefresh != null) {
+                                    widget.onRefresh!();
+                                  }
+                                }
+                              }
+                            } : null,
+                          ),
+                          MenuItem(
+                            iconData: Icons.delete,
+                            title: "delete".tr(),
+                            onTap: (!isReadOnly() && hasDeleteAccess()) ? () {
+                              BaseDialogs.confirmation(
+                                title: "are_you_sure_want_to_proceed".tr(),
+                                positiveCallback: () {
+                                  context.pop();
+
+                                  widget.detailForm.deleteRow(index);
+
+                                  if (widget.detailForm.hasOnChangeEvent) {
+                                    if (widget.onRefresh != null) {
+                                      widget.onRefresh!();
                                     }
-                                  },
-                                );
-                              } : null,
-                            ),
-                            MenuItem(
-                              iconData: Icons.delete,
-                              title: "delete".tr(),
-                              onTap: (!isReadOnly() && hasDeleteAccess()) ? () {
-                                BaseDialogs.confirmation(
-                                  title: "are_you_sure_want_to_proceed".tr(),
-                                  positiveCallback: () {
-                                    Navigators.pop();
-
-                                    widget.detailForm.deleteRow(index);
-
-                                    if (widget.detailForm.hasOnChangeEvent) {
-                                      if (widget.onRefresh != null) {
-                                        widget.onRefresh!();
-                                      }
-                                    }
-                                  },
-                                );
-                              } : null,
-                            ),
-                          ],
-                        );
-                      },
-                      child: Container(
-                        width: MediaQuery.of(context).size.width,
-                        padding: EdgeInsets.all(Dimensions.size20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: widgets,
-                        ),
+                                  }
+                                },
+                              );
+                            } : null,
+                          ),
+                        ],
+                      );
+                    },
+                    child: Container(
+                      width: MediaQuery.of(context).size.width,
+                      padding: EdgeInsets.all(Dimensions.size15),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: widgets,
                       ),
-                    );
-                  },
-                ),
-              );
-            },
-        ),
-      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          );
+        }
+      },
     );
   }
 
@@ -251,23 +263,25 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
           height: Dimensions.size50,
           child: OutlinedButton(
             onPressed: () async {
-              await BottomSheets.detailDynamicForm(
-                context: context,
-                customerId: widget.customerId,
-                readOnly: isReadOnly(),
-                headerForm: widget.headerForm,
-                template: widget.detailForm.template,
-                data: {},
-                onSaved: (data) {
-                  widget.detailForm.addRow(data);
-
-                  if (widget.detailForm.hasOnChangeEvent) {
-                    if (widget.onRefresh != null) {
-                      widget.onRefresh!();
-                    }
-                  }
+              Map<String, dynamic>? result = await context.push(
+                "/dynamic-form-details",
+                extra: {
+                  "customerId": widget.customerId,
+                  "readOnly": isReadOnly(),
+                  "headerForm": widget.headerForm,
+                  "template": widget.detailForm.template,
                 },
               );
+
+              if (result != null) {
+                widget.detailForm.addRow(result);
+
+                if (widget.detailForm.hasOnChangeEvent) {
+                  if (widget.onRefresh != null) {
+                    widget.onRefresh!();
+                  }
+                }
+              }
             },
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -301,5 +315,9 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
 
   bool hasDeleteAccess() {
     return widget.headerForm.template.actions.any((element) => element.resourceId == "BTN_DEL_DETAIL");
+  }
+
+  bool empty() {
+    return !(!isReadOnly() && hasAddAccess()) && widget.detailForm.data.isEmpty;
   }
 }

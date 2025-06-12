@@ -3,6 +3,7 @@
 import "package:base/base.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
+import "package:go_router/go_router.dart";
 import "package:material_symbols_icons/symbols.dart";
 import "package:mobile_scanner/mobile_scanner.dart";
 
@@ -86,7 +87,7 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage> {
 
                 widget.onSuccess(data);
 
-                Navigators.pop();
+                context.pop();
 
                 BaseOverlays.success(message: "barcode_scanner_success_dialog".tr());
               }

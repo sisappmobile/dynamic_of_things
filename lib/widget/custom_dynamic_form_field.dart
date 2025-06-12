@@ -27,6 +27,7 @@ import "package:flutter_image_compress/flutter_image_compress.dart";
 import "package:flutter_mobile_vision_2/flutter_mobile_vision_2.dart";
 import "package:flutter_tesseract_ocr/android_ios.dart";
 import "package:get/get_utils/src/extensions/internacionalization.dart" hide Trans;
+import "package:go_router/go_router.dart";
 import "package:loader_overlay/loader_overlay.dart";
 import "package:mime/mime.dart";
 import "package:mobile_scanner/mobile_scanner.dart";
@@ -442,7 +443,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 iconData: Icons.backspace,
                 title: "clear_text".tr(),
                 onTap: () async {
-                  Navigators.pop();
+                  context.pop();
 
                   widget.field.setValue(widget.data, null);
                 },
@@ -451,7 +452,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 iconData: Icons.qr_code_scanner,
                 title: "scan_barcode".tr(),
                 onTap: () async {
-                  Navigators.pop();
+                  context.pop();
 
                   Navigators.push(
                     BarcodeScannerPage(
@@ -466,7 +467,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 iconData: Icons.document_scanner,
                 title: "scan_text".tr(),
                 onTap: () async {
-                  Navigators.pop();
+                  context.pop();
 
                   try {
                     List<OcrText> ocrTexts = await FlutterMobileVision.read(
@@ -494,7 +495,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 iconData: Icons.image_search,
                 title: "extract_text".tr(),
                 onTap: () async {
-                  Navigators.pop();
+                  context.pop();
 
                   try {
                     FilePickerResult? filePickerResult = await FilePicker.platform.pickFiles(
@@ -1020,62 +1021,84 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         },
       );
     } else if (widget.field.type == DynamicFormFieldType.DROPDOWN_DATA.name) {
-      context.loaderOverlay.show();
+      DynamicFormResourceResponse? dynamicFormResourceResponse;
 
       try {
-        DynamicFormResourceResponse? dynamicFormResourceResponse = await DotApis.getInstance().dynamicFormResource(
+        context.loaderOverlay.show();
+
+        dynamicFormResourceResponse = await DotApis.getInstance().dynamicFormResource(
           formId: widget.template.id,
           name: widget.field.name,
           data: widget.data,
           customerId: widget.customerId,
         );
+      } catch (e) {
+        BaseOverlays.error(message: "something_wrong_please_try_again".tr());
+      } finally {
+        context.loaderOverlay.hide();
+      }
 
-        if (dynamicFormResourceResponse != null) {
-          BottomSheets.dynamicFormSpinner(
-            context: context,
-            title: widget.field.title,
-            dynamicFormResourceResponse: dynamicFormResourceResponse,
-            onSelected: (selectedItem) async {
+      if (dynamicFormResourceResponse != null) {
+        final selectedItem = await BottomSheets.dynamicFormSpinner(
+          context: context,
+          title: widget.field.title,
+          dynamicFormResourceResponse: dynamicFormResourceResponse,
+        );
+
+        if (selectedItem != null) {
+          DynamicFormResourceFieldItem? dfrfiKey = dynamicFormResourceResponse.fields.firstWhereOrNull((element) => element.primaryKey);
+
+          dynamic value;
+
+          if (dfrfiKey != null) {
+            value = selectedItem[dfrfiKey.name];
+          } else {
+            if (selectedItem.keys.length > 1) {
+              value = selectedItem[selectedItem.keys.elementAt(1)];
+            } else {
+              value = selectedItem[selectedItem.keys.elementAt(0)];
+            }
+          }
+
+          try {
+            context.loaderOverlay.show();
+
+            Map<String, dynamic>? result = await DotApis.getInstance().dynamicFormSelect(
+              formId: widget.template.id,
+              name: widget.field.name,
+              value: value,
+              customerId: widget.customerId,
+            );
+
+            if (result != null) {
               if (widget.field.link != null) {
-                DynamicFormResourceFieldItem? dfrfiKey = dynamicFormResourceResponse.fields.firstWhereOrNull((element) => element.primaryKey);
-
-                if (dfrfiKey != null) {
-                  widget.field.setValue(widget.data, selectedItem[dfrfiKey.name]);
-                } else {
-                  if (selectedItem.keys.length > 1) {
-                    widget.field.setValue(widget.data, selectedItem[selectedItem.keys.elementAt(1)]);
-                  } else {
-                    widget.field.setValue(widget.data, selectedItem[selectedItem.keys.elementAt(0)]);
-                  }
-                }
-
                 String linkValue = selectedItem[widget.field.link!.source];
 
                 widget.data[widget.field.link!.target] = linkValue;
-              } else {
-                dynamic value;
-
-                if (selectedItem.keys.length > 1) {
-                  value = selectedItem[selectedItem.keys.elementAt(1)];
-                } else {
-                  value = selectedItem[selectedItem.keys.elementAt(0)];
-                }
-
-                widget.field.setValue(widget.data, value);
               }
+
+              widget.field.setValue(widget.data, value);
 
               if (dynamicFormResourceResponse.loadOnFields.isNotEmpty) {
                 for (DynamicFormResourceLoadOnFieldItem dynamicFormResourceLoadOnFieldItem in dynamicFormResourceResponse.loadOnFields) {
                   if (!dynamicFormResourceLoadOnFieldItem.detail) {
-                    for (Section section in widget.template.sections) {
-                      for (Field field in section.fields) {
-                        if (StringUtils.equalsIgnoreCase(field.name, dynamicFormResourceLoadOnFieldItem.target)) {
-                          dynamic value = selectedItem[dynamicFormResourceLoadOnFieldItem.source];
+                    dynamic value = selectedItem[dynamicFormResourceLoadOnFieldItem.source];
 
-                          if (value != null) {
+                    if (value != null) {
+                      bool found = false;
+
+                      for (Section section in widget.template.sections) {
+                        for (Field field in section.fields) {
+                          if (StringUtils.equalsIgnoreCase(field.name, dynamicFormResourceLoadOnFieldItem.target)) {
                             field.setValue(widget.data, await DynamicForms.convert(field: field, value: value));
+
+                            found = true;
                           }
                         }
+                      }
+
+                      if (!found) {
+                        widget.data[dynamicFormResourceLoadOnFieldItem.target] = value;
                       }
                     }
                   }
@@ -1137,13 +1160,35 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                   context.loaderOverlay.hide();
                 }
               }
-            },
-          );
+
+              for (DetailForm detailForm in widget.headerForm.detailForms) {
+                List<Map<String, dynamic>> details = result[detailForm.template.tableName] != null ? List<Map<String, dynamic>>.from(result[detailForm.template.tableName].map((e) => e)) : [];
+
+                if (details.isNotEmpty) {
+                  for (Map<String, dynamic> detail in details) {
+                    Map<String, dynamic> row = {};
+
+                    for (String key in detail.keys) {
+                      for (Section section in detailForm.template.sections) {
+                        for (Field field in section.fields) {
+                          if (field.name == key) {
+                            field.setValue(row, detail[key]);
+                          }
+                        }
+                      }
+                    }
+
+                    detailForm.addRow(row);
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            BaseOverlays.error(message: "something_wrong_please_try_again".tr());
+          } finally {
+            context.loaderOverlay.hide();
+          }
         }
-      } catch (e) {
-        BaseOverlays.error(message: "something_wrong_please_try_again".tr());
-      } finally {
-        context.loaderOverlay.hide();
       }
     }
   }
@@ -1692,18 +1737,20 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     }
 
     if ((maxLengthValue() ?? 0) > 0 && !isReadOnly()) {
-      String value = widget.field.getValue(widget.data) ?? "";
+      if (widget.field.getValue(widget.data) is String) {
+        String value = widget.field.getValue(widget.data) ?? "";
 
-      widgets.add(
-        Text(
-          "${value.length}/${maxLengthValue()}",
-          style: TextStyle(
-            fontSize: Dimensions.text10,
-            fontWeight: FontWeight.bold,
-            color: AppColors.onSurface().withValues(alpha: 80),
+        widgets.add(
+          Text(
+            "${value.length}/${maxLengthValue()}",
+            style: TextStyle(
+              fontSize: Dimensions.text10,
+              fontWeight: FontWeight.bold,
+              color: AppColors.onSurface().withValues(alpha: 80),
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
 
     if (widgets.isNotEmpty) {

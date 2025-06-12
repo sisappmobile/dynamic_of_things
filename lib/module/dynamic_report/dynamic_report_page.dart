@@ -18,6 +18,7 @@ import "package:easy_localization/easy_localization.dart";
 import "package:file_picker/file_picker.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
+import "package:go_router/go_router.dart";
 import "package:jiffy/jiffy.dart";
 import "package:loader_overlay/loader_overlay.dart";
 import "package:path/path.dart" as path;
@@ -497,7 +498,7 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
                       children: [
                         IconButton(
                           onPressed: () {
-                            Navigators.pop();
+                            context.pop();
                           },
                           icon: const Icon(
                             Icons.turn_left,
@@ -753,7 +754,7 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
                               refresh();
                             }
 
-                            Navigators.pop();
+                            context.pop();
                           },
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.primary(),

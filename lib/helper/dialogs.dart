@@ -9,6 +9,7 @@ import "package:dynamic_of_things/helper/images.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:file_picker/file_picker.dart";
 import "package:flutter/material.dart";
+import "package:go_router/go_router.dart";
 import "package:image_picker/image_picker.dart";
 
 class Dialogs {
@@ -63,7 +64,7 @@ class Dialogs {
                             );
                           }
 
-                          Navigators.pop();
+                          context.pop();
 
                           callback.call(files);
                         } else {
@@ -75,7 +76,7 @@ class Dialogs {
                           if (xFile != null) {
                             Uint8List bytesFile = Uint8List.fromList(await xFile.readAsBytes());
 
-                            Navigators.pop();
+                            context.pop();
 
                             callback.call([bytesFile]);
                           }
@@ -102,7 +103,7 @@ class Dialogs {
                         Images.camera(
                             context: context,
                             callback: (bytes) {
-                              Navigators.pop();
+                              context.pop();
 
                               callback.call([bytes]);
                             },
@@ -127,7 +128,7 @@ class Dialogs {
       Images.camera(
         context: context,
         callback: (bytes) {
-          Navigators.pop();
+          context.pop();
 
           callback.call([bytes]);
         },
@@ -184,7 +185,7 @@ class Dialogs {
                             );
                           }
 
-                          Navigators.pop();
+                          context.pop();
 
                           callback.call(files);
                         }
@@ -212,7 +213,7 @@ class Dialogs {
                             RecordPage(
                               cameraDescriptions: value,
                               callback: (xFile) async {
-                                Navigators.pop();
+                                context.pop();
 
                                 callback.call([File(xFile.path)]);
                               },
@@ -241,7 +242,7 @@ class Dialogs {
           RecordPage(
             cameraDescriptions: value,
             callback: (xFile) async {
-              Navigators.pop();
+              context.pop();
 
               callback.call([File(xFile.path)]);
             },

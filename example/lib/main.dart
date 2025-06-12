@@ -20,7 +20,7 @@ import "package:loader_overlay/loader_overlay.dart";
 import "package:smooth_corner/smooth_corner.dart";
 
 const String baseUrl = "https://192.168.90.202:8443/salesforce/api/";
-const String sessionId = "fe5588e7e18113434baa0179014c645e27ace9caeb5808b61a876d9bd8660fac";
+const String sessionId = "af6a02d50b974ffda8797ab46843d1db7ef86f82e72a11020ae00e964f542983";
 const String salt = "72e4425c484016c95677d1a2513681ff8e2b2459b11e68c8b67cc7b7fe60c422b629eb45d1a5b236c3df0031860c98f4b0f58c2497212ee20d58a833b9a3ea1d";
 
 final GoRouter goRouter = GoRouter(
