@@ -86,6 +86,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
         }
       },
       child: BaseScaffold(
+        context: context,
         statusBuilder: () {
           if (loading) {
             return BaseBodyStatus.loading;

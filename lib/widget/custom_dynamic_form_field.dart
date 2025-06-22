@@ -1013,13 +1013,15 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         },
       );
     } else if (widget.field.type == DynamicFormFieldType.DROPDOWN.name) {
-      await BaseSheets.spinner(
+      SpinnerItem? selectedItem = await BaseSheets.spinner(
+        context: context,
         title: widget.field.title,
         spinnerItems: widget.field.data.map((e) => SpinnerItem(identity: e, description: e)).toList(),
-        onSelected: (selectedItem) {
-          changed(selectedItem.identity);
-        },
       );
+
+      if (selectedItem != null) {
+        changed(selectedItem.identity);
+      }
     } else if (widget.field.type == DynamicFormFieldType.DROPDOWN_DATA.name) {
       DynamicFormResourceResponse? dynamicFormResourceResponse;
 

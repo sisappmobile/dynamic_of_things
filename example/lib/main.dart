@@ -314,6 +314,7 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return BaseScaffold(
+      context: context,
       appBar: BaseAppBar(
         context: context,
         name: "Login",
@@ -523,6 +524,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
     Theme.of(context);
 
     return BaseScaffold(
+      context: context,
       appBar: BaseAppBar(
         context: context,
         name: "Home",

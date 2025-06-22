@@ -40,6 +40,7 @@ class CustomDynamicFormDetailFormState extends State<CustomDynamicFormDetailForm
   @override
   Widget build(BuildContext context) {
     return BaseScaffold(
+      context: context,
       appBar: BaseAppBar(
         context: context,
         name: widget.template.title,

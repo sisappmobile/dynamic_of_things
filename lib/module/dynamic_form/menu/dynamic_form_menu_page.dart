@@ -60,6 +60,7 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage> with WidgetsBi
         }
       },
       child: BaseScaffold(
+        context: context,
         statusBuilder: () {
           if (loading) {
             return BaseBodyStatus.loading;

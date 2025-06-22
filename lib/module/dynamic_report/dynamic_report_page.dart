@@ -112,6 +112,7 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
         }
       },
       child: BaseScaffold(
+        context: context,
         statusBuilder: () {
           if (template != null) {
             if (loading) {

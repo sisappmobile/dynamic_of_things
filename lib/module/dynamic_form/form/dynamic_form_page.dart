@@ -140,6 +140,7 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
         }
       },
       child: BaseScaffold(
+        context: context,
         statusBuilder: () {
           if (loading) {
             return BaseBodyStatus.loading;

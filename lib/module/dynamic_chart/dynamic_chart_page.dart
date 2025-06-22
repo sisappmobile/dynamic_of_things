@@ -56,6 +56,7 @@ class DynamicChartPageState extends State<DynamicChartPage> with WidgetsBindingO
         }
       },
       child: BaseScaffold(
+        context: context,
         statusBuilder: () {
           if (listResponse != null) {
             return BaseBodyStatus.loaded;
