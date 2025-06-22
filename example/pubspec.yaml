@@ -47,8 +47,6 @@ dependencies:
   video_thumbnail: 0.5.3
   mobile_scanner: 3.5.5
   material_symbols_icons: 4.2815.1
-  flutter_tesseract_ocr: 0.4.26
-  flutter_mobile_vision_2: 0.1.15
   validators: 3.0.0
   image_watermark: 0.1.0
   geocoding: 3.0.0

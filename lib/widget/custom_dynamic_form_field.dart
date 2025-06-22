@@ -24,8 +24,6 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:flutter_image_compress/flutter_image_compress.dart";
-import "package:flutter_mobile_vision_2/flutter_mobile_vision_2.dart";
-import "package:flutter_tesseract_ocr/android_ios.dart";
 import "package:get/get_utils/src/extensions/internacionalization.dart" hide Trans;
 import "package:go_router/go_router.dart";
 import "package:loader_overlay/loader_overlay.dart";
@@ -461,64 +459,6 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                       },
                     ),
                   );
-                },
-              ),
-              MenuItem(
-                iconData: Icons.document_scanner,
-                title: "scan_text".tr(),
-                onTap: () async {
-                  context.pop();
-
-                  try {
-                    List<OcrText> ocrTexts = await FlutterMobileVision.read(
-                      multiple: true,
-                      camera: FlutterMobileVision.CAMERA_BACK,
-                      waitTap: false,
-                      preview: FlutterMobileVision.PREVIEW,
-                    );
-
-                    if (ocrTexts.isNotEmpty) {
-                      String data = ocrTexts[0].value.replaceAll("\n", " ");
-
-                      if (StringUtils.isNotNullOrEmpty(data)) {
-                        widget.field.setValue(widget.data, data);
-
-                        BaseOverlays.success(message: "text_has_been_successfully_scanned".tr());
-                      }
-                    }
-                  } on Exception {
-                    BaseOverlays.error(message: "failed_to_scan_text".tr());
-                  }
-                },
-              ),
-              MenuItem(
-                iconData: Icons.image_search,
-                title: "extract_text".tr(),
-                onTap: () async {
-                  context.pop();
-
-                  try {
-                    FilePickerResult? filePickerResult = await FilePicker.platform.pickFiles(
-                      withData: true,
-                      type: FileType.image,
-                    );
-
-                    if (filePickerResult != null && filePickerResult.files.isNotEmpty) {
-                      PlatformFile platformFile = filePickerResult.files.first;
-
-                      if (StringUtils.inList(platformFile.extension!, ["jpg", "jpeg", "png"])) {
-                        String data = await FlutterTesseractOcr.extractText(platformFile.path!);
-
-                        if (StringUtils.isNotNullOrEmpty(data)) {
-                          widget.field.setValue(widget.data, data);
-
-                          BaseOverlays.success(message: "text_has_been_successfully_extracted".tr());
-                        }
-                      }
-                    }
-                  } on Exception {
-                    BaseOverlays.error(message: "failed_to_extract_text".tr());
-                  }
                 },
               ),
             ],

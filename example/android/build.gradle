@@ -14,7 +14,10 @@ subprojects {
 subprojects {
     afterEvaluate {
         android {
-            compileSdkVersion 34
+            compileSdkVersion flutter.compileSdkVersion
+            defaultConfig {
+                minSdk = flutter.minSdkVersion
+            }
         }
     }
 }
