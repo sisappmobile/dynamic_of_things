@@ -44,7 +44,7 @@ dependencies:
   googleapis_auth: 1.5.0
   video_thumbnail: 0.5.3
   mobile_scanner: 3.5.5
-  material_symbols_icons: 4.2668.0
+  material_symbols_icons: 4.2815.1
   flutter_tesseract_ocr: 0.4.26
   flutter_mobile_vision_2: 0.1.15
   validators: 3.0.0
