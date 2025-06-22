@@ -50,7 +50,7 @@ dependencies:
   validators: 3.0.0
   image_watermark: 0.1.0
   geocoding: 3.0.0
-  loader_overlay: 2.1.0
+  loader_overlay: 5.0.0
   flutter_bloc: 9.1.1
   shimmer: 3.0.0
   syncfusion_flutter_charts: 29.2.7
