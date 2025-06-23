@@ -234,21 +234,47 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
               data: headerForm!.data,
             ),
             ...headerForm!.detailForms.map((detailForm) {
-              return CustomDynamicFormDetailList(
-                readOnly: widget.readOnly,
-                customerId: widget.customerId,
-                headerForm: headerForm!,
-                detailForm: detailForm,
-                onRefresh: () {
-                  context.read<DynamicFormBloc>().add(
-                    DynamicFormRefresh(
-                      formId: headerForm!.template.id,
+              if (detailForm.single) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(Dimensions.size15),
+                      child: Text(
+                        detailForm.template.title.toUpperCase(),
+                        style: TextStyle(
+                          color: AppColors.primary(),
+                          fontSize: Dimensions.text18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    CustomDynamicForm(
+                      readOnly: widget.readOnly,
                       customerId: widget.customerId,
                       headerForm: headerForm!,
+                      template: detailForm.template,
+                      data: detailForm.data,
                     ),
-                  );
-                },
-              );
+                  ],
+                );
+              } else {
+                return CustomDynamicFormDetailList(
+                  readOnly: widget.readOnly,
+                  customerId: widget.customerId,
+                  headerForm: headerForm!,
+                  detailForm: detailForm,
+                  onRefresh: () {
+                    context.read<DynamicFormBloc>().add(
+                      DynamicFormRefresh(
+                        formId: headerForm!.template.id,
+                        customerId: widget.customerId,
+                        headerForm: headerForm!,
+                      ),
+                    );
+                  },
+                );
+              }
             }),
           ],
         ),

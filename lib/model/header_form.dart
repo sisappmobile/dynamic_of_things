@@ -78,13 +78,15 @@ class Action {
 }
 
 class DetailForm with ChangeNotifier {
+  final bool single;
   final List<ListColumn> columns;
   final Template template;
   final Map<String, dynamic> constructor;
-  final List<Map<String, dynamic>> data;
+  final dynamic data;
   final bool hasOnChangeEvent;
 
   DetailForm({
+    required this.single,
     required this.columns,
     required this.template,
     required this.constructor,
@@ -92,13 +94,34 @@ class DetailForm with ChangeNotifier {
     required this.hasOnChangeEvent,
   });
 
-  factory DetailForm.fromJson(Map<String, dynamic> json) => DetailForm(
-    columns: json["columns"] != null ? List<ListColumn>.from(json["columns"].map((e) => ListColumn.fromJson(e))) : [],
-    template: Template.fromJson(json["template"]),
-    constructor: json["template"],
-    data: List<Map<String, dynamic>>.from(json["data"].map((e) => e as Map<String, dynamic>)),
-    hasOnChangeEvent: json["hasOnChangeEvent"],
-  );
+  factory DetailForm.fromJson(Map<String, dynamic> json) {
+    bool single = json["single"];
+
+    dynamic data() {
+      if (single) {
+        if (json["data"] != null) {
+          return json["data"] as Map<String, dynamic>;
+        } else {
+          return <String, dynamic>{};
+        }
+      } else {
+        if (json["data"] != null) {
+          return List<Map<String, dynamic>>.from(json["data"].map((e) => e as Map<String, dynamic>));
+        } else {
+          return List<Map<String, dynamic>>.empty(growable: true);
+        }
+      }
+    }
+
+    return DetailForm(
+      single: single,
+      columns: json["columns"] != null ? List<ListColumn>.from(json["columns"].map((e) => ListColumn.fromJson(e))) : [],
+      template: Template.fromJson(json["template"]),
+      constructor: json["template"],
+      data: data(),
+      hasOnChangeEvent: json["hasOnChangeEvent"],
+    );
+  }
 
   void addRow(Map<String, dynamic> row) {
     data.add(row);

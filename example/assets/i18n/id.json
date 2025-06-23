@@ -43,7 +43,6 @@
   "view": "Lihat",
   "add": "Tambah",
   "main": "Utama",
-
   "value_must_contain": "Nilai harus mengandung {}.",
   "clear_text": "Bersihkan teks",
   "scan_barcode": "Pindai barcode/QR",

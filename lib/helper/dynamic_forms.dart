@@ -167,16 +167,27 @@ class DynamicForms {
     );
 
     for (DetailForm detailForm in headerForm.detailForms) {
-      result[detailForm.template.tableName] = [];
-
-      for (Map<String, dynamic> row in detailForm.data) {
+      if (detailForm.single) {
         Map<String, dynamic> target = await process(
           sections: detailForm.template.sections,
-          row: row,
+          row: detailForm.data,
         );
 
         if (target.isNotEmpty) {
-          result[detailForm.template.tableName].add(target);
+          result[detailForm.template.tableName] = target;
+        }
+      } else {
+        result[detailForm.template.tableName] = [];
+
+        for (Map<String, dynamic> row in detailForm.data) {
+          Map<String, dynamic> target = await process(
+            sections: detailForm.template.sections,
+            row: row,
+          );
+
+          if (target.isNotEmpty) {
+            result[detailForm.template.tableName].add(target);
+          }
         }
       }
     }
@@ -265,11 +276,18 @@ class DynamicForms {
     );
 
     for (DetailForm detailForm in headerForm.detailForms) {
-      for (Map<String, dynamic> row in detailForm.data) {
+      if (detailForm.single) {
         await process(
           template: detailForm.template,
-          row: row,
+          row: detailForm.data,
         );
+      } else {
+        for (Map<String, dynamic> row in detailForm.data) {
+          await process(
+            template: detailForm.template,
+            row: row,
+          );
+        }
       }
     }
   }

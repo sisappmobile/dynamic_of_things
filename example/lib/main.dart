@@ -1,9 +1,9 @@
 import "dart:convert";
 import "dart:io";
 
+import "package:android_id/android_id.dart";
 import "package:base/base.dart";
 import "package:crypto/crypto.dart" as crypto;
-import "package:device_info/device_info.dart";
 import "package:dio/dio.dart";
 import "package:dio/io.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
@@ -17,6 +17,7 @@ import "package:dynamic_of_things/module/dynamic_report/dynamic_report_bloc.dart
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
+import "package:flutter/services.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:get/get.dart" as g;
 import "package:go_router/go_router.dart";
@@ -43,6 +44,7 @@ final GoRouter goRouter = GoRouter(
         return SignInPage();
       },
     ),
+    ...baseRoutes,
     ...dotRoutes,
   ],
   initialLocation: "/",
@@ -476,31 +478,26 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
 
   void getDeviceId() async {
     if (kReleaseMode) {
-      DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
-
       if (Platform.isIOS) {
         deviceId = "0000000000000000";
       } else {
-        AndroidDeviceInfo androidDeviceInfo = await deviceInfoPlugin.androidInfo;
-
-        deviceId = androidDeviceInfo.androidId.toString();
+        try {
+          deviceId = await AndroidId().getId() ?? "0000000000000000";
+        } on PlatformException {
+          deviceId = "0000000000000000";
+        }
       }
     } else {
       if (Platform.isIOS) {
         deviceId = "0000000000000000";
       } else {
-        deviceId = "d4db82b1a0b16901";
+        deviceId = "05cb85e2354dc0eb";
       }
     }
 
     setState(() {});
   }
 }
-
-
-
-
-
 
 class HomePage extends StatefulWidget {
   const HomePage({

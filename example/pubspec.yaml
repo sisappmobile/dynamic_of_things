@@ -56,7 +56,7 @@ dependencies:
   syncfusion_flutter_charts: 29.2.7
 
   # plugin
-  device_info: 2.0.3
+  android_id: 0.4.0
 
 dev_dependencies:
   flutter_test:
