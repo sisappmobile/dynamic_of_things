@@ -64,7 +64,11 @@ class Dialogs {
                             );
                           }
 
-                          context.pop();
+                          if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                            Navigators.pop();
+                          } else {
+                            context.pop();
+                          }
 
                           callback.call(files);
                         } else {
@@ -76,7 +80,11 @@ class Dialogs {
                           if (xFile != null) {
                             Uint8List bytesFile = Uint8List.fromList(await xFile.readAsBytes());
 
-                            context.pop();
+                            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                              Navigators.pop();
+                            } else {
+                              context.pop();
+                            }
 
                             callback.call([bytesFile]);
                           }
@@ -103,7 +111,11 @@ class Dialogs {
                         Images.camera(
                             context: context,
                             callback: (bytes) {
-                              context.pop();
+                              if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                                Navigators.pop();
+                              } else {
+                                context.pop();
+                              }
 
                               callback.call([bytes]);
                             },
@@ -128,7 +140,11 @@ class Dialogs {
       Images.camera(
         context: context,
         callback: (bytes) {
-          context.pop();
+          if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+            Navigators.pop();
+          } else {
+            context.pop();
+          }
 
           callback.call([bytes]);
         },
@@ -185,7 +201,11 @@ class Dialogs {
                             );
                           }
 
-                          context.pop();
+                          if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                            Navigators.pop();
+                          } else {
+                            context.pop();
+                          }
 
                           callback.call(files);
                         }
@@ -213,7 +233,11 @@ class Dialogs {
                             RecordPage(
                               cameraDescriptions: value,
                               callback: (xFile) async {
-                                context.pop();
+                                if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                                  Navigators.pop();
+                                } else {
+                                  context.pop();
+                                }
 
                                 callback.call([File(xFile.path)]);
                               },
@@ -242,7 +266,11 @@ class Dialogs {
           RecordPage(
             cameraDescriptions: value,
             callback: (xFile) async {
-              context.pop();
+              if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                Navigators.pop();
+              } else {
+                context.pop();
+              }
 
               callback.call([File(xFile.path)]);
             },

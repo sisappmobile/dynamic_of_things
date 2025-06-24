@@ -499,7 +499,11 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
                       children: [
                         IconButton(
                           onPressed: () {
-                            context.pop();
+                            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                              Navigators.pop();
+                            } else {
+                              context.pop();
+                            }
                           },
                           icon: const Icon(
                             Icons.turn_left,
@@ -755,7 +759,11 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
                               refresh();
                             }
 
-                            context.pop();
+                            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                              Navigators.pop();
+                            } else {
+                              context.pop();
+                            }
                           },
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.primary(),

@@ -116,7 +116,11 @@ class CustomDynamicFormSubDetailFormState extends State<CustomDynamicFormSubDeta
         BaseDialogs.confirmation(
           title: "are_you_sure_want_to_proceed".tr(),
           positiveCallback: () {
-            context.pop(data);
+            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+              Navigators.pop(result: data);
+            } else {
+              context.pop(data);
+            }
           },
         );
       }

@@ -87,7 +87,11 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage> {
 
                 widget.onSuccess(data);
 
-                context.pop();
+                if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                  Navigators.pop();
+                } else {
+                  context.pop();
+                }
 
                 BaseOverlays.success(message: "barcode_scanner_success_dialog".tr());
               }

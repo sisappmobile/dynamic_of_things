@@ -119,7 +119,11 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
         } else if (state is DynamicFormSaveSuccess) {
           await BaseOverlays.success(message: "data_has_been_successfully_saved".tr());
 
-          context.pop();
+          if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+            Navigators.pop();
+          } else {
+            context.pop();
+          }
         } else if (state is DynamicFormSaveFinished) {
           context.loaderOverlay.hide();
         } else if (state is DynamicFormRefreshLoading) {

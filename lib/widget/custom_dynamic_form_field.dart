@@ -441,7 +441,11 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 iconData: Icons.backspace,
                 title: "clear_text".tr(),
                 onTap: () async {
-                  context.pop();
+                  if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                    Navigators.pop();
+                  } else {
+                    context.pop();
+                  }
 
                   widget.field.setValue(widget.data, null);
                 },
@@ -450,7 +454,11 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 iconData: Icons.qr_code_scanner,
                 title: "scan_barcode".tr(),
                 onTap: () async {
-                  context.pop();
+                  if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                    Navigators.pop();
+                  } else {
+                    context.pop();
+                  }
 
                   Navigators.push(
                     BarcodeScannerPage(

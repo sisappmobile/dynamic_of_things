@@ -32,7 +32,11 @@ class BottomSheets {
               ),
               IconButton(
                 onPressed: () async {
-                  context.pop();
+                  if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                    Navigators.pop();
+                  } else {
+                    context.pop();
+                  }
                 },
                 style: IconButton.styleFrom(
                   backgroundColor: AppColors.primaryContainer(),
@@ -268,7 +272,11 @@ class BottomSheets {
 
                         return InkWell(
                           onTap: () async {
-                            context.pop(item);
+                            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                              Navigators.pop(result: item);
+                            } else {
+                              context.pop(item);
+                            }
                           },
                           child: Container(
                             width: MediaQuery.of(context).size.width,

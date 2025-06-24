@@ -246,7 +246,11 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
                     iconData: Icons.visibility,
                     title: "Lihat Data",
                     onTap: hasViewAccess() ? () async {
-                      context.pop();
+                      if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                        Navigators.pop();
+                      } else {
+                        context.pop();
+                      }
 
                       await Navigators.push(
                         DynamicFormPage(
@@ -264,7 +268,11 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
                     iconData: Icons.edit,
                     title: "edit".tr(),
                     onTap: hasEditAccess() ? () async {
-                      context.pop();
+                      if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                        Navigators.pop();
+                      } else {
+                        context.pop();
+                      }
 
                       await Navigators.push(
                         DynamicFormPage(
@@ -284,7 +292,11 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
                   MenuItem menuItem = MenuItem(
                     title: element.name,
                     onTap: () {
-                      context.pop();
+                      if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                        Navigators.pop();
+                      } else {
+                        context.pop();
+                      }
 
                       BaseDialogs.confirmation(
                         title: "are_you_sure_want_to_proceed".tr(),

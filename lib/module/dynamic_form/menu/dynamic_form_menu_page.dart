@@ -3,9 +3,11 @@
 
 import "package:base/base.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
+import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_page.dart";
 import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_event.dart";
 import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_state.dart";
+import "package:dynamic_of_things/module/dynamic_report/dynamic_report_page.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
@@ -164,21 +166,39 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage> with WidgetsBi
                   return InkWell(
                     onTap: () async {
                       if (dynamicFormMenuItem.type == "REPORT") {
-                        await context.push(
-                          "/dynamic-reports",
-                          extra: {
-                            "dynamicFormMenuItem": dynamicFormMenuItem,
-                            "dynamicFormCategoryItem": dynamicFormCategoryItem,
-                          },
-                        );
+                        if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                          await Navigators.push(
+                            DynamicReportPage(
+                              dynamicFormMenuItem: dynamicFormMenuItem,
+                              dynamicFormCategoryItem: dynamicFormCategoryItem,
+                            ),
+                          );
+                        } else {
+                          await context.push(
+                            "/dynamic-reports",
+                            extra: {
+                              "dynamicFormMenuItem": dynamicFormMenuItem,
+                              "dynamicFormCategoryItem": dynamicFormCategoryItem,
+                            },
+                          );
+                        }
                       } else {
-                        await context.push(
-                          "/dynamic-forms/list",
-                          extra: {
-                            "dynamicFormMenuItem": dynamicFormMenuItem,
-                            "customerId": widget.customerId,
-                          },
-                        );
+                        if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                          await Navigators.push(
+                            DynamicFormListPage(
+                              dynamicFormMenuItem: dynamicFormMenuItem,
+                              customerId: widget.customerId,
+                            ),
+                          );
+                        } else {
+                          await context.push(
+                            "/dynamic-forms/list",
+                            extra: {
+                              "dynamicFormMenuItem": dynamicFormMenuItem,
+                              "customerId": widget.customerId,
+                            },
+                          );
+                        }
                       }
                     },
                     customBorder: SmoothRectangleBorder(

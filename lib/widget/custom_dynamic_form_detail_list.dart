@@ -4,6 +4,7 @@ import "package:base/base.dart";
 import "package:dynamic_of_things/helper/bottom_sheets.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/model/header_form.dart";
+import "package:dynamic_of_things/widget/custom_dynamic_form_detail_form.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:go_router/go_router.dart";
@@ -141,36 +142,66 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
                             iconData: Icons.visibility,
                             title: "Lihat Data",
                             onTap: () async {
-                              context.pop();
+                              if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                                Navigators.pop();
 
-                              await context.push(
-                                "/dynamic-form-details",
-                                extra: {
-                                  "customerId": widget.customerId,
-                                  "readOnly": true,
-                                  "headerForm": widget.headerForm,
-                                  "detailForm": widget.detailForm,
-                                  "data": widget.detailForm.getRow(widget.headerForm, index),
-                                },
-                              );
+                                await Navigators.push(
+                                  CustomDynamicFormDetailForm(
+                                    customerId: widget.customerId,
+                                    readOnly: true,
+                                    headerForm: widget.headerForm,
+                                    detailForm: widget.detailForm,
+                                    data: widget.detailForm.getRow(widget.headerForm, index),
+                                  ),
+                                );
+                              } else {
+                                context.pop();
+
+                                await context.push(
+                                  "/dynamic-form-details",
+                                  extra: {
+                                    "customerId": widget.customerId,
+                                    "readOnly": true,
+                                    "headerForm": widget.headerForm,
+                                    "detailForm": widget.detailForm,
+                                    "data": widget.detailForm.getRow(widget.headerForm, index),
+                                  },
+                                );
+                              }
                             },
                           ),
                           MenuItem(
                             iconData: Icons.edit,
                             title: "edit".tr(),
                             onTap: !isReadOnly() ? () async {
-                              context.pop();
+                              Map<String, dynamic>? result;
 
-                              Map<String, dynamic>? result = await context.push(
-                                "/dynamic-form-details",
-                                extra: {
-                                  "customerId": widget.customerId,
-                                  "readOnly": false,
-                                  "headerForm": widget.headerForm,
-                                  "detailForm": widget.detailForm,
-                                  "data": widget.detailForm.getRow(widget.headerForm, index),
-                                },
-                              );
+                              if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                                Navigators.pop();
+
+                                result = await Navigators.push(
+                                  CustomDynamicFormDetailForm(
+                                    customerId: widget.customerId,
+                                    readOnly: false,
+                                    headerForm: widget.headerForm,
+                                    detailForm: widget.detailForm,
+                                    data: widget.detailForm.getRow(widget.headerForm, index),
+                                  ),
+                                );
+                              } else {
+                                context.pop();
+
+                                result = await context.push(
+                                  "/dynamic-form-details",
+                                  extra: {
+                                    "customerId": widget.customerId,
+                                    "readOnly": false,
+                                    "headerForm": widget.headerForm,
+                                    "detailForm": widget.detailForm,
+                                    "data": widget.detailForm.getRow(widget.headerForm, index),
+                                  },
+                                );
+                              }
 
                               if (result != null) {
                                 widget.detailForm.updateRow(widget.headerForm, result, index);
@@ -190,7 +221,11 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
                               BaseDialogs.confirmation(
                                 title: "are_you_sure_want_to_proceed".tr(),
                                 positiveCallback: () {
-                                  context.pop();
+                                  if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                                    Navigators.pop();
+                                  } else {
+                                    context.pop();
+                                  }
 
                                   widget.detailForm.deleteRow(widget.headerForm, index);
 
@@ -263,15 +298,29 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
           height: Dimensions.size50,
           child: OutlinedButton(
             onPressed: () async {
-              Map<String, dynamic>? result = await context.push(
-                "/dynamic-form-details",
-                extra: {
-                  "customerId": widget.customerId,
-                  "readOnly": false,
-                  "headerForm": widget.headerForm,
-                  "detailForm": widget.detailForm,
-                },
-              );
+              Map<String, dynamic>? result;
+
+              if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                result = await Navigators.push(
+                  CustomDynamicFormDetailForm(
+                    customerId: widget.customerId,
+                    readOnly: false,
+                    headerForm: widget.headerForm,
+                    detailForm: widget.detailForm,
+                    data: {},
+                  ),
+                );
+              } else {
+                result = await context.push(
+                  "/dynamic-form-details",
+                  extra: {
+                    "customerId": widget.customerId,
+                    "readOnly": false,
+                    "headerForm": widget.headerForm,
+                    "detailForm": widget.detailForm,
+                  },
+                );
+              }
 
               if (result != null) {
                 widget.detailForm.addRow(widget.headerForm, result);
