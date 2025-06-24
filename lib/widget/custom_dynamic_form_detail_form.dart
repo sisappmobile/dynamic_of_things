@@ -94,7 +94,7 @@ class CustomDynamicFormDetailFormState extends State<CustomDynamicFormDetailForm
                 headerForm: widget.headerForm,
                 detailForm: widget.detailForm,
                 subDetailForm: subDetailForm,
-                data: [],
+                detailData: data,
                 onRefresh: () {
                   context.read<DynamicFormBloc>().add(
                     DynamicFormRefresh(

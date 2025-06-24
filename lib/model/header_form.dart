@@ -83,7 +83,6 @@ class DetailForm with ChangeNotifier {
   final Template template;
   final Map<String, dynamic> constructor;
   final List<SubDetailForm> subDetailForms;
-  final dynamic data;
   final bool hasOnChangeEvent;
 
   DetailForm({
@@ -92,54 +91,46 @@ class DetailForm with ChangeNotifier {
     required this.template,
     required this.constructor,
     required this.subDetailForms,
-    required this.data,
     required this.hasOnChangeEvent,
   });
 
-  factory DetailForm.fromJson(Map<String, dynamic> json) {
-    bool single = json["single"];
+  factory DetailForm.fromJson(Map<String, dynamic> json) => DetailForm(
+    single: json["single"],
+    columns: json["columns"] != null ? List<ListColumn>.from(json["columns"].map((e) => ListColumn.fromJson(e))) : [],
+    template: Template.fromJson(json["template"]),
+    constructor: json["template"],
+    subDetailForms: json["subDetailForms"] != null ? List<SubDetailForm>.from(json["subDetailForms"].map((e) => SubDetailForm.fromJson(e))) : [],
+    hasOnChangeEvent: json["hasOnChangeEvent"],
+  );
 
-    dynamic data() {
-      if (single) {
-        if (json["data"] != null) {
-          return json["data"] as Map<String, dynamic>;
-        } else {
-          return <String, dynamic>{};
-        }
-      } else {
-        if (json["data"] != null) {
-          return List<Map<String, dynamic>>.from(json["data"].map((e) => e as Map<String, dynamic>));
-        } else {
-          return List<Map<String, dynamic>>.empty(growable: true);
-        }
-      }
+  dynamic getData(HeaderForm headerForm) {
+    if (single) {
+      headerForm.data[template.tableName] = Map<String, dynamic>.from(headerForm.data[template.tableName] ?? {});
+    } else {
+      headerForm.data[template.tableName] = List<Map<String, dynamic>>.from(headerForm.data[template.tableName] ?? []);
     }
 
-    return DetailForm(
-      single: single,
-      columns: json["columns"] != null ? List<ListColumn>.from(json["columns"].map((e) => ListColumn.fromJson(e))) : [],
-      template: Template.fromJson(json["template"]),
-      constructor: json["template"],
-      subDetailForms: json["subDetailForms"] != null ? List<SubDetailForm>.from(json["subDetailForms"].map((e) => SubDetailForm.fromJson(e))) : [],
-      data: data(),
-      hasOnChangeEvent: json["hasOnChangeEvent"],
-    );
+    return headerForm.data[template.tableName];
   }
 
-  void addRow(Map<String, dynamic> row) {
-    data.add(row);
+  Map<String, dynamic> getRow(HeaderForm headerForm, int index) {
+    return Map<String, dynamic>.from(getData(headerForm)[index]);
+  }
+
+  void addRow(HeaderForm headerForm, Map<String, dynamic> row) {
+    getData(headerForm).add(row);
 
     notifyListeners();
   }
 
-  void deleteRow(int index) {
-    data.removeAt(index);
+  void deleteRow(HeaderForm headerForm, int index) {
+    getData(headerForm).removeAt(index);
 
     notifyListeners();
   }
 
-  void updateRow(Map<String, dynamic> row, int index) {
-    data[index] = row;
+  void updateRow(HeaderForm headerForm, Map<String, dynamic> row, int index) {
+    getData(headerForm)[index] = row;
 
     notifyListeners();
   }
@@ -149,14 +140,12 @@ class SubDetailForm with ChangeNotifier {
   final List<ListColumn> columns;
   final Template template;
   final Map<String, dynamic> constructor;
-  final List<Map<String, dynamic>> data;
   final bool hasOnChangeEvent;
 
   SubDetailForm({
     required this.columns,
     required this.template,
     required this.constructor,
-    required this.data,
     required this.hasOnChangeEvent,
   });
 
@@ -164,24 +153,33 @@ class SubDetailForm with ChangeNotifier {
     columns: json["columns"] != null ? List<ListColumn>.from(json["columns"].map((e) => ListColumn.fromJson(e))) : [],
     template: Template.fromJson(json["template"]),
     constructor: json["template"],
-    data: List<Map<String, dynamic>>.from(json["data"].map((e) => e as Map<String, dynamic>)),
     hasOnChangeEvent: json["hasOnChangeEvent"],
   );
 
-  void addRow(Map<String, dynamic> row) {
-    data.add(row);
+  List<Map<String, dynamic>> getRows(Map<String, dynamic> detailData) {
+    detailData[template.tableName] = List<Map<String, dynamic>>.from(detailData[template.tableName] ?? []);
+
+    return detailData[template.tableName];
+  }
+
+  Map<String, dynamic> getRow(Map<String, dynamic> detailData, int index) {
+    return Map<String, dynamic>.from(getRows(detailData)[index]);
+  }
+
+  void addRow(Map<String, dynamic> detailData, Map<String, dynamic> row) {
+    getRows(detailData).add(row);
 
     notifyListeners();
   }
 
-  void deleteRow(int index) {
-    data.removeAt(index);
+  void deleteRow(Map<String, dynamic> detailData, int index) {
+    getRows(detailData).removeAt(index);
 
     notifyListeners();
   }
 
-  void updateRow(Map<String, dynamic> row, int index) {
-    data[index] = row;
+  void updateRow(Map<String, dynamic> detailData, Map<String, dynamic> row, int index) {
+    getRows(detailData)[index] = row;
 
     notifyListeners();
   }

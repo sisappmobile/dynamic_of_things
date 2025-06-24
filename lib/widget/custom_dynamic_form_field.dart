@@ -1032,7 +1032,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                       for (Section section in widget.template.sections) {
                         for (Field field in section.fields) {
                           if (StringUtils.equalsIgnoreCase(field.name, dynamicFormResourceLoadOnFieldItem.target)) {
-                            field.setValue(widget.data, await DynamicForms.convert(field: field, value: value));
+                            field.setValue(widget.data, await DynamicForms.decodeValue(field: field, value: value));
 
                             found = true;
                           }
@@ -1082,7 +1082,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                           }
                         }
 
-                        detailForm.addRow(row);
+                        detailForm.addRow(widget.headerForm, row);
                       }
 
                       if (detailForm.hasOnChangeEvent) {
@@ -1120,7 +1120,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                       }
                     }
 
-                    detailForm.addRow(row);
+                    detailForm.addRow(widget.headerForm, row);
                   }
                 }
               }

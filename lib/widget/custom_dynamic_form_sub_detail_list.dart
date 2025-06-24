@@ -14,7 +14,7 @@ class CustomDynamicFormSubDetailList extends StatefulWidget {
   final HeaderForm headerForm;
   final DetailForm detailForm;
   final SubDetailForm subDetailForm;
-  final List<Map<String, dynamic>> data;
+  final Map<String, dynamic> detailData;
   final void Function()? onRefresh;
 
   const CustomDynamicFormSubDetailList({
@@ -24,7 +24,7 @@ class CustomDynamicFormSubDetailList extends StatefulWidget {
     required this.headerForm,
     required this.detailForm,
     required this.subDetailForm,
-    required this.data,
+    required this.detailData,
     this.onRefresh,
   });
 
@@ -33,13 +33,13 @@ class CustomDynamicFormSubDetailList extends StatefulWidget {
 }
 
 class CustomDynamicFormSubDetailListState extends State<CustomDynamicFormSubDetailList> with AutomaticKeepAliveClientMixin {
-  late List<Map<String, dynamic>> data;
+  late Map<String, dynamic> detailData;
 
   @override
   void initState() {
     super.initState();
 
-    data = widget.data;
+    detailData = widget.detailData;
   }
 
   @override
@@ -77,7 +77,7 @@ class CustomDynamicFormSubDetailListState extends State<CustomDynamicFormSubDeta
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: data.length,
+                itemCount: widget.subDetailForm.getRows(detailData).length,
                 separatorBuilder: (BuildContext context, int index) {
                   return Divider(
                     color: AppColors.outline(),
@@ -85,7 +85,7 @@ class CustomDynamicFormSubDetailListState extends State<CustomDynamicFormSubDeta
                   );
                 },
                 itemBuilder: (BuildContext context, int index) {
-                  Map<String, dynamic> map = data[index];
+                  Map<String, dynamic> map = widget.subDetailForm.getRow(detailData, index);
 
                   List<Widget> widgets = [];
 
@@ -163,7 +163,7 @@ class CustomDynamicFormSubDetailListState extends State<CustomDynamicFormSubDeta
                                   "headerForm": widget.headerForm,
                                   "detailForm": widget.detailForm,
                                   "subDetailForm": widget.subDetailForm,
-                                  "data": data[index],
+                                  "data": widget.subDetailForm.getRow(detailData, index),
                                 },
                               );
                             },
@@ -182,12 +182,12 @@ class CustomDynamicFormSubDetailListState extends State<CustomDynamicFormSubDeta
                                   "headerForm": widget.headerForm,
                                   "detailForm": widget.detailForm,
                                   "subDetailForm": widget.subDetailForm,
-                                  "data": Map<String, dynamic>.from(data[index]),
+                                  "data": widget.subDetailForm.getRow(detailData, index),
                                 },
                               );
 
                               if (result != null) {
-                                widget.subDetailForm.updateRow(result, index);
+                                widget.subDetailForm.updateRow(detailData, result, index);
 
                                 if (widget.subDetailForm.hasOnChangeEvent) {
                                   if (widget.onRefresh != null) {
@@ -206,7 +206,7 @@ class CustomDynamicFormSubDetailListState extends State<CustomDynamicFormSubDeta
                                 positiveCallback: () {
                                   context.pop();
 
-                                  widget.subDetailForm.deleteRow(index);
+                                  widget.subDetailForm.deleteRow(detailData, index);
 
                                   if (widget.subDetailForm.hasOnChangeEvent) {
                                     if (widget.onRefresh != null) {
@@ -289,7 +289,7 @@ class CustomDynamicFormSubDetailListState extends State<CustomDynamicFormSubDeta
               );
 
               if (result != null) {
-                widget.subDetailForm.addRow(result);
+                widget.subDetailForm.addRow(detailData, result);
 
                 if (widget.subDetailForm.hasOnChangeEvent) {
                   if (widget.onRefresh != null) {
@@ -333,6 +333,6 @@ class CustomDynamicFormSubDetailListState extends State<CustomDynamicFormSubDeta
   }
 
   bool empty() {
-    return !(!isReadOnly() && hasAddAccess()) && data.isEmpty;
+    return !(!isReadOnly() && hasAddAccess()) && widget.subDetailForm.getRows(detailData).isEmpty;
   }
 }

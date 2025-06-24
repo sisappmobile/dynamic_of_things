@@ -64,7 +64,7 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: widget.detailForm.data.length,
+                itemCount: widget.detailForm.getData(widget.headerForm).length,
                 separatorBuilder: (BuildContext context, int index) {
                   return Divider(
                     color: AppColors.outline(),
@@ -72,7 +72,7 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
                   );
                 },
                 itemBuilder: (BuildContext context, int index) {
-                  Map<String, dynamic> map = widget.detailForm.data[index];
+                  Map<String, dynamic> map = widget.detailForm.getRow(widget.headerForm, index);
 
                   List<Widget> widgets = [];
 
@@ -150,7 +150,7 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
                                   "readOnly": true,
                                   "headerForm": widget.headerForm,
                                   "detailForm": widget.detailForm,
-                                  "data": widget.detailForm.data[index],
+                                  "data": widget.detailForm.getRow(widget.headerForm, index),
                                 },
                               );
                             },
@@ -168,12 +168,12 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
                                   "readOnly": false,
                                   "headerForm": widget.headerForm,
                                   "detailForm": widget.detailForm,
-                                  "data": Map<String, dynamic>.from(widget.detailForm.data[index]),
+                                  "data": widget.detailForm.getRow(widget.headerForm, index),
                                 },
                               );
 
                               if (result != null) {
-                                widget.detailForm.updateRow(result, index);
+                                widget.detailForm.updateRow(widget.headerForm, result, index);
 
                                 if (widget.detailForm.hasOnChangeEvent) {
                                   if (widget.onRefresh != null) {
@@ -192,7 +192,7 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
                                 positiveCallback: () {
                                   context.pop();
 
-                                  widget.detailForm.deleteRow(index);
+                                  widget.detailForm.deleteRow(widget.headerForm, index);
 
                                   if (widget.detailForm.hasOnChangeEvent) {
                                     if (widget.onRefresh != null) {
@@ -274,7 +274,7 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
               );
 
               if (result != null) {
-                widget.detailForm.addRow(result);
+                widget.detailForm.addRow(widget.headerForm, result);
 
                 if (widget.detailForm.hasOnChangeEvent) {
                   if (widget.onRefresh != null) {
@@ -318,6 +318,6 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
   }
 
   bool empty() {
-    return !(!isReadOnly() && hasAddAccess()) && widget.detailForm.data.isEmpty;
+    return !(!isReadOnly() && hasAddAccess()) && widget.detailForm.getData(widget.headerForm).isEmpty;
   }
 }

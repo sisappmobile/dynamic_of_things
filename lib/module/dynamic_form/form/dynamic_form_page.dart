@@ -54,7 +54,7 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
       headerForm = widget.headerForm;
 
       WidgetsFlutterBinding.ensureInitialized().addPostFrameCallback((_) async {
-        await DynamicForms.decode(headerForm: headerForm!);
+        await DynamicForms.decode(headerForm!);
 
         loading = false;
 
@@ -77,7 +77,7 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
         } else if (state is DynamicFormCreateSuccess) {
           headerForm = state.headerForm;
 
-          await DynamicForms.decode(headerForm: headerForm!);
+          await DynamicForms.decode(headerForm!);
 
           loading = false;
 
@@ -92,7 +92,7 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
         } else if (state is DynamicFormViewSuccess) {
           headerForm = state.headerForm;
 
-          await DynamicForms.decode(headerForm: headerForm!);
+          await DynamicForms.decode(headerForm!);
 
           loading = false;
 
@@ -107,7 +107,7 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
         } else if (state is DynamicFormEditSuccess) {
           headerForm = state.headerForm;
 
-          await DynamicForms.decode(headerForm: headerForm!);
+          await DynamicForms.decode(headerForm!);
 
           loading = false;
 
@@ -130,7 +130,7 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
         } else if (state is DynamicFormRefreshSuccess) {
           headerForm = state.headerForm;
 
-          await DynamicForms.decode(headerForm: headerForm!);
+          await DynamicForms.decode(headerForm!);
 
           loading = false;
 
@@ -251,12 +251,12 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
                       ),
                     ),
                     CustomDynamicForm(
-                      key: ValueKey("Header-${headerForm!.template.id}"),
+                      key: ValueKey("DetailForm-${headerForm!.template.id}"),
                       readOnly: widget.readOnly,
                       customerId: widget.customerId,
                       headerForm: headerForm!,
                       template: detailForm.template,
-                      data: detailForm.data,
+                      data: detailForm.getData(headerForm!),
                     ),
                   ],
                 );

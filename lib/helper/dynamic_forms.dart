@@ -3,6 +3,7 @@ import "dart:typed_data";
 
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
+import "package:collection/collection.dart";
 import "package:dynamic_of_things/enumeration/dynamic_form_field_type.dart";
 import "package:dynamic_of_things/helper/custom_attachments.dart";
 import "package:dynamic_of_things/helper/formats.dart";
@@ -90,204 +91,302 @@ class DynamicForms {
     }
   }
 
-  static Future<Map<String, dynamic>> encode({
-    required HeaderForm headerForm,
+  static Future<void> encodeValue({
+    required Map<String, dynamic> row,
+    required MapEntry<String, dynamic> entry,
+    required Field? field,
   }) async {
-    Future<Map<String, dynamic>> process({
-      required List<Section> sections,
-      required Map<String, dynamic> row,
-    }) async {
-      Map<String, dynamic> target = {};
+    String key = entry.key;
+    dynamic value = entry.value;
 
-      for (String key in row.keys) {
-        dynamic value = row[key];
+    if (value != null) {
+      if (field != null) {
+        if (StringUtils.inList(field.type, [DynamicFormFieldType.DATE.name, DynamicFormFieldType.DATE_TIME.name])) {
+          row[key] = Formats.tryParseJiffy(value)!.format();
+        } else if (StringUtils.inList(field.type, [DynamicFormFieldType.TIME.name])) {
+          row[key] = Formats.time(value as TimeOfDay);
+        } else if (StringUtils.inList(field.type, [DynamicFormFieldType.NUMERIC.name, DynamicFormFieldType.NUMBER.name])) {
+          row[key] = Formats.tryParseNumber(value);
+        } else if (StringUtils.inList(field.type, [DynamicFormFieldType.CHECK.name])) {
+          row[key] = Formats.tryParseBool(value);
+        } else if (StringUtils.inList(field.type, [DynamicFormFieldType.DROPDOWN_DATA.name])) {
+          row[key] = value.toString();
 
-        if (value != null) {
-          Field? field;
+          if (field.link != null) {
+            String linkKey = field.link!.target;
 
-          outerLoop:
-          for (Section checkSection in sections) {
-            for (Field checkField in checkSection.fields) {
-              if (checkField.name == key) {
-                field = checkField;
-
-                break outerLoop;
-              }
-            }
+            row[linkKey] = row[linkKey];
           }
+        } else if (StringUtils.inList(field.type, [DynamicFormFieldType.FILE.name, DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.FOTO.name, DynamicFormFieldType.UPLOAD_FOTO.name, DynamicFormFieldType.UPLOAD_VIDEO.name]))  {
+          Attachment attachment = value;
 
-          if (field != null) {
-            if (StringUtils.inList(field.type, [DynamicFormFieldType.DATE.name, DynamicFormFieldType.DATE_TIME.name])) {
-              target[key] = Formats.tryParseJiffy(value)!.format();
-            } else if (StringUtils.inList(field.type, [DynamicFormFieldType.TIME.name])) {
-              target[key] = Formats.time(value as TimeOfDay);
-            } else if (StringUtils.inList(field.type, [DynamicFormFieldType.NUMERIC.name, DynamicFormFieldType.NUMBER.name])) {
-              target[key] = Formats.tryParseNumber(value);
-            } else if (StringUtils.inList(field.type, [DynamicFormFieldType.CHECK.name])) {
-              target[key] = Formats.tryParseBool(value);
-            } else if (StringUtils.inList(field.type, [DynamicFormFieldType.DROPDOWN_DATA.name])) {
-              target[key] = value.toString();
+          if (StringUtils.isNullOrEmpty(attachment.id)) {
+            GoogleDrives googleDrives = await GoogleDrives.getInstance();
 
-              if (field.link != null) {
-                String linkKey = field.link!.target;
+            String? fileId = await googleDrives.upload(
+              bytes: attachment.bytes!.toList(),
+            );
 
-                target[linkKey] = row[linkKey];
-              }
-            } else if (StringUtils.inList(field.type, [DynamicFormFieldType.FILE.name, DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.FOTO.name, DynamicFormFieldType.UPLOAD_FOTO.name, DynamicFormFieldType.UPLOAD_VIDEO.name]))  {
-              Attachment attachment = value;
-
-              if (StringUtils.isNullOrEmpty(attachment.id)) {
-                GoogleDrives googleDrives = await GoogleDrives.getInstance();
-
-                String? fileId = await googleDrives.upload(
-                  bytes: attachment.bytes!.toList(),
-                );
-
-                target[key] = fileId;
-              } else {
-                target[key] = attachment.id;
-              }
-            } else {
-              target[key] = value;
-            }
+            row[key] = fileId;
           } else {
-            target[key] = value;
+            row[key] = attachment.id;
           }
         } else {
-          target[key] = null;
-        }
-      }
-
-      return target;
-    }
-
-    Map<String, dynamic> result = await process(
-      sections: headerForm.template.sections,
-      row: headerForm.data,
-    );
-
-    for (DetailForm detailForm in headerForm.detailForms) {
-      if (detailForm.single) {
-        Map<String, dynamic> target = await process(
-          sections: detailForm.template.sections,
-          row: detailForm.data,
-        );
-
-        if (target.isNotEmpty) {
-          result[detailForm.template.tableName] = target;
+          row[key] = value;
         }
       } else {
-        result[detailForm.template.tableName] = [];
+        row[key] = value;
+      }
+    } else {
+      row[key] = null;
+    }
+  }
 
-        for (Map<String, dynamic> row in detailForm.data) {
-          Map<String, dynamic> target = await process(
-            sections: detailForm.template.sections,
-            row: row,
-          );
+  static Future<Map<String, dynamic>> encode(HeaderForm headerForm) async {
+    Map<String, dynamic> headerRow = Map<String, dynamic>.from(headerForm.data);
 
-          if (target.isNotEmpty) {
-            result[detailForm.template.tableName].add(target);
+    for (MapEntry<String, dynamic> headerMapEntry in headerForm.data.entries) {
+      if (headerMapEntry.value is Map || headerMapEntry.value is List) {
+        DetailForm? detailForm = headerForm.detailForms.firstWhereOrNull((element) => element.template.tableName == headerMapEntry.key);
+
+        if (detailForm != null) {
+          Future<void> detailProcess(Map<String, dynamic> detailRow) async {
+            for (MapEntry<String, dynamic> detailMapEntry in detailRow.entries) {
+              if (detailMapEntry.value is Map || detailMapEntry.value is List) {
+                SubDetailForm? subDetailForm = detailForm.subDetailForms.firstWhereOrNull((element) => element.template.tableName == detailMapEntry.key);
+
+                if (subDetailForm != null) {
+                  Future<void> subDetailProcess(Map<String, dynamic> subDetailRow) async {
+                    for (MapEntry<String, dynamic> subDetailMapEntry in subDetailRow.entries) {
+                      Field? subDetailField;
+
+                      outerLoop:
+                      for (Section subDetailSection in subDetailForm.template.sections) {
+                        for (Field subDetailFieldCheck in subDetailSection.fields) {
+                          if (subDetailFieldCheck.name == subDetailMapEntry.key) {
+                            subDetailField = subDetailFieldCheck;
+
+                            break outerLoop;
+                          }
+                        }
+                      }
+
+                      await encodeValue(
+                        row: subDetailRow,
+                        entry: subDetailMapEntry,
+                        field: subDetailField,
+                      );
+                    }
+                  }
+
+                  if (detailMapEntry.value is Map) {
+                    Map<String, dynamic> subDetailRow = detailMapEntry.value;
+
+                    await subDetailProcess(subDetailRow);
+                  } else {
+                    for (Map<String, dynamic> subDetailRow in detailMapEntry.value) {
+                      await subDetailProcess(subDetailRow);
+                    }
+                  }
+                }
+              } else {
+                Field? detailField;
+
+                outerLoop:
+                for (Section detailSection in detailForm.template.sections) {
+                  for (Field detailFieldCheck in detailSection.fields) {
+                    if (detailFieldCheck.name == detailMapEntry.key) {
+                      detailField = detailFieldCheck;
+
+                      break outerLoop;
+                    }
+                  }
+                }
+
+                await encodeValue(
+                  row: detailRow,
+                  entry: detailMapEntry,
+                  field: detailField,
+                );
+              }
+            }
+          }
+
+          if (headerMapEntry.value is Map) {
+            Map<String, dynamic> detailRow = headerMapEntry.value;
+
+            await detailProcess(detailRow);
+          } else {
+            for (Map<String, dynamic> detailRow in headerMapEntry.value) {
+              await detailProcess(detailRow);
+            }
           }
         }
+      } else {
+        Field? headerField;
+
+        outerLoop:
+        for (Section headerSection in headerForm.template.sections) {
+          for (Field headerFieldCheck in headerSection.fields) {
+            if (headerFieldCheck.name == headerMapEntry.key) {
+              headerField = headerFieldCheck;
+
+              break outerLoop;
+            }
+          }
+        }
+
+        await encodeValue(
+          row: headerRow,
+          entry: headerMapEntry,
+          field: headerField,
+        );
       }
     }
 
-    return result;
+    return headerRow;
   }
 
-  static Future<dynamic> convert({
-    required Field field,
+  static Future<dynamic> decodeValue({
+    required Field? field,
     required dynamic value,
   }) async {
     if (value != null) {
-      if (field.type == DynamicFormFieldType.DATE.name) {
-        return DateTime.parse(value);
-      } else if (field.type == DynamicFormFieldType.TIME.name) {
-        return Formats.parseTime(value);
-      } else if (field.type == DynamicFormFieldType.DATE_TIME.name) {
-        return DateTime.parse(value);
-      } else if (field.type == DynamicFormFieldType.NUMERIC.name) {
-        num result = Formats.tryParseNumber(value);
+      if (field != null) {
+        if (field.type == DynamicFormFieldType.DATE.name) {
+          return DateTime.parse(value);
+        } else if (field.type == DynamicFormFieldType.TIME.name) {
+          return Formats.parseTime(value);
+        } else if (field.type == DynamicFormFieldType.DATE_TIME.name) {
+          return DateTime.parse(value);
+        } else if (field.type == DynamicFormFieldType.NUMERIC.name) {
+          num result = Formats.tryParseNumber(value);
 
-        return result;
-      } else if (field.type == DynamicFormFieldType.NUMBER.name) {
-        num result = Formats.tryParseNumber(value);
+          return result;
+        } else if (field.type == DynamicFormFieldType.NUMBER.name) {
+          num result = Formats.tryParseNumber(value);
 
-        return result;
-      } else if (field.type == DynamicFormFieldType.CHECK.name) {
-        return value;
-      } else if (field.type == DynamicFormFieldType.DROPDOWN_DATA.name) {
-        return value;
-      } else if (StringUtils.inList(field.type, [DynamicFormFieldType.FILE.name, DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.FOTO.name, DynamicFormFieldType.UPLOAD_FOTO.name, DynamicFormFieldType.UPLOAD_VIDEO.name])) {
-        if (StringUtils.isNotNullOrEmpty(value.toString())) {
-          GoogleDrives googleDrives = await GoogleDrives.getInstance();
+          return result;
+        } else if (StringUtils.inList(field.type, [DynamicFormFieldType.FILE.name, DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.FOTO.name, DynamicFormFieldType.UPLOAD_FOTO.name, DynamicFormFieldType.UPLOAD_VIDEO.name])) {
+          if (StringUtils.isNotNullOrEmpty(value.toString())) {
+            GoogleDrives googleDrives = await GoogleDrives.getInstance();
 
-          List<int> bytes = await googleDrives.download(id: value);
+            List<int> bytes = await googleDrives.download(id: value);
 
-          Attachment attachment = Attachment()
-            ..id = value
-            ..bytes = Uint8List.fromList(bytes);
+            Attachment attachment = Attachment()
+              ..id = value
+              ..bytes = Uint8List.fromList(bytes);
 
-          if (StringUtils.inList(field.type, [DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.UPLOAD_VIDEO.name])) {
-            File file = await CustomAttachments.temporarySave(
-              fileName: "thumbnail-video",
-              bytes: bytes,
-            );
+            if (StringUtils.inList(field.type, [DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.UPLOAD_VIDEO.name])) {
+              File file = await CustomAttachments.temporarySave(
+                fileName: "thumbnail-video",
+                bytes: bytes,
+              );
 
-            attachment.thumbnail = await VideoThumbnail.thumbnailData(
-              video: file.path,
-              imageFormat: ImageFormat.JPEG,
-              maxWidth: 128,
-              quality: 25,
-            );
+              attachment.thumbnail = await VideoThumbnail.thumbnailData(
+                video: file.path,
+                imageFormat: ImageFormat.JPEG,
+                maxWidth: 128,
+                quality: 25,
+              );
+            }
+
+            return attachment;
           }
-
-          return attachment;
         }
-      } else {
-        return value;
       }
     }
 
     return value;
   }
 
-  static Future<void> decode({
-    required HeaderForm headerForm,
-  }) async {
-    Future<void> process({
-      required Template template,
-      required Map<String, dynamic> row,
-    }) async {
-      for (MapEntry<String, dynamic> mapEntry in row.entries) {
-        for (Section section in template.sections) {
-          for (Field field in section.fields) {
-            if (mapEntry.key == field.name) {
-              row[mapEntry.key] = await convert(field: field, value: mapEntry.value);
+  static Future<void> decode(HeaderForm headerForm) async {
+    Map<String, dynamic> headerRow = headerForm.data;
+
+    for (MapEntry<String, dynamic> headerMapEntry in headerForm.data.entries) {
+      if (headerMapEntry.value is Map || headerMapEntry.value is List) {
+        DetailForm? detailForm = headerForm.detailForms.firstWhereOrNull((element) => element.template.tableName == headerMapEntry.key);
+
+        if (detailForm != null) {
+          Future<void> detailProcess(Map<String, dynamic> detailRow) async {
+            for (MapEntry<String, dynamic> detailMapEntry in detailRow.entries) {
+              if (detailMapEntry.value is Map || detailMapEntry.value is List) {
+                SubDetailForm? subDetailForm = detailForm.subDetailForms.firstWhereOrNull((element) => element.template.tableName == detailMapEntry.key);
+
+                if (subDetailForm != null) {
+                  Future<void> subDetailProcess(Map<String, dynamic> subDetailRow) async {
+                    for (MapEntry<String, dynamic> subDetailMapEntry in subDetailRow.entries) {
+                      Field? subDetailField;
+
+                      outerLoop:
+                      for (Section subDetailSection in subDetailForm.template.sections) {
+                        for (Field subDetailFieldCheck in subDetailSection.fields) {
+                          if (subDetailFieldCheck.name == subDetailMapEntry.key) {
+                            subDetailField = subDetailFieldCheck;
+
+                            break outerLoop;
+                          }
+                        }
+                      }
+
+                      subDetailRow[subDetailMapEntry.key] = await decodeValue(field: subDetailField, value: subDetailMapEntry.value);
+                    }
+                  }
+
+                  if (detailMapEntry.value is Map) {
+                    Map<String, dynamic> subDetailRow = detailMapEntry.value;
+
+                    await subDetailProcess(subDetailRow);
+                  } else {
+                    for (Map<String, dynamic> subDetailRow in detailMapEntry.value) {
+                      await subDetailProcess(subDetailRow);
+                    }
+                  }
+                }
+              } else {
+                Field? detailField;
+
+                outerLoop:
+                for (Section detailSection in detailForm.template.sections) {
+                  for (Field detailFieldCheck in detailSection.fields) {
+                    if (detailFieldCheck.name == detailMapEntry.key) {
+                      detailField = detailFieldCheck;
+
+                      break outerLoop;
+                    }
+                  }
+                }
+
+                detailRow[detailMapEntry.key] = await decodeValue(field: detailField, value: detailMapEntry.value);
+              }
+            }
+          }
+
+          if (headerMapEntry.value is Map) {
+            Map<String, dynamic> detailRow = headerMapEntry.value;
+
+            await detailProcess(detailRow);
+          } else {
+            for (Map<String, dynamic> detailRow in headerMapEntry.value) {
+              await detailProcess(detailRow);
             }
           }
         }
-      }
-    }
-
-    await process(
-      template: headerForm.template,
-      row: headerForm.data,
-    );
-
-    for (DetailForm detailForm in headerForm.detailForms) {
-      if (detailForm.single) {
-        await process(
-          template: detailForm.template,
-          row: detailForm.data,
-        );
       } else {
-        for (Map<String, dynamic> row in detailForm.data) {
-          await process(
-            template: detailForm.template,
-            row: row,
-          );
+        Field? headerField;
+
+        outerLoop:
+        for (Section headerSection in headerForm.template.sections) {
+          for (Field headerFieldCheck in headerSection.fields) {
+            if (headerFieldCheck.name == headerMapEntry.key) {
+              headerField = headerFieldCheck;
+
+              break outerLoop;
+            }
+          }
         }
+
+        headerRow[headerMapEntry.key] = await decodeValue(field: headerField, value: headerMapEntry.value);
       }
     }
   }

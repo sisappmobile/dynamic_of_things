@@ -85,7 +85,7 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
       try {
         emit(DynamicFormSaveLoading());
 
-        Map<String, dynamic> output = await DynamicForms.encode(headerForm: event.headerForm);
+        Map<String, dynamic> output = await DynamicForms.encode(event.headerForm);
 
         if (StringUtils.isNotNullOrEmpty(event.headerForm.dataId)) {
           await DotApis.getInstance().dynamicFormUpdate(
@@ -122,7 +122,7 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
       try {
         emit(DynamicFormRefreshLoading());
 
-        Map<String, dynamic> output = await DynamicForms.encode(headerForm: event.headerForm);
+        Map<String, dynamic> output = await DynamicForms.encode(event.headerForm);
 
         HeaderForm? headerForm = await DotApis.getInstance().dynamicFormRefresh(
           formId: event.formId,
