@@ -8,38 +8,51 @@ import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:go_router/go_router.dart";
 
-class CustomDynamicFormDetailList extends StatefulWidget {
+class CustomDynamicFormSubDetailList extends StatefulWidget {
   final bool readOnly;
   final String? customerId;
   final HeaderForm headerForm;
   final DetailForm detailForm;
+  final SubDetailForm subDetailForm;
+  final List<Map<String, dynamic>> data;
   final void Function()? onRefresh;
 
-  const CustomDynamicFormDetailList({
+  const CustomDynamicFormSubDetailList({
     super.key,
     required this.readOnly,
     required this.customerId,
     required this.headerForm,
     required this.detailForm,
+    required this.subDetailForm,
+    required this.data,
     this.onRefresh,
   });
 
   @override
-  State<CustomDynamicFormDetailList> createState() => CustomDynamicFormDetailListState();
+  State<CustomDynamicFormSubDetailList> createState() => CustomDynamicFormSubDetailListState();
 }
 
-class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList> with AutomaticKeepAliveClientMixin {
+class CustomDynamicFormSubDetailListState extends State<CustomDynamicFormSubDetailList> with AutomaticKeepAliveClientMixin {
+  late List<Map<String, dynamic>> data;
+
+  @override
+  void initState() {
+    super.initState();
+
+    data = widget.data;
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
 
     return ListenableBuilder(
-      listenable: widget.detailForm,
+      listenable: widget.subDetailForm,
       builder: (context, child) {
         if (empty()) {
           return const SizedBox.shrink();
         } else {
-          List<ListColumn> columns = widget.detailForm.columns.where((element) => !element.primaryKey).toList();
+          List<ListColumn> columns = widget.subDetailForm.columns.where((element) => !element.primaryKey).toList();
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -50,7 +63,7 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.detailForm.template.title.toUpperCase(),
+                      widget.subDetailForm.template.title.toUpperCase(),
                       style: TextStyle(
                         color: AppColors.primary(),
                         fontSize: Dimensions.text18,
@@ -64,7 +77,7 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: widget.detailForm.data.length,
+                itemCount: data.length,
                 separatorBuilder: (BuildContext context, int index) {
                   return Divider(
                     color: AppColors.outline(),
@@ -72,7 +85,7 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
                   );
                 },
                 itemBuilder: (BuildContext context, int index) {
-                  Map<String, dynamic> map = widget.detailForm.data[index];
+                  Map<String, dynamic> map = data[index];
 
                   List<Widget> widgets = [];
 
@@ -133,7 +146,6 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
 
                   return InkWell(
                     onTap: () {
-
                       BottomSheets.popupMenu(
                         context: context,
                         menuItems: [
@@ -144,13 +156,14 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
                               context.pop();
 
                               await context.push(
-                                "/dynamic-form-details",
+                                "/dynamic-form-sub-details",
                                 extra: {
                                   "customerId": widget.customerId,
                                   "readOnly": true,
                                   "headerForm": widget.headerForm,
                                   "detailForm": widget.detailForm,
-                                  "data": widget.detailForm.data[index],
+                                  "subDetailForm": widget.subDetailForm,
+                                  "data": data[index],
                                 },
                               );
                             },
@@ -162,20 +175,21 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
                               context.pop();
 
                               Map<String, dynamic>? result = await context.push(
-                                "/dynamic-form-details",
+                                "/dynamic-form-sub-details",
                                 extra: {
                                   "customerId": widget.customerId,
                                   "readOnly": false,
                                   "headerForm": widget.headerForm,
                                   "detailForm": widget.detailForm,
-                                  "data": Map<String, dynamic>.from(widget.detailForm.data[index]),
+                                  "subDetailForm": widget.subDetailForm,
+                                  "data": Map<String, dynamic>.from(data[index]),
                                 },
                               );
 
                               if (result != null) {
-                                widget.detailForm.updateRow(result, index);
+                                widget.subDetailForm.updateRow(result, index);
 
-                                if (widget.detailForm.hasOnChangeEvent) {
+                                if (widget.subDetailForm.hasOnChangeEvent) {
                                   if (widget.onRefresh != null) {
                                     widget.onRefresh!();
                                   }
@@ -192,9 +206,9 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
                                 positiveCallback: () {
                                   context.pop();
 
-                                  widget.detailForm.deleteRow(index);
+                                  widget.subDetailForm.deleteRow(index);
 
-                                  if (widget.detailForm.hasOnChangeEvent) {
+                                  if (widget.subDetailForm.hasOnChangeEvent) {
                                     if (widget.onRefresh != null) {
                                       widget.onRefresh!();
                                     }
@@ -264,19 +278,20 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
           child: OutlinedButton(
             onPressed: () async {
               Map<String, dynamic>? result = await context.push(
-                "/dynamic-form-details",
+                "/dynamic-form-sub-details",
                 extra: {
                   "customerId": widget.customerId,
                   "readOnly": false,
                   "headerForm": widget.headerForm,
                   "detailForm": widget.detailForm,
+                  "subDetailForm": widget.subDetailForm,
                 },
               );
 
               if (result != null) {
-                widget.detailForm.addRow(result);
+                widget.subDetailForm.addRow(result);
 
-                if (widget.detailForm.hasOnChangeEvent) {
+                if (widget.subDetailForm.hasOnChangeEvent) {
                   if (widget.onRefresh != null) {
                     widget.onRefresh!();
                   }
@@ -318,6 +333,6 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
   }
 
   bool empty() {
-    return !(!isReadOnly() && hasAddAccess()) && widget.detailForm.data.isEmpty;
+    return !(!isReadOnly() && hasAddAccess()) && data.isEmpty;
   }
 }

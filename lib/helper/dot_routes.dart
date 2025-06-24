@@ -4,6 +4,7 @@ import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_pag
 import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_page.dart";
 import "package:dynamic_of_things/module/dynamic_report/dynamic_report_page.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_detail_form.dart";
+import "package:dynamic_of_things/widget/custom_dynamic_form_sub_detail_form.dart";
 import "package:go_router/go_router.dart";
 
 final List<GoRoute> dotRoutes = [
@@ -47,7 +48,22 @@ final List<GoRoute> dotRoutes = [
         customerId: extra["customerId"],
         readOnly: extra["readOnly"],
         headerForm: extra["headerForm"],
-        template: extra["template"],
+        detailForm: extra["detailForm"],
+        data: extra["data"] ?? {},
+      );
+    },
+  ),
+  GoRoute(
+    path: "/dynamic-form-sub-details",
+    builder: (context, state) {
+      Map<String, dynamic> extra = state.extra as Map<String, dynamic>;
+
+      return CustomDynamicFormSubDetailForm(
+        customerId: extra["customerId"],
+        readOnly: extra["readOnly"],
+        headerForm: extra["headerForm"],
+        detailForm: extra["detailForm"],
+        subDetailForm: extra["subDetailForm"],
         data: extra["data"] ?? {},
       );
     },

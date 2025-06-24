@@ -491,7 +491,7 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
       if (Platform.isIOS) {
         deviceId = "0000000000000000";
       } else {
-        deviceId = "05cb85e2354dc0eb";
+        deviceId = "4e67039bd3b69e3b";
       }
     }
 

@@ -82,6 +82,7 @@ class DetailForm with ChangeNotifier {
   final List<ListColumn> columns;
   final Template template;
   final Map<String, dynamic> constructor;
+  final List<SubDetailForm> subDetailForms;
   final dynamic data;
   final bool hasOnChangeEvent;
 
@@ -90,6 +91,7 @@ class DetailForm with ChangeNotifier {
     required this.columns,
     required this.template,
     required this.constructor,
+    required this.subDetailForms,
     required this.data,
     required this.hasOnChangeEvent,
   });
@@ -118,6 +120,7 @@ class DetailForm with ChangeNotifier {
       columns: json["columns"] != null ? List<ListColumn>.from(json["columns"].map((e) => ListColumn.fromJson(e))) : [],
       template: Template.fromJson(json["template"]),
       constructor: json["template"],
+      subDetailForms: json["subDetailForms"] != null ? List<SubDetailForm>.from(json["subDetailForms"].map((e) => SubDetailForm.fromJson(e))) : [],
       data: data(),
       hasOnChangeEvent: json["hasOnChangeEvent"],
     );
@@ -147,12 +150,14 @@ class SubDetailForm with ChangeNotifier {
   final Template template;
   final Map<String, dynamic> constructor;
   final List<Map<String, dynamic>> data;
+  final bool hasOnChangeEvent;
 
   SubDetailForm({
     required this.columns,
     required this.template,
     required this.constructor,
     required this.data,
+    required this.hasOnChangeEvent,
   });
 
   factory SubDetailForm.fromJson(Map<String, dynamic> json) => SubDetailForm(
@@ -160,6 +165,7 @@ class SubDetailForm with ChangeNotifier {
     template: Template.fromJson(json["template"]),
     constructor: json["template"],
     data: List<Map<String, dynamic>>.from(json["data"].map((e) => e as Map<String, dynamic>)),
+    hasOnChangeEvent: json["hasOnChangeEvent"],
   );
 
   void addRow(Map<String, dynamic> row) {

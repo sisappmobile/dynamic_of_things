@@ -227,6 +227,7 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
         child: Column(
           children: [
             CustomDynamicForm(
+              key: ValueKey("Header-${headerForm!.template.id}"),
               readOnly: widget.readOnly,
               customerId: widget.customerId,
               headerForm: headerForm!,
@@ -250,6 +251,7 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
                       ),
                     ),
                     CustomDynamicForm(
+                      key: ValueKey("Header-${headerForm!.template.id}"),
                       readOnly: widget.readOnly,
                       customerId: widget.customerId,
                       headerForm: headerForm!,
@@ -260,6 +262,7 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
                 );
               } else {
                 return CustomDynamicFormDetailList(
+                  key: ValueKey("DetailList-${detailForm.template.id}"),
                   readOnly: widget.readOnly,
                   customerId: widget.customerId,
                   headerForm: headerForm!,
