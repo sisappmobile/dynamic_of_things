@@ -2,16 +2,20 @@
 
 import "package:base/base.dart";
 import "package:dynamic_of_things/model/header_form.dart";
+import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dart";
+import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_event.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form.dart";
+import "package:dynamic_of_things/widget/custom_dynamic_form_sub_detail_list.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
+import "package:flutter_bloc/flutter_bloc.dart";
 import "package:go_router/go_router.dart";
 
 class CustomDynamicFormDetailForm extends StatefulWidget {
   final String? customerId;
   final bool readOnly;
   final HeaderForm headerForm;
-  final Template template;
+  final DetailForm detailForm;
   final Map<String, dynamic> data;
 
   const CustomDynamicFormDetailForm({
@@ -19,7 +23,7 @@ class CustomDynamicFormDetailForm extends StatefulWidget {
     required this.customerId,
     required this.readOnly,
     required this.headerForm,
-    required this.template,
+    required this.detailForm,
     required this.data,
   });
 
@@ -30,11 +34,15 @@ class CustomDynamicFormDetailForm extends StatefulWidget {
 class CustomDynamicFormDetailFormState extends State<CustomDynamicFormDetailForm> with WidgetsBindingObserver {
   GlobalKey<FormState> formState = GlobalKey<FormState>();
 
+  late Map<String, dynamic> data;
+
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
+
+    data = widget.data;
   }
 
   @override
@@ -43,7 +51,7 @@ class CustomDynamicFormDetailFormState extends State<CustomDynamicFormDetailForm
       context: context,
       appBar: BaseAppBar(
         context: context,
-        name: widget.template.title,
+        name: widget.detailForm.template.title,
       ),
       contentBuilder: body,
       bottomNavigationBar: bottomBar(),
@@ -68,12 +76,37 @@ class CustomDynamicFormDetailFormState extends State<CustomDynamicFormDetailForm
     return Form(
       key: formState,
       child: SingleChildScrollView(
-        child: CustomDynamicForm(
-          readOnly: widget.readOnly,
-          customerId: widget.customerId,
-          headerForm: widget.headerForm,
-          template: widget.template,
-          data: widget.data,
+        child: Column(
+          children: [
+            CustomDynamicForm(
+              key: ValueKey("Detail-${widget.detailForm.template.id}"),
+              readOnly: widget.readOnly,
+              customerId: widget.customerId,
+              headerForm: widget.headerForm,
+              template: widget.detailForm.template,
+              data: data,
+            ),
+            ...widget.detailForm.subDetailForms.map((subDetailForm) {
+              return CustomDynamicFormSubDetailList(
+                key: ValueKey("SubDetailList-${subDetailForm.template.id}"),
+                readOnly: widget.readOnly,
+                customerId: widget.customerId,
+                headerForm: widget.headerForm,
+                detailForm: widget.detailForm,
+                subDetailForm: subDetailForm,
+                data: [],
+                onRefresh: () {
+                  context.read<DynamicFormBloc>().add(
+                    DynamicFormRefresh(
+                      formId: widget.headerForm.template.id,
+                      customerId: widget.customerId,
+                      headerForm: widget.headerForm,
+                    ),
+                  );
+                },
+              );
+            }),
+          ],
         ),
       ),
     );
@@ -105,7 +138,7 @@ class CustomDynamicFormDetailFormState extends State<CustomDynamicFormDetailForm
         BaseDialogs.confirmation(
           title: "are_you_sure_want_to_proceed".tr(),
           positiveCallback: () {
-            context.pop(widget.data);
+            context.pop(data);
           },
         );
       }
