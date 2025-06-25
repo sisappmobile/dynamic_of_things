@@ -3,6 +3,7 @@
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:camera/camera.dart";
+import "package:collection/collection.dart";
 import "package:dynamic_of_things/enumeration/dynamic_form_field_type.dart";
 import "package:dynamic_of_things/enumeration/dynamic_form_validation_type.dart";
 import "package:dynamic_of_things/helper/bottom_sheets.dart";
@@ -1004,7 +1005,13 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             value = selectedItem[dfrfiKey.name];
           } else {
             if (selectedItem.keys.length > 1) {
-              value = selectedItem[selectedItem.keys.elementAt(1)];
+              if (widget.field.link != null) {
+                String key = selectedItem.keys.firstWhere((element) => element != widget.field.link!.source);
+
+                value = selectedItem[key];
+              } else {
+                value = selectedItem[selectedItem.keys.elementAt(1)];
+              }
             } else {
               value = selectedItem[selectedItem.keys.elementAt(0)];
             }
