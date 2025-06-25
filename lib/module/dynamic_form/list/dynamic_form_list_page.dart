@@ -68,19 +68,37 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
           context.loaderOverlay.show();
         } else if (state is DynamicFormListCustomActionSuccess) {
           if (state.headerForm != null) {
-            await Navigators.push(
-              DynamicFormPage(
-                dynamicFormMenuItem: widget.dynamicFormMenuItem,
-                readOnly: false,
-                customerId: widget.customerId,
-                headerForm: state.headerForm,
-              ),
-            );
+            bool result = false;
+
+            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+              result = await Navigators.push(
+                DynamicFormPage(
+                  dynamicFormMenuItem: widget.dynamicFormMenuItem,
+                  readOnly: false,
+                  customerId: widget.customerId,
+                  headerForm: state.headerForm,
+                ),
+              ) ?? false;
+            } else {
+              result = await context.push(
+                "/dynamic-forms",
+                extra: {
+                  "dynamicFormMenuItem": widget.dynamicFormMenuItem,
+                  "readOnly": false,
+                  "customerId": widget.customerId,
+                  "headerForm": state.headerForm,
+                },
+              ) ?? false;
+            }
+
+            if (result) {
+              refresh();
+            }
           } else {
             await BaseOverlays.success(message: "data_has_been_successfully_saved".tr());
-          }
 
-          refresh();
+            refresh();
+          }
         } else if (state is DynamicFormListCustomActionFinished) {
           context.loaderOverlay.hide();
         }
@@ -246,44 +264,72 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
                     iconData: Icons.visibility,
                     title: "Lihat Data",
                     onTap: hasViewAccess() ? () async {
+                      bool result = false;
+
                       if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
                         Navigators.pop();
+
+                        result = await Navigators.push(
+                          DynamicFormPage(
+                            dynamicFormMenuItem: widget.dynamicFormMenuItem,
+                            readOnly: true,
+                            dataId: map[primaryKey.name].toString(),
+                            customerId: widget.customerId,
+                          ),
+                        ) ?? false;
                       } else {
                         context.pop();
+
+                        result = await context.push(
+                          "/dynamic-forms",
+                          extra: {
+                            "dynamicFormMenuItem": widget.dynamicFormMenuItem,
+                            "readOnly": true,
+                            "dataId": map[primaryKey.name].toString(),
+                            "customerId": widget.customerId,
+                          },
+                        ) ?? false;
                       }
 
-                      await Navigators.push(
-                        DynamicFormPage(
-                          dynamicFormMenuItem: widget.dynamicFormMenuItem,
-                          readOnly: true,
-                          dataId: map[primaryKey.name].toString(),
-                          customerId: widget.customerId,
-                        ),
-                      );
-
-                      refresh();
+                      if (result) {
+                        refresh();
+                      }
                     } : null,
                   ),
                   MenuItem(
                     iconData: Icons.edit,
                     title: "edit".tr(),
                     onTap: hasEditAccess() ? () async {
+                      bool result = false;
+
                       if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
                         Navigators.pop();
+
+                        result = await Navigators.push(
+                          DynamicFormPage(
+                            dynamicFormMenuItem: widget.dynamicFormMenuItem,
+                            readOnly: false,
+                            dataId: map[primaryKey.name].toString(),
+                            customerId: widget.customerId,
+                          ),
+                        ) ?? false;
                       } else {
                         context.pop();
+
+                        result = await context.push(
+                          "/dynamic-forms",
+                          extra: {
+                            "dynamicFormMenuItem": widget.dynamicFormMenuItem,
+                            "readOnly": false,
+                            "dataId": map[primaryKey.name].toString(),
+                            "customerId": widget.customerId,
+                          },
+                        ) ?? false;
                       }
 
-                      await Navigators.push(
-                        DynamicFormPage(
-                          dynamicFormMenuItem: widget.dynamicFormMenuItem,
-                          readOnly: false,
-                          dataId: map[primaryKey.name].toString(),
-                          customerId: widget.customerId,
-                        ),
-                      );
-
-                      refresh();
+                      if (result) {
+                        refresh();
+                      }
                     } : null,
                   ),
                 ];
@@ -367,14 +413,28 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
     if (hasCreateAccess()) {
       return FloatingActionButton.extended(
         onPressed: () async {
-          await Navigators.push(
-            DynamicFormPage(
-              dynamicFormMenuItem: widget.dynamicFormMenuItem,
-              customerId: widget.customerId,
-            ),
-          );
+          bool result = false;
 
-          refresh();
+          if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+            result = await Navigators.push(
+              DynamicFormPage(
+                dynamicFormMenuItem: widget.dynamicFormMenuItem,
+                customerId: widget.customerId,
+              ),
+            ) ?? false;
+          } else {
+            result = await context.push(
+              "/dynamic-forms",
+              extra: {
+                "dynamicFormMenuItem": widget.dynamicFormMenuItem,
+                "customerId": widget.customerId,
+              },
+            ) ?? false;
+          }
+
+          if (result) {
+            refresh();
+          }
         },
         icon: const Icon(
           Icons.add,
