@@ -997,25 +997,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         );
 
         if (selectedItem != null) {
-          DynamicFormResourceFieldItem? dfrfiKey = dynamicFormResourceResponse.fields.firstWhereOrNull((element) => element.primaryKey);
-
-          dynamic value;
-
-          if (dfrfiKey != null) {
-            value = selectedItem[dfrfiKey.name];
-          } else {
-            if (selectedItem.keys.length > 1) {
-              if (widget.field.link != null) {
-                String key = selectedItem.keys.firstWhere((element) => element != widget.field.link!.source);
-
-                value = selectedItem[key];
-              } else {
-                value = selectedItem[selectedItem.keys.elementAt(1)];
-              }
-            } else {
-              value = selectedItem[selectedItem.keys.elementAt(0)];
-            }
-          }
+          dynamic value = selectedItem[dynamicFormResourceResponse.key];
 
           try {
             context.loaderOverlay.show();

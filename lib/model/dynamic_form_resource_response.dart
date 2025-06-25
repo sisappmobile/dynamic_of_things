@@ -1,10 +1,12 @@
 class DynamicFormResourceResponse {
+  final String key;
   final List<DynamicFormResourceFieldItem> fields;
   final List<Map<String, dynamic>> data;
   final List<DynamicFormResourceDetailSetupItem> detailSetups;
   final List<DynamicFormResourceLoadOnFieldItem> loadOnFields;
 
   DynamicFormResourceResponse({
+    required this.key,
     required this.fields,
     required this.data,
     required this.detailSetups,
@@ -12,6 +14,7 @@ class DynamicFormResourceResponse {
   });
 
   factory DynamicFormResourceResponse.fromJson(Map<String, dynamic> json) => DynamicFormResourceResponse(
+    key: json["key"],
     fields: json["fields"] != null ? List<DynamicFormResourceFieldItem>.from(json["fields"].map((e) => DynamicFormResourceFieldItem.fromJson(e))) : [],
     data: json["data"] != null ? List<Map<String, dynamic>>.from(json["data"].map((e) => e)) : [],
     detailSetups: json["detailSetups"] != null ? List<DynamicFormResourceDetailSetupItem>.from(json["detailSetups"].map((e) => DynamicFormResourceDetailSetupItem.fromJson(e))) : [],
@@ -38,20 +41,17 @@ class DynamicFormResourceFieldItem {
   final String name;
   final String type;
   final String description;
-  final bool primaryKey;
 
   DynamicFormResourceFieldItem({
     required this.name,
     required this.type,
     required this.description,
-    required this.primaryKey,
   });
 
   factory DynamicFormResourceFieldItem.fromJson(Map<String, dynamic> json) => DynamicFormResourceFieldItem(
     name: json["name"] ?? "",
     type: json["type"] ?? "",
     description: json["description"] ?? "",
-    primaryKey: json["primaryKey"] ?? false,
   );
 }
 

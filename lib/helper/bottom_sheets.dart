@@ -101,7 +101,7 @@ class BottomSheets {
 
     filteredItems.addAll(dynamicFormResourceResponse.data);
 
-    List<DynamicFormResourceFieldItem> dynamicFormResourceFieldItems = dynamicFormResourceResponse.fields.where((element) => !element.primaryKey).toList();
+    List<DynamicFormResourceFieldItem> dynamicFormResourceFieldItems = dynamicFormResourceResponse.fields.toList();
 
     return await showModalBottomSheet(
       context: context,
