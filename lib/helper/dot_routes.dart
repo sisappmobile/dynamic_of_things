@@ -4,6 +4,7 @@ import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_pag
 import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_page.dart";
 import "package:dynamic_of_things/module/dynamic_form/schedule/dynamic_form_schedule_page.dart";
 import "package:dynamic_of_things/module/dynamic_report/dynamic_report_page.dart";
+import "package:dynamic_of_things/widget/custom_dynamic_form_bulk_detail_form.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_detail_form.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_sub_detail_form.dart";
 import "package:go_router/go_router.dart";
@@ -62,6 +63,20 @@ final List<GoRoute> dotRoutes = [
         headerForm: extra["headerForm"],
         detailForm: extra["detailForm"],
         data: extra["data"] ?? {},
+      );
+    },
+  ),
+  GoRoute(
+    path: "/dynamic-form-bulk-details",
+    builder: (context, state) {
+      Map<String, dynamic> extra = state.extra as Map<String, dynamic>;
+
+      return CustomDynamicFormBulkDetailForm(
+        customerId: extra["customerId"],
+        readOnly: extra["readOnly"],
+        headerForm: extra["headerForm"],
+        detailForm: extra["detailForm"],
+        rows: extra["rows"] ?? [],
       );
     },
   ),

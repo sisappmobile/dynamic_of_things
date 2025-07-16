@@ -1,9 +1,11 @@
 // ignore_for_file: always_specify_types, use_build_context_synchronously, empty_catches, cascade_invocations, always_put_required_named_parameters_first
 
 import "package:base/base.dart";
+import "package:collection/collection.dart";
 import "package:dynamic_of_things/helper/bottom_sheets.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/model/header_form.dart";
+import "package:dynamic_of_things/widget/custom_dynamic_form_bulk_detail_form.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_detail_form.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
@@ -50,15 +52,22 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      widget.detailForm.template.title.toUpperCase(),
-                      style: TextStyle(
-                        color: AppColors.primary(),
-                        fontSize: Dimensions.text18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.detailForm.template.title.toUpperCase(),
+                            style: TextStyle(
+                              color: AppColors.primary(),
+                              fontSize: Dimensions.text18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        bulkEditButton(),
+                      ],
                     ),
-                    ...addButton(),
+                    addButton(),
                   ],
                 ),
               ),
@@ -288,70 +297,121 @@ class CustomDynamicFormDetailListState extends State<CustomDynamicFormDetailList
     );
   }
 
-  List<Widget> addButton() {
+  Widget addButton() {
     if (!isReadOnly() && hasAddAccess()) {
-      return [
-        SizedBox(
-          height: Dimensions.size10,
-        ),
-        SizedBox(
-          height: Dimensions.size50,
-          child: OutlinedButton(
-            onPressed: () async {
-              Map<String, dynamic>? result;
+      return Container(
+        height: Dimensions.size50,
+        margin: EdgeInsets.only(top: Dimensions.size10),
+        child: OutlinedButton(
+          onPressed: () async {
+            Map<String, dynamic>? result;
 
-              if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                result = await Navigators.push(
-                  CustomDynamicFormDetailForm(
-                    customerId: widget.customerId,
-                    readOnly: false,
-                    headerForm: widget.headerForm,
-                    detailForm: widget.detailForm,
-                    data: {},
-                  ),
-                );
-              } else {
-                result = await context.push(
-                  "/dynamic-form-details",
-                  extra: {
-                    "customerId": widget.customerId,
-                    "readOnly": false,
-                    "headerForm": widget.headerForm,
-                    "detailForm": widget.detailForm,
-                  },
-                );
-              }
+            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+              result = await Navigators.push(
+                CustomDynamicFormDetailForm(
+                  customerId: widget.customerId,
+                  readOnly: false,
+                  headerForm: widget.headerForm,
+                  detailForm: widget.detailForm,
+                  data: {},
+                ),
+              );
+            } else {
+              result = await context.push(
+                "/dynamic-form-details",
+                extra: {
+                  "customerId": widget.customerId,
+                  "readOnly": false,
+                  "headerForm": widget.headerForm,
+                  "detailForm": widget.detailForm,
+                },
+              );
+            }
 
-              if (result != null) {
-                widget.detailForm.addRow(widget.headerForm, result);
+            if (result != null) {
+              widget.detailForm.addRow(widget.headerForm, result);
 
-                if (widget.detailForm.hasOnChangeEvent) {
-                  if (widget.onRefresh != null) {
-                    widget.onRefresh!();
-                  }
+              if (widget.detailForm.hasOnChangeEvent) {
+                if (widget.onRefresh != null) {
+                  widget.onRefresh!();
                 }
               }
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.add,
-                ),
-                SizedBox(
-                  width: Dimensions.size5,
-                ),
-                Text(
-                  "add".tr(),
-                ),
-              ],
-            ),
+            }
+          },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.add,
+              ),
+              SizedBox(
+                width: Dimensions.size5,
+              ),
+              Text(
+                "add".tr(),
+              ),
+            ],
           ),
         ),
-      ];
+      );
     }
 
-    return [];
+    return const SizedBox.shrink();
+  }
+
+  Widget bulkEditButton() {
+    if (!isReadOnly() && widget.detailForm.getData(widget.headerForm).length > 1) {
+      return Container(
+        margin: EdgeInsets.only(left: Dimensions.size10),
+        child: IconButton.filledTonal(
+          onPressed: () async {
+            List<Map<String, dynamic>>? result;
+
+            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+              result = await Navigators.push(
+                CustomDynamicFormBulkDetailForm(
+                  customerId: widget.customerId,
+                  readOnly: false,
+                  headerForm: widget.headerForm,
+                  detailForm: widget.detailForm,
+                  rows: (widget.detailForm.getData(widget.headerForm) as List<Map<String, dynamic>>).mapIndexed((index, e) {
+                    return widget.detailForm.getRow(widget.headerForm, index);
+                  }).toList(),
+                ),
+              );
+            } else {
+              result = await context.push(
+                "/dynamic-form-bulk-details",
+                extra: {
+                  "customerId": widget.customerId,
+                  "readOnly": false,
+                  "headerForm": widget.headerForm,
+                  "detailForm": widget.detailForm,
+                  "rows": (widget.detailForm.getData(widget.headerForm) as List<Map<String, dynamic>>).mapIndexed((index, e) {
+                    return widget.detailForm.getRow(widget.headerForm, index);
+                  }).toList(),
+                },
+              );
+            }
+
+            if (result != null) {
+              result.forEachIndexed((index, element) {
+                widget.detailForm.updateRow(widget.headerForm, element, index);
+              });
+
+              if (widget.detailForm.hasOnChangeEvent) {
+                if (widget.onRefresh != null) {
+                  widget.onRefresh!();
+                }
+              }
+            }
+          },
+          icon: Icon(Icons.dynamic_form_outlined),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   bool isReadOnly() {
