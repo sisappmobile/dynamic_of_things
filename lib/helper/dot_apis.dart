@@ -143,7 +143,7 @@ class DotApis {
       headers["sfa-customer-id"] = customerId!;
     }
 
-    return await dio.get(
+    return await dio.put(
       "v2/dynamic-forms/custom-actions/$formId",
       options: Options(
         headers: headers,
