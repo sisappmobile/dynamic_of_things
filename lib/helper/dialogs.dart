@@ -1,7 +1,6 @@
 // ignore_for_file: always_specify_types, use_build_context_synchronously, always_put_required_named_parameters_first, cascade_invocations
 
 import "dart:io";
-import "dart:typed_data";
 
 import "package:base/base.dart";
 import "package:camera/camera.dart";
@@ -18,7 +17,7 @@ class Dialogs {
     required String title,
     required bool multiple,
     required bool allowGallery,
-    required void Function(List<Uint8List> files) callback,
+    required void Function(List<XFile> files) callback,
   }) async {
     if (allowGallery) {
       List<Widget> actions = [
@@ -50,19 +49,9 @@ class Dialogs {
                     child: InkWell(
                       onTap: () async {
                         if (multiple) {
-                          List<Uint8List> files = [];
-
                           List<XFile> xFiles = await ImagePicker().pickMultiImage(
                             imageQuality: 20,
                           );
-
-                          for (XFile xFile in xFiles) {
-                            Uint8List bytesFile = Uint8List.fromList(await xFile.readAsBytes());
-
-                            files.add(
-                              bytesFile,
-                            );
-                          }
 
                           if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
                             Navigators.pop();
@@ -70,7 +59,7 @@ class Dialogs {
                             context.pop();
                           }
 
-                          callback.call(files);
+                          callback.call(xFiles);
                         } else {
                           XFile? xFile = await ImagePicker().pickImage(
                             source: ImageSource.gallery,
@@ -78,15 +67,13 @@ class Dialogs {
                           );
 
                           if (xFile != null) {
-                            Uint8List bytesFile = Uint8List.fromList(await xFile.readAsBytes());
-
                             if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
                               Navigators.pop();
                             } else {
                               context.pop();
                             }
 
-                            callback.call([bytesFile]);
+                            callback.call([xFile]);
                           }
                         }
                       },
@@ -109,16 +96,22 @@ class Dialogs {
                     child: InkWell(
                       onTap: () async {
                         Images.camera(
-                            context: context,
-                            callback: (bytes) {
-                              if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                                Navigators.pop();
-                              } else {
-                                context.pop();
-                              }
+                          context: context,
+                          callback: (bytes) {
+                            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                              Navigators.pop();
+                            } else {
+                              context.pop();
+                            }
 
-                              callback.call([bytes]);
-                            },
+                            callback.call([
+                              XFile.fromData(
+                                bytes,
+                                name: "${DateTime.now().millisecondsSinceEpoch.toString()}.png",
+                                mimeType: "png",
+                              ),
+                            ]);
+                          },
                         );
                       },
                       child: Center(
@@ -146,7 +139,13 @@ class Dialogs {
             context.pop();
           }
 
-          callback.call([bytes]);
+          callback.call([
+            XFile.fromData(
+              bytes,
+              name: "${DateTime.now().millisecondsSinceEpoch.toString()}.png",
+              mimeType: "png",
+            ),
+          ]);
         },
       );
     }
@@ -156,7 +155,7 @@ class Dialogs {
     required BuildContext context,
     required String title,
     required bool allowGallery,
-    required void Function(List<File> files) callback,
+    required void Function(List<PlatformFile> files) callback,
   }) async {
     if (allowGallery) {
       List<Widget> actions = [
@@ -193,21 +192,13 @@ class Dialogs {
                         );
 
                         if (filePickerResult != null && filePickerResult.files.isNotEmpty) {
-                          List<File> files = [];
-
-                          for (PlatformFile platformFile in filePickerResult.files) {
-                            files.add(
-                              File(platformFile.path!),
-                            );
-                          }
-
                           if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
                             Navigators.pop();
                           } else {
                             context.pop();
                           }
 
-                          callback.call(files);
+                          callback.call(filePickerResult.files);
                         }
                       },
                       child: Center(
@@ -239,7 +230,13 @@ class Dialogs {
                                   context.pop();
                                 }
 
-                                callback.call([File(xFile.path)]);
+                                callback.call([
+                                  PlatformFile(
+                                    path: xFile.path,
+                                    name: xFile.name,
+                                    size: await xFile.length(),
+                                  ),
+                                ]);
                               },
                             ),
                           );
@@ -272,7 +269,13 @@ class Dialogs {
                 context.pop();
               }
 
-              callback.call([File(xFile.path)]);
+              callback.call([
+                PlatformFile(
+                  path: xFile.path,
+                  name: xFile.name,
+                  size: await xFile.length(),
+                ),
+              ]);
             },
           ),
         );

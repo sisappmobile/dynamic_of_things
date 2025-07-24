@@ -1,5 +1,5 @@
+import "dart:convert";
 import "dart:io";
-import "dart:typed_data";
 
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
@@ -7,7 +7,6 @@ import "package:collection/collection.dart";
 import "package:dynamic_of_things/enumeration/dynamic_form_field_type.dart";
 import "package:dynamic_of_things/helper/custom_attachments.dart";
 import "package:dynamic_of_things/helper/formats.dart";
-import "package:dynamic_of_things/helper/google_drives.dart";
 import "package:dynamic_of_things/model/attachment.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:flutter/material.dart";
@@ -120,17 +119,11 @@ class DynamicForms {
         } else if (StringUtils.inList(field.type, [DynamicFormFieldType.FILE.name, DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.FOTO.name, DynamicFormFieldType.UPLOAD_FOTO.name, DynamicFormFieldType.UPLOAD_VIDEO.name]))  {
           Attachment attachment = value;
 
-          if (StringUtils.isNullOrEmpty(attachment.id)) {
-            GoogleDrives googleDrives = await GoogleDrives.getInstance();
-
-            String? fileId = await googleDrives.upload(
-              bytes: attachment.bytes!.toList(),
-            );
-
-            row[key] = fileId;
-          } else {
-            row[key] = attachment.id;
-          }
+          row[key] = {
+            "name": attachment.name,
+            "mime": attachment.mime,
+            "bytes": base64Encode(attachment.bytes!),
+          };
         } else {
           row[key] = value;
         }
@@ -269,18 +262,17 @@ class DynamicForms {
           return result;
         } else if (StringUtils.inList(field.type, [DynamicFormFieldType.FILE.name, DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.FOTO.name, DynamicFormFieldType.UPLOAD_FOTO.name, DynamicFormFieldType.UPLOAD_VIDEO.name])) {
           if (StringUtils.isNotNullOrEmpty(value.toString())) {
-            GoogleDrives googleDrives = await GoogleDrives.getInstance();
-
-            List<int> bytes = await googleDrives.download(id: value);
+            Map<String, dynamic> json = jsonDecode(value.toString());
 
             Attachment attachment = Attachment()
-              ..id = value
-              ..bytes = Uint8List.fromList(bytes);
+              ..name = json["name"]
+              ..mime = json["mime"]
+              ..bytes = base64Decode(json["bytes"]);
 
             if (StringUtils.inList(field.type, [DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.UPLOAD_VIDEO.name])) {
               File file = await CustomAttachments.temporarySave(
                 fileName: "thumbnail-video",
-                bytes: bytes,
+                bytes: attachment.bytes!,
               );
 
               attachment.thumbnail = await VideoThumbnail.thumbnailData(

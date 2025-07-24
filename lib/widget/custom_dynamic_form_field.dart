@@ -874,7 +874,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       if (filePickerResult != null && filePickerResult.files.isNotEmpty) {
         PlatformFile platformFile = filePickerResult.files.first;
 
-        Attachment attachment = Attachment();
+        Attachment attachment = Attachment()
+          ..name = platformFile.name
+          ..mime = lookupMimeType(platformFile.path!);
 
         if (StringUtils.inList(platformFile.extension!, ["jpg", "jpeg", "png"])) {
           XFile? xFile = await FlutterImageCompress.compressAndGetFile(
@@ -898,6 +900,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         callback: (bytes) async {
           Attachment attachment = Attachment();
 
+          attachment.name = DateTime.now().millisecondsSinceEpoch.toString();
+          attachment.mime = "image/png";
           attachment.bytes = bytes;
 
           widget.field.setValue(widget.data, attachment);
@@ -911,6 +915,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             callback: (xFile) async {
               Attachment attachment = Attachment();
 
+              attachment.name = DateTime.now().millisecondsSinceEpoch.toString();
+              attachment.mime = "video/mp4";
               attachment.bytes = await xFile.readAsBytes();
               attachment.thumbnail = await vt.VideoThumbnail.thumbnailData(
                 video: xFile.path,
@@ -934,7 +940,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           if (files.isNotEmpty) {
             Attachment attachment = Attachment();
 
-            attachment.bytes = files[0];
+            attachment.name = files.first.name;
+            attachment.mime = files.first.mimeType;
+            attachment.bytes = await files.first.readAsBytes();
 
             widget.field.setValue(widget.data, attachment);
           }
@@ -949,9 +957,11 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           if (files.isNotEmpty) {
             Attachment attachment = Attachment();
 
-            attachment.bytes = files[0].readAsBytesSync();
+            attachment.name = files.first.name;
+            attachment.mime = "video/${files.first.extension}";
+            attachment.bytes = files.first.bytes;
             attachment.thumbnail = await vt.VideoThumbnail.thumbnailData(
-              video: files[0].path,
+              video: files.first.path!,
               imageFormat: vt.ImageFormat.JPEG,
               maxWidth: 128,
               quality: 25,
@@ -1436,7 +1446,6 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     return result;
   }
 
-  // TODO: Need to be checked
   List<Widget> fileWidgets() {
     List<Widget> widgets = [];
 
@@ -1513,85 +1522,66 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
       Attachment attachment = widget.field.getValue(widget.data);
 
-      ImageProvider? imageProvider;
-
-      try {
-        if (attachment.thumbnail != null) {
-          imageProvider = MemoryImage(attachment.thumbnail!);
-        } else {
-          imageProvider = MemoryImage(attachment.bytes!);
-        }
-      } catch (ex) {}
-
-      Widget thumbnailWidget;
-
-      if (imageProvider != null) {
-        thumbnailWidget = Image(
-          image: imageProvider,
-          width: Dimensions.size100,
-          height: Dimensions.size100,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-            return Container(
-              margin: EdgeInsets.only(top: Dimensions.size5),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(
-                  Dimensions.size10,
+      Widget thumbnailWidget = Image(
+        image: MemoryImage(attachment.thumbnail ?? attachment.bytes!),
+        width: Dimensions.size100,
+        height: Dimensions.size100,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: Dimensions.size100,
+            height: Dimensions.size100,
+            color: AppColors.primary(),
+            child: Center(
+              child: Text(
+                attachment.name ?? "",
+                textAlign: TextAlign.center,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: AppColors.onPrimary(),
+                  fontSize: Dimensions.text12,
                 ),
-                child: Stack(
-                  children: [
-                    child,
-                    Positioned.fill(
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () {
-                            if (attachment.thumbnail != null) {
-                              BottomSheets.videoPreview(
-                                context: context,
-                                bytes: attachment.bytes!,
-                              );
-                            } else {
-                              BottomSheets.imagePreview(
-                                context: context,
-                                imageProvider: imageProvider!,
-                              );
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      } else {
-        String mimeType = "BIN";
-
-        String? extension = extensionFromMime(mimeType)?.toUpperCase();
-
-        if (!StringUtils.isNotNullOrEmpty(extension)) {
-          extension = "BIN";
-        }
-
-        thumbnailWidget = Container(
-          width: Dimensions.size100,
-          height: Dimensions.size100,
-          color: AppColors.primary(),
-          child: Center(
-            child: Text(
-              extension ?? "",
-              style: TextStyle(
-                color: AppColors.onPrimary(),
-                fontSize: Dimensions.text14,
               ),
             ),
-          ),
-        );
-      }
+          );
+        },
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+          return Container(
+            margin: EdgeInsets.only(top: Dimensions.size5),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(
+                Dimensions.size10,
+              ),
+              child: Stack(
+                children: [
+                  child,
+                  Positioned.fill(
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          if (attachment.thumbnail != null) {
+                            BottomSheets.videoPreview(
+                              context: context,
+                              bytes: attachment.bytes!,
+                            );
+                          } else {
+                            BottomSheets.imagePreview(
+                              context: context,
+                              imageProvider: MemoryImage(attachment.thumbnail ?? attachment.bytes!),
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
 
       widgets.add(
         Container(
