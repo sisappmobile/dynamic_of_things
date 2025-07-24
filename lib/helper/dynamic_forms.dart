@@ -296,12 +296,46 @@ class DynamicForms {
     Map<String, dynamic> headerRow = headerForm.data;
 
     for (MapEntry<String, dynamic> headerMapEntry in headerForm.data.entries) {
+      Future<void> headerPrimitiveValue() async {
+        Field? headerField;
+
+        outerLoop:
+        for (Section headerSection in headerForm.template.sections) {
+          for (Field headerFieldCheck in headerSection.fields) {
+            if (headerFieldCheck.name == headerMapEntry.key) {
+              headerField = headerFieldCheck;
+
+              break outerLoop;
+            }
+          }
+        }
+
+        headerRow[headerMapEntry.key] = await decodeValue(field: headerField, value: headerMapEntry.value);
+      }
+
       if (headerMapEntry.value is Map || headerMapEntry.value is List) {
         DetailForm? detailForm = headerForm.detailForms.firstWhereOrNull((element) => element.template.tableName == headerMapEntry.key);
 
         if (detailForm != null) {
           Future<void> detailProcess(Map<String, dynamic> detailRow) async {
             for (MapEntry<String, dynamic> detailMapEntry in detailRow.entries) {
+              Future<void> detailPrimitiveValue() async {
+                Field? detailField;
+
+                outerLoop:
+                for (Section detailSection in detailForm.template.sections) {
+                  for (Field detailFieldCheck in detailSection.fields) {
+                    if (detailFieldCheck.name == detailMapEntry.key) {
+                      detailField = detailFieldCheck;
+
+                      break outerLoop;
+                    }
+                  }
+                }
+
+                detailRow[detailMapEntry.key] = await decodeValue(field: detailField, value: detailMapEntry.value);
+              }
+
               if (detailMapEntry.value is Map || detailMapEntry.value is List) {
                 SubDetailForm? subDetailForm = detailForm.subDetailForms.firstWhereOrNull((element) => element.template.tableName == detailMapEntry.key);
 
@@ -334,22 +368,11 @@ class DynamicForms {
                       await subDetailProcess(subDetailRow);
                     }
                   }
+                } else {
+                  await detailPrimitiveValue();
                 }
               } else {
-                Field? detailField;
-
-                outerLoop:
-                for (Section detailSection in detailForm.template.sections) {
-                  for (Field detailFieldCheck in detailSection.fields) {
-                    if (detailFieldCheck.name == detailMapEntry.key) {
-                      detailField = detailFieldCheck;
-
-                      break outerLoop;
-                    }
-                  }
-                }
-
-                detailRow[detailMapEntry.key] = await decodeValue(field: detailField, value: detailMapEntry.value);
+                await detailPrimitiveValue();
               }
             }
           }
@@ -363,22 +386,11 @@ class DynamicForms {
               await detailProcess(detailRow);
             }
           }
+        } else {
+          await headerPrimitiveValue();
         }
       } else {
-        Field? headerField;
-
-        outerLoop:
-        for (Section headerSection in headerForm.template.sections) {
-          for (Field headerFieldCheck in headerSection.fields) {
-            if (headerFieldCheck.name == headerMapEntry.key) {
-              headerField = headerFieldCheck;
-
-              break outerLoop;
-            }
-          }
-        }
-
-        headerRow[headerMapEntry.key] = await decodeValue(field: headerField, value: headerMapEntry.value);
+        await headerPrimitiveValue();
       }
     }
   }
