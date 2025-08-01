@@ -1,7 +1,7 @@
 name: dynamic_of_things
 description: Dynamic of things
 publish_to: none
-version: 1.0.7+1
+version: 1.0.8+1
 
 environment:
   sdk: ^3.6.2
@@ -12,7 +12,7 @@ dependencies:
   base:
     git:
       url: https://github.com/sisappmobile/base.git
-      ref: 2.0.4
+      ref: 2.0.6
 
   # inherited from base
   get: 4.7.2

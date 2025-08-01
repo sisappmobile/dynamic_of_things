@@ -82,8 +82,10 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage> with WidgetsBi
         appBar: BaseAppBar(
           context: context,
           name: "menu".tr(),
-          tecSearch: tecSearch,
-          onChanged: (value) => setState(() {}),
+          searchOption: SearchOption(
+            controller: tecSearch,
+            onChanged: (value) => setState(() {}),
+          ),
         ),
         contentBuilder: body,
         onRefresh: () async {

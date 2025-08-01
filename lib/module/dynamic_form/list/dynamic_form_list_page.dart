@@ -123,10 +123,12 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
         appBar: BaseAppBar(
           context: context,
           name: widget.dynamicFormMenuItem.name,
-          tecSearch: tecSearch,
-          onChanged: (value) {
-            setState(() {});
-          },
+          searchOption: SearchOption(
+            controller: tecSearch,
+            onChanged: (value) {
+              setState(() {});
+            },
+          ),
         ),
         contentBuilder: body,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
