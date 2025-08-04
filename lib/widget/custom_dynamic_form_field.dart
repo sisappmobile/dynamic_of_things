@@ -19,6 +19,7 @@ import "package:dynamic_of_things/model/header_form.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_event.dart";
 import "package:dynamic_of_things/widget/barcode_scanner_page.dart";
+import "package:dynamic_of_things/widget/signature_page.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:file_picker/file_picker.dart";
 import "package:flutter/material.dart";
@@ -28,6 +29,7 @@ import "package:flutter_image_compress/flutter_image_compress.dart";
 import "package:get/get_utils/src/extensions/internacionalization.dart" hide Trans;
 import "package:go_router/go_router.dart";
 import "package:loader_overlay/loader_overlay.dart";
+import "package:material_symbols_icons/material_symbols_icons.dart";
 import "package:mime/mime.dart";
 import "package:mobile_scanner/mobile_scanner.dart";
 import "package:pattern_formatter/numeric_formatter.dart";
@@ -1447,6 +1449,45 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   }
 
   List<Widget> fileWidgets() {
+    Widget signatureButton() {
+      if (StringUtils.inList(widget.field.type, [DynamicFormFieldType.UPLOAD_FOTO.name, DynamicFormFieldType.FILE.name])) {
+        return Container(
+          margin: EdgeInsets.only(left: Dimensions.size10),
+          child: OutlinedButton(
+            onPressed: () async {
+              Uint8List? bytes = await Navigators.push(SignaturePage());
+
+              if (bytes != null) {
+                Attachment attachment = Attachment();
+
+                attachment.name = DateTime.now().millisecondsSinceEpoch.toString();
+                attachment.mime = "image/png";
+                attachment.bytes = bytes;
+
+                widget.field.setValue(widget.data, attachment);
+              }
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Symbols.signature,
+                ),
+                SizedBox(
+                  width: Dimensions.size5,
+                ),
+                Text(
+                  "signature".tr().toUpperCase(),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      return const SizedBox.shrink();
+    }
+
     List<Widget> widgets = [];
 
     if (!isReadOnly()) {
@@ -1492,22 +1533,28 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         );
       } else {
         widgets.add(
-          OutlinedButton(
-            onPressed: () => onPressed(),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.upload,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              OutlinedButton(
+                onPressed: () => onPressed(),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.upload,
+                    ),
+                    SizedBox(
+                      width: Dimensions.size5,
+                    ),
+                    Text(
+                      "choose_file".tr().toUpperCase(),
+                    ),
+                  ],
                 ),
-                SizedBox(
-                  width: Dimensions.size5,
-                ),
-                Text(
-                  "choose_file".tr().toUpperCase(),
-                ),
-              ],
-            ),
+              ),
+              signatureButton(),
+            ],
           ),
         );
       }

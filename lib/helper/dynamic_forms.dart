@@ -261,28 +261,32 @@ class DynamicForms {
 
           return result;
         } else if (StringUtils.inList(field.type, [DynamicFormFieldType.FILE.name, DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.FOTO.name, DynamicFormFieldType.UPLOAD_FOTO.name, DynamicFormFieldType.UPLOAD_VIDEO.name])) {
-          Map<String, dynamic> json = Map<String, dynamic>.from(value);
+          if (value is Map) {
+            Map<String, dynamic> json = Map<String, dynamic>.from(value);
 
-          Attachment attachment = Attachment()
-            ..name = json["name"]
-            ..mime = json["mime"]
-            ..bytes = base64Decode(json["bytes"]);
+            Attachment attachment = Attachment()
+              ..name = json["name"]
+              ..mime = json["mime"]
+              ..bytes = base64Decode(json["bytes"]);
 
-          if (StringUtils.inList(field.type, [DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.UPLOAD_VIDEO.name])) {
-            File file = await CustomAttachments.temporarySave(
-              fileName: "thumbnail-video",
-              bytes: attachment.bytes!,
-            );
+            if (StringUtils.inList(field.type, [DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.UPLOAD_VIDEO.name])) {
+              File file = await CustomAttachments.temporarySave(
+                fileName: "thumbnail-video",
+                bytes: attachment.bytes!,
+              );
 
-            attachment.thumbnail = await VideoThumbnail.thumbnailData(
-              video: file.path,
-              imageFormat: ImageFormat.JPEG,
-              maxWidth: 128,
-              quality: 25,
-            );
+              attachment.thumbnail = await VideoThumbnail.thumbnailData(
+                video: file.path,
+                imageFormat: ImageFormat.JPEG,
+                maxWidth: 128,
+                quality: 25,
+              );
+            }
+
+            return attachment;
+          } else {
+            return null;
           }
-
-          return attachment;
         }
       }
     }
