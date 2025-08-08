@@ -116,7 +116,7 @@ class DynamicForms {
 
             row[linkKey] = row[linkKey];
           }
-        } else if (StringUtils.inList(field.type, [DynamicFormFieldType.FILE.name, DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.FOTO.name, DynamicFormFieldType.UPLOAD_FOTO.name, DynamicFormFieldType.UPLOAD_VIDEO.name]))  {
+        } else if (StringUtils.inList(field.type, [DynamicFormFieldType.FILE.name, DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.FOTO.name, DynamicFormFieldType.SIGNATURE.name, DynamicFormFieldType.UPLOAD_FOTO.name, DynamicFormFieldType.UPLOAD_VIDEO.name, DynamicFormFieldType.UPLOAD_SIGNATURE.name]))  {
           Attachment attachment = value;
 
           row[key] = {
@@ -260,7 +260,7 @@ class DynamicForms {
           num result = Formats.tryParseNumber(value);
 
           return result;
-        } else if (StringUtils.inList(field.type, [DynamicFormFieldType.FILE.name, DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.FOTO.name, DynamicFormFieldType.UPLOAD_FOTO.name, DynamicFormFieldType.UPLOAD_VIDEO.name])) {
+        } else if (StringUtils.inList(field.type, [DynamicFormFieldType.FILE.name, DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.FOTO.name, DynamicFormFieldType.SIGNATURE.name, DynamicFormFieldType.UPLOAD_FOTO.name, DynamicFormFieldType.UPLOAD_VIDEO.name, DynamicFormFieldType.UPLOAD_SIGNATURE.name])) {
           if (value is Map) {
             Map<String, dynamic> json = Map<String, dynamic>.from(value);
 

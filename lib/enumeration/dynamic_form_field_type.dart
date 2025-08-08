@@ -15,8 +15,10 @@ enum DynamicFormFieldType {
   FILE,
   FOTO,
   VIDEO,
+  SIGNATURE,
   UPLOAD_FOTO,
   UPLOAD_VIDEO,
+  UPLOAD_SIGNATURE,
   QRCODE,
   BARCODE,
 

@@ -288,67 +288,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           );
         },
       );
-    } else if (widget.field.type == DynamicFormFieldType.FILE.name) {
-      return FormField(
-        validator: (value) {
-          return validate();
-        },
-        builder: (field) {
-          return formField(
-            field: field,
-            body: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: fileWidgets(),
-            ),
-          );
-        },
-      );
-    } else if (widget.field.type == DynamicFormFieldType.FOTO.name) {
-      return FormField(
-        validator: (value) {
-          return validate();
-        },
-        builder: (field) {
-          return formField(
-            field: field,
-            body: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: fileWidgets(),
-            ),
-          );
-        },
-      );
-    } else if (widget.field.type == DynamicFormFieldType.VIDEO.name) {
-      return FormField(
-        validator: (value) {
-          return validate();
-        },
-        builder: (field) {
-          return formField(
-            field: field,
-            body: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: fileWidgets(),
-            ),
-          );
-        },
-      );
-    } else if (widget.field.type == DynamicFormFieldType.UPLOAD_FOTO.name) {
-      return FormField(
-        validator: (value) {
-          return validate();
-        },
-        builder: (field) {
-          return formField(
-            field: field,
-            body: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: fileWidgets(),
-            ),
-          );
-        },
-      );
-    } else if (widget.field.type == DynamicFormFieldType.UPLOAD_VIDEO.name) {
+    } else if (StringUtils.inList(widget.field.type, [DynamicFormFieldType.FILE.name, DynamicFormFieldType.FOTO.name, DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.SIGNATURE.name, DynamicFormFieldType.UPLOAD_FOTO.name, DynamicFormFieldType.UPLOAD_VIDEO.name, DynamicFormFieldType.UPLOAD_SIGNATURE.name])) {
       return FormField(
         validator: (value) {
           return validate();
@@ -1419,6 +1359,12 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           return "this_field_is_required".tr();
         }
       }
+    } else if (widget.field.type == DynamicFormFieldType.SIGNATURE.name) {
+      if (widget.field.required) {
+        if (value == null) {
+          return "this_field_is_required".tr();
+        }
+      }
     } else if (widget.field.type == DynamicFormFieldType.UPLOAD_FOTO.name) {
       if (widget.field.required) {
         if (value == null) {
@@ -1426,6 +1372,12 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         }
       }
     } else if (widget.field.type == DynamicFormFieldType.UPLOAD_VIDEO.name) {
+      if (widget.field.required) {
+        if (value == null) {
+          return "this_field_is_required".tr();
+        }
+      }
+    } else if (widget.field.type == DynamicFormFieldType.UPLOAD_SIGNATURE.name) {
       if (widget.field.required) {
         if (value == null) {
           return "this_field_is_required".tr();
@@ -1450,42 +1402,35 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
   List<Widget> fileWidgets() {
     Widget signatureButton() {
-      if (StringUtils.inList(widget.field.type, [DynamicFormFieldType.UPLOAD_FOTO.name, DynamicFormFieldType.FILE.name])) {
-        return Container(
-          margin: EdgeInsets.only(left: Dimensions.size10),
-          child: OutlinedButton(
-            onPressed: () async {
-              Uint8List? bytes = await Navigators.push(SignaturePage());
+      return OutlinedButton(
+        onPressed: () async {
+          Uint8List? bytes = await Navigators.push(SignaturePage());
 
-              if (bytes != null) {
-                Attachment attachment = Attachment();
+          if (bytes != null) {
+            Attachment attachment = Attachment();
 
-                attachment.name = DateTime.now().millisecondsSinceEpoch.toString();
-                attachment.mime = "image/png";
-                attachment.bytes = bytes;
+            attachment.name = DateTime.now().millisecondsSinceEpoch.toString();
+            attachment.mime = "image/png";
+            attachment.bytes = bytes;
 
-                widget.field.setValue(widget.data, attachment);
-              }
-            },
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Symbols.signature,
-                ),
-                SizedBox(
-                  width: Dimensions.size5,
-                ),
-                Text(
-                  "signature".tr().toUpperCase(),
-                ),
-              ],
+            widget.field.setValue(widget.data, attachment);
+          }
+        },
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Symbols.signature,
             ),
-          ),
-        );
-      }
-
-      return const SizedBox.shrink();
+            SizedBox(
+              width: Dimensions.size5,
+            ),
+            Text(
+              "signature".tr().toUpperCase(),
+            ),
+          ],
+        ),
+      );
     }
 
     List<Widget> widgets = [];
@@ -1531,6 +1476,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             ),
           ),
         );
+      } else if (widget.field.type == DynamicFormFieldType.SIGNATURE.name) {
+        widgets.add(signatureButton());
       } else {
         widgets.add(
           Row(
@@ -1553,7 +1500,13 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                   ],
                 ),
               ),
-              signatureButton(),
+              Visibility(
+                visible: widget.field.type == DynamicFormFieldType.UPLOAD_SIGNATURE.name,
+                child: Container(
+                  margin: EdgeInsets.only(left: Dimensions.size10),
+                  child: signatureButton(),
+                ),
+              ),
             ],
           ),
         );
