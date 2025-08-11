@@ -120,7 +120,7 @@ class AppState extends State<App> {
         child: DismissKeyboard(
           child: MaterialApp.router(
             scrollBehavior: BaseScrollBehavior(),
-            title: "Vireo Order Fulfillment Display",
+            title: "Dynamic of Things",
             routerConfig: goRouter,
             localizationsDelegates: context.localizationDelegates,
             supportedLocales: context.supportedLocales,
@@ -304,7 +304,7 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
 
   bool obscurePassword = true;
 
-  String deviceId = "0000000000000000";
+  String deviceId = "d4db82b1a0b16901";
 
   @override
   void initState() {
@@ -312,7 +312,7 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
 
     WidgetsBinding.instance.addObserver(this);
 
-    getDeviceId();
+    // getDeviceId();
   }
 
   @override

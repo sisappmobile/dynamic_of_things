@@ -1,7 +1,7 @@
 name: dynamic_of_things
 description: Dynamic of things
 publish_to: none
-version: 1.0.10+1
+version: 1.0.11+1
 
 environment:
   sdk: ^3.6.2
@@ -12,7 +12,8 @@ dependencies:
   base:
     git:
       url: https://github.com/sisappmobile/base.git
-      ref: 2.0.6
+      ref: 2.0.8
+    # path: /Volumes/MI3-SSD/project/flutter/base
 
   # inherited from base
   get: 4.7.2

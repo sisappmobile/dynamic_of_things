@@ -5,6 +5,7 @@ import "dart:typed_data";
 
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
+import "package:dynamic_of_things/helper/dot_apis.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
@@ -338,75 +339,75 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
 
   Widget bottomBar() {
     return BaseBottomBar(
-        children: [
-          Text(
-            dataInfo(
-              pageIndex: pageIndex,
-              pageSize: pageSize,
-              dataSize: dataResponse?.size,
-            ),
+      children: [
+        Text(
+          dataInfo(
+            pageIndex: pageIndex,
+            pageSize: pageSize,
+            dataSize: dataResponse?.size,
           ),
-          Expanded(
-            child: CustomPagination(
-              onPageChanged: (int pageNumber) {
-                setState(() {
-                  pageIndex = pageNumber;
-                });
+        ),
+        Expanded(
+          child: CustomPagination(
+            onPageChanged: (int pageNumber) {
+              setState(() {
+                pageIndex = pageNumber;
+              });
 
-                refresh();
-              },
-              pageTotal: (size / pageSize).ceil(),
-              pageInit: pageIndex,
-              colorPrimary: AppColors.onSurface(),
-              colorSub: AppColors.surface(),
-              buttonRadius: Dimensions.size50,
-              buttonElevation: 0,
-              threshold: 1,
-            ),
+              refresh();
+            },
+            pageTotal: (size / pageSize).ceil(),
+            pageInit: pageIndex,
+            colorPrimary: AppColors.onSurface(),
+            colorSub: AppColors.surface(),
+            buttonRadius: Dimensions.size50,
+            buttonElevation: 0,
+            threshold: 1,
           ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IntrinsicWidth(
-                child: Container(
-                  height: Dimensions.size35,
-                  decoration: ShapeDecoration(
-                    shape: SmoothRectangleBorder(
-                      borderRadius: BorderRadius.circular(Dimensions.size10),
-                      smoothness: 1,
-                      side: BorderSide(
-                        color: AppColors.outline(),
-                      ),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IntrinsicWidth(
+              child: Container(
+                height: Dimensions.size35,
+                decoration: ShapeDecoration(
+                  shape: SmoothRectangleBorder(
+                    borderRadius: BorderRadius.circular(Dimensions.size10),
+                    smoothness: 1,
+                    side: BorderSide(
+                      color: AppColors.outline(),
                     ),
-                    color: AppColors.surface(),
                   ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton(
-                      isExpanded: true,
-                      borderRadius: BorderRadius.all(
-                        Radius.circular(Dimensions.size5),
-                      ),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: Dimensions.size10,
-                      ),
-                      value: pageSize,
-                      items: const [
-                        DropdownMenuItem(value: 20, child: Text("20")),
-                        DropdownMenuItem(value: 50, child: Text("50")),
-                        DropdownMenuItem(value: 100, child: Text("100")),
-                      ],
-                      onChanged: (value) {
-                        pageSize = value!;
-
-                        refresh();
-                      },
+                  color: AppColors.surface(),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton(
+                    isExpanded: true,
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(Dimensions.size5),
                     ),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: Dimensions.size10,
+                    ),
+                    value: pageSize,
+                    items: const [
+                      DropdownMenuItem(value: 20, child: Text("20")),
+                      DropdownMenuItem(value: 50, child: Text("50")),
+                      DropdownMenuItem(value: 100, child: Text("100")),
+                    ],
+                    onChanged: (value) {
+                      pageSize = value!;
+
+                      refresh();
+                    },
                   ),
                 ),
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -484,10 +485,7 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
               return Column(
                 children: [
                   Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: Dimensions.size20,
-                      vertical: Dimensions.size10,
-                    ),
+                    padding: EdgeInsets.all(Dimensions.size15),
                     decoration: BoxDecoration(
                       border: Border(
                         bottom: BorderSide(
@@ -508,17 +506,16 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
                           icon: const Icon(
                             Icons.turn_left,
                           ),
-                          iconSize: Dimensions.size30,
                         ),
                         Expanded(
                           child: Container(
                             margin: EdgeInsets.only(
-                              left: Dimensions.size10,
+                              left: Dimensions.size5,
                             ),
                             child: Text(
                               "filter".tr(),
                               style: TextStyle(
-                                fontSize: Dimensions.text20,
+                                fontSize: Dimensions.text16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -551,6 +548,8 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
                                 } else if (filter.type == "NUMERIC") {
                                   filter.controller!.text = Formats.tryParseNumber(filter.value).currency();
                                 } else if (filter.type == "STRING") {
+                                  filter.controller!.text = filter.value;
+                                } else if (StringUtils.inList(filter.type, ["DATA", "COMBOBOX"])) {
                                   filter.controller!.text = filter.value;
                                 }
                               }
@@ -643,6 +642,92 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
                                 },
                                 readOnly: true,
                               );
+                            } else if (StringUtils.inList(filter.type, ["DATA", "COMBOBOX"])) {
+                              widget = Material(
+                                child: InkWell(
+                                  onTap: () async {
+                                    Map<String, String>? items;
+
+                                    try {
+                                      context.loaderOverlay.show();
+
+                                      items = await DotApis.getInstance().dynamicReportResource(
+                                          id: template!.id,
+                                          field: filter.name
+                                      );
+                                    } catch (e) {
+                                      BaseOverlays.error(message: "something_wrong_please_try_again".tr());
+                                    } finally {
+                                      context.loaderOverlay.hide();
+                                    }
+
+                                    if (items != null) {
+                                      List<SpinnerItem> spinnerItems = [];
+
+                                      for (MapEntry<String, String> mapEntry in items.entries) {
+                                        spinnerItems.add(
+                                          SpinnerItem(
+                                            identity: mapEntry.key,
+                                            description: mapEntry.value,
+                                          ),
+                                        );
+                                      }
+
+                                      SpinnerItem? selectedItem = await BaseSheets.spinner(
+                                        context: context,
+                                        title: filter.caption,
+                                        spinnerItems: spinnerItems,
+                                      );
+
+                                      if (selectedItem != null) {
+                                        filter.value = selectedItem.identity;
+                                        filter.controller!.text = selectedItem.description;
+                                      } else {
+                                        filter.value = null;
+                                        filter.controller!.text = "";
+                                      }
+                                    }
+                                  },
+                                  customBorder: SmoothRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    smoothness: 1,
+                                  ),
+                                  child: Ink(
+                                    width: double.infinity,
+                                    height: Dimensions.size55,
+                                    decoration: ShapeDecoration(
+                                      shape: SmoothRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        smoothness: 1,
+                                        side: BorderSide(
+                                          color: AppColors.outline(),
+                                        ),
+                                      ),
+                                      color: AppColors.surfaceContainerLowest(),
+                                    ),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: Dimensions.size15,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            filter.controller!.text,
+                                            style: TextStyle(
+                                              fontSize: Dimensions.text16,
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(width: Dimensions.size10),
+                                        Icon(
+                                          Icons.arrow_downward,
+                                          size: Dimensions.size20,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
                             }
 
                             return Column(
@@ -697,99 +782,51 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
                       ),
                     ),
                   ),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: Dimensions.size20,
-                      vertical: Dimensions.size15,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(
-                          width: 0.2,
-                          color: AppColors.outline(),
+                  BaseBottomBar(
+                    children: [
+                      Visibility(
+                        visible: template!.filters.any((filter) => filter.value != null || (filter.controller != null && StringUtils.isNotNullOrEmpty(filter.controller!.text))),
+                        child: TextButton.icon(
+                          onPressed: () async {
+                            BaseDialogs.confirmation(
+                              title: "are_you_sure_want_to_proceed".tr(),
+                              positiveCallback: () {
+                                for (Filter filter in template!.filters) {
+                                  filter.value = null;
+                                  filter.controller = null;
+                                }
+
+                                setState(() {});
+                              },
+                            );
+                          },
+                          icon: const Icon(
+                            Icons.clear_all,
+                          ),
+                          label: Text("clear".tr()),
                         ),
                       ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Visibility(
-                          visible: template!.filters.any((filter) => filter.value != null || (filter.controller != null && StringUtils.isNotNullOrEmpty(filter.controller!.text))),
-                          child: TextButton(
-                            onPressed: () async {
-                              BaseDialogs.confirmation(
-                                title: "are_you_sure_want_to_proceed".tr(),
-                                positiveCallback: () {
-                                  for (Filter filter in template!.filters) {
-                                    filter.value = null;
-                                    filter.controller = null;
-                                  }
+                      const Spacer(),
+                      FilledButton.icon(
+                        onPressed: () async {
+                          if (formState.currentState != null && formState.currentState!.validate()) {
+                            formState.currentState!.save();
 
-                                  setState(() {});
-                                },
-                              );
-                            },
-                            style: TextButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(Dimensions.size5),
-                                ),
-                              ),
-                              padding: EdgeInsets.all(
-                                Dimensions.size10,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.clear_all,
-                                ),
-                                SizedBox(width: Dimensions.size5),
-                                Text("clear".tr()),
-                              ],
-                            ),
-                          ),
+                            refresh();
+                          }
+
+                          if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                            Navigators.pop();
+                          } else {
+                            context.pop();
+                          }
+                        },
+                        icon:  const Icon(
+                          Icons.search,
                         ),
-                        const Spacer(),
-                        FilledButton(
-                          onPressed: () async {
-                            if (formState.currentState != null && formState.currentState!.validate()) {
-                              formState.currentState!.save();
-
-                              refresh();
-                            }
-
-                            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                              Navigators.pop();
-                            } else {
-                              context.pop();
-                            }
-                          },
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.primary(),
-                            foregroundColor: AppColors.onPrimary(),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.all(
-                                Radius.circular(Dimensions.size5),
-                              ),
-                            ),
-                            padding: EdgeInsets.symmetric(
-                              vertical: Dimensions.size10,
-                              horizontal: Dimensions.size10,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.search,
-                              ),
-                              SizedBox(width: Dimensions.size5),
-                              Text("search".tr()),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                        label: Text("search".tr()),
+                      ),
+                    ],
                   ),
                 ],
               );

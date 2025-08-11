@@ -69,5 +69,6 @@
   "delete": "Delete",
   "dynamic_chart": "Dynamic chart",
   "of": "Of",
-  "filter": "Filter"
+  "filter": "Filter",
+  "clear": "Clear"
 }

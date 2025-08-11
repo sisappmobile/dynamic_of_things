@@ -414,6 +414,24 @@ class DotApis {
     );
   }
 
+  Future<Map<String, String>?> dynamicReportResource({
+    required String id,
+    required String field,
+  }) async {
+    Response response = await dio.post(
+      "v2/dynamic-reports/$id/resources",
+      queryParameters: {
+        "field": field,
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return Map<String, String>.from(response.data);
+    }
+
+    return null;
+  }
+
   Future<Response> dynamicChartList() async {
     return await dio.get("v2/dynamic-charts");
   }
