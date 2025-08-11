@@ -182,7 +182,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage> with WidgetsBi
     }
 
     PreferredSize? bottomWidget() {
-      if (template != null && template!.forms.isNotEmpty) {
+      if (template != null && template!.forms.length > 1) {
         return PreferredSize(
           preferredSize: Size.fromHeight(50),
           child: SizedBox(
