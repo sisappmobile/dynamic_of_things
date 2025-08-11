@@ -8,7 +8,6 @@ import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/model/dynamic_form_list_response.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
 import "package:dynamic_of_things/model/dynamic_form_resource_response.dart";
-import "package:dynamic_of_things/model/dynamic_form_schedule_response.dart";
 import "package:dynamic_of_things/model/dynamic_report_data.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:jiffy/jiffy.dart";
@@ -104,7 +103,7 @@ class DotApis {
     return null;
   }
 
-  Future<ScheduleResponse?> dynamicFormSchedule({
+  Future<Response> dynamicScheduleTemplate({
     required String id,
     String? customerId,
   }) async {
@@ -114,21 +113,43 @@ class DotApis {
       headers["sfa-customer-id"] = customerId!;
     }
 
-    Response response = await dio.get(
-      "v2/dynamic-forms/schedule",
+    return await dio.get(
+      "v2/dynamic-schedules/$id/template",
       options: Options(
         headers: headers,
       ),
-      queryParameters: {
-        "id": id,
-      },
     );
+  }
 
-    if (response.statusCode == 200) {
-      return ScheduleResponse.fromJson(response.data);
+  Future<Response> dynamicScheduleData({
+    required String id,
+    required Jiffy begin,
+    required Jiffy until,
+    String? customerId,
+    String? formId,
+  }) async {
+    Map<String, String> headers = {};
+
+    if (StringUtils.isNotNullOrEmpty(customerId)) {
+      headers["sfa-customer-id"] = customerId!;
     }
 
-    return null;
+    Map<String, String> queryParameters = {
+      "begin": begin.dateFormat(),
+      "until": until.dateFormat(),
+    };
+
+    if (StringUtils.isNotNullOrEmpty(formId)) {
+      queryParameters["formId"] = formId!;
+    }
+
+    return await dio.get(
+      "v2/dynamic-schedules/$id",
+      options: Options(
+        headers: headers,
+      ),
+      queryParameters: queryParameters,
+    );
   }
 
   Future<Response> dynamicFormCustomAction({

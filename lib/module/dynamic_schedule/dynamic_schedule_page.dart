@@ -3,38 +3,47 @@
 import "package:base/base.dart";
 import "package:dynamic_of_things/helper/bottom_sheets.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
-import "package:dynamic_of_things/model/dynamic_form_schedule_response.dart";
+import "package:dynamic_of_things/model/dynamic_schedule_data.dart";
+import "package:dynamic_of_things/model/dynamic_schedule_template.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_page.dart";
-import "package:dynamic_of_things/module/dynamic_form/schedule/dynamic_form_schedule_bloc.dart";
-import "package:dynamic_of_things/module/dynamic_form/schedule/dynamic_form_schedule_event.dart";
-import "package:dynamic_of_things/module/dynamic_form/schedule/dynamic_form_schedule_state.dart";
+import "package:dynamic_of_things/module/dynamic_schedule/dynamic_schedule_bloc.dart";
+import "package:dynamic_of_things/module/dynamic_schedule/dynamic_schedule_event.dart";
+import "package:dynamic_of_things/module/dynamic_schedule/dynamic_schedule_state.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:go_router/go_router.dart";
+import "package:jiffy/jiffy.dart";
+import "package:loader_overlay/loader_overlay.dart";
 import "package:smooth_corner/smooth_corner.dart";
 import "package:syncfusion_flutter_calendar/calendar.dart";
 
-class DynamicFormSchedulePage extends StatefulWidget {
+class DynamicSchedulePage extends StatefulWidget {
   final DynamicFormMenuItem dynamicFormMenuItem;
   final String? customerId;
 
-  const DynamicFormSchedulePage({
+  const DynamicSchedulePage({
     required this.dynamicFormMenuItem,
     required this.customerId,
     super.key,
   });
 
   @override
-  DynamicFormSchedulePageState createState() => DynamicFormSchedulePageState();
+  DynamicSchedulePageState createState() => DynamicSchedulePageState();
 }
 
-class DynamicFormSchedulePageState extends State<DynamicFormSchedulePage> with WidgetsBindingObserver {
-  ScheduleResponse? scheduleResponse;
+class DynamicSchedulePageState extends State<DynamicSchedulePage> with WidgetsBindingObserver {
+  Template? template;
+
+  List<Item> items = [];
 
   bool loading = true;
 
   DateTime today = DateTime.now();
+
+  String? formId;
+
+  List<DateTime> visibleDates = [];
 
   @override
   void initState() {
@@ -42,26 +51,43 @@ class DynamicFormSchedulePageState extends State<DynamicFormSchedulePage> with W
 
     WidgetsBinding.instance.addObserver(this);
 
-    refresh();
+    context.read<DynamicScheduleBloc>().add(
+      DynamicScheduleTemplate(
+        id: widget.dynamicFormMenuItem.id,
+        customerId: widget.customerId,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<DynamicFormScheduleBloc, DynamicFormScheduleState>(
+    return BlocListener<DynamicScheduleBloc, DynamicScheduleState>(
       listener: (context, state) async {
-        if (state is DynamicFormScheduleLoadLoading) {
+        if (state is DynamicScheduleTemplateLoading) {
           setState(() {
             loading = true;
-            scheduleResponse = null;
+            template = null;
           });
-        } else if (state is DynamicFormScheduleLoadSuccess) {
+        } else if (state is DynamicScheduleTemplateSuccess) {
           setState(() {
-            scheduleResponse = state.scheduleResponse;
+            template = state.template;
           });
-        } else if (state is DynamicFormScheduleLoadFinished) {
+        } else if (state is DynamicScheduleTemplateFinished) {
           setState(() {
             loading = false;
           });
+        } else if (state is DynamicScheduleDataLoading) {
+          context.loaderOverlay.show();
+
+          setState(() {
+            items.clear();
+          });
+        } else if (state is DynamicScheduleDataSuccess) {
+          setState(() {
+            items.addAll(state.items);
+          });
+        } else if (state is DynamicScheduleDataFinished) {
+          context.loaderOverlay.hide();
         }
       },
       child: BaseScaffold(
@@ -70,12 +96,8 @@ class DynamicFormSchedulePageState extends State<DynamicFormSchedulePage> with W
           if (loading) {
             return BaseBodyStatus.loading;
           } else {
-            if (scheduleResponse != null) {
-              if (scheduleResponse!.items.isNotEmpty) {
-                return BaseBodyStatus.loaded;
-              } else {
-                return BaseBodyStatus.empty;
-              }
+            if (template != null) {
+              return BaseBodyStatus.loaded;
             } else {
               return BaseBodyStatus.fail;
             }
@@ -102,11 +124,13 @@ class DynamicFormSchedulePageState extends State<DynamicFormSchedulePage> with W
   }
 
   void refresh() {
-    context.read<DynamicFormScheduleBloc>().add(
-      DynamicFormScheduleLoad(
+    context.read<DynamicScheduleBloc>().add(
+      DynamicScheduleData(
         id: widget.dynamicFormMenuItem.id,
+        begin: Jiffy.parseFromDateTime(visibleDates.first),
+        until: Jiffy.parseFromDateTime(visibleDates.last),
+        formId: formId,
         customerId: widget.customerId,
-        name: widget.dynamicFormMenuItem.name,
       ),
     );
   }
@@ -157,10 +181,75 @@ class DynamicFormSchedulePageState extends State<DynamicFormSchedulePage> with W
       return const SizedBox.shrink();
     }
 
+    PreferredSize? bottomWidget() {
+      if (template != null && template!.forms.isNotEmpty) {
+        return PreferredSize(
+          preferredSize: Size.fromHeight(50),
+          child: SizedBox(
+            height: 50,
+            child: ListView.separated(
+              padding: EdgeInsets.fromLTRB(
+                Dimensions.size15,
+                0,
+                Dimensions.size15,
+                Dimensions.size15,
+              ),
+              scrollDirection: Axis.horizontal,
+              physics: BouncingScrollPhysics(),
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return FilterChip(
+                    label: Text("all".tr()),
+                    selected: formId == null,
+                    shape: SmoothRectangleBorder(
+                      smoothness: 1,
+                      borderRadius: BorderRadius.circular(Dimensions.size10),
+                      side: BorderSide(color: formId == null ? AppColors.onPrimaryContainer() : AppColors.outline()),
+                    ),
+                    selectedColor: AppColors.primaryContainer(),
+                    onSelected: (value) {
+                      formId = null;
+
+                      refresh();
+                    },
+                  );
+                } else {
+                  MapEntry<String, String> mapEntry = template!.forms.entries.elementAt(index - 1);
+
+                  return FilterChip(
+                    label: Text(mapEntry.value),
+                    selected: formId == mapEntry.key,
+                    shape: SmoothRectangleBorder(
+                      smoothness: 1,
+                      borderRadius: BorderRadius.circular(Dimensions.size10),
+                      side: BorderSide(color: formId == mapEntry.key ? AppColors.onPrimaryContainer() : AppColors.outline()),
+                    ),
+                    selectedColor: AppColors.primaryContainer(),
+                    onSelected: (value) {
+                      formId = mapEntry.key;
+
+                      refresh();
+                    },
+                  );
+                }
+              },
+              separatorBuilder: (context, index) {
+                return SizedBox(width: Dimensions.size5);
+              },
+              itemCount: template!.forms.length + 1,
+            ),
+          ),
+        );
+      }
+
+      return null;
+    }
+
     return BaseAppBar(
       context: context,
       name: widget.dynamicFormMenuItem.name,
       trailings: [addButton()],
+      bottom: bottomWidget(),
     );
   }
 
@@ -168,12 +257,17 @@ class DynamicFormSchedulePageState extends State<DynamicFormSchedulePage> with W
     return SfCalendar(
       view: CalendarView.month,
       initialDisplayDate: DateTime(today.year, today.month, today.day),
-      dataSource: ItemDataSource(scheduleResponse!.items),
+      dataSource: ItemDataSource(items),
       monthViewSettings: const MonthViewSettings(
         appointmentDisplayMode: MonthAppointmentDisplayMode.indicator,
         showAgenda: true,
         appointmentDisplayCount: 3,
       ),
+      onViewChanged: (viewChangedDetails) {
+        visibleDates = viewChangedDetails.visibleDates;
+
+        refresh();
+      },
       onTap: (CalendarTapDetails details) {
         if (details.targetElement == CalendarElement.appointment && details.appointments != null && details.appointments!.isNotEmpty) {
           Item item = details.appointments!.first as Item;
@@ -263,30 +357,22 @@ class DynamicFormSchedulePageState extends State<DynamicFormSchedulePage> with W
   }
 
   bool hasCreateAccess() {
-    return scheduleResponse != null && scheduleResponse!.actions.any((element) => element.resourceId == "BTN_CREATE");
+    return template != null && template!.actions.any((element) => element.resourceId == "BTN_CREATE");
   }
 
   bool hasViewAccess() {
-    return scheduleResponse != null && scheduleResponse!.actions.any((element) => element.resourceId == "BTN_VIEW");
+    return template != null && template!.actions.any((element) => element.resourceId == "BTN_VIEW");
   }
 
   bool hasEditAccess() {
-    return scheduleResponse != null && scheduleResponse!.actions.any((element) => element.resourceId == "BTN_EDIT");
+    return template != null && template!.actions.any((element) => element.resourceId == "BTN_EDIT");
   }
 }
 
 class ItemDataSource extends CalendarDataSource {
   final List<Color> colors = [
-    Colors.red,
-    Colors.green,
-    Colors.blueAccent,
-    Colors.black,
-    Colors.cyan,
-    Colors.blueGrey,
-    Colors.purpleAccent,
-    Colors.indigo,
-    Colors.deepOrange,
-    Colors.brown,
+    ...Colors.primaries,
+    ...Colors.accents,
   ];
 
   ItemDataSource(List<Item> source) {
@@ -320,7 +406,7 @@ class ItemDataSource extends CalendarDataSource {
 
   @override
   Color getColor(int index) {
-    return colors[index];
+    return colors[index % colors.length];
   }
 
   Item _getItemData(int index) {

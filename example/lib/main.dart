@@ -13,8 +13,8 @@ import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_bloc.dart";
-import "package:dynamic_of_things/module/dynamic_form/schedule/dynamic_form_schedule_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_report/dynamic_report_bloc.dart";
+import "package:dynamic_of_things/module/dynamic_schedule/dynamic_schedule_bloc.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
@@ -111,7 +111,7 @@ class AppState extends State<App> {
       providers: [
         BlocProvider(create: (BuildContext context) => DynamicFormMenuBloc()),
         BlocProvider(create: (BuildContext context) => DynamicFormListBloc()),
-        BlocProvider(create: (BuildContext context) => DynamicFormScheduleBloc()),
+        BlocProvider(create: (BuildContext context) => DynamicScheduleBloc()),
         BlocProvider(create: (BuildContext context) => DynamicFormBloc()),
         BlocProvider(create: (BuildContext context) => DynamicReportBloc()),
         BlocProvider(create: (BuildContext context) => DynamicChartBloc()),

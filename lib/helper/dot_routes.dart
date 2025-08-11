@@ -2,8 +2,8 @@ import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_page.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_page.dart";
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_page.dart";
 import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_page.dart";
-import "package:dynamic_of_things/module/dynamic_form/schedule/dynamic_form_schedule_page.dart";
 import "package:dynamic_of_things/module/dynamic_report/dynamic_report_page.dart";
+import "package:dynamic_of_things/module/dynamic_schedule/dynamic_schedule_page.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_bulk_detail_form.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_detail_form.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_sub_detail_form.dart";
@@ -22,17 +22,6 @@ final List<GoRoute> dotRoutes = [
       Map<String, dynamic> extra = state.extra as Map<String, dynamic>;
 
       return DynamicFormListPage(
-        dynamicFormMenuItem: extra["dynamicFormMenuItem"],
-        customerId: extra["customerId"],
-      );
-    },
-  ),
-  GoRoute(
-    path: "/dynamic-forms/schedule",
-    builder: (context, state) {
-      Map<String, dynamic> extra = state.extra as Map<String, dynamic>;
-
-      return DynamicFormSchedulePage(
         dynamicFormMenuItem: extra["dynamicFormMenuItem"],
         customerId: extra["customerId"],
       );
@@ -92,6 +81,17 @@ final List<GoRoute> dotRoutes = [
         detailForm: extra["detailForm"],
         subDetailForm: extra["subDetailForm"],
         data: extra["data"] ?? {},
+      );
+    },
+  ),
+  GoRoute(
+    path: "/dynamic-schedules",
+    builder: (context, state) {
+      Map<String, dynamic> extra = state.extra as Map<String, dynamic>;
+
+      return DynamicSchedulePage(
+        dynamicFormMenuItem: extra["dynamicFormMenuItem"],
+        customerId: extra["customerId"],
       );
     },
   ),

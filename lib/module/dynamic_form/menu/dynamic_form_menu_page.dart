@@ -7,8 +7,8 @@ import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_pag
 import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_event.dart";
 import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_state.dart";
-import "package:dynamic_of_things/module/dynamic_form/schedule/dynamic_form_schedule_page.dart";
 import "package:dynamic_of_things/module/dynamic_report/dynamic_report_page.dart";
+import "package:dynamic_of_things/module/dynamic_schedule/dynamic_schedule_page.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
@@ -188,14 +188,14 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage> with WidgetsBi
                       } else if (dynamicFormMenuItem.type == "SCHEDULE") {
                         if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
                           await Navigators.push(
-                            DynamicFormSchedulePage(
+                            DynamicSchedulePage(
                               dynamicFormMenuItem: dynamicFormMenuItem,
                               customerId: widget.customerId,
                             ),
                           );
                         } else {
                           await context.push(
-                            "/dynamic-forms/schedule",
+                            "/dynamic-schedules",
                             extra: {
                               "dynamicFormMenuItem": dynamicFormMenuItem,
                               "customerId": widget.customerId,
