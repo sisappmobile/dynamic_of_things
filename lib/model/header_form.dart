@@ -7,14 +7,16 @@ import "package:dynamic_of_things/helper/formats.dart";
 import "package:flutter/material.dart";
 
 class HeaderForm {
+  final Category category;
   final Template template;
   final List<DetailForm> detailForms;
-  final Map<String, dynamic> data;
+  Map<String, dynamic> data;
   final bool hasOnChangeEvent;
 
   String? dataId;
 
   HeaderForm({
+    required this.category,
     required this.template,
     required this.detailForms,
     required this.data,
@@ -22,11 +24,74 @@ class HeaderForm {
   });
 
   factory HeaderForm.fromJson(Map<String, dynamic> json) => HeaderForm(
+    category: Category.fromJson(json["category"]),
     template: Template.fromJson(json["template"]),
     detailForms: json["detailForms"] != null ? List<DetailForm>.from(json["detailForms"].map((e) => DetailForm.fromJson(e))) : [],
     data: json["data"],
     hasOnChangeEvent: json["hasOnChangeEvent"],
   );
+
+  Map<String, dynamic> toJson() => {
+    "template": template.toJson(),
+    "detailForms": List<dynamic>.from(detailForms.map((x) => x.toJson())),
+    "hasOnChangeEvent": hasOnChangeEvent,
+  };
+}
+
+class Menu {
+  final String id;
+  final String name;
+  final int index;
+  final String type;
+
+  Menu({
+    required this.id,
+    required this.name,
+    required this.index,
+    required this.type,
+  });
+
+  factory Menu.fromJson(Map<String, dynamic> json) => Menu(
+    id: json["id"] ?? "",
+    name: json["name"] ?? "",
+    index: json["index"] ?? 0,
+    type: json["type"] ?? "",
+  );
+
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "name": name,
+    "index": index,
+    "type": type,
+  };
+}
+
+class Category {
+  final String id;
+  final String name;
+  final int index;
+  final Menu menu;
+
+  Category({
+    required this.id,
+    required this.name,
+    required this.index,
+    required this.menu,
+  });
+
+  factory Category.fromJson(Map<String, dynamic> json) => Category(
+    id: json["id"] ?? "",
+    name: json["name"] ?? "",
+    index: json["index"] ?? 0,
+    menu: Menu.fromJson(json["menu"]),
+  );
+
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "name": name,
+    "index": index,
+    "menu": menu.toJson(),
+  };
 }
 
 class Template {
@@ -34,7 +99,9 @@ class Template {
   final String tableName;
   final String title;
   final String description;
+  final bool journey;
   final List<Action> actions;
+  final List<ListColumn> columns;
   final List<Resource> resources;
   final List<Section> sections;
 
@@ -43,7 +110,9 @@ class Template {
     required this.tableName,
     required this.title,
     required this.description,
+    required this.journey,
     required this.actions,
+    required this.columns,
     required this.resources,
     required this.sections,
   });
@@ -53,10 +122,23 @@ class Template {
     tableName: json["tableName"] ?? "",
     title: json["title"] ?? "",
     description: json["description"] ?? "",
+    journey: json["journey"] ?? "",
     actions: json["actions"] != null ? List<Action>.from(json["actions"].map((e) => Action.fromJson(e))) : [],
+    columns: json["columns"] != null ? List<ListColumn>.from(json["columns"].map((e) => ListColumn.fromJson(e))) : [],
     resources: json["resources"] != null ? List<Resource>.from(json["resources"].map((e) => Resource.fromJson(e))) : [],
     sections: json["sections"] != null ? List<Section>.from(json["sections"].map((e) => Section.fromJson(e))) : [],
   );
+
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "tableName": tableName,
+    "title": title,
+    "description": description,
+    "journey": journey,
+    "actions": List<dynamic>.from(actions.map((x) => x.toJson())),
+    "resources": List<dynamic>.from(resources.map((x) => x.toJson())),
+    "sections": List<dynamic>.from(sections.map((x) => x.toJson())),
+  };
 }
 
 class Action {
@@ -75,6 +157,12 @@ class Action {
     resourceId: json["resourceId"] ?? "",
     name: json["name"] ?? "",
   );
+
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "resourceId": resourceId,
+    "name": name,
+  };
 }
 
 class DetailForm with ChangeNotifier {
@@ -102,6 +190,14 @@ class DetailForm with ChangeNotifier {
     subDetailForms: json["subDetailForms"] != null ? List<SubDetailForm>.from(json["subDetailForms"].map((e) => SubDetailForm.fromJson(e))) : [],
     hasOnChangeEvent: json["hasOnChangeEvent"],
   );
+
+  Map<String, dynamic> toJson() => {
+    "single": single,
+    "columns": List<dynamic>.from(columns.map((x) => x.toJson())),
+    "template": template.toJson(),
+    "subDetailForms": List<dynamic>.from(subDetailForms.map((x) => x.toJson())),
+    "hasOnChangeEvent": hasOnChangeEvent,
+  };
 
   dynamic getData(HeaderForm headerForm) {
     if (single) {
@@ -156,6 +252,12 @@ class SubDetailForm with ChangeNotifier {
     hasOnChangeEvent: json["hasOnChangeEvent"],
   );
 
+  Map<String, dynamic> toJson() => {
+    "columns": List<dynamic>.from(columns.map((x) => x.toJson())),
+    "template": template.toJson(),
+    "hasOnChangeEvent": hasOnChangeEvent,
+  };
+
   List<Map<String, dynamic>> getRows(Map<String, dynamic> detailData) {
     detailData[template.tableName] = List<Map<String, dynamic>>.from(detailData[template.tableName] ?? []);
 
@@ -204,10 +306,18 @@ class ListColumn {
     description: json["description"] ?? "",
     primaryKey: json["primaryKey"] ?? false,
   );
+
+  Map<String, dynamic> toJson() => {
+    "name": name,
+    "type": type,
+    "description": description,
+    "primaryKey": primaryKey,
+  };
 }
 
 class Resource {
   final String name;
+  final String key;
   final String table;
   final List<String> fields;
   final List<ManualFilter> manualFilters;
@@ -217,6 +327,7 @@ class Resource {
 
   Resource({
     required this.name,
+    required this.key,
     required this.table,
     required this.fields,
     required this.manualFilters,
@@ -227,6 +338,7 @@ class Resource {
 
   factory Resource.fromJson(Map<String, dynamic> json) => Resource(
     name: json["name"] ?? "",
+    key: json["key"] ?? "",
     table: json["table"] ?? "",
     fields: json["fields"] != null ? List<String>.from(json["fields"].map((e) => e)) : [],
     manualFilters: json["manualFilters"] != null ? List<ManualFilter>.from(json["manualFilters"].map((e) => ManualFilter.fromJson(e))) : [],
@@ -234,6 +346,17 @@ class Resource {
     detailSetups: json["detailSetups"] != null ? List<DetailSetup>.from(json["detailSetups"].map((e) => DetailSetup.fromJson(e))) : [],
     loadOnFields: json["loadOnFields"] != null ? List<LoadOnField>.from(json["loadOnFields"].map((e) => LoadOnField.fromJson(e))) : [],
   );
+
+  Map<String, dynamic> toJson() => {
+    "name": name,
+    "key": key,
+    "table": table,
+    "fields": fields,
+    "manualFilters": List<dynamic>.from(manualFilters.map((x) => x.toJson())),
+    "autoFilters": List<dynamic>.from(autoFilters.map((x) => x.toJson())),
+    "detailSetups": List<dynamic>.from(detailSetups.map((x) => x.toJson())),
+    "loadOnFields": List<dynamic>.from(loadOnFields.map((x) => x.toJson())),
+  };
 }
 
 class ManualFilter {
@@ -255,6 +378,13 @@ class ManualFilter {
     operator: json["operator"] ?? "",
     operation: json["operation"] ?? "",
   );
+
+  Map<String, dynamic> toJson() => {
+    "key": key,
+    "value": value,
+    "operator": operator,
+    "operation": operation,
+  };
 }
 
 class AutoFilter {
@@ -276,6 +406,13 @@ class AutoFilter {
     operator: json["operator"] ?? "",
     operation: json["operation"] ?? "",
   );
+
+  Map<String, dynamic> toJson() => {
+    "key": key,
+    "value": value,
+    "operator": operator,
+    "operation": operation,
+  };
 }
 
 class DetailSetup {
@@ -291,6 +428,11 @@ class DetailSetup {
     srcKey: json["srcKey"] ?? "",
     dstKey: json["dstKey"] ?? "",
   );
+
+  Map<String, dynamic> toJson() => {
+    "srcKey": srcKey,
+    "dstKey": dstKey,
+  };
 }
 
 class LoadOnField {
@@ -309,6 +451,12 @@ class LoadOnField {
     source: json["source"] ?? "",
     target: json["target"] ?? "",
   );
+
+  Map<String, dynamic> toJson() => {
+    "detail": detail,
+    "source": source,
+    "target": target,
+  };
 }
 
 class Section {
@@ -324,6 +472,11 @@ class Section {
     title: json["title"] ?? "",
     fields: json["fields"] != null ? List<Field>.from(json["fields"].map((e) => Field.fromJson(e))) : [],
   );
+
+  Map<String, dynamic> toJson() => {
+    "title": title,
+    "fields": List<dynamic>.from(fields.map((x) => x.toJson())),
+  };
 }
 
 class Field with ChangeNotifier {
@@ -375,6 +528,23 @@ class Field with ChangeNotifier {
     data: json["data"] != null ? List<dynamic>.from(json["data"].map((e) => e)) : [],
     link: json["link"] != null ? Link.fromJson(json["link"]) : null,
   );
+
+  Map<String, dynamic> toJson() => {
+    "name": name,
+    "type": type,
+    "title": title,
+    "description": description,
+    "readOnly": readOnly,
+    "required": required,
+    "multiple": multiple,
+    "obscure": obscure,
+    "hidden": hidden,
+    "defaultValue": defaultValue,
+    "enableAfter": enableAfter,
+    "validations": List<dynamic>.from(validations.map((x) => x.toJson())),
+    "data": data,
+    "link": link?.toJson(),
+  };
 
   dynamic getValue(Map<String, dynamic> data) {
     return data[name];
@@ -441,6 +611,12 @@ class Validation {
     value: json["value"],
     errorMessage: json["errorMessage"] ?? "",
   );
+
+  Map<String, dynamic> toJson() => {
+    "type": type,
+    "value": value,
+    "errorMessage": errorMessage,
+  };
 }
 
 class Link {
@@ -459,4 +635,10 @@ class Link {
     target: json["target"] ?? "",
     depends: json["depends"] != null ? List<String>.from(json["depends"].map((e) => e)) : [],
   );
+
+  Map<String, dynamic> toJson() => {
+    "source": source,
+    "target": target,
+    "depends": depends,
+  };
 }

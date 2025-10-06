@@ -71,5 +71,7 @@
   "of": "Of",
   "filter": "Filter",
   "clear": "Clear",
-  "all": "All"
+  "all": "All",
+  "send_data": "Send data",
+  "pending_data_has_been_successfully_sent": "Pending data has been successfully sent"
 }

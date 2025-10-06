@@ -1,7 +1,7 @@
+import "dart:async";
 import "dart:convert";
 import "dart:io";
 
-import "package:android_id/android_id.dart";
 import "package:base/base.dart";
 import "package:crypto/crypto.dart" as crypto;
 import "package:dio/dio.dart";
@@ -9,16 +9,19 @@ import "package:dio/io.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
 import "package:dynamic_of_things/helper/dot_routes.dart";
 import "package:dynamic_of_things/helper/formats.dart";
+import "package:dynamic_of_things/helper/offlines.dart";
+import "package:dynamic_of_things/helper/realms.dart";
+import "package:dynamic_of_things/helper/sqlites.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_report/dynamic_report_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_schedule/dynamic_schedule_bloc.dart";
+import "package:dynamic_of_things/realm/version_dao.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
-import "package:flutter/services.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:get/get.dart" as g;
 import "package:go_router/go_router.dart";
@@ -28,7 +31,8 @@ import "package:smooth_corner/smooth_corner.dart";
 
 const String sessionIdKey = "sessionId";
 const String usernameKey = "username";
-const String baseUrl = "https://192.168.90.202:8443/salesforce/api/";
+// const String baseUrl = "https://192.168.100.202:8443/salesforce/api/";
+const String baseUrl = "https://10.0.2.2:8443/salesforce/api/";
 const String salt = "72e4425c484016c95677d1a2513681ff8e2b2459b11e68c8b67cc7b7fe60c422b629eb45d1a5b236c3df0031860c98f4b0f58c2497212ee20d58a833b9a3ea1d";
 
 final GoRouter goRouter = GoRouter(
@@ -83,6 +87,42 @@ Future<void> main() async {
   );
 
   await BasePreferences.getInstance().init();
+
+  Timer.run(() async {
+    while (true) {
+      try {
+        if (BasePreferences.getInstance().contain(sessionIdKey)) {
+          Response response = await DotApis.getInstance().versioningCheck(VersionDao.check());
+
+          if (response.statusCode == 200) {
+            Map<String, int> entries = Map<String, int>.from(response.data);
+
+            for (MapEntry<String, int> entry in entries.entries) {
+              if (entry.key == "FORM") {
+                response = await DotApis.getInstance().versioningDynamicFormTemplate(VersionDao.last(VersionDao.form));
+
+                if (response.statusCode == 200) {
+                  await Offlines.insertOrUpdate(
+                    latestVersion: entry.value,
+                    items: List<Map<String, dynamic>>.from(response.data),
+                  );
+                }
+              } else {
+                await Offlines.data(tableName: entry.key);
+              }
+            }
+          }
+        }
+      } catch (e, s) {
+        if (kDebugMode) {
+          print("Caught Exception: $e");
+          print("Stack Trace:\n$s");
+        }
+      }
+
+      await Future.delayed(const Duration(minutes: 1));
+    }
+  });
 
   runApp(
     EasyLocalization(
@@ -304,6 +344,8 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
 
   bool obscurePassword = true;
 
+  // String deviceId = "b29d6a48d10ed383";
+  // String deviceId = "0000000000000000";
   String deviceId = "d4db82b1a0b16901";
 
   @override
@@ -311,8 +353,6 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
-
-    // getDeviceId();
   }
 
   @override
@@ -326,128 +366,128 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
       ),
       contentBuilder: () {
         return SingleChildScrollView(
-        child: Container(
-          padding: EdgeInsets.all(Dimensions.size20),
-          child: Column(
-            children: [
-              Form(
-                key: formState,
-                child: AutofillGroup(
-                  child: Column(
-                    children: [
-                      BaseWidgets.text(
-                        label: "Username",
-                        mandatory: true,
-                        readonly: false,
-                        controller: tecUsername,
-                        prefixIcon: const Icon(Icons.account_circle),
-                      ),
-                      SizedBox(height: Dimensions.size15),
-                      BaseWidgets.text(
-                        label: "Password",
-                        mandatory: true,
-                        readonly: false,
-                        controller: tecPassword,
-                        obscureText: obscurePassword,
-                        prefixIcon: const Icon(Icons.password),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            obscurePassword ? Icons.visibility_off : Icons.visibility,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              obscurePassword = !obscurePassword;
-                            });
-                          },
+          child: Container(
+            padding: EdgeInsets.all(Dimensions.size20),
+            child: Column(
+              children: [
+                Form(
+                  key: formState,
+                  child: AutofillGroup(
+                    child: Column(
+                      children: [
+                        BaseWidgets.text(
+                          label: "Username",
+                          mandatory: true,
+                          readonly: false,
+                          controller: tecUsername,
+                          prefixIcon: const Icon(Icons.account_circle),
                         ),
-                      ),
-                    ],
+                        SizedBox(height: Dimensions.size15),
+                        BaseWidgets.text(
+                          label: "Password",
+                          mandatory: true,
+                          readonly: false,
+                          controller: tecPassword,
+                          obscureText: obscurePassword,
+                          prefixIcon: const Icon(Icons.password),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                obscurePassword = !obscurePassword;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(height: Dimensions.size15),
-              SizedBox(
-                width: Dimensions.screenWidth,
-                child: FilledButton(
-                  onPressed: () async {
-                    if (formState.currentState != null && formState.currentState!.validate()) {
-                      try {
-                        context.loaderOverlay.show();
+                SizedBox(height: Dimensions.size15),
+                SizedBox(
+                  width: Dimensions.screenWidth,
+                  child: FilledButton(
+                    onPressed: () async {
+                      if (formState.currentState != null && formState.currentState!.validate()) {
+                        try {
+                          context.loaderOverlay.show();
 
-                        Dio dio = Dio(
-                          BaseOptions(
-                            baseUrl: baseUrl,
-                            connectTimeout: const Duration(seconds: 60),
-                            receiveTimeout: const Duration(seconds: 60),
-                            contentType: Headers.jsonContentType,
-                          ),
-                        );
+                          Dio dio = Dio(
+                            BaseOptions(
+                              baseUrl: baseUrl,
+                              connectTimeout: const Duration(seconds: 60),
+                              receiveTimeout: const Duration(seconds: 60),
+                              contentType: Headers.jsonContentType,
+                            ),
+                          );
 
-                        dio.interceptors.add(
-                          LogInterceptor(
-                            requestBody: true,
-                            responseBody: true,
-                            error: true,
-                            request: true,
-                            requestHeader: true,
-                            responseHeader: true,
-                          ),
-                        );
+                          dio.interceptors.add(
+                            LogInterceptor(
+                              requestBody: true,
+                              responseBody: true,
+                              error: true,
+                              request: true,
+                              requestHeader: true,
+                              responseHeader: true,
+                            ),
+                          );
 
-                        (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
-                          HttpClient httpClient = HttpClient()..badCertificateCallback = (cert, host, port) => true;
+                          (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+                            HttpClient httpClient = HttpClient()..badCertificateCallback = (cert, host, port) => true;
 
-                          return httpClient;
-                        };
+                            return httpClient;
+                          };
 
-                        String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+                          String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
 
-                        Response response = await dio.post(
-                          "v1/sign-in",
-                          data: {
-                            "T": timestamp,
-                            "P": sha256("$salt${tecUsername.text}$timestamp"),
-                            "UN": tecUsername.text,
-                            "PW": sha256(tecUsername.text + tecPassword.text),
-                            "MD": deviceId,
-                            "AV": "",
-                            "TD": "",
-                            "OS": "",
-                            "FT": "",
-                          },
-                        );
+                          Response response = await dio.post(
+                            "v1/sign-in",
+                            data: {
+                              "T": timestamp,
+                              "P": sha256("$salt${tecUsername.text}$timestamp"),
+                              "UN": tecUsername.text,
+                              "PW": sha256(tecUsername.text + tecPassword.text),
+                              "MD": deviceId,
+                              "AV": "",
+                              "TD": "",
+                              "OS": "",
+                              "FT": "",
+                            },
+                          );
 
-                        if (response.statusCode == 200) {
-                          Map<String, dynamic> json = response.data;
+                          if (response.statusCode == 200) {
+                            Map<String, dynamic> json = response.data;
 
-                          int responseCode = Formats.tryParseNumber(json["RC"]).toInt();
+                            int responseCode = Formats.tryParseNumber(json["RC"]).toInt();
 
-                          if (responseCode == 0) {
-                            await BasePreferences.getInstance().setString(sessionIdKey, json["SI"]);
-                            await BasePreferences.getInstance().setString(usernameKey, json["UN"]);
+                            if (responseCode == 0) {
+                              await BasePreferences.getInstance().setString(sessionIdKey, json["SI"]);
+                              await BasePreferences.getInstance().setString(usernameKey, json["UN"]);
 
-                            context.go("/");
-                          } else {
-                            BaseOverlays.error(message: json["RM"]);
+                              context.go("/");
+                            } else {
+                              BaseOverlays.error(message: json["RM"]);
+                            }
                           }
-                        }
-                      } catch (e, stack) {
-                        if (kDebugMode) {
-                          print(stack);
-                        }
+                        } catch (e, stack) {
+                          if (kDebugMode) {
+                            print(stack);
+                          }
 
-                        BaseOverlays.error(message: "Something wrong, please try again");
-                      } finally {
-                        context.loaderOverlay.hide();
+                          BaseOverlays.error(message: "Something wrong, please try again");
+                        } finally {
+                          context.loaderOverlay.hide();
+                        }
                       }
-                    }
-                  },
-                  child: Text("Login"),
+                    },
+                    child: Text("Login"),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
         );
       },
       statusBuilder: () => BaseBodyStatus.loaded,
@@ -476,28 +516,6 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
     }
 
     return "";
-  }
-
-  void getDeviceId() async {
-    if (kReleaseMode) {
-      if (Platform.isIOS) {
-        deviceId = "0000000000000000";
-      } else {
-        try {
-          deviceId = await AndroidId().getId() ?? "0000000000000000";
-        } on PlatformException {
-          deviceId = "0000000000000000";
-        }
-      }
-    } else {
-      if (Platform.isIOS) {
-        deviceId = "0000000000000000";
-      } else {
-        deviceId = "d4db82b1a0b16901";
-      }
-    }
-
-    setState(() {});
   }
 }
 
@@ -648,6 +666,10 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 title: "Are you sure want to proceed?",
                 positiveCallback: () async {
                   await BasePreferences.getInstance().clear();
+
+                  Sqlites.delete();
+
+                  Realms.clear();
 
                   context.go("/");
                 },

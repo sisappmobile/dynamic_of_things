@@ -5,6 +5,7 @@ import "package:basic_utils/basic_utils.dart";
 import "package:collection/collection.dart";
 import "package:dynamic_of_things/helper/bottom_sheets.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
+import "package:dynamic_of_things/helper/offlines.dart";
 import "package:dynamic_of_things/model/dynamic_form_list_response.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_page.dart";
@@ -12,6 +13,7 @@ import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_blo
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_event.dart";
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_state.dart";
 import "package:easy_localization/easy_localization.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:go_router/go_router.dart";
@@ -201,6 +203,22 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
         itemBuilder: (BuildContext context, int index) {
           Map<String, dynamic> map = filteredDatas()[index];
 
+          Widget pendingWidget() {
+            if (map["_pending"] == "TRUE") {
+              return Positioned(
+                left: Dimensions.size3,
+                top: Dimensions.size3,
+                child: Icon(
+                  Icons.circle,
+                  size: Dimensions.size10,
+                  color: AppColors.warning(),
+                ),
+              );
+            }
+
+            return const SizedBox.shrink();
+          }
+
           List<Widget> widgets = [];
 
           for (int i = 0; i < fields.length; i++) {
@@ -261,11 +279,13 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
           return InkWell(
             onTap: () async {
               if (primaryKey != null) {
+                String id = map[primaryKey.name].toString();
+
                 List<MenuItem> menuItems = [
                   MenuItem(
                     iconData: Icons.visibility,
                     title: "Lihat Data",
-                    onTap: hasViewAccess() ? () async {
+                    onTap: hasViewAccess(id) ? () async {
                       bool result = false;
 
                       if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
@@ -275,7 +295,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
                           DynamicFormPage(
                             dynamicFormMenuItem: widget.dynamicFormMenuItem,
                             readOnly: true,
-                            dataId: map[primaryKey.name].toString(),
+                            dataId: id,
                             customerId: widget.customerId,
                           ),
                         ) ?? false;
@@ -287,7 +307,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
                           extra: {
                             "dynamicFormMenuItem": widget.dynamicFormMenuItem,
                             "readOnly": true,
-                            "dataId": map[primaryKey.name].toString(),
+                            "dataId": id,
                             "customerId": widget.customerId,
                           },
                         ) ?? false;
@@ -301,7 +321,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
                   MenuItem(
                     iconData: Icons.edit,
                     title: "edit".tr(),
-                    onTap: hasEditAccess() ? () async {
+                    onTap: hasEditAccess(id) ? () async {
                       bool result = false;
 
                       if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
@@ -311,7 +331,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
                           DynamicFormPage(
                             dynamicFormMenuItem: widget.dynamicFormMenuItem,
                             readOnly: false,
-                            dataId: map[primaryKey.name].toString(),
+                            dataId: id,
                             customerId: widget.customerId,
                           ),
                         ) ?? false;
@@ -323,7 +343,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
                           extra: {
                             "dynamicFormMenuItem": widget.dynamicFormMenuItem,
                             "readOnly": false,
-                            "dataId": map[primaryKey.name].toString(),
+                            "dataId": id,
                             "customerId": widget.customerId,
                           },
                         ) ?? false;
@@ -336,34 +356,72 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
                   ),
                 ];
 
-                listResponse!.actions.where((element) => !StringUtils.inList(element.resourceId, ["BTN_CREATE", "BTN_EDIT", "BTN_VIEW"])).forEach((element) {
-                  MenuItem menuItem = MenuItem(
-                    title: element.name,
-                    onTap: () {
-                      if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                        Navigators.pop();
-                      } else {
-                        context.pop();
-                      }
+                if (DynamicForms.offline) {
+                  menuItems.add(
+                    MenuItem(
+                      title: "send_data".tr(),
+                      iconData: Icons.send,
+                      onTap: () async {
+                        BaseDialogs.confirmation(
+                          title: "are_you_sure_want_to_proceed".tr(),
+                          positiveCallback: () async {
+                            try {
+                              context.loaderOverlay.show();
 
-                      BaseDialogs.confirmation(
-                        title: "are_you_sure_want_to_proceed".tr(),
-                        positiveCallback: () {
-                          context.read<DynamicFormListBloc>().add(
-                            DynamicFormListCustomAction(
-                              actionId: element.id,
-                              formId: widget.dynamicFormMenuItem.id,
-                              dataId: map[primaryKey.name].toString(),
-                              customerId: widget.customerId,
-                            ),
-                          );
-                        },
-                      );
-                    },
+                              await Offlines.send(
+                                formId: widget.dynamicFormMenuItem.id,
+                                dataId: id,
+                                customerId: widget.customerId,
+                              );
+
+                              BaseOverlays.success(message: "pending_data_has_been_successfully_sent".tr());
+
+                              refresh();
+                            } catch (e, s) {
+                              if (kDebugMode) {
+                                print("Caught Exception: $e");
+                                print("Stack Trace:\n$s");
+                              }
+
+                              BaseOverlays.error(message: "something_wrong_please_try_again".tr());
+                            } finally {
+                              context.loaderOverlay.hide();
+                            }
+                          },
+                        );
+                      },
+                    ),
                   );
+                } else {
+                  listResponse!.actions.where((element) => !StringUtils.inList(element.resourceId, ["BTN_CREATE", "BTN_EDIT", "BTN_VIEW", "BTN_SAVE", "BTN_ADD_DETAIL", "BTN_DEL_DETAIL"])).forEach((element) {
+                    MenuItem menuItem = MenuItem(
+                      title: element.name,
+                      onTap: () {
+                        if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                          Navigators.pop();
+                        } else {
+                          context.pop();
+                        }
 
-                  menuItems.add(menuItem);
-                });
+                        BaseDialogs.confirmation(
+                          title: "are_you_sure_want_to_proceed".tr(),
+                          positiveCallback: () {
+                            context.read<DynamicFormListBloc>().add(
+                              DynamicFormListCustomAction(
+                                actionId: element.id,
+                                formId: widget.dynamicFormMenuItem.id,
+                                dataId: id,
+                                customerId: widget.customerId,
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    );
+
+                    menuItems.add(menuItem);
+                  });
+                }
 
                 BottomSheets.popupMenu(
                   context: context,
@@ -371,13 +429,18 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
                 );
               }
             },
-            child: Container(
-              width: MediaQuery.of(context).size.width,
-              padding: EdgeInsets.all(Dimensions.size15),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: widgets,
-              ),
+            child: Stack(
+              children: [
+                pendingWidget(),
+                Container(
+                  width: MediaQuery.of(context).size.width,
+                  padding: EdgeInsets.all(Dimensions.size15),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: widgets,
+                  ),
+                ),
+              ],
             ),
           );
         },
@@ -454,11 +517,11 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
     return listResponse != null && listResponse!.actions.any((element) => element.resourceId == "BTN_CREATE");
   }
 
-  bool hasViewAccess() {
-    return listResponse != null && listResponse!.actions.any((element) => element.resourceId == "BTN_VIEW");
+  bool hasViewAccess(String id) {
+    return (listResponse != null && listResponse!.actions.any((element) => element.resourceId == "BTN_VIEW")) || id.contains("*");
   }
 
-  bool hasEditAccess() {
-    return listResponse != null && listResponse!.actions.any((element) => element.resourceId == "BTN_EDIT");
+  bool hasEditAccess(String id) {
+    return (listResponse != null && listResponse!.actions.any((element) => element.resourceId == "BTN_EDIT")) || id.contains("*");
   }
 }

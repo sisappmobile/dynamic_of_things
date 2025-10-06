@@ -13,6 +13,7 @@ import "package:dynamic_of_things/helper/dot_apis.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/helper/images.dart";
+import "package:dynamic_of_things/helper/offlines.dart";
 import "package:dynamic_of_things/model/attachment.dart";
 import "package:dynamic_of_things/model/dynamic_form_resource_response.dart";
 import "package:dynamic_of_things/model/header_form.dart";
@@ -926,19 +927,27 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     } else if (widget.field.type == DynamicFormFieldType.DROPDOWN_DATA.name) {
       DynamicFormResourceResponse? dynamicFormResourceResponse;
 
-      try {
-        context.loaderOverlay.show();
-
-        dynamicFormResourceResponse = await DotApis.getInstance().dynamicFormResource(
-          formId: widget.template.id,
+      if (DynamicForms.offline) {
+        dynamicFormResourceResponse = await Offlines.resource(
+          headerForm: widget.headerForm,
           name: widget.field.name,
           data: widget.data,
-          customerId: widget.customerId,
         );
-      } catch (e) {
-        BaseOverlays.error(message: "something_wrong_please_try_again".tr());
-      } finally {
-        context.loaderOverlay.hide();
+      } else {
+        try {
+          context.loaderOverlay.show();
+
+          dynamicFormResourceResponse = await DotApis.getInstance().dynamicFormResource(
+            formId: widget.template.id,
+            name: widget.field.name,
+            data: widget.data,
+            customerId: widget.customerId,
+          );
+        } catch (e) {
+          BaseOverlays.error(message: "something_wrong_please_try_again".tr());
+        } finally {
+          context.loaderOverlay.hide();
+        }
       }
 
       if (dynamicFormResourceResponse != null) {
@@ -951,133 +960,127 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         if (selectedItem != null) {
           dynamic value = selectedItem[dynamicFormResourceResponse.key];
 
-          try {
-            context.loaderOverlay.show();
+          if (widget.field.link != null) {
+            String linkValue = selectedItem[widget.field.link!.source];
 
-            Map<String, dynamic>? result = await DotApis.getInstance().dynamicFormSelect(
-              formId: widget.template.id,
-              name: widget.field.name,
-              value: value,
-              customerId: widget.customerId,
-            );
+            widget.data[widget.field.link!.target] = linkValue;
+          }
 
-            if (result != null) {
-              if (widget.field.link != null) {
-                String linkValue = selectedItem[widget.field.link!.source];
+          widget.field.setValue(widget.data, value);
 
-                widget.data[widget.field.link!.target] = linkValue;
-              }
+          if (dynamicFormResourceResponse.loadOnFields.isNotEmpty) {
+            for (DynamicFormResourceLoadOnFieldItem dynamicFormResourceLoadOnFieldItem in dynamicFormResourceResponse.loadOnFields) {
+              if (!dynamicFormResourceLoadOnFieldItem.detail) {
+                dynamic value = selectedItem[dynamicFormResourceLoadOnFieldItem.source];
 
-              widget.field.setValue(widget.data, value);
+                if (value != null) {
+                  bool found = false;
 
-              if (dynamicFormResourceResponse.loadOnFields.isNotEmpty) {
-                for (DynamicFormResourceLoadOnFieldItem dynamicFormResourceLoadOnFieldItem in dynamicFormResourceResponse.loadOnFields) {
-                  if (!dynamicFormResourceLoadOnFieldItem.detail) {
-                    dynamic value = selectedItem[dynamicFormResourceLoadOnFieldItem.source];
+                  for (Section section in widget.template.sections) {
+                    for (Field field in section.fields) {
+                      if (StringUtils.equalsIgnoreCase(field.name, dynamicFormResourceLoadOnFieldItem.target)) {
+                        field.setValue(widget.data, await DynamicForms.decodeValue(field: field, value: value));
 
-                    if (value != null) {
-                      bool found = false;
-
-                      for (Section section in widget.template.sections) {
-                        for (Field field in section.fields) {
-                          if (StringUtils.equalsIgnoreCase(field.name, dynamicFormResourceLoadOnFieldItem.target)) {
-                            field.setValue(widget.data, await DynamicForms.decodeValue(field: field, value: value));
-
-                            found = true;
-                          }
-                        }
-                      }
-
-                      if (!found) {
-                        widget.data[dynamicFormResourceLoadOnFieldItem.target] = value;
+                        found = true;
                       }
                     }
                   }
-                }
-              }
 
-              if (widget.field.getValue(widget.data) != null) {
-                for (Section section in widget.template.sections) {
-                  for (Field field in section.fields) {
-                    if (StringUtils.isNotNullOrEmpty(field.enableAfter)) {
-                      if (StringUtils.equalsIgnoreCase(field.enableAfter, widget.field.name)) {
-                        field.enable();
-                      }
-                    }
-                  }
-                }
-              }
-
-              if (dynamicFormResourceResponse.detailSetups.isNotEmpty) {
-                context.loaderOverlay.show();
-
-                try {
-                  List<Map<String, dynamic>> details = selectedItem["details"] != null ? List<Map<String, dynamic>>.from(selectedItem["details"].map((e) => e)) : [];
-
-                  DetailForm? detailForm = widget.headerForm.detailForms.firstOrNull;
-
-                  if (detailForm != null) {
-                    if (details.isNotEmpty) {
-                      for (Map<String, dynamic> detail in details) {
-                        Map<String, dynamic> row = {};
-
-                        for (String key in detail.keys) {
-                          for (Section section in detailForm.template.sections) {
-                            for (Field field in section.fields) {
-                              if (field.name == key) {
-                                field.setValue(row, detail[key]);
-                              }
-                            }
-                          }
-                        }
-
-                        detailForm.addRow(widget.headerForm, row);
-                      }
-
-                      if (detailForm.hasOnChangeEvent) {
-                        context.read<DynamicFormBloc>().add(
-                          DynamicFormRefresh(
-                            formId: widget.headerForm.template.id,
-                            customerId: widget.customerId,
-                            headerForm: widget.headerForm,
-                          ),
-                        );
-                      }
-                    }
-                  }
-                } catch (e) {
-                  BaseOverlays.error(message: "Ada sesuatu yang salah, silahkan coba kembali beberapa saat kemudian.");
-                } finally {
-                  context.loaderOverlay.hide();
-                }
-              }
-
-              for (DetailForm detailForm in widget.headerForm.detailForms) {
-                List<Map<String, dynamic>> details = result[detailForm.template.tableName] != null ? List<Map<String, dynamic>>.from(result[detailForm.template.tableName].map((e) => e)) : [];
-
-                if (details.isNotEmpty) {
-                  for (Map<String, dynamic> detail in details) {
-                    Map<String, dynamic> row = {};
-
-                    for (String key in detail.keys) {
-                      for (Section section in detailForm.template.sections) {
-                        for (Field field in section.fields) {
-                          if (field.name == key) {
-                            field.setValue(row, detail[key]);
-                          }
-                        }
-                      }
-                    }
-
-                    detailForm.addRow(widget.headerForm, row);
+                  if (!found) {
+                    widget.data[dynamicFormResourceLoadOnFieldItem.target] = value;
                   }
                 }
               }
             }
-          } catch (e) {
-            BaseOverlays.error(message: "something_wrong_please_try_again".tr());
-          } finally {
-            context.loaderOverlay.hide();
+          }
+
+          if (widget.field.getValue(widget.data) != null) {
+            for (Section section in widget.template.sections) {
+              for (Field field in section.fields) {
+                if (StringUtils.isNotNullOrEmpty(field.enableAfter)) {
+                  if (StringUtils.equalsIgnoreCase(field.enableAfter, widget.field.name)) {
+                    field.enable();
+                  }
+                }
+              }
+            }
+          }
+
+          if (dynamicFormResourceResponse.detailSetups.isNotEmpty) {
+            List<Map<String, dynamic>> details = selectedItem["details"] != null ? List<Map<String, dynamic>>.from(selectedItem["details"].map((e) => e)) : [];
+
+            DetailForm? detailForm = widget.headerForm.detailForms.firstOrNull;
+
+            if (detailForm != null) {
+              if (details.isNotEmpty) {
+                for (Map<String, dynamic> detail in details) {
+                  Map<String, dynamic> row = {};
+
+                  for (String key in detail.keys) {
+                    for (Section section in detailForm.template.sections) {
+                      for (Field field in section.fields) {
+                        if (field.name == key) {
+                          field.setValue(row, detail[key]);
+                        }
+                      }
+                    }
+                  }
+
+                  detailForm.addRow(widget.headerForm, row);
+                }
+
+                if (detailForm.hasOnChangeEvent) {
+                  context.read<DynamicFormBloc>().add(
+                    DynamicFormRefresh(
+                      formId: widget.headerForm.template.id,
+                      customerId: widget.customerId,
+                      headerForm: widget.headerForm,
+                    ),
+                  );
+                }
+              }
+            }
+          }
+
+          if (!DynamicForms.offline && widget.headerForm.detailForms.isNotEmpty) {
+            try {
+              context.loaderOverlay.show();
+
+              Map<String, dynamic>? result = await DotApis.getInstance().dynamicFormSelect(
+                formId: widget.template.id,
+                name: widget.field.name,
+                value: value,
+                customerId: widget.customerId,
+              );
+
+              if (result != null) {
+                for (DetailForm detailForm in widget.headerForm.detailForms) {
+                  List<Map<String, dynamic>> details = result[detailForm.template.tableName] != null ? List<Map<String, dynamic>>.from(result[detailForm.template.tableName].map((e) => e)) : [];
+
+                  if (details.isNotEmpty) {
+                    for (Map<String, dynamic> detail in details) {
+                      Map<String, dynamic> row = {};
+
+                      for (String key in detail.keys) {
+                        for (Section section in detailForm.template.sections) {
+                          for (Field field in section.fields) {
+                            if (field.name == key) {
+                              field.setValue(row, detail[key]);
+                            }
+                          }
+                        }
+                      }
+
+                      detailForm.addRow(widget.headerForm, row);
+                    }
+                  }
+                }
+              }
+            } catch (e) {
+              BaseOverlays.error(message: "something_wrong_please_try_again".tr());
+            } finally {
+              context.loaderOverlay.hide();
+            }
           }
         }
       }

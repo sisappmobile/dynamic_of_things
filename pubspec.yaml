@@ -1,7 +1,7 @@
 name: dynamic_of_things
 description: Dynamic of things
 publish_to: none
-version: 1.0.14+1
+version: 1.0.15+1
 
 environment:
   sdk: ^3.6.2
@@ -55,6 +55,8 @@ dependencies:
   syncfusion_flutter_charts: 29.2.11
   syncfusion_flutter_calendar: 29.2.11
   syncfusion_flutter_signaturepad: 29.2.11
+  realm: 20.2.0
+  sqflite: 2.4.2
 
 dev_dependencies:
   flutter_test:

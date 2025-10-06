@@ -71,5 +71,7 @@
   "of": "Dari",
   "filter": "Filter",
   "clear": "Bersihkan",
-  "all": "Semua"
+  "all": "Semua",
+  "send_data": "Kirim data",
+  "pending_data_has_been_successfully_sent": "Data pending telah berhasil terkirim"
 }
