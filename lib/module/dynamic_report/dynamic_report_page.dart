@@ -278,10 +278,7 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
               children.add(
                 childrenWidget(
                   description: leftField.caption,
-                  value: DynamicForms.spell(
-                    type: leftField.type,
-                    value: map[leftField.name],
-                  ),
+                  value: map[leftField.name] ?? "",
                   left: true,
                 ),
               );
@@ -298,10 +295,7 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
                 children.add(
                   childrenWidget(
                     description: rightField.caption,
-                    value: DynamicForms.spell(
-                      type: rightField.type,
-                      value: map[rightField.name],
-                    ),
+                    value: map[rightField.name] ?? "",
                     left: false,
                   ),
                 );

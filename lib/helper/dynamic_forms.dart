@@ -13,7 +13,7 @@ import "package:flutter/material.dart";
 import "package:video_thumbnail/video_thumbnail.dart";
 
 class DynamicForms {
-  static bool offline = true;
+  static bool offline = false;
 
   static String spell({
     required String type,
