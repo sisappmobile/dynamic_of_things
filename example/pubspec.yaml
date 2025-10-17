@@ -14,8 +14,8 @@ dependencies:
   base:
     git:
       url: https://github.com/sisappmobile/base.git
-      ref: 2.0.9
-    # path: /Volumes/MI3-SSD/project/flutter/base
+      ref: 2.0.10
+    # path: /Users/kecoakburikk/Documents/project/flutter/base
 
   # inherited from base
   get: 4.7.2

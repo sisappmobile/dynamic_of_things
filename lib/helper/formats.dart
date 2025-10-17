@@ -58,6 +58,8 @@ class Formats {
         }
       } else if (value is int) {
         return value == 1;
+      } else if (value is bool) {
+        return value;
       } else {
         return false;
       }

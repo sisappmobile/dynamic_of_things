@@ -330,6 +330,36 @@ class DotApis {
     return null;
   }
 
+  Future<Response> dynamicFormResourceData({
+    required String formId,
+    required String name,
+    required Map<String, dynamic> data,
+    required int pageIndex,
+    required int pageSize,
+    required String? query,
+    required String? customerId,
+  }) async {
+    Map<String, String> headers = {};
+
+    if (StringUtils.isNotNullOrEmpty(customerId)) {
+      headers["sfa-customer-id"] = customerId!;
+    }
+
+    return await dio.post(
+      "v2/dynamic-forms/resources/$formId/data",
+      options: Options(
+        headers: headers,
+      ),
+      queryParameters: {
+        "name": name,
+        "query": query,
+        "pageIndex": pageIndex,
+        "pageSize": pageSize,
+      },
+      data: Formats.convert(Map<String, dynamic>.from(data)),
+    );
+  }
+
   Future<HeaderForm?> dynamicFormRefresh({
     required String formId,
     required Map<String, dynamic> data,

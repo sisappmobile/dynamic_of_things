@@ -1,14 +1,14 @@
+import "package:dynamic_of_things/helper/formats.dart";
+
 class DynamicFormResourceResponse {
   final String key;
   final List<DynamicFormResourceFieldItem> fields;
-  final List<Map<String, dynamic>> data;
   final List<DynamicFormResourceDetailSetupItem> detailSetups;
   final List<DynamicFormResourceLoadOnFieldItem> loadOnFields;
 
   DynamicFormResourceResponse({
     required this.key,
     required this.fields,
-    required this.data,
     required this.detailSetups,
     required this.loadOnFields,
   });
@@ -16,7 +16,6 @@ class DynamicFormResourceResponse {
   factory DynamicFormResourceResponse.fromJson(Map<String, dynamic> json) => DynamicFormResourceResponse(
     key: json["key"],
     fields: json["fields"] != null ? List<DynamicFormResourceFieldItem>.from(json["fields"].map((e) => DynamicFormResourceFieldItem.fromJson(e))) : [],
-    data: json["data"] != null ? List<Map<String, dynamic>>.from(json["data"].map((e) => e)) : [],
     detailSetups: json["detailSetups"] != null ? List<DynamicFormResourceDetailSetupItem>.from(json["detailSetups"].map((e) => DynamicFormResourceDetailSetupItem.fromJson(e))) : [],
     loadOnFields: json["loadOnFields"] != null ? List<DynamicFormResourceLoadOnFieldItem>.from(json["loadOnFields"].map((e) => DynamicFormResourceLoadOnFieldItem.fromJson(e))) : [],
   );
@@ -41,17 +40,20 @@ class DynamicFormResourceFieldItem {
   final String name;
   final String type;
   final String description;
+  final bool showed;
 
   DynamicFormResourceFieldItem({
     required this.name,
     required this.type,
     required this.description,
+    required this.showed,
   });
 
   factory DynamicFormResourceFieldItem.fromJson(Map<String, dynamic> json) => DynamicFormResourceFieldItem(
     name: json["name"] ?? "",
     type: json["type"] ?? "",
     description: json["description"] ?? "",
+    showed: Formats.tryParseBool(json["showed"]),
   );
 }
 

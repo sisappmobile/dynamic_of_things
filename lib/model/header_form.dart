@@ -43,12 +43,14 @@ class Menu {
   final String name;
   final int index;
   final String type;
+  final String icon;
 
   Menu({
     required this.id,
     required this.name,
     required this.index,
     required this.type,
+    required this.icon,
   });
 
   factory Menu.fromJson(Map<String, dynamic> json) => Menu(
@@ -56,6 +58,7 @@ class Menu {
     name: json["name"] ?? "",
     index: json["index"] ?? 0,
     type: json["type"] ?? "",
+    icon: json["icon"] ?? "",
   );
 
   Map<String, dynamic> toJson() => {
@@ -63,6 +66,7 @@ class Menu {
     "name": name,
     "index": index,
     "type": type,
+    "icon": icon,
   };
 }
 

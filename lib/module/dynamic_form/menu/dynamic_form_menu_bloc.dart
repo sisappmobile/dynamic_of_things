@@ -44,6 +44,7 @@ class DynamicFormMenuBloc extends Bloc<DynamicFormMenuEvent, DynamicFormMenuStat
                   name: headerForm.category.menu.name,
                   index: headerForm.category.menu.index,
                   type: headerForm.category.menu.type,
+                  icon: headerForm.category.menu.icon
               ),
             );
           }

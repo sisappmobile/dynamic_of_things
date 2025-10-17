@@ -21,6 +21,13 @@ import "package:flutter/foundation.dart";
 import "package:realm/realm.dart";
 import "package:sqflite/sqflite.dart";
 
+class Data {
+  final int size;
+  final List<Map<String, dynamic>> items;
+
+  Data({required this.size, required this.items});
+}
+
 class Offlines {
   static Future<void> insertOrUpdate({
     required int latestVersion,
@@ -390,6 +397,53 @@ class Offlines {
         if (schema != null) {
           List<ListColumn> listColumns = List<ListColumn>.from(List<Map<String, dynamic>>.from(jsonDecode(schema.json)).map((e) => ListColumn.fromJson(e)));
 
+          return DynamicFormResourceResponse(
+            key: resource.key,
+            fields: listColumns.where((element) {
+              return element.primaryKey || resource.fields.contains(element.name);
+            }).map((element) {
+              return DynamicFormResourceFieldItem(
+                name: element.name,
+                type: element.type,
+                description: element.description,
+                showed: true,
+              );
+            }).toList(),
+            detailSetups: resource.detailSetups.map((element) {
+              return DynamicFormResourceDetailSetupItem(
+                srcKey: element.srcKey,
+                dstKey: element.dstKey,
+              );
+            }).toList(),
+            loadOnFields: resource.loadOnFields.map((element) {
+              return DynamicFormResourceLoadOnFieldItem(
+                detail: element.detail,
+                source: element.source,
+                target: element.target,
+              );
+            }).toList(),
+          );
+        }
+      }
+    }
+
+    return null;
+  }
+
+  static Future<Data?> resourceData({
+    required HeaderForm headerForm,
+    required String name,
+    required Map<String, dynamic> data,
+    required int pageIndex,
+    required int pageSize,
+    required String? query,
+    required String? customerId,
+  }) async {
+    for (Resource resource in headerForm.template.resources) {
+      if (StringUtils.equalsIgnoreCase(resource.name, name)) {
+        Schema? schema = findSchema(resource.table);
+
+        if (schema != null) {
           DMLAssemblers dmlAssemblers = DMLAssemblers.create();
 
           dmlAssemblers.select("*");
@@ -465,31 +519,18 @@ class Offlines {
             dmlAssemblers.desc("id");
           }
 
-          return DynamicFormResourceResponse(
-            key: resource.key,
-            fields: listColumns.where((element) {
-              return element.primaryKey || resource.fields.contains(element.name);
-            }).map((element) {
-              return DynamicFormResourceFieldItem(
-                name: element.name,
-                type: element.type,
-                description: element.description,
-              );
-            }).toList(),
-            data: await dmlAssemblers.all(),
-            detailSetups: resource.detailSetups.map((element) {
-              return DynamicFormResourceDetailSetupItem(
-                srcKey: element.srcKey,
-                dstKey: element.dstKey,
-              );
-            }).toList(),
-            loadOnFields: resource.loadOnFields.map((element) {
-              return DynamicFormResourceLoadOnFieldItem(
-                detail: element.detail,
-                source: element.source,
-                target: element.target,
-              );
-            }).toList(),
+          if (StringUtils.isNotNullOrEmpty(query)) {
+            dmlAssemblers
+                .and()
+                .customWhere("(${resource.fields.map((element) => "COALESCE(CAST($element AS VARCHAR), '')").join("||")}) LIKE '%$query%'");
+          }
+
+          dmlAssemblers.limit(pageSize);
+          dmlAssemblers.offset((pageIndex - 1) * pageSize);
+
+          return Data(
+            size: await dmlAssemblers.count(),
+            items: await dmlAssemblers.all(),
           );
         }
       }

@@ -17,6 +17,7 @@ class DMLAssemblers {
   final List<String> _orders = [];
   final List<String> _wheres = [];
 
+  int _offset = 0;
   int _limit = 0;
   String? _having;
   final List<Object> _parameters = [];
@@ -205,6 +206,12 @@ class DMLAssemblers {
     return this;
   }
 
+  DMLAssemblers offset(int offset) {
+    _offset = offset;
+
+    return this;
+  }
+
   DMLAssemblers limit(int limit) {
     _limit = limit;
 
@@ -229,45 +236,49 @@ class DMLAssemblers {
     return _wheres.isNotEmpty;
   }
 
-  String _build() {
+  String _build([bool count = false]) {
     String stringBuilder = "";
 
     stringBuilder += "SELECT ";
 
-    if (_distincts.isNotEmpty) {
-      String compile = "";
+    if (count) {
+      stringBuilder += "COUNT(0) AS count ";
+    } else {
+      if (_distincts.isNotEmpty) {
+        String compile = "";
 
-      for (int i = 0; i < _distincts.length; i++) {
-        String distinct = _distincts[i];
+        for (int i = 0; i < _distincts.length; i++) {
+          String distinct = _distincts[i];
 
-        if (StringUtils.isNotNullOrEmpty(distinct)) {
-          if (StringUtils.isNotNullOrEmpty(compile)) {
-            compile += ", ";
+          if (StringUtils.isNotNullOrEmpty(distinct)) {
+            if (StringUtils.isNotNullOrEmpty(compile)) {
+              compile += ", ";
+            }
+
+            compile += distinct;
           }
-
-          compile += distinct;
         }
+
+        stringBuilder += "DISTINCT ON ($compile) ";
       }
 
-      stringBuilder += "DISTINCT ON ($compile) ";
-    }
+      {
+        String compile = "";
 
-    {
-      String compile = "";
+        for (int i = 0; i < _selects.length; i++) {
+          String select = _selects[i];
 
-      for (int i = 0; i < _selects.length; i++) {
-        String select = _selects[i];
+          if (StringUtils.isNotNullOrEmpty(select)) {
+            if (StringUtils.isNotNullOrEmpty(compile)) {
+              compile += ", ";
+            }
 
-        if (StringUtils.isNotNullOrEmpty(select)) {
-          if (StringUtils.isNotNullOrEmpty(compile)) {
-            compile += ", ";
+            compile += select;
           }
-
-          compile += select;
         }
-      }
 
-      stringBuilder += compile;
+        stringBuilder += compile;
+      }
     }
 
     stringBuilder += " FROM ";
@@ -326,48 +337,54 @@ class DMLAssemblers {
       stringBuilder += " WHERE $compile";
     }
 
-    if (_groups.isNotEmpty) {
-      String compile = "";
+    if (!count) {
+      if (_groups.isNotEmpty) {
+        String compile = "";
 
-      for (int i = 0; i < _groups.length; i++) {
-        String group = _groups[i];
+        for (int i = 0; i < _groups.length; i++) {
+          String group = _groups[i];
 
-        if (StringUtils.isNotNullOrEmpty(group)) {
-          if (StringUtils.isNotNullOrEmpty(compile)) {
-            compile += ", ";
+          if (StringUtils.isNotNullOrEmpty(group)) {
+            if (StringUtils.isNotNullOrEmpty(compile)) {
+              compile += ", ";
+            }
+
+            compile += group;
           }
-
-          compile += group;
         }
+
+        stringBuilder += " GROUP BY $compile";
       }
 
-      stringBuilder += " GROUP BY $compile";
-    }
-
-    if (StringUtils.isNotNullOrEmpty(_having)) {
-      stringBuilder += " HAVING $_having";
-    }
-
-    if (_orders.isNotEmpty) {
-      String compile = "";
-
-      for (int i = 0; i < _orders.length; i++) {
-        String order = _orders[i];
-
-        if (StringUtils.isNotNullOrEmpty(order)) {
-          if (StringUtils.isNotNullOrEmpty(compile)) {
-            compile += ", ";
-          }
-
-          compile += order;
-        }
+      if (StringUtils.isNotNullOrEmpty(_having)) {
+        stringBuilder += " HAVING $_having";
       }
 
-      stringBuilder += " ORDER BY $compile";
-    }
+      if (_orders.isNotEmpty) {
+        String compile = "";
 
-    if (_limit > 0) {
-      stringBuilder += " LIMIT $_limit";
+        for (int i = 0; i < _orders.length; i++) {
+          String order = _orders[i];
+
+          if (StringUtils.isNotNullOrEmpty(order)) {
+            if (StringUtils.isNotNullOrEmpty(compile)) {
+              compile += ", ";
+            }
+
+            compile += order;
+          }
+        }
+
+        stringBuilder += " ORDER BY $compile";
+      }
+
+      if (_limit > 0) {
+        stringBuilder += " LIMIT $_limit";
+      }
+
+      if (_offset > 0) {
+        stringBuilder += " OFFSET $_offset";
+      }
     }
 
     stringBuilder += ";";
@@ -384,6 +401,17 @@ class DMLAssemblers {
     );
 
     return result;
+  }
+
+  Future<int> count() async {
+    final Database database = await Sqlites.get();
+
+    final List<Map<String, Object?>> result = await database.rawQuery(
+      _build(true),
+      _parameters,
+    );
+
+    return result[0]["count"] as int;
   }
 
   Future<Map<String, dynamic>?> first() async {

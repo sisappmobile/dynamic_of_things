@@ -21,6 +21,7 @@ import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dar
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_event.dart";
 import "package:dynamic_of_things/widget/barcode_scanner_page.dart";
 import "package:dynamic_of_things/widget/signature_page.dart";
+import "package:dynamic_of_things/widget/spinner_page.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:file_picker/file_picker.dart";
 import "package:flutter/material.dart";
@@ -951,10 +952,15 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       }
 
       if (dynamicFormResourceResponse != null) {
-        final selectedItem = await BottomSheets.dynamicFormSpinner(
-          context: context,
-          title: widget.field.title,
-          dynamicFormResourceResponse: dynamicFormResourceResponse,
+        Map<String, dynamic>? selectedItem = await Navigators.push(
+          SpinnerPage(
+            headerForm: widget.headerForm,
+            title: widget.field.title,
+            name: widget.field.name,
+            data: widget.data,
+            dynamicFormResourceResponse: dynamicFormResourceResponse,
+            customerId: widget.customerId,
+          ),
         );
 
         if (selectedItem != null) {
