@@ -46,7 +46,7 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage> {
   void initState() {
     super.initState();
 
-    cameraController = MobileScannerController(formats: widget.formats);
+    cameraController = MobileScannerController(formats: widget.formats ?? []);
   }
 
   @override
@@ -124,12 +124,15 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage> {
                   ),
                   FloatingActionButton(
                     heroTag: 2,
-                    onPressed: () => cameraController.toggleTorch(),
+                    onPressed: () async {
+                      await cameraController.toggleTorch();
+
+                      setState(() {});
+                    },
                     mini: true,
-                    child: ValueListenableBuilder(
-                      valueListenable: cameraController.torchState,
-                      builder: (context, state, child) {
-                        if (state == TorchState.off) {
+                    child: Builder(
+                      builder: (context) {
+                        if (!cameraController.torchEnabled) {
                           return const Icon(Icons.flash_off);
                         } else {
                           return const Icon(Icons.flash_on);
@@ -139,12 +142,15 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage> {
                   ),
                   FloatingActionButton(
                     heroTag: 3,
-                    onPressed: () => cameraController.switchCamera(),
+                    onPressed: () async {
+                      await cameraController.switchCamera();
+
+                      setState(() {});
+                    },
                     mini: true,
-                    child: ValueListenableBuilder(
-                      valueListenable: cameraController.cameraFacingState,
-                      builder: (context, state, child) {
-                        if (state == CameraFacing.front) {
+                    child: Builder(
+                      builder: (context) {
+                        if (cameraController.facing == CameraFacing.front) {
                           return const Icon(Icons.camera_front);
                         } else {
                           return const Icon(Icons.camera_rear);

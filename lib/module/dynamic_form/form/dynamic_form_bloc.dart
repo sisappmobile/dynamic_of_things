@@ -12,6 +12,7 @@ import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_event.da
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_state.dart";
 import "package:dynamic_of_things/realm/schemas.dart";
 import "package:easy_localization/easy_localization.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 
 class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
@@ -73,8 +74,11 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
 
           emit(DynamicFormViewSuccess(headerForm: headerForm));
         }
-      } catch (e) {
-        print(e);
+      } catch (e, s) {
+        if (kDebugMode) {
+          print("Caught Exception: $e");
+          print("Stack Trace:\n$s");
+        }
 
         BaseOverlays.error(message: "common_something_wrong".tr());
       } finally {
