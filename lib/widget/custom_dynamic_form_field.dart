@@ -76,6 +76,10 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     return ListenableBuilder(
       listenable: widget.field,
       builder: (context, child) {
+        if (!StringUtils.inList(widget.field.type, [DynamicFormFieldType.SHORT_TEXT.name, DynamicFormFieldType.LONG_TEXT.name, DynamicFormFieldType.NUMBER.name, DynamicFormFieldType.EMAIL.name, DynamicFormFieldType.URL.name])) {
+          controller.text = widget.field.label(widget.data);
+        }
+
         return body();
       },
     );
@@ -327,7 +331,6 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             field: field,
             body: textField(
               field,
-              onChanged: (value) => widget.field.setValue(widget.data, value),
               readOnly: true,
             ),
           );
@@ -343,7 +346,6 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             field: field,
             body: textField(
               field,
-              onChanged: (value) => widget.field.setValue(widget.data, value),
               readOnly: true,
             ),
           );
