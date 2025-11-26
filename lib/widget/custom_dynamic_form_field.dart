@@ -71,11 +71,11 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
   @override
   Widget build(BuildContext context) {
+    controller.text = widget.field.label(widget.data);
+
     return ListenableBuilder(
       listenable: widget.field,
       builder: (context, child) {
-        controller.text = widget.field.label(widget.data);
-
         return body();
       },
     );
