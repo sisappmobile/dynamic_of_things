@@ -76,8 +76,10 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     return ListenableBuilder(
       listenable: widget.field,
       builder: (context, child) {
-        if (!StringUtils.inList(widget.field.type, [DynamicFormFieldType.SHORT_TEXT.name, DynamicFormFieldType.LONG_TEXT.name, DynamicFormFieldType.NUMBER.name, DynamicFormFieldType.EMAIL.name, DynamicFormFieldType.URL.name])) {
+        if (!StringUtils.inList(widget.field.type, [DynamicFormFieldType.SHORT_TEXT.name, DynamicFormFieldType.LONG_TEXT.name, DynamicFormFieldType.NUMBER.name, DynamicFormFieldType.EMAIL.name, DynamicFormFieldType.URL.name]) || widget.field.forceRefresh) {
           controller.text = widget.field.label(widget.data);
+
+          widget.field.forceRefresh = false;
         }
 
         return body();
@@ -988,6 +990,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                     for (Field field in section.fields) {
                       if (StringUtils.equalsIgnoreCase(field.name, dynamicFormResourceLoadOnFieldItem.target)) {
                         field.setValue(widget.data, await DynamicForms.decodeValue(field: field, value: value));
+                        field.forceRefresh = true;
 
                         found = true;
                       }

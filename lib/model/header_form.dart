@@ -499,6 +499,8 @@ class Field with ChangeNotifier {
   final List<dynamic> data;
   final Link? link;
 
+  bool forceRefresh = false;
+
   Field({
     required this.name,
     required this.type,

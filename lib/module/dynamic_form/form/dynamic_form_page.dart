@@ -160,6 +160,20 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
           context: context,
           name: headerForm?.template.title ?? "",
           description: label(),
+          trailings: [
+            IconButton(
+              onPressed: () {
+                context.read<DynamicFormBloc>().add(
+                  DynamicFormRefresh(
+                    formId: headerForm!.template.id,
+                    customerId: widget.customerId,
+                    headerForm: headerForm!,
+                  ),
+                );
+              },
+              icon: Icon(Icons.cloud_sync),
+            ),
+          ],
         ),
         contentBuilder: body,
         bottomNavigationBar: bottomBar(),
