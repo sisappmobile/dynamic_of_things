@@ -493,6 +493,7 @@ class Field with ChangeNotifier {
   final bool multiple;
   final bool obscure;
   final bool hidden;
+  final bool hasScript;
   final String defaultValue;
   final String enableAfter;
   final List<Validation> validations;
@@ -511,6 +512,7 @@ class Field with ChangeNotifier {
     required this.multiple,
     required this.obscure,
     required this.hidden,
+    required this.hasScript,
     required this.defaultValue,
     required this.enableAfter,
     required this.validations,
@@ -528,6 +530,7 @@ class Field with ChangeNotifier {
     multiple: json["multiple"] ?? false,
     obscure: json["obscure"] ?? false,
     hidden: json["hidden"] ?? false,
+    hasScript: json["hasScript"] ?? false,
     defaultValue: json["defaultValue"] ?? "",
     enableAfter: json["enableAfter"] ?? "",
     validations: json["validations"] != null ? List<Validation>.from(json["validations"].map((e) => Validation.fromJson(e))) : [],
@@ -545,6 +548,7 @@ class Field with ChangeNotifier {
     "multiple": multiple,
     "obscure": obscure,
     "hidden": hidden,
+    "hasScript": hasScript,
     "defaultValue": defaultValue,
     "enableAfter": enableAfter,
     "validations": List<dynamic>.from(validations.map((x) => x.toJson())),

@@ -279,6 +279,16 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 setState(() {
                   widget.field.setValue(widget.data, value);
                 });
+
+                if (widget.field.hasScript) {
+                  context.read<DynamicFormBloc>().add(
+                    DynamicFormRefresh(
+                      formId: widget.headerForm.template.id,
+                      customerId: widget.customerId,
+                      headerForm: widget.headerForm,
+                    ),
+                  );
+                }
               } : null,
             ),
           );
@@ -775,6 +785,16 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
       if (dateTime != null) {
         widget.field.setValue(widget.data, dateTime);
+
+        if (widget.field.hasScript) {
+          context.read<DynamicFormBloc>().add(
+            DynamicFormRefresh(
+              formId: widget.headerForm.template.id,
+              customerId: widget.customerId,
+              headerForm: widget.headerForm,
+            ),
+          );
+        }
       }
     } else if (widget.field.type == DynamicFormFieldType.TIME.name) {
       TimeOfDay? timeOfDay = await showTimePicker(
@@ -784,6 +804,16 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
       if (timeOfDay != null) {
         widget.field.setValue(widget.data, timeOfDay);
+
+        if (widget.field.hasScript) {
+          context.read<DynamicFormBloc>().add(
+            DynamicFormRefresh(
+              formId: widget.headerForm.template.id,
+              customerId: widget.customerId,
+              headerForm: widget.headerForm,
+            ),
+          );
+        }
       }
     } else if (widget.field.type == DynamicFormFieldType.DATE_TIME.name) {
       DateTime? dateTime = await showDatePicker(
@@ -810,6 +840,16 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             );
 
             widget.field.setValue(widget.data, finalDateTime);
+
+            if (widget.field.hasScript) {
+              context.read<DynamicFormBloc>().add(
+                DynamicFormRefresh(
+                  formId: widget.headerForm.template.id,
+                  customerId: widget.customerId,
+                  headerForm: widget.headerForm,
+                ),
+              );
+            }
           });
         }
       }
@@ -1017,6 +1057,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             }
           }
 
+          bool needRefresh = false;
+
           if (dynamicFormResourceResponse.detailSetups.isNotEmpty) {
             List<Map<String, dynamic>> details = selectedItem["details"] != null ? List<Map<String, dynamic>>.from(selectedItem["details"].map((e) => e)) : [];
 
@@ -1041,16 +1083,20 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 }
 
                 if (detailForm.hasOnChangeEvent) {
-                  context.read<DynamicFormBloc>().add(
-                    DynamicFormRefresh(
-                      formId: widget.headerForm.template.id,
-                      customerId: widget.customerId,
-                      headerForm: widget.headerForm,
-                    ),
-                  );
+                  needRefresh = true;
                 }
               }
             }
+          }
+
+          if (needRefresh || widget.field.hasScript) {
+            context.read<DynamicFormBloc>().add(
+              DynamicFormRefresh(
+                formId: widget.headerForm.template.id,
+                customerId: widget.customerId,
+                headerForm: widget.headerForm,
+              ),
+            );
           }
 
           if (!DynamicForms.offline && widget.headerForm.detailForms.isNotEmpty) {
@@ -1103,6 +1149,16 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       widget.field.setValue(widget.data, value);
     } else if (widget.field.type == DynamicFormFieldType.DROPDOWN.name) {
       widget.field.setValue(widget.data, value);
+    }
+
+    if (widget.field.hasScript) {
+      context.read<DynamicFormBloc>().add(
+        DynamicFormRefresh(
+          formId: widget.headerForm.template.id,
+          customerId: widget.customerId,
+          headerForm: widget.headerForm,
+        ),
+      );
     }
   }
 
