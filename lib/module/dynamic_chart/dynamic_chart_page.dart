@@ -425,7 +425,82 @@ class ChartWidgetState extends State<ChartWidget> {
         ),
       );
     } else {
-      if (data != null && data!.isNotEmpty) {
+      if (data != null) {
+        if (data!.isNotEmpty) {
+          return Container(
+            width: Dimensions.screenWidth - Dimensions.size40,
+            height: Dimensions.size100 * 5,
+            decoration: ShapeDecoration(
+              shape: SmoothRectangleBorder(
+                borderRadius: BorderRadius.circular(Dimensions.size10),
+                smoothness: 1,
+                side: BorderSide(color: AppColors.outline()),
+              ),
+              color: AppColors.surfaceContainerLowest(),
+            ),
+            padding: EdgeInsets.all(
+              Dimensions.size15,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.chart.title,
+                  style: TextStyle(
+                    fontSize: Dimensions.text16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: Dimensions.size10),
+                Expanded(
+                  child: chart(),
+                ),
+              ],
+            ),
+          );
+        } else {
+          return Container(
+            width: Dimensions.screenWidth - Dimensions.size40,
+            height: Dimensions.size100 * 5,
+            decoration: ShapeDecoration(
+              shape: SmoothRectangleBorder(
+                borderRadius: BorderRadius.circular(Dimensions.size10),
+                smoothness: 1,
+                side: BorderSide(color: AppColors.outline()),
+              ),
+              color: AppColors.surfaceContainerLowest(),
+            ),
+            padding: EdgeInsets.all(
+              Dimensions.size15,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.chart.title,
+                  style: TextStyle(
+                    fontSize: Dimensions.text16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: Dimensions.size10),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      "no_data".tr(),
+                      style: TextStyle(
+                        fontSize: Dimensions.text14,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.onErrorContainer(),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+      } else {
         return Container(
           width: Dimensions.screenWidth - Dimensions.size40,
           height: Dimensions.size100 * 5,
@@ -452,32 +527,18 @@ class ChartWidgetState extends State<ChartWidget> {
               ),
               SizedBox(height: Dimensions.size10),
               Expanded(
-                child: chart(),
+                child: Center(
+                  child: Text(
+                    "failed_to_load_data".tr(),
+                    style: TextStyle(
+                      fontSize: Dimensions.text14,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.onErrorContainer(),
+                    ),
+                  ),
+                ),
               ),
             ],
-          ),
-        );
-      } else {
-        return Container(
-          height: Dimensions.size100 * 3,
-          decoration: ShapeDecoration(
-            shape: SmoothRectangleBorder(
-              borderRadius: BorderRadius.circular(Dimensions.size10),
-              smoothness: 1,
-              side: BorderSide(
-                color: AppColors.onErrorContainer(),
-              ),
-            ),
-            color: AppColors.errorContainer(),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            "failed_to_load_data".tr(),
-            style: TextStyle(
-              fontSize: Dimensions.text14,
-              fontWeight: FontWeight.bold,
-              color: AppColors.onErrorContainer(),
-            ),
           ),
         );
       }
