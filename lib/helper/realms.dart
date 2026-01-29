@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_single_cascade_in_expression_statements
 
 import "package:dynamic_of_things/realm/schemas.dart";
+import "package:path/path.dart" as path;
 import "package:realm/realm.dart";
 
 class Realms {
@@ -12,7 +13,7 @@ class Realms {
         Version.schema,
         DynamicForm.schema,
         Schema.schema,
-      ]),
+      ], path: path.join(Configuration.defaultStoragePath, "dynamic_of_things.realm")),
     );
 
     return realm!;

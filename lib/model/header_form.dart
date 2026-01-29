@@ -104,6 +104,9 @@ class Template {
   final String title;
   final String description;
   final bool journey;
+  final bool recordLocationOnSubmit;
+  final num locationAccuracyInMeters;
+  final num locationAccuracyEfectiveDurationInSeconds;
   final List<Action> actions;
   final List<ListColumn> columns;
   final List<Resource> resources;
@@ -115,6 +118,9 @@ class Template {
     required this.title,
     required this.description,
     required this.journey,
+    required this.recordLocationOnSubmit,
+    required this.locationAccuracyInMeters,
+    required this.locationAccuracyEfectiveDurationInSeconds,
     required this.actions,
     required this.columns,
     required this.resources,
@@ -126,7 +132,10 @@ class Template {
     tableName: json["tableName"] ?? "",
     title: json["title"] ?? "",
     description: json["description"] ?? "",
-    journey: json["journey"] ?? "",
+    journey: json["journey"] ?? false,
+    recordLocationOnSubmit: json["recordLocationOnSubmit"] ?? false,
+    locationAccuracyInMeters: json["locationAccuracyInMeters"] ?? 0,
+    locationAccuracyEfectiveDurationInSeconds: json["locationAccuracyEfectiveDurationInSeconds"] ?? 0,
     actions: json["actions"] != null ? List<Action>.from(json["actions"].map((e) => Action.fromJson(e))) : [],
     columns: json["columns"] != null ? List<ListColumn>.from(json["columns"].map((e) => ListColumn.fromJson(e))) : [],
     resources: json["resources"] != null ? List<Resource>.from(json["resources"].map((e) => Resource.fromJson(e))) : [],
@@ -139,6 +148,9 @@ class Template {
     "title": title,
     "description": description,
     "journey": journey,
+    "recordLocationOnSubmit": recordLocationOnSubmit,
+    "locationAccuracyInMeters": locationAccuracyInMeters,
+    "locationAccuracyEfectiveDurationInSeconds": locationAccuracyEfectiveDurationInSeconds,
     "actions": List<dynamic>.from(actions.map((x) => x.toJson())),
     "resources": List<dynamic>.from(resources.map((x) => x.toJson())),
     "sections": List<dynamic>.from(sections.map((x) => x.toJson())),
