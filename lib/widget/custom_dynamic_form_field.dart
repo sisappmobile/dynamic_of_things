@@ -37,6 +37,7 @@ import "package:mobile_scanner/mobile_scanner.dart";
 import "package:pattern_formatter/numeric_formatter.dart";
 import "package:smooth_corner/smooth_corner.dart";
 import "package:validators/validators.dart";
+import "package:video_player/video_player.dart";
 import "package:video_thumbnail/video_thumbnail.dart" as vt;
 
 class CustomDynamicFormField extends StatefulWidget {
@@ -89,20 +90,24 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
   Widget body() {
     if (widget.field.type == DynamicFormFieldType.SHORT_TEXT.name) {
-      return FormField(
-        validator: (value) {
-          return validate();
-        },
-        builder: (field) {
-          return formField(
-            field: field,
-            body: textField(
-              field,
-              onChanged: (value) => widget.field.setValue(widget.data, value),
-            ),
-          );
-        },
-      );
+      if (widget.readOnly && widget.field.linkUrl) {
+        return NetworkVideoPlayer(url: widget.field.getValue(widget.data));
+      } else {
+        return FormField(
+          validator: (value) {
+            return validate();
+          },
+          builder: (field) {
+            return formField(
+              field: field,
+              body: textField(
+                field,
+                onChanged: (value) => widget.field.setValue(widget.data, value),
+              ),
+            );
+          },
+        );
+      }
     } else if (widget.field.type == DynamicFormFieldType.LONG_TEXT.name) {
       return FormField(
         validator: (value) {
@@ -1940,5 +1945,75 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
   bool isReadOnly() {
     return widget.readOnly || widget.field.readOnly;
+  }
+}
+
+class NetworkVideoPlayer extends StatefulWidget {
+  final String url;
+
+  const NetworkVideoPlayer({super.key, required this.url});
+
+  @override
+  State<NetworkVideoPlayer> createState() => _NetworkVideoPlayerState();
+}
+
+class _NetworkVideoPlayerState extends State<NetworkVideoPlayer> {
+  late VideoPlayerController _controller;
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
+      ..initialize().then((_) {
+        _controller.play();
+
+        setState(() {
+          _isInitialized = true;
+        });
+      });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return AspectRatio(
+      aspectRatio: _controller.value.aspectRatio,
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+          VideoPlayer(_controller),
+          VideoProgressIndicator(_controller, allowScrubbing: true),
+          Center(
+            child: IconButton(
+              icon: Icon(
+                _controller.value.isPlaying
+                    ? Icons.pause
+                    : Icons.play_arrow,
+                size: 48,
+                color: Colors.white,
+              ),
+              onPressed: () {
+                setState(() {
+                  _controller.value.isPlaying
+                      ? _controller.pause()
+                      : _controller.play();
+                });
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

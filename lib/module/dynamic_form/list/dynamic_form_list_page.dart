@@ -15,7 +15,7 @@ import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_sta
 import "package:dynamic_of_things/widget/map_page.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/foundation.dart";
-import "package:flutter/material.dart";
+import "package:flutter/material.dart" hide Action;
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:flutter_map/flutter_map.dart";
 import "package:go_router/go_router.dart";
@@ -352,80 +352,33 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
               if (primaryKey != null) {
                 String id = map[primaryKey.name].toString();
 
-                List<MenuItem> menuItems = [
-                  MenuItem(
-                    iconData: Icons.visibility,
-                    title: "Lihat Data",
-                    onTap: hasViewAccess(id) ? () async {
-                      bool result = false;
 
-                      if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                        Navigators.pop();
 
-                        result = await Navigators.push(
-                          DynamicFormPage(
-                            dynamicFormMenuItem: widget.dynamicFormMenuItem,
-                            readOnly: true,
-                            dataId: id,
-                            customerId: widget.customerId,
-                          ),
-                        ) ?? false;
-                      } else {
-                        context.pop();
+                List<MenuItem> menuItems = [];
 
-                        result = await context.push(
-                          "/dynamic-forms",
-                          extra: {
-                            "dynamicFormMenuItem": widget.dynamicFormMenuItem,
-                            "readOnly": true,
-                            "dataId": id,
-                            "customerId": widget.customerId,
-                          },
-                        ) ?? false;
-                      }
+                if (hasViewAccess(id)) {
+                  menuItems.add(
+                    MenuItem(
+                      iconData: Icons.visibility,
+                      title: "Lihat Data",
+                      onTap: hasViewAccess(id) ? () async {
+                        await viewData(id);
+                      } : null,
+                    ),
+                  );
+                }
 
-                      if (result) {
-                        refresh();
-                      }
-                    } : null,
-                  ),
-                  MenuItem(
-                    iconData: Icons.edit,
-                    title: "edit".tr(),
-                    onTap: hasEditAccess(id) ? () async {
-                      bool result = false;
-
-                      if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                        Navigators.pop();
-
-                        result = await Navigators.push(
-                          DynamicFormPage(
-                            dynamicFormMenuItem: widget.dynamicFormMenuItem,
-                            readOnly: false,
-                            dataId: id,
-                            customerId: widget.customerId,
-                          ),
-                        ) ?? false;
-                      } else {
-                        context.pop();
-
-                        result = await context.push(
-                          "/dynamic-forms",
-                          extra: {
-                            "dynamicFormMenuItem": widget.dynamicFormMenuItem,
-                            "readOnly": false,
-                            "dataId": id,
-                            "customerId": widget.customerId,
-                          },
-                        ) ?? false;
-                      }
-
-                      if (result) {
-                        refresh();
-                      }
-                    } : null,
-                  ),
-                ];
+                if (hasEditAccess(id)) {
+                  menuItems.add(
+                    MenuItem(
+                      iconData: Icons.edit,
+                      title: "edit".tr(),
+                      onTap: hasEditAccess(id) ? () async {
+                        await editData(id);
+                      } : null,
+                    ),
+                  );
+                }
 
                 if (DynamicForms.offline) {
                   menuItems.add(
@@ -494,10 +447,52 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
                   });
                 }
 
-                BottomSheets.popupMenu(
-                  context: context,
-                  menuItems: menuItems,
-                );
+                if (menuItems.isNotEmpty) {
+                  if (menuItems.length == 1) {
+                    if (hasViewAccess(id)) {
+                      await viewData(id);
+
+                      return;
+                    }
+
+                    if (hasEditAccess(id)) {
+                      await editData(id);
+
+                      return;
+                    }
+
+                    if (!DynamicForms.offline) {
+                      Action? action = listResponse!.actions.firstWhereOrNull((element) => !StringUtils.inList(element.resourceId, ["BTN_CREATE", "BTN_EDIT", "BTN_VIEW", "BTN_SAVE", "BTN_ADD_DETAIL", "BTN_DEL_DETAIL"]));
+
+                      if (action != null) {
+                        if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                          Navigators.pop();
+                        } else {
+                          context.pop();
+                        }
+
+                        BaseDialogs.confirmation(
+                          title: "are_you_sure_want_to_proceed".tr(),
+                          positiveCallback: () {
+                            context.read<DynamicFormListBloc>().add(
+                              DynamicFormListCustomAction(
+                                actionId: action.id,
+                                formId: widget.dynamicFormMenuItem.id,
+                                dataId: id,
+                                customerId: widget.customerId,
+                              ),
+                            );
+                          },
+                        );
+                      }
+                    }
+                  } else {
+                    BottomSheets.popupMenu(
+                      context: context,
+                      menuItems: menuItems,
+                    );
+                  }
+                }
               }
             },
             child: Stack(
@@ -517,6 +512,72 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
         },
       ),
     );
+  }
+
+  Future<void> viewData(String id) async {
+    bool result = false;
+
+    if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+      Navigators.pop();
+
+      result = await Navigators.push(
+        DynamicFormPage(
+          dynamicFormMenuItem: widget.dynamicFormMenuItem,
+          readOnly: true,
+          dataId: id,
+          customerId: widget.customerId,
+        ),
+      ) ?? false;
+    } else {
+      context.pop();
+
+      result = await context.push(
+        "/dynamic-forms",
+        extra: {
+          "dynamicFormMenuItem": widget.dynamicFormMenuItem,
+          "readOnly": true,
+          "dataId": id,
+          "customerId": widget.customerId,
+        },
+      ) ?? false;
+    }
+
+    if (result) {
+      refresh();
+    }
+  }
+
+  Future<void> editData(String id) async {
+    bool result = false;
+
+    if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+      Navigators.pop();
+
+      result = await Navigators.push(
+        DynamicFormPage(
+          dynamicFormMenuItem: widget.dynamicFormMenuItem,
+          readOnly: false,
+          dataId: id,
+          customerId: widget.customerId,
+        ),
+      ) ?? false;
+    } else {
+      context.pop();
+
+      result = await context.push(
+        "/dynamic-forms",
+        extra: {
+          "dynamicFormMenuItem": widget.dynamicFormMenuItem,
+          "readOnly": false,
+          "dataId": id,
+          "customerId": widget.customerId,
+        },
+      ) ?? false;
+    }
+
+    if (result) {
+      refresh();
+    }
   }
 
   Widget childrenWidget({

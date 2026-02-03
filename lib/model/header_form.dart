@@ -506,6 +506,7 @@ class Field with ChangeNotifier {
   final bool obscure;
   final bool hidden;
   final bool hasScript;
+  final bool linkUrl;
   final String defaultValue;
   final String enableAfter;
   final List<Validation> validations;
@@ -525,6 +526,7 @@ class Field with ChangeNotifier {
     required this.obscure,
     required this.hidden,
     required this.hasScript,
+    required this.linkUrl,
     required this.defaultValue,
     required this.enableAfter,
     required this.validations,
@@ -543,6 +545,7 @@ class Field with ChangeNotifier {
     obscure: json["obscure"] ?? false,
     hidden: json["hidden"] ?? false,
     hasScript: json["hasScript"] ?? false,
+    linkUrl: json["linkUrl"] ?? false,
     defaultValue: json["defaultValue"] ?? "",
     enableAfter: json["enableAfter"] ?? "",
     validations: json["validations"] != null ? List<Validation>.from(json["validations"].map((e) => Validation.fromJson(e))) : [],
@@ -561,6 +564,7 @@ class Field with ChangeNotifier {
     "obscure": obscure,
     "hidden": hidden,
     "hasScript": hasScript,
+    "linkUrl": linkUrl,
     "defaultValue": defaultValue,
     "enableAfter": enableAfter,
     "validations": List<dynamic>.from(validations.map((x) => x.toJson())),
