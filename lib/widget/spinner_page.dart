@@ -1,6 +1,7 @@
 // ignore_for_file: cascade_invocations
 
 import "package:base/base.dart";
+import "package:basic_utils/basic_utils.dart";
 import "package:dio/dio.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
@@ -8,11 +9,14 @@ import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/helper/offlines.dart";
 import "package:dynamic_of_things/model/dynamic_form_resource_response.dart";
 import "package:dynamic_of_things/model/header_form.dart";
+import "package:dynamic_of_things/widget/map_page.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
+import "package:flutter_map/flutter_map.dart";
 import "package:go_router/go_router.dart";
 import "package:smooth_corner/smooth_corner.dart";
+import "package:latlong2/latlong.dart";
 
 class SpinnerPage extends StatefulWidget {
   final HeaderForm headerForm;
@@ -158,6 +162,54 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
   }
 
   BaseAppBar appBar() {
+    Widget mapModeButton() {
+      if (items != null) {
+        return IconButton(
+          onPressed: () async {
+            if (widget.dynamicFormResourceResponse.fields.any((element) => StringUtils.inList(element.name, ["latitude", "longitude", "longtitude"]))) {
+              Map<String, dynamic>? result = await Navigators.push(
+                MapPage(
+                  markers: items!.where((element) => element["latitude"] != null && (element["longitude"] != null || element["longtitude"] != null)).map((element) {
+                    return Marker(
+                      point: LatLng(
+                        double.parse(element["latitude"]),
+                        double.parse(element["longitude"] ?? element["longtitude"]),
+                      ),
+                      child: GestureDetector(
+                        onTap: () async {
+                          if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                            Navigators.pop(result: element);
+                          } else {
+                            context.pop(element);
+                          }
+                        },
+                        child: Icon(
+                          Icons.location_on_outlined,
+                          size: 30,
+                          color: Colors.red,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              );
+
+              if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                Navigators.pop(result: result);
+              } else {
+                context.pop(result);
+              }
+            } else {
+              BaseOverlays.error(message: "map_view_can_only_be_used_if_there_is_longitude_and_latitude_data".tr());
+            }
+          },
+          icon: const Icon(Icons.map),
+        );
+      }
+
+      return const SizedBox.shrink();
+    }
+
     return BaseAppBar(
       context: context,
       name: widget.title,
@@ -167,6 +219,9 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
           refresh();
         },
       ),
+      trailings: [
+        mapModeButton(),
+      ],
     );
   }
 

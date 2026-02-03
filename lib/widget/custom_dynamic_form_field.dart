@@ -1292,25 +1292,25 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
     if (value != null) {
       if (widget.field.type == DynamicFormFieldType.SHORT_TEXT.name) {
-        result = contains(value as String);
+        result = contains(value?.toString());
 
         if (result != null) {
           return result;
         }
 
-        result = notContains(value);
+        result = notContains(value?.toString());
 
         if (result != null) {
           return result;
         }
 
-        result = minLength(value);
+        result = minLength(value?.toString());
 
         if (result != null) {
           return result;
         }
 
-        result = maxLength(value);
+        result = maxLength(value?.toString());
 
         if (result != null) {
           return result;
