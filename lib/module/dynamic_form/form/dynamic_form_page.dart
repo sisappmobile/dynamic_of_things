@@ -1,8 +1,6 @@
 
 // ignore_for_file: always_specify_types, cascade_invocations, always_put_required_named_parameters_first, empty_catches, use_build_context_synchronously
 
-import "dart:async";
-
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
@@ -18,7 +16,6 @@ import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:go_router/go_router.dart";
 import "package:loader_overlay/loader_overlay.dart";
-import "package:geolocator/geolocator.dart";
 
 class DynamicFormPage extends StatefulWidget {
   final DynamicFormMenuItem dynamicFormMenuItem;
@@ -47,12 +44,6 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
 
   bool loading = true;
 
-  StreamSubscription<Position>? _subscription;
-  DateTime? _accuracyStartTime;
-  Position? _acceptedPosition;
-
-  String _status = "Waiting for location...";
-
   @override
   void initState() {
     super.initState();
@@ -74,76 +65,6 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
     }
   }
 
-  Future<void> _startListening() async {
-    final permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      setState(() {
-        _status = "Location permission denied";
-      });
-      return;
-    }
-
-    _subscription = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.best,
-        distanceFilter: 0,
-      ),
-    ).listen(_onLocationUpdate);
-  }
-
-  void _onLocationUpdate(Position position) {
-    final accuracyThreshold = headerForm!.template.locationAccuracyInMeters;
-    final requiredSeconds = headerForm!.template.locationAccuracyEfectiveDurationInSeconds;
-    final accuracy = position.accuracy;
-
-    if (accuracy <= accuracyThreshold) {
-      _accuracyStartTime ??= DateTime.now();
-
-      final elapsed =
-          DateTime.now().difference(_accuracyStartTime!).inSeconds;
-
-      if (elapsed >= requiredSeconds) {
-        _acceptedPosition = position;
-        _subscription?.cancel();
-
-        if (_acceptedPosition != null) {
-          headerForm!.template.sections.forEach((section) {
-            section.fields.forEach((field) {
-              switch (field.name) {
-                case "latitude":
-                  field.setValue(headerForm!.data, _acceptedPosition!.latitude.toString());
-                case "longtitude":
-                  field.setValue(headerForm!.data, _acceptedPosition!.longitude.toString());
-                case "longitude":
-                  field.setValue(headerForm!.data, _acceptedPosition!.longitude.toString());
-              }
-            });
-          });
-        }
-
-        setState(() {
-          _status = "✅ Location accepted!";
-        });
-        return;
-      }
-
-      setState(() {
-        _status =
-        "Good accuracy (${accuracy.toStringAsFixed(2)} m)\n"
-            "Holding for $elapsed / $requiredSeconds seconds...";
-      });
-    } else {
-      _accuracyStartTime = null;
-
-      setState(() {
-        _status =
-        "Accuracy too high: ${accuracy.toStringAsFixed(2)} m\n"
-            "Waiting for < $accuracyThreshold m";
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocListener<DynamicFormBloc, DynamicFormState>(
@@ -157,10 +78,6 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
           headerForm = state.headerForm;
 
           await DynamicForms.decode(headerForm!);
-
-          if (headerForm!.template.locationAccuracyInMeters > 0 && headerForm!.template.locationAccuracyEfectiveDurationInSeconds > 0) {
-            _startListening();
-          }
 
           loading = false;
 
@@ -191,10 +108,6 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
           headerForm = state.headerForm;
 
           await DynamicForms.decode(headerForm!);
-
-          if (headerForm!.template.locationAccuracyInMeters > 0 && headerForm!.template.locationAccuracyEfectiveDurationInSeconds > 0) {
-            _startListening();
-          }
 
           loading = false;
 
@@ -248,7 +161,18 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
           name: headerForm?.template.title ?? "",
           description: label(),
           trailings: [
-            refreshButton(),
+            IconButton(
+              onPressed: () {
+                context.read<DynamicFormBloc>().add(
+                  DynamicFormRefresh(
+                    formId: headerForm!.template.id,
+                    customerId: widget.customerId,
+                    headerForm: headerForm!,
+                  ),
+                );
+              },
+              icon: Icon(Icons.cloud_sync),
+            ),
           ],
         ),
         contentBuilder: body,
@@ -262,8 +186,6 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
     super.dispose();
 
     WidgetsBinding.instance.removeObserver(this);
-
-    _subscription?.cancel();
   }
 
   @override
@@ -316,88 +238,93 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
     }
   }
 
-  Widget refreshButton() {
-    if (!DynamicForms.offline) {
-      return IconButton(
-        onPressed: () {
-          context.read<DynamicFormBloc>().add(
-            DynamicFormRefresh(
-              formId: headerForm!.template.id,
+  Widget body() {
+    return Form(
+      key: globalKey,
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            CustomDynamicForm(
+              key: ValueKey("Header-${headerForm!.template.id}"),
+              readOnly: widget.readOnly,
               customerId: widget.customerId,
               headerForm: headerForm!,
+              template: headerForm!.template,
+              data: headerForm!.data,
             ),
-          );
-        },
-        icon: Icon(Icons.cloud_sync),
-      );
-    }
-
-    return const SizedBox.shrink();
-  }
-
-  Widget body() {
-    if (!widget.readOnly && headerForm!.template.locationAccuracyInMeters > 0 && headerForm!.template.locationAccuracyEfectiveDurationInSeconds > 0 && _acceptedPosition == null) {
-      return Center(
-        child: Text(
-          _status,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
-    } else {
-      return Form(
-        key: globalKey,
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              CustomDynamicForm(
-                key: ValueKey("Header-${headerForm!.template.id}"),
-                readOnly: widget.readOnly,
-                customerId: widget.customerId,
-                headerForm: headerForm!,
-                template: headerForm!.template,
-                data: headerForm!.data,
-              ),
-              ...headerForm!.detailForms.map((detailForm) {
-                if (detailForm.single) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(Dimensions.size15),
-                        child: Text(
-                          detailForm.template.title.toUpperCase(),
-                          style: TextStyle(
-                            color: AppColors.primary(),
-                            fontSize: Dimensions.text18,
-                            fontWeight: FontWeight.bold,
-                          ),
+            ...headerForm!.detailForms.map((detailForm) {
+              if (detailForm.single) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(Dimensions.size15),
+                      child: Text(
+                        detailForm.template.title.toUpperCase(),
+                        style: TextStyle(
+                          color: AppColors.primary(),
+                          fontSize: Dimensions.text18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      CustomDynamicForm(
-                        key: ValueKey("DetailForm-${headerForm!.template.id}"),
-                        readOnly: widget.readOnly,
+                    ),
+                    CustomDynamicForm(
+                      key: ValueKey("DetailForm-${headerForm!.template.id}"),
+                      readOnly: widget.readOnly,
+                      customerId: widget.customerId,
+                      headerForm: headerForm!,
+                      template: detailForm.template,
+                      data: detailForm.getData(headerForm!),
+                    ),
+                  ],
+                );
+              } else {
+                return CustomDynamicFormDetailList(
+                  key: ValueKey("DetailList-${detailForm.template.id}"),
+                  readOnly: widget.readOnly,
+                  customerId: widget.customerId,
+                  headerForm: headerForm!,
+                  detailForm: detailForm,
+                  onRefresh: () {
+                    context.read<DynamicFormBloc>().add(
+                      DynamicFormRefresh(
+                        formId: headerForm!.template.id,
                         customerId: widget.customerId,
                         headerForm: headerForm!,
-                        template: detailForm.template,
-                        data: detailForm.getData(headerForm!),
                       ),
-                    ],
-                  );
-                } else {
-                  return CustomDynamicFormDetailList(
-                    key: ValueKey("DetailList-${detailForm.template.id}"),
-                    readOnly: widget.readOnly,
-                    customerId: widget.customerId,
-                    headerForm: headerForm!,
-                    detailForm: detailForm,
-                    onRefresh: () {
+                    );
+                  },
+                );
+              }
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget bottomBar() {
+    if (headerForm != null && !widget.readOnly) {
+      return BaseBottomBar(
+        children: [
+          FilledButton.icon(
+            onPressed: () async {
+              if (!locationValid()) {
+                BaseOverlays.error(message: "location_required".tr());
+
+                return;
+              }
+
+              if (globalKey.currentState != null) {
+                if (globalKey.currentState!.validate()) {
+                  BaseDialogs.confirmation(
+                    title: "are_you_sure_want_to_proceed".tr(),
+                    positiveCallback: () {
+                      globalKey.currentState!.save();
+
                       context.read<DynamicFormBloc>().add(
-                        DynamicFormRefresh(
-                          formId: headerForm!.template.id,
+                        DynamicFormSave(
+                          formId: widget.dynamicFormMenuItem.id,
                           customerId: widget.customerId,
                           headerForm: headerForm!,
                         ),
@@ -405,76 +332,61 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
                     },
                   );
                 }
-              }),
-            ],
+              }
+            },
+            icon: const Icon(Icons.save),
+            label: Text("save".tr()),
           ),
-        ),
+        ],
       );
+    } else {
+      return const SizedBox.shrink();
     }
   }
 
-  Widget bottomBar() {
-    if (headerForm != null && !widget.readOnly) {
-      if (!(headerForm!.template.locationAccuracyInMeters > 0 && headerForm!.template.locationAccuracyEfectiveDurationInSeconds > 0 && _acceptedPosition == null)) {
-        return BaseBottomBar(
-          children: [
-            FilledButton.icon(
-              onPressed: () async {
-                if (globalKey.currentState != null) {
-                  if (globalKey.currentState!.validate()) {
-                    if (headerForm!.template.recordLocationOnSubmit) {
-                      _acceptedPosition ??= await Geolocator.getCurrentPosition(
-                        locationSettings: const LocationSettings(
-                          accuracy: LocationAccuracy.best,
-                          distanceFilter: 0,
-                        ),
-                      );
+  bool locationValid() {
+    bool hasLocationField = false;
 
-                      if (_acceptedPosition == null) {
-                        BaseOverlays.error(message: "unable_to_retrieve_current_location".tr());
+    for (Section section in headerForm!.template.sections) {
+      bool hasLatitudeField = false;
+      bool hasLongitudeField = false;
 
-                        return;
-                      }
-                    }
+      for (Field field in section.fields) {
+        if (field.name == "latitude") {
+          hasLatitudeField = true;
+        } else if (StringUtils.inList(field.name, ["longitude", "longtitude"])) {
+          hasLongitudeField = true;
+        }
+      }
 
-                    BaseDialogs.confirmation(
-                      title: "are_you_sure_want_to_proceed".tr(),
-                      positiveCallback: () async {
-                        globalKey.currentState!.save();
+      hasLocationField = hasLatitudeField && hasLongitudeField;
 
-                        if (_acceptedPosition != null) {
-                          headerForm!.template.sections.forEach((section) {
-                            section.fields.forEach((field) {
-                              switch (field.name) {
-                                case "latitude":
-                                  field.setValue(headerForm!.data, _acceptedPosition!.latitude.toString());
-                                case "longitude":
-                                  field.setValue(headerForm!.data, _acceptedPosition!.longitude.toString());
-                              }
-                            });
-                          });
-                        }
-
-                        context.read<DynamicFormBloc>().add(
-                          DynamicFormSave(
-                            formId: widget.dynamicFormMenuItem.id,
-                            customerId: widget.customerId,
-                            headerForm: headerForm!,
-                          ),
-                        );
-                      },
-                    );
-                  }
-                }
-              },
-              icon: const Icon(Icons.save),
-              label: Text("save".tr()),
-            ),
-          ],
-        );
+      if (hasLocationField) {
+        break;
       }
     }
 
-    return const SizedBox.shrink();
+    if (hasLocationField) {
+      bool hasLatitudeValue = false;
+      bool hasLongitudeValue = false;
+
+      for (Section section in headerForm!.template.sections) {
+        for (Field field in section.fields) {
+          if (field.name == "latitude") {
+            hasLatitudeValue = field.getValue(headerForm!.data) != null;
+          } else if (StringUtils.inList(field.name, ["longitude", "longtitude"])) {
+            hasLongitudeValue = field.getValue(headerForm!.data) != null;
+          }
+        }
+
+        if (hasLatitudeValue && hasLongitudeValue) {
+          return true;
+        }
+      }
+    } else {
+      return true;
+    }
+
+    return false;
   }
 }

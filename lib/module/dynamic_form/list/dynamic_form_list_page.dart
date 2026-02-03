@@ -12,11 +12,14 @@ import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_page.dar
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_event.dart";
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_state.dart";
+import "package:dynamic_of_things/widget/map_page.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
+import "package:flutter_map/flutter_map.dart";
 import "package:go_router/go_router.dart";
+import "package:latlong2/latlong.dart";
 import "package:loader_overlay/loader_overlay.dart";
 
 class DynamicFormListPage extends StatefulWidget {
@@ -131,6 +134,9 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
               setState(() {});
             },
           ),
+          trailings: [
+            mapModeButton(),
+          ],
         ),
         contentBuilder: body,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -180,6 +186,71 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
         name: widget.dynamicFormMenuItem.name,
       ),
     );
+  }
+
+  Widget mapModeButton() {
+    if (listResponse != null && listResponse!.fields.any((element) => StringUtils.inList(element.name, ["latitude", "longitude", "longtitude"]))) {
+      return IconButton(
+        onPressed: () async {
+          Field? primaryKey = listResponse!.fields.firstWhereOrNull((element) => element.primaryKey);
+
+          await Navigators.push(
+            MapPage(
+              markers: (listResponse?.data ?? []).where((element) => element["latitude"] != null && (element["longitude"] != null || element["longtitude"] != null)).map((element) {
+                return Marker(
+                  point: LatLng(
+                    double.parse(element["latitude"]),
+                    double.parse(element["longitude"] ?? element["longtitude"]),
+                  ),
+                  child: GestureDetector(
+                    onTap: () async {
+                      if (primaryKey != null) {
+                        String id = element[primaryKey.name].toString();
+
+                        bool result = false;
+
+                        if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                          result = await Navigators.push(
+                            DynamicFormPage(
+                              dynamicFormMenuItem: widget.dynamicFormMenuItem,
+                              readOnly: true,
+                              dataId: id,
+                              customerId: widget.customerId,
+                            ),
+                          ) ?? false;
+                        } else {
+                          result = await context.push(
+                            "/dynamic-forms",
+                            extra: {
+                              "dynamicFormMenuItem": widget.dynamicFormMenuItem,
+                              "readOnly": true,
+                              "dataId": id,
+                              "customerId": widget.customerId,
+                            },
+                          ) ?? false;
+                        }
+
+                        if (result) {
+                          refresh();
+                        }
+                      }
+                    },
+                    child: Icon(
+                      Icons.location_on_outlined,
+                      size: 30,
+                      color: Colors.red,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          );
+        },
+        icon: const Icon(Icons.map),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   Widget body() {

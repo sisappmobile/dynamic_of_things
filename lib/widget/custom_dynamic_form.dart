@@ -4,6 +4,7 @@ import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_field.dart";
+import "package:dynamic_of_things/widget/custom_dynamic_form_location_field.dart";
 import "package:flutter/material.dart";
 
 class CustomDynamicForm extends StatefulWidget {
@@ -42,12 +43,13 @@ class CustomDynamicFormState extends State<CustomDynamicForm> with AutomaticKeep
       itemBuilder: (BuildContext context, int sectionIndex) {
         Section section = widget.template.sections[sectionIndex];
 
-        List<Field> fields = section.fields.where((element) => !element.hidden).toList();
+        List<Field> fields = section.fields.where((element) => !element.hidden && !StringUtils.inList(element.name, ["latitude", "longitude", "longtitude"])).toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             titleWidget(section.title),
+            locationWidget(),
             ListView.separated(
               separatorBuilder: (context, index) => SizedBox(height: Dimensions.size15),
               itemBuilder: (context, index) {
@@ -83,6 +85,44 @@ class CustomDynamicFormState extends State<CustomDynamicForm> with AutomaticKeep
             fontSize: Dimensions.text18,
             fontWeight: FontWeight.bold,
           ),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Widget locationWidget() {
+    bool hasLocationField = false;
+
+    for (Section section in widget.template.sections) {
+      bool hasLatitudeField = false;
+      bool hasLongitudeField = false;
+
+      for (Field field in section.fields) {
+        if (field.name == "latitude") {
+          hasLatitudeField = true;
+        } else if (StringUtils.inList(field.name, ["longitude", "longtitude"])) {
+          hasLongitudeField = true;
+        }
+      }
+
+      hasLocationField = hasLatitudeField && hasLongitudeField;
+
+      if (hasLocationField) {
+        break;
+      }
+    }
+
+    if (hasLocationField) {
+      return Container(
+        margin: EdgeInsets.only(bottom: Dimensions.size15),
+        child: CustomDynamicFormLocationField(
+          readOnly: widget.readOnly,
+          customerId: widget.customerId,
+          headerForm: widget.headerForm,
+          template: widget.template,
+          data: widget.data,
         ),
       );
     }
