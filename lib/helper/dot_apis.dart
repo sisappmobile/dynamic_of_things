@@ -179,6 +179,7 @@ class DotApis {
   Future<HeaderForm?> dynamicFormCreate({
     required String formId,
     String? customerId,
+    String? extra,
   }) async {
     Map<String, String> headers = {};
 
@@ -186,11 +187,18 @@ class DotApis {
       headers["sfa-customer-id"] = customerId!;
     }
 
+    Map<String, String> queryParameters = {};
+
+    if (StringUtils.isNotNullOrEmpty(extra)) {
+      queryParameters["extra"] = extra!;
+    }
+
     Response response = await dio.get(
       "v2/dynamic-forms/templates/$formId/create",
       options: Options(
         headers: headers,
       ),
+      queryParameters: queryParameters,
     );
 
     if (response.statusCode == 200) {

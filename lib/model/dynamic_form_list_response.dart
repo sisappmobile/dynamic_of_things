@@ -1,6 +1,7 @@
 // ignore_for_file: always_put_required_named_parameters_first, always_specify_types
 
 class ListResponse {
+  final bool createUsingScanQr;
   final List<Action> actions;
   final List<Field> fields;
   final List<Map<String, dynamic>> data;
@@ -9,12 +10,14 @@ class ListResponse {
 
   ListResponse({
     this.name,
+    required this.createUsingScanQr,
     required this.actions,
     required this.fields,
     required this.data,
   });
 
   factory ListResponse.fromJson(Map<String, dynamic> json) => ListResponse(
+    createUsingScanQr: json["createUsingScanQr"] ?? false,
     actions: json["actions"] != null ? List<Action>.from(json["actions"].map((e) => Action.fromJson(e))) : [],
     fields: json["fields"] != null ? List<Field>.from(json["fields"].map((e) => Field.fromJson(e))) : [],
     data: json["data"] != null ? List<Map<String, dynamic>>.from(json["data"].map((e) => e)) : [],

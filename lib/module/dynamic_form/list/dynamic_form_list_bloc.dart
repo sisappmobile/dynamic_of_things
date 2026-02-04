@@ -25,6 +25,7 @@ class DynamicFormListBloc extends Bloc<DynamicFormListEvent, DynamicFormListStat
 
           if (headerForm != null) {
             listResponse = ListResponse(
+              createUsingScanQr: false,
               actions: headerForm.template.actions.map((element) {
                 return Action(
                   id: element.id,

@@ -23,6 +23,7 @@ class DynamicFormPage extends StatefulWidget {
   final String? dataId;
   final String? customerId;
   final HeaderForm? headerForm;
+  final String? extra;
 
   const DynamicFormPage({
     required this.dynamicFormMenuItem,
@@ -30,6 +31,7 @@ class DynamicFormPage extends StatefulWidget {
     this.dataId,
     required this.customerId,
     this.headerForm,
+    this.extra,
     super.key,
   });
 
@@ -220,6 +222,7 @@ class DynamicFormPageState extends State<DynamicFormPage> with WidgetsBindingObs
           DynamicFormCreate(
             formId: widget.dynamicFormMenuItem.id,
             customerId: widget.customerId,
+            extra: widget.extra,
           ),
         );
       }

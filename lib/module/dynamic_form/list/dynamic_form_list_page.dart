@@ -12,6 +12,7 @@ import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_page.dar
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_event.dart";
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_state.dart";
+import "package:dynamic_of_things/widget/barcode_scanner_page.dart";
 import "package:dynamic_of_things/widget/map_page.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/foundation.dart";
@@ -610,27 +611,17 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
     if (hasCreateAccess()) {
       return FloatingActionButton.extended(
         onPressed: () async {
-          bool result = false;
-
-          if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-            result = await Navigators.push(
-              DynamicFormPage(
-                dynamicFormMenuItem: widget.dynamicFormMenuItem,
-                customerId: widget.customerId,
+          if (listResponse?.createUsingScanQr ?? false) {
+            Navigators.push(
+              BarcodeScannerPage(
+                silent: true,
+                onSuccess: (data) {
+                  create(data);
+                },
               ),
-            ) ?? false;
+            );
           } else {
-            result = await context.push(
-              "/dynamic-forms",
-              extra: {
-                "dynamicFormMenuItem": widget.dynamicFormMenuItem,
-                "customerId": widget.customerId,
-              },
-            ) ?? false;
-          }
-
-          if (result) {
-            refresh();
+            create();
           }
         },
         icon: const Icon(
@@ -655,5 +646,32 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
 
   bool hasEditAccess(String id) {
     return (listResponse != null && listResponse!.actions.any((element) => element.resourceId == "BTN_EDIT")) || id.contains("*");
+  }
+
+  void create([String? extra]) async {
+    bool result = false;
+
+    if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+      result = await Navigators.push(
+        DynamicFormPage(
+          dynamicFormMenuItem: widget.dynamicFormMenuItem,
+          customerId: widget.customerId,
+          extra: extra,
+        ),
+      ) ?? false;
+    } else {
+      result = await context.push(
+        "/dynamic-forms",
+        extra: {
+          "dynamicFormMenuItem": widget.dynamicFormMenuItem,
+          "customerId": widget.customerId,
+          "extra": extra,
+        },
+      ) ?? false;
+    }
+
+    if (result) {
+      refresh();
+    }
   }
 }

@@ -33,6 +33,7 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
           headerForm = await DotApis.getInstance().dynamicFormCreate(
             formId: event.formId,
             customerId: event.customerId,
+            extra: event.extra,
           );
         }
 

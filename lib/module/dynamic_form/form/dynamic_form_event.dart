@@ -7,10 +7,12 @@ abstract class DynamicFormEvent {}
 class DynamicFormCreate extends DynamicFormEvent {
   final String formId;
   final String? customerId;
+  final String? extra;
 
   DynamicFormCreate({
     required this.formId,
     required this.customerId,
+    required this.extra,
   });
 }
 

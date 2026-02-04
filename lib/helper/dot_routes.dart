@@ -38,6 +38,7 @@ final List<GoRoute> dotRoutes = [
         dataId: extra["dataId"],
         customerId: extra["customerId"],
         headerForm: extra["headerForm"],
+        extra: extra["extra"],
       );
     },
   ),

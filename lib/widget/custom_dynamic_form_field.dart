@@ -426,6 +426,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
                   Navigators.push(
                     BarcodeScannerPage(
+                      silent: false,
                       onSuccess: (data) {
                         widget.field.setValue(widget.data, data);
                       },
@@ -466,6 +467,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
           await Navigators.push(
             BarcodeScannerPage(
+              silent: false,
               formats: barcodeFormats,
               onSuccess: (data) {
                 widget.field.setValue(widget.data, data);

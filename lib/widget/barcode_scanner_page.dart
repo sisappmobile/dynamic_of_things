@@ -24,10 +24,12 @@ enum ScannerWordCase {
 }
 
 class BarcodeScannerPage extends StatefulWidget {
+  final bool silent;
   final void Function(String data) onSuccess;
   final List<BarcodeFormat>? formats;
 
   const BarcodeScannerPage({
+    required this.silent,
     required this.onSuccess,
     this.formats,
     super.key,
@@ -93,7 +95,9 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage> {
                   context.pop();
                 }
 
-                BaseOverlays.success(message: "barcode_scanner_success_dialog".tr());
+                if (!widget.silent) {
+                  BaseOverlays.success(message: "barcode_scanner_success_dialog".tr());
+                }
               }
             },
           ),
