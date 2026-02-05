@@ -24,6 +24,8 @@ final List<GoRoute> dotRoutes = [
       return DynamicFormListPage(
         dynamicFormMenuItem: extra["dynamicFormMenuItem"],
         customerId: extra["customerId"],
+        selectorMode: extra["selectorMode"],
+        referenceId: extra["referenceId"],
       );
     },
   ),
@@ -39,6 +41,7 @@ final List<GoRoute> dotRoutes = [
         customerId: extra["customerId"],
         headerForm: extra["headerForm"],
         extra: extra["extra"],
+        referenceId: extra["referenceId"],
       );
     },
   ),

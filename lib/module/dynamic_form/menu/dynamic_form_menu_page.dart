@@ -2,6 +2,7 @@
 // ignore_for_file: always_specify_types, cascade_invocations, always_put_required_named_parameters_first
 
 import "package:base/base.dart";
+import "package:basic_utils/basic_utils.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_page.dart";
 import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_bloc.dart";
@@ -203,11 +204,58 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage> with WidgetsBi
                           );
                         }
                       } else {
+                        String? referenceId;
+
+                        if (StringUtils.isNotNullOrEmpty(dynamicFormMenuItem.referenceId)) {
+                          if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                            referenceId = await Navigators.push(
+                              DynamicFormListPage(
+                                dynamicFormMenuItem: DynamicFormMenuItem(
+                                    id: dynamicFormMenuItem.referenceId!,
+                                    name: dynamicFormMenuItem.referenceName!,
+                                    index: 0,
+                                    type: "",
+                                    icon: "",
+                                    referenceId: null,
+                                    referenceName: null,
+                                ),
+                                customerId: widget.customerId,
+                                selectorMode: true,
+                                referenceId: null,
+                              ),
+                            );
+                          } else {
+                            referenceId = await context.push(
+                              "/dynamic-forms/list",
+                              extra: {
+                                "dynamicFormMenuItem": DynamicFormMenuItem(
+                                  id: dynamicFormMenuItem.referenceId!,
+                                  name: dynamicFormMenuItem.referenceName!,
+                                  index: 0,
+                                  type: "",
+                                  icon: "",
+                                  referenceId: null,
+                                  referenceName: null,
+                                ),
+                                "customerId": widget.customerId,
+                                "selectorMode": true,
+                                "referenceId": null
+                              },
+                            );
+                          }
+
+                          if (referenceId == null) {
+                            return;
+                          }
+                        }
+
                         if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
                           await Navigators.push(
                             DynamicFormListPage(
                               dynamicFormMenuItem: dynamicFormMenuItem,
                               customerId: widget.customerId,
+                              selectorMode: false,
+                              referenceId: referenceId,
                             ),
                           );
                         } else {
@@ -216,6 +264,8 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage> with WidgetsBi
                             extra: {
                               "dynamicFormMenuItem": dynamicFormMenuItem,
                               "customerId": widget.customerId,
+                              "selectorMode": false,
+                              "referenceId": referenceId,
                             },
                           );
                         }

@@ -26,10 +26,14 @@ import "package:loader_overlay/loader_overlay.dart";
 class DynamicFormListPage extends StatefulWidget {
   final DynamicFormMenuItem dynamicFormMenuItem;
   final String? customerId;
+  final bool selectorMode;
+  final String? referenceId;
 
   const DynamicFormListPage({
     required this.dynamicFormMenuItem,
     required this.customerId,
+    required this.selectorMode,
+    required this.referenceId,
     super.key,
   });
 
@@ -353,145 +357,151 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
               if (primaryKey != null) {
                 String id = map[primaryKey.name].toString();
 
-
-
-                List<MenuItem> menuItems = [];
-
-                if (hasViewAccess(id)) {
-                  menuItems.add(
-                    MenuItem(
-                      iconData: Icons.visibility,
-                      title: "Lihat Data",
-                      onTap: hasViewAccess(id) ? () async {
-                        await viewData(id);
-                      } : null,
-                    ),
-                  );
-                }
-
-                if (hasEditAccess(id)) {
-                  menuItems.add(
-                    MenuItem(
-                      iconData: Icons.edit,
-                      title: "edit".tr(),
-                      onTap: hasEditAccess(id) ? () async {
-                        await editData(id);
-                      } : null,
-                    ),
-                  );
-                }
-
-                if (DynamicForms.offline) {
-                  menuItems.add(
-                    MenuItem(
-                      title: "send_data".tr(),
-                      iconData: Icons.send,
-                      onTap: () async {
-                        BaseDialogs.confirmation(
-                          title: "are_you_sure_want_to_proceed".tr(),
-                          positiveCallback: () async {
-                            try {
-                              context.loaderOverlay.show();
-
-                              await Offlines.send(
-                                formId: widget.dynamicFormMenuItem.id,
-                                dataId: id,
-                                customerId: widget.customerId,
-                              );
-
-                              BaseOverlays.success(message: "pending_data_has_been_successfully_sent".tr());
-
-                              refresh();
-                            } catch (e, s) {
-                              if (kDebugMode) {
-                                print("Caught Exception: $e");
-                                print("Stack Trace:\n$s");
-                              }
-
-                              BaseOverlays.error(message: "something_wrong_please_try_again".tr());
-                            } finally {
-                              context.loaderOverlay.hide();
-                            }
-                          },
-                        );
-                      },
-                    ),
-                  );
-                } else {
-                  listResponse!.actions.where((element) => !StringUtils.inList(element.resourceId, ["BTN_CREATE", "BTN_EDIT", "BTN_VIEW", "BTN_SAVE", "BTN_ADD_DETAIL", "BTN_DEL_DETAIL"])).forEach((element) {
-                    MenuItem menuItem = MenuItem(
-                      title: element.name,
-                      onTap: () {
-                        if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                          Navigators.pop();
-                        } else {
-                          context.pop();
-                        }
-
-                        BaseDialogs.confirmation(
-                          title: "are_you_sure_want_to_proceed".tr(),
-                          positiveCallback: () {
-                            context.read<DynamicFormListBloc>().add(
-                              DynamicFormListCustomAction(
-                                actionId: element.id,
-                                formId: widget.dynamicFormMenuItem.id,
-                                dataId: id,
-                                customerId: widget.customerId,
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    );
-
-                    menuItems.add(menuItem);
-                  });
-                }
-
-                if (menuItems.isNotEmpty) {
-                  if (menuItems.length == 1) {
-                    if (hasViewAccess(id)) {
-                      await viewData(id);
-
-                      return;
-                    }
-
-                    if (hasEditAccess(id)) {
-                      await editData(id);
-
-                      return;
-                    }
-
-                    if (!DynamicForms.offline) {
-                      Action? action = listResponse!.actions.firstWhereOrNull((element) => !StringUtils.inList(element.resourceId, ["BTN_CREATE", "BTN_EDIT", "BTN_VIEW", "BTN_SAVE", "BTN_ADD_DETAIL", "BTN_DEL_DETAIL"]));
-
-                      if (action != null) {
-                        if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                          Navigators.pop();
-                        } else {
-                          context.pop();
-                        }
-
-                        BaseDialogs.confirmation(
-                          title: "are_you_sure_want_to_proceed".tr(),
-                          positiveCallback: () {
-                            context.read<DynamicFormListBloc>().add(
-                              DynamicFormListCustomAction(
-                                actionId: action.id,
-                                formId: widget.dynamicFormMenuItem.id,
-                                dataId: id,
-                                customerId: widget.customerId,
-                              ),
-                            );
-                          },
-                        );
-                      }
-                    }
+                if (widget.selectorMode) {
+                  if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                    Navigators.pop(result: id);
                   } else {
-                    BottomSheets.popupMenu(
-                      context: context,
-                      menuItems: menuItems,
+                    context.pop(id);
+                  }
+                } else {
+                  List<MenuItem> menuItems = [];
+
+                  if (hasViewAccess(id)) {
+                    menuItems.add(
+                      MenuItem(
+                        iconData: Icons.visibility,
+                        title: "Lihat Data",
+                        onTap: hasViewAccess(id) ? () async {
+                          await viewData(id);
+                        } : null,
+                      ),
                     );
+                  }
+
+                  if (hasEditAccess(id)) {
+                    menuItems.add(
+                      MenuItem(
+                        iconData: Icons.edit,
+                        title: "edit".tr(),
+                        onTap: hasEditAccess(id) ? () async {
+                          await editData(id);
+                        } : null,
+                      ),
+                    );
+                  }
+
+                  if (DynamicForms.offline) {
+                    menuItems.add(
+                      MenuItem(
+                        title: "send_data".tr(),
+                        iconData: Icons.send,
+                        onTap: () async {
+                          BaseDialogs.confirmation(
+                            title: "are_you_sure_want_to_proceed".tr(),
+                            positiveCallback: () async {
+                              try {
+                                context.loaderOverlay.show();
+
+                                await Offlines.send(
+                                  formId: widget.dynamicFormMenuItem.id,
+                                  dataId: id,
+                                  customerId: widget.customerId,
+                                );
+
+                                BaseOverlays.success(message: "pending_data_has_been_successfully_sent".tr());
+
+                                refresh();
+                              } catch (e, s) {
+                                if (kDebugMode) {
+                                  print("Caught Exception: $e");
+                                  print("Stack Trace:\n$s");
+                                }
+
+                                BaseOverlays.error(message: "something_wrong_please_try_again".tr());
+                              } finally {
+                                context.loaderOverlay.hide();
+                              }
+                            },
+                          );
+                        },
+                      ),
+                    );
+                  } else {
+                    listResponse!.actions.where((element) => !StringUtils.inList(element.resourceId, ["BTN_CREATE", "BTN_EDIT", "BTN_VIEW", "BTN_SAVE", "BTN_ADD_DETAIL", "BTN_DEL_DETAIL"])).forEach((element) {
+                      MenuItem menuItem = MenuItem(
+                        title: element.name,
+                        onTap: () {
+                          if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                            Navigators.pop();
+                          } else {
+                            context.pop();
+                          }
+
+                          BaseDialogs.confirmation(
+                            title: "are_you_sure_want_to_proceed".tr(),
+                            positiveCallback: () {
+                              context.read<DynamicFormListBloc>().add(
+                                DynamicFormListCustomAction(
+                                  actionId: element.id,
+                                  formId: widget.dynamicFormMenuItem.id,
+                                  dataId: id,
+                                  customerId: widget.customerId,
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      );
+
+                      menuItems.add(menuItem);
+                    });
+                  }
+
+                  if (menuItems.isNotEmpty) {
+                    if (menuItems.length == 1) {
+                      if (hasViewAccess(id)) {
+                        await viewData(id);
+
+                        return;
+                      }
+
+                      if (hasEditAccess(id)) {
+                        await editData(id);
+
+                        return;
+                      }
+
+                      if (!DynamicForms.offline) {
+                        Action? action = listResponse!.actions.firstWhereOrNull((element) => !StringUtils.inList(element.resourceId, ["BTN_CREATE", "BTN_EDIT", "BTN_VIEW", "BTN_SAVE", "BTN_ADD_DETAIL", "BTN_DEL_DETAIL"]));
+
+                        if (action != null) {
+                          if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                            Navigators.pop();
+                          } else {
+                            context.pop();
+                          }
+
+                          BaseDialogs.confirmation(
+                            title: "are_you_sure_want_to_proceed".tr(),
+                            positiveCallback: () {
+                              context.read<DynamicFormListBloc>().add(
+                                DynamicFormListCustomAction(
+                                  actionId: action.id,
+                                  formId: widget.dynamicFormMenuItem.id,
+                                  dataId: id,
+                                  customerId: widget.customerId,
+                                ),
+                              );
+                            },
+                          );
+                        }
+                      }
+                    } else {
+                      BottomSheets.popupMenu(
+                        context: context,
+                        menuItems: menuItems,
+                      );
+                    }
                   }
                 }
               }
@@ -637,15 +647,15 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
   }
 
   bool hasCreateAccess() {
-    return listResponse != null && listResponse!.actions.any((element) => element.resourceId == "BTN_CREATE");
+    return !widget.selectorMode && listResponse != null && listResponse!.actions.any((element) => element.resourceId == "BTN_CREATE");
   }
 
   bool hasViewAccess(String id) {
-    return (listResponse != null && listResponse!.actions.any((element) => element.resourceId == "BTN_VIEW")) || id.contains("*");
+    return !widget.selectorMode && (listResponse != null && listResponse!.actions.any((element) => element.resourceId == "BTN_VIEW")) || id.contains("*");
   }
 
   bool hasEditAccess(String id) {
-    return (listResponse != null && listResponse!.actions.any((element) => element.resourceId == "BTN_EDIT")) || id.contains("*");
+    return !widget.selectorMode && (listResponse != null && listResponse!.actions.any((element) => element.resourceId == "BTN_EDIT")) || id.contains("*");
   }
 
   void create([String? extra]) async {
@@ -657,6 +667,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
           dynamicFormMenuItem: widget.dynamicFormMenuItem,
           customerId: widget.customerId,
           extra: extra,
+          referenceId: widget.referenceId,
         ),
       ) ?? false;
     } else {
@@ -666,6 +677,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage> with WidgetsBi
           "dynamicFormMenuItem": widget.dynamicFormMenuItem,
           "customerId": widget.customerId,
           "extra": extra,
+          "referenceId": widget.referenceId,
         },
       ) ?? false;
     }

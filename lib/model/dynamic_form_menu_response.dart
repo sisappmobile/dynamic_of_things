@@ -41,6 +41,8 @@ class DynamicFormMenuItem {
   final num index;
   final String type;
   final String icon;
+  final String? referenceId;
+  final String? referenceName;
 
   DynamicFormMenuItem({
     required this.id,
@@ -48,6 +50,8 @@ class DynamicFormMenuItem {
     required this.index,
     required this.type,
     required this.icon,
+    required this.referenceId,
+    required this.referenceName,
   });
 
   factory DynamicFormMenuItem.fromJson(Map<String, dynamic> json) => DynamicFormMenuItem(
@@ -56,5 +60,7 @@ class DynamicFormMenuItem {
     index: Formats.tryParseNumber(json["index"]),
     type: json["type"] ?? "",
     icon: json["icon"] ?? "",
+    referenceId: json["referenceId"],
+    referenceName: json["referenceName"],
   );
 }

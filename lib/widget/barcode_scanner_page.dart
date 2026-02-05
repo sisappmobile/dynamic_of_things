@@ -87,8 +87,6 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage> {
                   data = data.toLowerCase();
                 }
 
-                widget.onSuccess(data);
-
                 if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
                   Navigators.pop();
                 } else {
@@ -98,6 +96,8 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage> {
                 if (!widget.silent) {
                   BaseOverlays.success(message: "barcode_scanner_success_dialog".tr());
                 }
+
+                widget.onSuccess(data);
               }
             },
           ),

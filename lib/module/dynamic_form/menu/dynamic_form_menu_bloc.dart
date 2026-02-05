@@ -40,11 +40,13 @@ class DynamicFormMenuBloc extends Bloc<DynamicFormMenuEvent, DynamicFormMenuStat
 
             dynamicFormCategoryItem.menus.add(
               DynamicFormMenuItem(
-                  id: headerForm.category.menu.id,
-                  name: headerForm.category.menu.name,
-                  index: headerForm.category.menu.index,
-                  type: headerForm.category.menu.type,
-                  icon: headerForm.category.menu.icon
+                id: headerForm.category.menu.id,
+                name: headerForm.category.menu.name,
+                index: headerForm.category.menu.index,
+                type: headerForm.category.menu.type,
+                icon: headerForm.category.menu.icon,
+                referenceId: null,
+                referenceName: null,
               ),
             );
           }

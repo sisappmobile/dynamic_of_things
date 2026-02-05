@@ -180,6 +180,7 @@ class DotApis {
     required String formId,
     String? customerId,
     String? extra,
+    String? referenceId,
   }) async {
     Map<String, String> headers = {};
 
@@ -191,6 +192,10 @@ class DotApis {
 
     if (StringUtils.isNotNullOrEmpty(extra)) {
       queryParameters["extra"] = extra!;
+    }
+
+    if (StringUtils.isNotNullOrEmpty(referenceId)) {
+      queryParameters["referenceId"] = referenceId!;
     }
 
     Response response = await dio.get(
