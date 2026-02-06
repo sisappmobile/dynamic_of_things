@@ -64,6 +64,15 @@ class CustomDynamicFormField extends StatefulWidget {
 class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   TextEditingController controller = TextEditingController();
 
+  static const double _gap = 8;
+  static const double _r = 14;
+
+  Color _card(BuildContext c) => AppColors.surface();
+  Color _soft(BuildContext c) => AppColors.surfaceContainerLowest();
+  Color _fg(BuildContext c) => AppColors.onSurface();
+  Color _outline(BuildContext c) => AppColors.outline();
+  Color _primary(BuildContext c) => Theme.of(c).colorScheme.primary;
+
   @override
   void initState() {
     super.initState();
@@ -91,6 +100,71 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
         return body();
       },
+    );
+  }
+
+  Widget _wrapCard({
+    required Widget child,
+    EdgeInsets? padding,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: padding ?? EdgeInsets.all(Dimensions.size10),
+      decoration: ShapeDecoration(
+        color: _card(context),
+        shadows: [
+          BoxShadow(
+            blurRadius: Dimensions.size20,
+            offset: Offset(0, Dimensions.size10),
+            color: Colors.black.withValues(alpha: 0.06),
+          ),
+        ],
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size20),
+          smoothness: Dimensions.size1,
+          side: BorderSide(
+            color: _outline(context).withValues(alpha: 0.16),
+          ),
+        ),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _chip({
+    required String text,
+    IconData? icon,
+    Color? color,
+  }) {
+    final Color c = color ?? _primary(context);
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: Dimensions.size10,
+        vertical: Dimensions.size5,
+      ),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(Dimensions.size100),
+        border: Border.all(color: c.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: Dimensions.size15, color: c),
+            SizedBox(width: Dimensions.size5),
+          ],
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: Dimensions.text11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.2,
+              color: c,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -248,30 +322,70 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
               physics: const NeverScrollableScrollPhysics(),
               itemBuilder: (context, index) {
                 String string = widget.field.data[index];
+                final bool selected =
+                    string == widget.field.getValue(widget.data);
 
-                return Row(
-                  children: [
-                    SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: Radio(
-                        value: string,
-                        groupValue: widget.field.getValue(widget.data),
-                        onChanged:
-                            !isReadOnly() ? (value) => changed(value) : null,
+                return Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: !isReadOnly() ? () => changed(string) : null,
+                    borderRadius: BorderRadius.circular(Dimensions.size15),
+                    child: Ink(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: Dimensions.size10,
+                        vertical: Dimensions.size10,
+                      ),
+                      decoration: ShapeDecoration(
+                        color: _soft(context),
+                        shape: SmoothRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(Dimensions.size15),
+                          smoothness: Dimensions.size1,
+                          side: BorderSide(
+                            color: selected
+                                ? _primary(context).withValues(alpha: 0.30)
+                                : _outline(context).withValues(alpha: 0.18),
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: Radio(
+                              value: string,
+                              groupValue: widget.field.getValue(widget.data),
+                              onChanged: !isReadOnly()
+                                  ? (value) => changed(value)
+                                  : null,
+                            ),
+                          ),
+                          SizedBox(width: Dimensions.size10),
+                          Expanded(
+                            child: Text(
+                              string,
+                              style: TextStyle(
+                                fontSize: Dimensions.text14,
+                                fontWeight: FontWeight.w800,
+                                color: _fg(context),
+                              ),
+                            ),
+                          ),
+                          if (selected)
+                            _chip(
+                              text: "Selected",
+                              icon: Icons.check_rounded,
+                              color: _primary(context),
+                            ),
+                        ],
                       ),
                     ),
-                    Text(
-                      string,
-                      style: TextStyle(
-                        fontSize: Dimensions.text14,
-                      ),
-                    ),
-                  ],
+                  ),
                 );
               },
               separatorBuilder: (context, index) =>
-                  SizedBox(height: Dimensions.size15),
+                  SizedBox(height: Dimensions.size10),
               itemCount: widget.field.data.length,
             ),
           );
@@ -283,27 +397,52 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           return validate();
         },
         builder: (field) {
+          final bool v = (widget.field.getValue(widget.data) ?? false) as bool;
+
           return formField(
             field: field,
-            body: Switch(
-              value: (widget.field.getValue(widget.data) ?? false) as bool,
-              onChanged: !isReadOnly()
-                  ? (value) {
-                      setState(() {
-                        widget.field.setValue(widget.data, value);
-                      });
+            body: _wrapCard(
+              padding: EdgeInsets.fromLTRB(
+                Dimensions.size10,
+                Dimensions.size10,
+                Dimensions.size10,
+                Dimensions.size10,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.field.label(widget.data),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: _fg(context),
+                      ),
+                    ),
+                  ),
+                  Switch(
+                    value: v,
+                    onChanged: !isReadOnly()
+                        ? (value) {
+                            setState(() {
+                              widget.field.setValue(widget.data, value);
+                            });
 
-                      if (widget.field.hasScript) {
-                        context.read<DynamicFormBloc>().add(
-                              DynamicFormRefresh(
-                                formId: widget.headerForm.template.id,
-                                customerId: widget.customerId,
-                                headerForm: widget.headerForm,
-                              ),
-                            );
-                      }
-                    }
-                  : null,
+                            if (widget.field.hasScript) {
+                              context.read<DynamicFormBloc>().add(
+                                    DynamicFormRefresh(
+                                      formId: widget.headerForm.template.id,
+                                      customerId: widget.customerId,
+                                      headerForm: widget.headerForm,
+                                    ),
+                                  );
+                            }
+                          }
+                        : null,
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -420,9 +559,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           DynamicFormFieldType.URL.name,
         ])) {
       return IconButton(
-        icon: const Icon(
-          Icons.more_vert,
-        ),
+        icon: const Icon(Icons.more_vert),
         onPressed: () {
           BottomSheets.popupMenu(
             context: context,
@@ -470,9 +607,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           DynamicFormFieldType.BARCODE.name,
         ])) {
       return IconButton(
-        icon: const Icon(
-          Icons.qr_code_scanner,
-        ),
+        icon: const Icon(Icons.qr_code_scanner),
         onPressed: () async {
           List<BarcodeFormat> barcodeFormats = [];
 
@@ -511,19 +646,14 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       DynamicFormFieldType.DATE_TIME.name,
     ])) {
       return IconButton(
-        icon: const Icon(
-          Icons.event,
-        ),
+        icon: const Icon(Icons.event),
         onPressed: !isReadOnly() ? () => onPressed() : null,
       );
-    } else if (StringUtils.inList(
-      widget.field.type,
-      [DynamicFormFieldType.TIME.name],
-    )) {
+    } else if (StringUtils.inList(widget.field.type, [
+      DynamicFormFieldType.TIME.name,
+    ])) {
       return IconButton(
-        icon: const Icon(
-          Icons.access_time,
-        ),
+        icon: const Icon(Icons.access_time),
         onPressed: !isReadOnly() ? () => onPressed() : null,
       );
     } else {
@@ -940,9 +1070,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           ..mime = lookupMimeType(platformFile.path!);
 
         if (StringUtils.inList(
-          platformFile.extension!,
-          ["jpg", "jpeg", "png"],
-        )) {
+            platformFile.extension!, ["jpg", "jpeg", "png"])) {
           XFile? xFile = await FlutterImageCompress.compressAndGetFile(
             platformFile.path!,
             await CustomAttachments.temporaryPath(fileName: platformFile.name),
@@ -963,11 +1091,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         context: context,
         callback: (bytes) async {
           Attachment attachment = Attachment();
-
           attachment.name = DateTime.now().millisecondsSinceEpoch.toString();
           attachment.mime = "image/png";
           attachment.bytes = bytes;
-
           widget.field.setValue(widget.data, attachment);
         },
       );
@@ -978,7 +1104,6 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             cameraDescriptions: value,
             callback: (xFile) async {
               Attachment attachment = Attachment();
-
               attachment.name =
                   DateTime.now().millisecondsSinceEpoch.toString();
               attachment.mime = "video/mp4";
@@ -1004,11 +1129,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         callback: (files) async {
           if (files.isNotEmpty) {
             Attachment attachment = Attachment();
-
             attachment.name = files.first.name;
             attachment.mime = files.first.mimeType;
             attachment.bytes = await files.first.readAsBytes();
-
             widget.field.setValue(widget.data, attachment);
           }
         },
@@ -1021,7 +1144,6 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         callback: (files) async {
           if (files.isNotEmpty) {
             Attachment attachment = Attachment();
-
             attachment.name = files.first.name;
             attachment.mime = "video/${files.first.extension}";
             attachment.bytes = files.first.bytes;
@@ -1092,45 +1214,38 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
           if (widget.field.link != null) {
             String linkValue = selectedItem[widget.field.link!.source];
-
             widget.data[widget.field.link!.target] = linkValue;
           }
 
           widget.field.setValue(widget.data, value);
 
           if (dynamicFormResourceResponse.loadOnFields.isNotEmpty) {
-            for (DynamicFormResourceLoadOnFieldItem dynamicFormResourceLoadOnFieldItem
+            for (DynamicFormResourceLoadOnFieldItem item
                 in dynamicFormResourceResponse.loadOnFields) {
-              if (!dynamicFormResourceLoadOnFieldItem.detail) {
-                dynamic value =
-                    selectedItem[dynamicFormResourceLoadOnFieldItem.source];
+              if (!item.detail) {
+                dynamic v = selectedItem[item.source];
 
-                if (value != null) {
+                if (v != null) {
                   bool found = false;
 
                   for (Section section in widget.template.sections) {
-                    for (Field field in section.fields) {
-                      if (StringUtils.equalsIgnoreCase(
-                        field.name,
-                        dynamicFormResourceLoadOnFieldItem.target,
-                      )) {
-                        field.setValue(
+                    for (Field f in section.fields) {
+                      if (StringUtils.equalsIgnoreCase(f.name, item.target)) {
+                        f.setValue(
                           widget.data,
                           await DynamicForms.decodeValue(
-                            field: field,
-                            value: value,
+                            field: f,
+                            value: v,
                           ),
                         );
-                        field.forceRefresh = true;
-
+                        f.forceRefresh = true;
                         found = true;
                       }
                     }
                   }
 
                   if (!found) {
-                    widget.data[dynamicFormResourceLoadOnFieldItem.target] =
-                        value;
+                    widget.data[item.target] = v;
                   }
                 }
               }
@@ -1139,13 +1254,13 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
           if (widget.field.getValue(widget.data) != null) {
             for (Section section in widget.template.sections) {
-              for (Field field in section.fields) {
-                if (StringUtils.isNotNullOrEmpty(field.enableAfter)) {
+              for (Field f in section.fields) {
+                if (StringUtils.isNotNullOrEmpty(f.enableAfter)) {
                   if (StringUtils.equalsIgnoreCase(
-                    field.enableAfter,
+                    f.enableAfter,
                     widget.field.name,
                   )) {
-                    field.enable();
+                    f.enable();
                   }
                 }
               }
@@ -1170,9 +1285,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
                   for (String key in detail.keys) {
                     for (Section section in detailForm.template.sections) {
-                      for (Field field in section.fields) {
-                        if (field.name == key) {
-                          field.setValue(row, detail[key]);
+                      for (Field f in section.fields) {
+                        if (f.name == key) {
+                          f.setValue(row, detail[key]);
                         }
                       }
                     }
@@ -1227,9 +1342,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
                       for (String key in detail.keys) {
                         for (Section section in detailForm.template.sections) {
-                          for (Field field in section.fields) {
-                            if (field.name == key) {
-                              field.setValue(row, detail[key]);
+                          for (Field f in section.fields) {
+                            if (f.name == key) {
+                              f.setValue(row, detail[key]);
                             }
                           }
                         }
@@ -1397,48 +1512,27 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     String? result;
 
     result = required(value);
-
-    if (result != null) {
-      return result;
-    }
+    if (result != null) return result;
 
     if (value != null) {
       if (widget.field.type == DynamicFormFieldType.SHORT_TEXT.name) {
         result = contains(value?.toString());
-
-        if (result != null) {
-          return result;
-        }
+        if (result != null) return result;
 
         result = notContains(value?.toString());
-
-        if (result != null) {
-          return result;
-        }
+        if (result != null) return result;
 
         result = minLength(value?.toString());
-
-        if (result != null) {
-          return result;
-        }
+        if (result != null) return result;
 
         result = maxLength(value?.toString());
-
-        if (result != null) {
-          return result;
-        }
+        if (result != null) return result;
       } else if (widget.field.type == DynamicFormFieldType.LONG_TEXT.name) {
         result = minLength(value as String);
-
-        if (result != null) {
-          return result;
-        }
+        if (result != null) return result;
 
         result = maxLength(value);
-
-        if (result != null) {
-          return result;
-        }
+        if (result != null) return result;
       } else if (widget.field.type == DynamicFormFieldType.NUMBER.name) {
         int integer = 0;
 
@@ -1447,76 +1541,40 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         } catch (e) {}
 
         result = greaterThan(integer);
-
-        if (result != null) {
-          return result;
-        }
+        if (result != null) return result;
 
         result = greaterThanOrEqualTo(integer);
-
-        if (result != null) {
-          return result;
-        }
+        if (result != null) return result;
 
         result = lessThan(integer);
-
-        if (result != null) {
-          return result;
-        }
+        if (result != null) return result;
 
         result = lessThanOrEqualTo(integer);
-
-        if (result != null) {
-          return result;
-        }
+        if (result != null) return result;
       } else if (widget.field.type == DynamicFormFieldType.EMAIL.name) {
         result = email(value as String);
-
-        if (result != null) {
-          return result;
-        }
+        if (result != null) return result;
       } else if (widget.field.type == DynamicFormFieldType.URL.name) {
         result = url(value as String);
-
-        if (result != null) {
-          return result;
-        }
+        if (result != null) return result;
       } else if (widget.field.type == DynamicFormFieldType.DATE.name) {
         result = before(value);
-
-        if (result != null) {
-          return result;
-        }
+        if (result != null) return result;
 
         result = after(value);
-
-        if (result != null) {
-          return result;
-        }
+        if (result != null) return result;
       } else if (widget.field.type == DynamicFormFieldType.TIME.name) {
         result = before(value);
-
-        if (result != null) {
-          return result;
-        }
+        if (result != null) return result;
 
         result = after(value);
-
-        if (result != null) {
-          return result;
-        }
+        if (result != null) return result;
       } else if (widget.field.type == DynamicFormFieldType.DATE_TIME.name) {
         result = before(value);
-
-        if (result != null) {
-          return result;
-        }
+        if (result != null) return result;
 
         result = after(value);
-
-        if (result != null) {
-          return result;
-        }
+        if (result != null) return result;
       }
     }
 
@@ -1528,56 +1586,17 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           return "this_field_is_required".tr();
         }
       }
-    } else if (widget.field.type == DynamicFormFieldType.FILE.name) {
-      if (widget.field.required) {
-        if (value == null) {
-          return "this_field_is_required".tr();
-        }
-      }
-    } else if (widget.field.type == DynamicFormFieldType.FOTO.name) {
-      if (widget.field.required) {
-        if (value == null) {
-          return "this_field_is_required".tr();
-        }
-      }
-    } else if (widget.field.type == DynamicFormFieldType.VIDEO.name) {
-      if (widget.field.required) {
-        if (value == null) {
-          return "this_field_is_required".tr();
-        }
-      }
-    } else if (widget.field.type == DynamicFormFieldType.SIGNATURE.name) {
-      if (widget.field.required) {
-        if (value == null) {
-          return "this_field_is_required".tr();
-        }
-      }
-    } else if (widget.field.type == DynamicFormFieldType.UPLOAD_FOTO.name) {
-      if (widget.field.required) {
-        if (value == null) {
-          return "this_field_is_required".tr();
-        }
-      }
-    } else if (widget.field.type == DynamicFormFieldType.UPLOAD_VIDEO.name) {
-      if (widget.field.required) {
-        if (value == null) {
-          return "this_field_is_required".tr();
-        }
-      }
-    } else if (widget.field.type ==
-        DynamicFormFieldType.UPLOAD_SIGNATURE.name) {
-      if (widget.field.required) {
-        if (value == null) {
-          return "this_field_is_required".tr();
-        }
-      }
-    } else if (widget.field.type == DynamicFormFieldType.QRCODE.name) {
-      if (widget.field.required) {
-        if (value == null) {
-          return "this_field_is_required".tr();
-        }
-      }
-    } else if (widget.field.type == DynamicFormFieldType.BARCODE.name) {
+    } else if (StringUtils.inList(widget.field.type, [
+      DynamicFormFieldType.FILE.name,
+      DynamicFormFieldType.FOTO.name,
+      DynamicFormFieldType.VIDEO.name,
+      DynamicFormFieldType.SIGNATURE.name,
+      DynamicFormFieldType.UPLOAD_FOTO.name,
+      DynamicFormFieldType.UPLOAD_VIDEO.name,
+      DynamicFormFieldType.UPLOAD_SIGNATURE.name,
+      DynamicFormFieldType.QRCODE.name,
+      DynamicFormFieldType.BARCODE.name,
+    ])) {
       if (widget.field.required) {
         if (value == null) {
           return "this_field_is_required".tr();
@@ -1590,13 +1609,14 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
   List<Widget> fileWidgets() {
     Widget signatureButton() {
-      return OutlinedButton(
-        onPressed: () async {
+      return _actionPill(
+        icon: Symbols.signature,
+        text: "signature".tr().toUpperCase(),
+        onTap: () async {
           Uint8List? bytes = await Navigators.push(SignaturePage());
 
           if (bytes != null) {
             Attachment attachment = Attachment();
-
             attachment.name = DateTime.now().millisecondsSinceEpoch.toString();
             attachment.mime = "image/png";
             attachment.bytes = bytes;
@@ -1604,20 +1624,6 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             widget.field.setValue(widget.data, attachment);
           }
         },
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Symbols.signature,
-            ),
-            SizedBox(
-              width: Dimensions.size5,
-            ),
-            Text(
-              "signature".tr().toUpperCase(),
-            ),
-          ],
-        ),
       );
     }
 
@@ -1626,75 +1632,37 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     if (!isReadOnly()) {
       if (widget.field.type == DynamicFormFieldType.VIDEO.name) {
         widgets.add(
-          OutlinedButton(
-            onPressed: () => onPressed(),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.video_call,
-                ),
-                SizedBox(
-                  width: Dimensions.size5,
-                ),
-                Text(
-                  "record_video".tr().toUpperCase(),
-                ),
-              ],
-            ),
+          _actionPill(
+            icon: Icons.video_call,
+            text: "record_video".tr().toUpperCase(),
+            onTap: () => onPressed(),
           ),
         );
       } else if (widget.field.type == DynamicFormFieldType.FOTO.name) {
         widgets.add(
-          OutlinedButton(
-            onPressed: () => onPressed(),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.camera_alt,
-                ),
-                SizedBox(
-                  width: Dimensions.size5,
-                ),
-                Text(
-                  "take_photo".tr().toUpperCase(),
-                ),
-              ],
-            ),
+          _actionPill(
+            icon: Icons.camera_alt,
+            text: "take_photo".tr().toUpperCase(),
+            onTap: () => onPressed(),
           ),
         );
       } else if (widget.field.type == DynamicFormFieldType.SIGNATURE.name) {
         widgets.add(signatureButton());
       } else {
         widgets.add(
-          Row(
-            mainAxisSize: MainAxisSize.min,
+          Wrap(
+            spacing: Dimensions.size10,
+            runSpacing: Dimensions.size10,
             children: [
-              OutlinedButton(
-                onPressed: () => onPressed(),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.upload,
-                    ),
-                    SizedBox(
-                      width: Dimensions.size5,
-                    ),
-                    Text(
-                      "choose_file".tr().toUpperCase(),
-                    ),
-                  ],
-                ),
+              _actionPill(
+                icon: Icons.upload,
+                text: "choose_file".tr().toUpperCase(),
+                onTap: () => onPressed(),
               ),
               Visibility(
                 visible: widget.field.type ==
                     DynamicFormFieldType.UPLOAD_SIGNATURE.name,
-                child: Container(
-                  margin: EdgeInsets.only(left: Dimensions.size10),
-                  child: signatureButton(),
-                ),
+                child: signatureButton(),
               ),
             ],
           ),
@@ -1703,11 +1671,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     }
 
     if (widget.field.getValue(widget.data) != null) {
-      widgets.add(
-        SizedBox(
-          height: Dimensions.size5,
-        ),
-      );
+      widgets.add(SizedBox(height: Dimensions.size10));
 
       Attachment attachment = widget.field.getValue(widget.data);
 
@@ -1720,7 +1684,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           return Container(
             width: Dimensions.size100,
             height: Dimensions.size100,
-            color: AppColors.primary(),
+            color: _primary(context).withValues(alpha: 0.12),
             child: Center(
               child: Text(
                 attachment.name ?? "",
@@ -1728,93 +1692,131 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: AppColors.onPrimary(),
+                  color: _fg(context),
                   fontSize: Dimensions.text12,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ),
           );
         },
         frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-          return Container(
-            margin: EdgeInsets.only(top: Dimensions.size5),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(
-                Dimensions.size10,
-              ),
-              child: Stack(
-                children: [
-                  child,
-                  Positioned.fill(
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () {
-                          if (attachment.thumbnail != null) {
-                            BottomSheets.videoPreview(
-                              context: context,
-                              bytes: attachment.bytes!,
-                            );
-                          } else {
-                            BottomSheets.imagePreview(
-                              context: context,
-                              imageProvider: MemoryImage(
-                                attachment.thumbnail ?? attachment.bytes!,
-                              ),
-                            );
-                          }
-                        },
-                      ),
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(Dimensions.size15),
+            child: Stack(
+              children: [
+                child,
+                Positioned.fill(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () {
+                        if (attachment.thumbnail != null) {
+                          BottomSheets.videoPreview(
+                            context: context,
+                            bytes: attachment.bytes!,
+                          );
+                        } else {
+                          BottomSheets.imagePreview(
+                            context: context,
+                            imageProvider: MemoryImage(
+                              attachment.thumbnail ?? attachment.bytes!,
+                            ),
+                          );
+                        }
+                      },
                     ),
                   ),
-                ],
-              ),
+                ),
+                Positioned(
+                  right: 8,
+                  bottom: 8,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: Dimensions.size10,
+                      vertical: Dimensions.size5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      borderRadius: BorderRadius.circular(Dimensions.size100),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          attachment.thumbnail != null
+                              ? Icons.play_arrow_rounded
+                              : Icons.open_in_full_rounded,
+                          size: Dimensions.size15,
+                          color: Colors.white,
+                        ),
+                        SizedBox(width: Dimensions.size5),
+                        Text(
+                          attachment.thumbnail != null ? "Preview" : "Open",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: Dimensions.text11,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
         },
       );
 
       widgets.add(
-        Container(
-          margin: EdgeInsets.only(right: Dimensions.size10),
-          child: Column(
+        _wrapCard(
+          padding: EdgeInsets.all(Dimensions.size10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(
-                  Dimensions.size10,
-                ),
+              SizedBox(
+                width: Dimensions.size100,
+                height: Dimensions.size100,
                 child: thumbnailWidget,
               ),
-              Visibility(
-                visible: !isReadOnly(),
+              SizedBox(width: Dimensions.size10),
+              Expanded(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(
-                      height: Dimensions.size5,
-                    ),
-                    OutlinedButton(
-                      onPressed: () {
-                        widget.field.setValue(widget.data, null);
-                      },
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.delete,
-                            size: 16,
-                          ),
-                          SizedBox(
-                            width: Dimensions.size5,
-                          ),
-                          Text(
-                            "delete".tr().toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
+                    Text(
+                      attachment.name ?? "-",
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: _fg(context),
+                        fontSize: Dimensions.text13,
                       ),
                     ),
+                    SizedBox(height: Dimensions.size5),
+                    Text(
+                      attachment.mime ?? "",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: _fg(context).withValues(alpha: 0.65),
+                        fontSize: Dimensions.text12,
+                      ),
+                    ),
+                    if (!isReadOnly()) ...[
+                      SizedBox(height: Dimensions.size10),
+                      _dangerPill(
+                        icon: Icons.delete_rounded,
+                        text: "delete".tr().toUpperCase(),
+                        onTap: () {
+                          widget.field.setValue(widget.data, null);
+                        },
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1827,30 +1829,145 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     return widgets;
   }
 
+  Widget _actionPill({
+    required IconData icon,
+    required String text,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(Dimensions.size20),
+        child: Ink(
+          padding: EdgeInsets.symmetric(
+            horizontal: Dimensions.size10,
+            vertical: Dimensions.size10,
+          ),
+          decoration: ShapeDecoration(
+            color: _soft(context),
+            shape: SmoothRectangleBorder(
+              borderRadius: BorderRadius.circular(Dimensions.size20),
+              smoothness: Dimensions.size1,
+              side: BorderSide(
+                color: _outline(context).withValues(alpha: 0.18),
+              ),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: Dimensions.size30,
+                height: Dimensions.size30,
+                decoration: BoxDecoration(
+                  color: _primary(context).withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: _primary(context).withValues(alpha: 0.22),
+                  ),
+                ),
+                child: Icon(icon,
+                    size: Dimensions.size20, color: _primary(context)),
+              ),
+              SizedBox(width: Dimensions.size10),
+              Text(
+                text,
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.2,
+                  color: _fg(context),
+                  fontSize: Dimensions.text12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _dangerPill({
+    required IconData icon,
+    required String text,
+    required VoidCallback onTap,
+  }) {
+    final Color c = AppColors.error();
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(Dimensions.size20),
+        child: Ink(
+          padding: EdgeInsets.symmetric(
+            horizontal: Dimensions.size10,
+            vertical: Dimensions.size10,
+          ),
+          decoration: ShapeDecoration(
+            color: c.withValues(alpha: 0.08),
+            shape: SmoothRectangleBorder(
+              borderRadius: BorderRadius.circular(Dimensions.size20),
+              smoothness: Dimensions.size1,
+              side: BorderSide(color: c.withValues(alpha: 0.22)),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: Dimensions.size20, color: c),
+              SizedBox(width: Dimensions.size10),
+              Text(
+                text,
+                style: TextStyle(
+                  fontSize: Dimensions.text12,
+                  fontWeight: FontWeight.w900,
+                  color: c,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget helperWidget(FormFieldState field) {
     List<Widget> widgets = [];
 
     if (field.hasError) {
       widgets.add(
         Expanded(
-          child: Row(
-            children: [
-              Icon(
-                Icons.error,
-                color: AppColors.error(),
-              ),
-              SizedBox(width: Dimensions.size5),
-              Expanded(
-                child: Text(
-                  field.errorText ?? "",
-                  style: TextStyle(
-                    fontSize: Dimensions.text12,
-                    color: AppColors.error(),
-                    fontWeight: FontWeight.w500,
-                  ),
+          child: Container(
+            padding: EdgeInsets.all(Dimensions.size10),
+            decoration: ShapeDecoration(
+              color: AppColors.error().withValues(alpha: 0.08),
+              shape: SmoothRectangleBorder(
+                borderRadius: BorderRadius.circular(Dimensions.size15),
+                smoothness: Dimensions.size1,
+                side: BorderSide(
+                  color: AppColors.error().withValues(alpha: 0.22),
                 ),
               ),
-            ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.error, color: AppColors.error()),
+                SizedBox(width: Dimensions.size10),
+                Expanded(
+                  child: Text(
+                    field.errorText ?? "",
+                    style: TextStyle(
+                      fontSize: Dimensions.text12,
+                      color: AppColors.error(),
+                      fontWeight: FontWeight.w700,
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -1864,9 +1981,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           Text(
             "${value.length}/${maxLengthValue()}",
             style: TextStyle(
-              fontSize: Dimensions.text10,
-              fontWeight: FontWeight.bold,
-              color: AppColors.onSurface().withValues(alpha: 80),
+              fontSize: Dimensions.text11,
+              fontWeight: FontWeight.w900,
+              color: _fg(context).withValues(alpha: 0.55),
             ),
           ),
         );
@@ -1875,9 +1992,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
     if (widgets.isNotEmpty) {
       return Container(
-        margin: EdgeInsets.only(
-          top: Dimensions.size5,
-        ),
+        margin: EdgeInsets.only(top: Dimensions.size10),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.end,
@@ -1897,6 +2012,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         labelWidget(),
+        SizedBox(height: Dimensions.size10),
         body,
         helperWidget(field),
       ],
@@ -1904,39 +2020,22 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   }
 
   Widget labelWidget() {
-    Widget descriptionWidget() {
-      if (StringUtils.isNotNullOrEmpty(widget.field.description)) {
-        return Text(
-          widget.field.description,
-          style: TextStyle(
-            fontSize: Dimensions.text12,
-            color: AppColors.onSurface(),
-            fontWeight: FontWeight.w300,
-          ),
-        );
-      }
-
-      return const SizedBox.shrink();
-    }
-
-    return Container(
-      margin: EdgeInsets.only(
-        bottom: Dimensions.size5,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "${widget.field.title}${widget.field.required ? "*" : ""}",
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(
+            widget.field.title,
             style: TextStyle(
-              fontSize: Dimensions.text12,
-              fontWeight: FontWeight.w700,
-              color: AppColors.onSurface(),
+              fontSize: Dimensions.text13,
+              fontWeight: FontWeight.w900,
+              color: _fg(context),
+              letterSpacing: 0.1,
             ),
           ),
-          descriptionWidget(),
-        ],
-      ),
+        ),
+        if (widget.field.required) _chip(text: "Required"),
+      ],
     );
   }
 
@@ -1953,33 +2052,28 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
     return Container(
       width: double.infinity,
-      constraints: BoxConstraints(
-        minHeight: Dimensions.size55,
-      ),
+      constraints: BoxConstraints(minHeight: Dimensions.size55),
       decoration: ShapeDecoration(
         shape: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(_r),
           smoothness: 1,
           side: BorderSide(
             color: borderColor(field),
           ),
         ),
-        color: AppColors.surfaceContainerLowest(),
+        color: _soft(context),
       ),
       alignment: Alignment.center,
       padding: EdgeInsets.symmetric(
-        horizontal: Dimensions.size5,
+        horizontal: Dimensions.size10,
+        vertical: Dimensions.size2,
       ),
       child: TextField(
         controller: controller,
         onChanged: onChanged,
         maxLengthEnforcement: MaxLengthEnforcement.enforced,
-        buildCounter: (
-          context, {
-          required currentLength,
-          required isFocused,
-          required maxLength,
-        }) {
+        buildCounter: (context,
+            {required currentLength, required isFocused, required maxLength}) {
           return const SizedBox.shrink();
         },
         maxLines: maxLines,
@@ -1987,19 +2081,30 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         inputFormatters: inputFormatters,
         keyboardType: keyboardType,
         decoration: InputDecoration(
-          border: const OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.transparent),
+          hintText: readOnly ? null : widget.field.title,
+          hintStyle: TextStyle(
+            color: _fg(context).withValues(alpha: 0.45),
+            fontWeight: FontWeight.w700,
           ),
-          enabledBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.transparent),
+          border: InputBorder.none,
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: Dimensions.size5,
+            vertical: Dimensions.size15,
           ),
-          focusedBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.transparent),
-          ),
-          errorBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.transparent),
-          ),
-          suffixIcon: suffixIcon(),
+          suffixIcon: suffixIcon() != null
+              ? Container(
+                  margin: EdgeInsets.only(right: Dimensions.size5),
+                  decoration: BoxDecoration(
+                    color: _card(context),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: _outline(context).withValues(alpha: 0.18),
+                    ),
+                  ),
+                  child: suffixIcon(),
+                )
+              : null,
         ),
         maxLength: maxLengthValue(),
         readOnly: readOnly,
@@ -2009,10 +2114,11 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
   Widget spinnerField(FormFieldState field) {
     return Material(
+      color: Colors.transparent,
       child: InkWell(
         onTap: !isReadOnly() ? onPressed : null,
         customBorder: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(_r),
           smoothness: 1,
         ),
         child: Ink(
@@ -2020,31 +2126,45 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           height: Dimensions.size55,
           decoration: ShapeDecoration(
             shape: SmoothRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(_r),
               smoothness: 1,
               side: BorderSide(
                 color: borderColor(field),
               ),
             ),
-            color: AppColors.surfaceContainerLowest(),
+            color: _soft(context),
           ),
-          padding: EdgeInsets.symmetric(
-            horizontal: Dimensions.size15,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: Dimensions.size15),
           child: Row(
             children: [
               Expanded(
                 child: Text(
                   widget.field.label(widget.data),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: Dimensions.text16,
+                    fontSize: Dimensions.text14,
+                    fontWeight: FontWeight.w900,
+                    color: _fg(context),
                   ),
                 ),
               ),
               SizedBox(width: Dimensions.size10),
-              Icon(
-                Icons.arrow_downward,
-                size: Dimensions.size20,
+              Container(
+                width: Dimensions.size30,
+                height: Dimensions.size30,
+                decoration: BoxDecoration(
+                  color: _card(context),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: _outline(context).withValues(alpha: 0.18),
+                  ),
+                ),
+                child: Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: Dimensions.size20,
+                  color: _fg(context).withValues(alpha: 0.75),
+                ),
               ),
             ],
           ),

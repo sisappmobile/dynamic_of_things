@@ -1,5 +1,3 @@
-// ignore_for_file: always_specify_types, use_build_context_synchronously, empty_catches, cascade_invocations, always_put_required_named_parameters_first, invalid_use_of_protected_member
-
 import "dart:async";
 import "dart:io";
 import "dart:ui";
@@ -34,10 +32,12 @@ class CustomDynamicFormLocationField extends StatefulWidget {
   });
 
   @override
-  State<CustomDynamicFormLocationField> createState() => CustomDynamicFormLocationFieldState();
+  State<CustomDynamicFormLocationField> createState() =>
+      CustomDynamicFormLocationFieldState();
 }
 
-class CustomDynamicFormLocationFieldState extends State<CustomDynamicFormLocationField> {
+class CustomDynamicFormLocationFieldState
+    extends State<CustomDynamicFormLocationField> {
   ll.LatLng? latLng;
 
   bool _isOnline = true;
@@ -59,7 +59,8 @@ class CustomDynamicFormLocationFieldState extends State<CustomDynamicFormLocatio
       for (Field field in section.fields) {
         if (field.name == "latitude") {
           latitude = num.tryParse(field.getValue(widget.data) ?? "");
-        } else if (StringUtils.inList(field.name, ["longitude", "longtitude"])) {
+        } else if (StringUtils.inList(
+            field.name, ["longitude", "longtitude"])) {
           longitude = num.tryParse(field.getValue(widget.data) ?? "");
         }
       }
@@ -92,12 +93,23 @@ class CustomDynamicFormLocationFieldState extends State<CustomDynamicFormLocatio
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        mapWidget(),
-        getLocationButton(),
-      ],
+    return _sectionCard(
+      context: context,
+      padding: EdgeInsets.all(Dimensions.size15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _headerRow(context),
+          if (latLng != null) ...[
+            SizedBox(height: Dimensions.size15),
+            mapWidget(),
+          ],
+          if (!widget.readOnly) ...[
+            SizedBox(height: Dimensions.size15),
+            getLocationButton(),
+          ],
+        ],
+      ),
     );
   }
 
@@ -107,41 +119,262 @@ class CustomDynamicFormLocationFieldState extends State<CustomDynamicFormLocatio
     super.dispose();
   }
 
+  Color _bg(BuildContext context) => AppColors.surfaceContainerLowest();
+  Color _card(BuildContext context) => AppColors.surface();
+  Color _soft(BuildContext context) => AppColors.surfaceContainerLowest();
+  Color _fg(BuildContext context) => AppColors.onSurface();
+  Color _outline(BuildContext context) => AppColors.outline();
+  Color _primary(BuildContext context) => Theme.of(context).colorScheme.primary;
+  Color _onPrimary(BuildContext context) =>
+      Theme.of(context).colorScheme.onPrimary;
+
+  Widget _sectionCard({
+    required BuildContext context,
+    required Widget child,
+    EdgeInsets? padding,
+  }) {
+    return Container(
+      decoration: ShapeDecoration(
+        color: _card(context),
+        shadows: [
+          BoxShadow(
+            blurRadius: Dimensions.size25,
+            offset: Offset(0, Dimensions.size15),
+            color: Colors.black.withValues(alpha: 0.08),
+          ),
+        ],
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size20),
+          smoothness: Dimensions.size1,
+          side: BorderSide(
+            color: _outline(context).withValues(alpha: 0.18),
+          ),
+        ),
+      ),
+      child: Padding(
+        padding: padding ?? EdgeInsets.all(Dimensions.size15),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _headerRow(BuildContext context) {
+    final Color primary = _primary(context);
+    final Color fg = _fg(context);
+
+    return Row(
+      children: [
+        Container(
+          width: Dimensions.size35,
+          height: Dimensions.size35,
+          decoration: BoxDecoration(
+            color: primary.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+            border: Border.all(color: primary.withValues(alpha: 0.22)),
+          ),
+          child: Icon(
+            Icons.location_on_rounded,
+            size: Dimensions.size20,
+            color: primary,
+          ),
+        ),
+        SizedBox(width: Dimensions.size10),
+        Expanded(
+          child: Text(
+            "Location",
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: Dimensions.text14,
+              fontWeight: FontWeight.w900,
+              color: fg,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ),
+        _statusBadge(context),
+      ],
+    );
+  }
+
+  Widget _statusBadge(BuildContext context) {
+    final Color fg = _fg(context);
+    final Color outline = _outline(context);
+
+    final Color ok = Colors.green;
+    final Color warn = Colors.orange;
+
+    final bool online = _isOnline;
+    final Color c = online ? ok : warn;
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: Dimensions.size10,
+        vertical: Dimensions.size5,
+      ),
+      decoration: BoxDecoration(
+        color: online ? c.withValues(alpha: 0.12) : c.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(Dimensions.size100),
+        border: Border.all(
+          color: online ? c.withValues(alpha: 0.30) : c.withValues(alpha: 0.30),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: Dimensions.size10,
+            height: Dimensions.size10,
+            decoration: BoxDecoration(
+              color: c,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  blurRadius: 10,
+                  color: c.withValues(alpha: 0.35),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: Dimensions.size5),
+          Text(
+            online ? "Online" : "Offline",
+            style: TextStyle(
+              fontSize: Dimensions.text11,
+              fontWeight: FontWeight.w900,
+              color: fg,
+            ),
+          ),
+          SizedBox(width: Dimensions.size5),
+          Icon(
+            online ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+            size: Dimensions.size15,
+            color: outline.withValues(alpha: 0.75),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget mapWidget() {
     if (latLng != null) {
       return FutureBuilder<Directory>(
         future: getApplicationDocumentsDirectory(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
+            return Container(
+              height: 180,
+              decoration: ShapeDecoration(
+                color: _soft(context),
+                shape: SmoothRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.size15),
+                  smoothness: Dimensions.size1,
+                  side: BorderSide(
+                    color: _outline(context).withValues(alpha: 0.18),
+                  ),
+                ),
+              ),
+              child: const Center(child: CircularProgressIndicator()),
+            );
           }
 
-          return Container(
-            height: 150,
-            margin: EdgeInsets.only(bottom: 10),
-            child: FlutterMap(
-              options: MapOptions(
-                initialCenter: latLng!,
-                initialZoom: 19,
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(Dimensions.size15),
+            child: Container(
+              height: 180,
+              decoration: BoxDecoration(
+                color: _bg(context),
+                borderRadius: BorderRadius.circular(Dimensions.size15),
+                border: Border.all(
+                  color: _outline(context).withValues(alpha: 0.18),
+                ),
               ),
-              children: [
-                _isOnline ? TileLayer(
-                  urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                  userAgentPackageName: "com.sisapp.dynamic_of_things",
-                ) : TileLayer(tileProvider: LocalDiskTileProvider(basePath: "${snapshot.data!.path}/offline_tiles")),
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: latLng!,
-                      child: Icon(
-                        Icons.location_on_outlined,
-                        size: 30,
-                        color: Colors.red,
+              child: Stack(
+                children: [
+                  FlutterMap(
+                    options: MapOptions(
+                      initialCenter: latLng!,
+                      initialZoom: 19,
+                    ),
+                    children: [
+                      _isOnline
+                          ? TileLayer(
+                              urlTemplate:
+                                  "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                              userAgentPackageName:
+                                  "com.sisapp.dynamic_of_things",
+                            )
+                          : TileLayer(
+                              tileProvider: LocalDiskTileProvider(
+                                basePath:
+                                    "${snapshot.data!.path}/offline_tiles",
+                              ),
+                            ),
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: latLng!,
+                            child: Icon(
+                              Icons.location_on_outlined,
+                              size: 34,
+                              color: Colors.red,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.10),
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.08),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                  Positioned(
+                    left: Dimensions.size10,
+                    bottom: Dimensions.size10,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(Dimensions.size100),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: Dimensions.size10,
+                            vertical: Dimensions.size5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.10),
+                            borderRadius:
+                                BorderRadius.circular(Dimensions.size100),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.16),
+                            ),
+                          ),
+                          child: Text(
+                            "${latLng!.latitude.toStringAsFixed(6)}, ${latLng!.longitude.toStringAsFixed(6)}",
+                            style: TextStyle(
+                              fontSize: Dimensions.text11,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white.withValues(alpha: 0.95),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -153,10 +386,13 @@ class CustomDynamicFormLocationFieldState extends State<CustomDynamicFormLocatio
 
   Widget getLocationButton() {
     if (!widget.readOnly) {
-      return SizedBox(
-        width: double.infinity,
-        child: FilledButton(
-          onPressed: () async {
+      final Color primary = _primary(context);
+      final Color onPrimary = _onPrimary(context);
+
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () async {
             Position? result = await showDialog(
               context: context,
               barrierDismissible: false,
@@ -164,8 +400,10 @@ class CustomDynamicFormLocationFieldState extends State<CustomDynamicFormLocatio
               useRootNavigator: true,
               builder: (context) {
                 return GetLocationPage(
-                  locationAccuracyInMeters: widget.template.locationAccuracyInMeters,
-                  locationAccuracyEfectiveDurationInSeconds: widget.template.locationAccuracyEfectiveDurationInSeconds,
+                  locationAccuracyInMeters:
+                      widget.template.locationAccuracyInMeters,
+                  locationAccuracyEfectiveDurationInSeconds:
+                      widget.template.locationAccuracyEfectiveDurationInSeconds,
                 );
               },
             );
@@ -176,9 +414,16 @@ class CustomDynamicFormLocationFieldState extends State<CustomDynamicFormLocatio
               widget.template.sections.forEach((section) {
                 section.fields.forEach((field) {
                   if (field.name == "latitude") {
-                    field.setValue(widget.headerForm.data, latLng!.latitude.toString());
-                  } else if (StringUtils.inList(field.name, ["longitude", "longtitude"])) {
-                    field.setValue(widget.headerForm.data, latLng!.longitude.toString());
+                    field.setValue(
+                      widget.headerForm.data,
+                      latLng!.latitude.toString(),
+                    );
+                  } else if (StringUtils.inList(
+                      field.name, ["longitude", "longtitude"])) {
+                    field.setValue(
+                      widget.headerForm.data,
+                      latLng!.longitude.toString(),
+                    );
                   }
                 });
               });
@@ -186,7 +431,45 @@ class CustomDynamicFormLocationFieldState extends State<CustomDynamicFormLocatio
               setState(() {});
             }
           },
-          child: Text("get_location".tr().toUpperCase()),
+          borderRadius: BorderRadius.circular(Dimensions.size30),
+          child: Ink(
+            height: Dimensions.size50,
+            decoration: ShapeDecoration(
+              color: primary,
+              shape: SmoothRectangleBorder(
+                borderRadius: BorderRadius.circular(Dimensions.size30),
+                smoothness: Dimensions.size1,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: Dimensions.size30,
+                  height: Dimensions.size30,
+                  decoration: BoxDecoration(
+                    color: onPrimary.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.my_location_rounded,
+                    size: Dimensions.size20,
+                    color: onPrimary,
+                  ),
+                ),
+                SizedBox(width: Dimensions.size10),
+                Text(
+                  "get_location".tr().toUpperCase(),
+                  style: TextStyle(
+                    color: onPrimary,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.2,
+                    fontSize: Dimensions.text13,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -243,14 +526,14 @@ class _GetLocationPageState extends State<GetLocationPage> {
 
   void _onLocationUpdate(Position position) {
     final accuracyThreshold = widget.locationAccuracyInMeters ?? 20;
-    final requiredSeconds = widget.locationAccuracyEfectiveDurationInSeconds ?? 1;
+    final requiredSeconds =
+        widget.locationAccuracyEfectiveDurationInSeconds ?? 1;
     final accuracy = position.accuracy;
 
     if (accuracy <= accuracyThreshold) {
       _accuracyStartTime ??= DateTime.now();
 
-      final elapsed =
-          DateTime.now().difference(_accuracyStartTime!).inSeconds;
+      final elapsed = DateTime.now().difference(_accuracyStartTime!).inSeconds;
 
       if (elapsed >= requiredSeconds) {
         _acceptedPosition = position;
@@ -267,16 +550,14 @@ class _GetLocationPageState extends State<GetLocationPage> {
       }
 
       setState(() {
-        _status =
-        "Good accuracy (${accuracy.toStringAsFixed(2)} m)\n"
+        _status = "Good accuracy (${accuracy.toStringAsFixed(2)} m)\n"
             "Holding for $elapsed / $requiredSeconds seconds...";
       });
     } else {
       _accuracyStartTime = null;
 
       setState(() {
-        _status =
-        "Accuracy too high: ${accuracy.toStringAsFixed(2)} m\n"
+        _status = "Accuracy too high: ${accuracy.toStringAsFixed(2)} m\n"
             "Waiting for < $accuracyThreshold m";
       });
     }
@@ -284,53 +565,135 @@ class _GetLocationPageState extends State<GetLocationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final Color fg = AppColors.onSurface();
+    final Color outline = AppColors.outline();
+    final Color card = AppColors.surface();
+    final Color soft = AppColors.surfaceContainerLowest();
+    final Color primary = Theme.of(context).colorScheme.primary;
+
     return Material(
       color: Colors.transparent,
       child: Stack(
         children: [
           BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-            child: Container(color: Colors.black.withAlpha(20)),
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Container(color: Colors.black.withAlpha(30)),
           ),
           Center(
             child: Container(
-              width: 300,
-              height: 300,
-              margin: EdgeInsets.all(20),
+              width: 340,
+              margin: EdgeInsets.all(Dimensions.size20),
               decoration: ShapeDecoration(
+                color: card,
+                shadows: [
+                  BoxShadow(
+                    blurRadius: 30,
+                    offset: const Offset(0, 18),
+                    color: Colors.black.withValues(alpha: 0.18),
+                  ),
+                ],
                 shape: SmoothRectangleBorder(
                   smoothness: 1,
-                  borderRadius: BorderRadius.circular(20),
-                  side: BorderSide(color: AppColors.outlineVariant()),
+                  borderRadius: BorderRadius.circular(24),
+                  side: BorderSide(color: outline.withValues(alpha: 0.18)),
                 ),
-                color: AppColors.surface(),
               ),
               clipBehavior: Clip.antiAliasWithSaveLayer,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    onPressed: () {
-                      Navigators.pop(context: context);
-                    },
-                    style: IconButton.styleFrom(
-                      backgroundColor: AppColors.surfaceContainer(),
-                      foregroundColor: AppColors.onSurface(),
-                      fixedSize: Size.square(50),
-                      iconSize: 30,
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      Dimensions.size15,
+                      Dimensions.size15,
+                      Dimensions.size15,
+                      Dimensions.size10,
                     ),
-                    icon: Icon(Icons.close),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        _status,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: primary.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: primary.withValues(alpha: 0.22),
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.my_location_rounded,
+                            color: primary,
+                          ),
                         ),
-                      ),
+                        SizedBox(width: Dimensions.size10),
+                        Expanded(
+                          child: Text(
+                            "get_location".tr(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: Dimensions.text14,
+                              fontWeight: FontWeight.w900,
+                              color: fg,
+                            ),
+                          ),
+                        ),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              Navigators.pop(context: context);
+                            },
+                            customBorder: const CircleBorder(),
+                            child: Ink(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: soft,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: outline.withValues(alpha: 0.18),
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.close_rounded,
+                                color: fg,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Divider(height: 1, color: outline.withValues(alpha: 0.18)),
+                  Padding(
+                    padding: EdgeInsets.all(Dimensions.size20),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 70,
+                          height: 70,
+                          decoration: BoxDecoration(
+                            color: primary.withValues(alpha: 0.10),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                        SizedBox(height: Dimensions.size15),
+                        Text(
+                          _status,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: Dimensions.text14,
+                            fontWeight: FontWeight.w800,
+                            color: fg,
+                            height: 1.25,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
