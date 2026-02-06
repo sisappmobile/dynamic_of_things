@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:collection/collection.dart";
@@ -202,7 +204,9 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     if (listResponse != null &&
         listResponse!.fields.any(
           (element) => StringUtils.inList(
-              element.name, ["latitude", "longitude", "longtitude"]),
+            element.name,
+            ["latitude", "longitude", "longtitude"],
+          ),
         )) {
       return _iconPill(
         icon: Icons.map,
@@ -347,20 +351,20 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
               if (i + 1 < fields.length) {
                 Field rightField = fields[i + 1];
 
-                children.add(
-                  SizedBox(width: _gapInner),
-                );
-
-                children.add(
-                  childrenWidget(
-                    description: rightField.description,
-                    value: DynamicForms.spell(
-                      type: rightField.type,
-                      value: map[rightField.name],
+                children
+                  ..add(
+                    SizedBox(width: _gapInner),
+                  )
+                  ..add(
+                    childrenWidget(
+                      description: rightField.description,
+                      value: DynamicForms.spell(
+                        type: rightField.type,
+                        value: map[rightField.name],
+                      ),
+                      left: false,
                     ),
-                    left: false,
-                  ),
-                );
+                  );
               }
 
               widgets.add(
@@ -1288,7 +1292,8 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                               BorderRadius.circular(Dimensions.size20),
                           smoothness: Dimensions.size1,
                           side: BorderSide(
-                              color: outline.withValues(alpha: 0.16)),
+                            color: outline.withValues(alpha: 0.16),
+                          ),
                         ),
                       ),
                       child: Row(

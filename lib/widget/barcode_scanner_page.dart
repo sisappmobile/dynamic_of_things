@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, constant_identifier_names
 
 import "package:base/base.dart";
 import "package:easy_localization/easy_localization.dart";

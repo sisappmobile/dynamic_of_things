@@ -18,12 +18,12 @@ class CustomDynamicFormDetailList extends StatefulWidget {
   final void Function()? onRefresh;
 
   const CustomDynamicFormDetailList({
-    super.key,
     required this.readOnly,
     required this.customerId,
     required this.headerForm,
     required this.detailForm,
     this.onRefresh,
+    super.key,
   });
 
   @override
@@ -40,7 +40,6 @@ class CustomDynamicFormDetailListState
   static const double _tilePadX = 10;
   static const double _tilePadY = 10;
 
-  Color _bg(BuildContext context) => AppColors.surfaceContainerLowest();
   Color _card(BuildContext context) => AppColors.surface();
   Color _soft(BuildContext context) => AppColors.surfaceContainerLowest();
   Color _fg(BuildContext context) => AppColors.onSurface();
@@ -107,7 +106,8 @@ class CustomDynamicFormDetailListState
                                     color: _primary(context)
                                         .withValues(alpha: 0.10),
                                     borderRadius: BorderRadius.circular(
-                                        Dimensions.size100),
+                                      Dimensions.size100,
+                                    ),
                                     border: Border.all(
                                       color: _primary(context)
                                           .withValues(alpha: 0.22),
@@ -187,18 +187,18 @@ class CustomDynamicFormDetailListState
                       if (i + 1 < columns.length) {
                         ListColumn lcRight = columns[i + 1];
 
-                        children.add(SizedBox(width: _gapInner));
-
-                        children.add(
-                          childrenWidget(
-                            description: lcRight.description,
-                            value: DynamicForms.spell(
-                              type: lcRight.type,
-                              value: map[lcRight.name],
+                        children
+                          ..add(SizedBox(width: _gapInner))
+                          ..add(
+                            childrenWidget(
+                              description: lcRight.description,
+                              value: DynamicForms.spell(
+                                type: lcRight.type,
+                                value: map[lcRight.name],
+                              ),
+                              left: false,
                             ),
-                            left: false,
-                          ),
-                        );
+                          );
                       }
 
                       widgets.add(
@@ -274,7 +274,9 @@ class CustomDynamicFormDetailListState
                                             headerForm: widget.headerForm,
                                             detailForm: widget.detailForm,
                                             data: widget.detailForm.getRow(
-                                                widget.headerForm, index),
+                                              widget.headerForm,
+                                              index,
+                                            ),
                                           ),
                                         );
                                       } else {
@@ -288,14 +290,19 @@ class CustomDynamicFormDetailListState
                                             "headerForm": widget.headerForm,
                                             "detailForm": widget.detailForm,
                                             "data": widget.detailForm.getRow(
-                                                widget.headerForm, index),
+                                              widget.headerForm,
+                                              index,
+                                            ),
                                           },
                                         );
                                       }
 
                                       if (result != null) {
                                         widget.detailForm.updateRow(
-                                            widget.headerForm, result, index);
+                                          widget.headerForm,
+                                          result,
+                                          index,
+                                        );
 
                                         if (widget
                                             .detailForm.hasOnChangeEvent) {
@@ -324,7 +331,9 @@ class CustomDynamicFormDetailListState
                                           }
 
                                           widget.detailForm.deleteRow(
-                                              widget.headerForm, index);
+                                            widget.headerForm,
+                                            index,
+                                          );
 
                                           if (widget
                                               .detailForm.hasOnChangeEvent) {
@@ -378,7 +387,8 @@ class CustomDynamicFormDetailListState
                                   decoration: BoxDecoration(
                                     color: _soft(context),
                                     borderRadius: BorderRadius.circular(
-                                        Dimensions.size100),
+                                      Dimensions.size100,
+                                    ),
                                     border: Border.all(
                                       color: _outline(context)
                                           .withValues(alpha: 0.18),

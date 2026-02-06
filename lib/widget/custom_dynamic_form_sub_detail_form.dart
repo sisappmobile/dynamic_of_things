@@ -15,13 +15,13 @@ class CustomDynamicFormSubDetailForm extends StatefulWidget {
   final Map<String, dynamic> data;
 
   const CustomDynamicFormSubDetailForm({
-    super.key,
     required this.customerId,
     required this.readOnly,
     required this.headerForm,
     required this.detailForm,
     required this.subDetailForm,
     required this.data,
+    super.key,
   });
 
   @override

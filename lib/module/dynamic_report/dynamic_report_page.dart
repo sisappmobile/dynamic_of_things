@@ -1,3 +1,5 @@
+// ignore_for_file: constant_identifier_names, depend_on_referenced_packages, use_build_context_synchronously
+
 import "dart:io";
 import "dart:typed_data";
 
@@ -458,7 +460,9 @@ class DynamicReportPageState extends State<DynamicReportPage>
         .cast<Field?>()
         .firstWhere((e) => e != null, orElse: () => null);
 
-    final String qty = qtyField != null ? valueOf(qtyField.name) : "-";
+    final String? qtyValue = qtyField != null ? valueOf(qtyField.name) : null;
+
+    final bool showQty = qtyValue != null && !_isEmptyValue(qtyValue);
 
     final List<Field> fields = template!.fields.toList();
     if (itemDescField != null) {
@@ -504,8 +508,10 @@ class DynamicReportPageState extends State<DynamicReportPage>
                   ),
                 ),
               ),
-              SizedBox(width: Dimensions.size10),
-              _chipCompact(label: "Qty", value: qty),
+              if (showQty) ...[
+                SizedBox(width: Dimensions.size10),
+                _chipCompact(label: "Qty", value: qtyValue!),
+              ],
             ],
           ),
           SizedBox(height: Dimensions.size10),

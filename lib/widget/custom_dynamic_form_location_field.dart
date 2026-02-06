@@ -23,12 +23,12 @@ class CustomDynamicFormLocationField extends StatefulWidget {
   final Map<String, dynamic> data;
 
   const CustomDynamicFormLocationField({
-    super.key,
     required this.readOnly,
     required this.customerId,
     required this.headerForm,
     required this.template,
     required this.data,
+    super.key,
   });
 
   @override
@@ -60,7 +60,9 @@ class CustomDynamicFormLocationFieldState
         if (field.name == "latitude") {
           latitude = num.tryParse(field.getValue(widget.data) ?? "");
         } else if (StringUtils.inList(
-            field.name, ["longitude", "longtitude"])) {
+          field.name,
+          ["longitude", "longtitude"],
+        )) {
           longitude = num.tryParse(field.getValue(widget.data) ?? "");
         }
       }
@@ -419,7 +421,9 @@ class CustomDynamicFormLocationFieldState
                       latLng!.latitude.toString(),
                     );
                   } else if (StringUtils.inList(
-                      field.name, ["longitude", "longtitude"])) {
+                    field.name,
+                    ["longitude", "longtitude"],
+                  )) {
                     field.setValue(
                       widget.headerForm.data,
                       latLng!.longitude.toString(),

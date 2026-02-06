@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import "dart:ui";
 
 import "package:base/base.dart";
@@ -611,18 +613,18 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
                 DynamicFormResourceFieldItem dfrfiRight =
                     dynamicFormResourceFieldItems[i + 1];
 
-                children.add(SizedBox(width: _gapInner));
-
-                children.add(
-                  childrenWidget(
-                    description: dfrfiRight.description,
-                    value: DynamicForms.spell(
-                      type: dfrfiRight.type,
-                      value: item[dfrfiRight.name],
+                children
+                  ..add(SizedBox(width: _gapInner))
+                  ..add(
+                    childrenWidget(
+                      description: dfrfiRight.description,
+                      value: DynamicForms.spell(
+                        type: dfrfiRight.type,
+                        value: item[dfrfiRight.name],
+                      ),
+                      left: false,
                     ),
-                    left: false,
-                  ),
-                );
+                  );
               }
 
               widgets.add(

@@ -1,3 +1,5 @@
+// ignore_for_file: depend_on_referenced_packages, use_build_context_synchronously
+
 import "dart:async";
 import "dart:convert";
 import "dart:io";
@@ -36,7 +38,8 @@ const String usernameKey = "username";
 // const String baseUrl = "https://10.0.2.2:8443/salesforce/api/";
 // const String baseUrl = "https://demo-murti.sisapp.com:13443/salesforce/api/";
 const String baseUrl = "https://posdemo.sisapp.com:8443/salesforce/api/";
-const String salt = "72e4425c484016c95677d1a2513681ff8e2b2459b11e68c8b67cc7b7fe60c422b629eb45d1a5b236c3df0031860c98f4b0f58c2497212ee20d58a833b9a3ea1d";
+const String salt =
+    "72e4425c484016c95677d1a2513681ff8e2b2459b11e68c8b67cc7b7fe60c422b629eb45d1a5b236c3df0031860c98f4b0f58c2497212ee20d58a833b9a3ea1d";
 
 final GoRouter goRouter = GoRouter(
   routes: [
@@ -73,8 +76,12 @@ Future<void> main() async {
 
   await EasyLocalization.ensureInitialized();
 
-  AppColors.lightColorScheme = ColorScheme.fromSeed(seedColor: Colors.teal, brightness: Brightness.light);
-  AppColors.darkColorScheme = ColorScheme.fromSeed(seedColor: Colors.teal, brightness: Brightness.dark);
+  AppColors.lightColorScheme = ColorScheme.fromSeed(
+    seedColor: Colors.teal,
+    brightness: Brightness.light,
+  );
+  AppColors.darkColorScheme =
+      ColorScheme.fromSeed(seedColor: Colors.teal, brightness: Brightness.dark);
 
   DynamicForms.offline = false;
 
@@ -82,9 +89,17 @@ Future<void> main() async {
     baseUrl,
     InterceptorsWrapper(
       onRequest: (options, handler) {
-        options.headers["sfa-session-id"] = BasePreferences.getInstance().getString(sessionIdKey);
-        options.headers["sfa-timestamp"] = DateTime.now().millisecondsSinceEpoch.toString();
-        options.headers["sfa-security-code"] = crypto.sha256.convert(utf8.encode('$salt${options.headers["sfa-session-id"]}${options.headers["sfa-timestamp"]}')).toString();
+        options.headers["sfa-session-id"] =
+            BasePreferences.getInstance().getString(sessionIdKey);
+        options.headers["sfa-timestamp"] =
+            DateTime.now().millisecondsSinceEpoch.toString();
+        options.headers["sfa-security-code"] = crypto.sha256
+            .convert(
+              utf8.encode(
+                '$salt${options.headers["sfa-session-id"]}${options.headers["sfa-timestamp"]}',
+              ),
+            )
+            .toString();
 
         return handler.next(options);
       },
@@ -97,14 +112,18 @@ Future<void> main() async {
     while (true) {
       try {
         if (BasePreferences.getInstance().contain(sessionIdKey)) {
-          Response response = await DotApis.getInstance().versioningCheck(VersionDao.check());
+          Response response =
+              await DotApis.getInstance().versioningCheck(VersionDao.check());
 
           if (response.statusCode == 200) {
             Map<String, int> entries = Map<String, int>.from(response.data);
 
             for (MapEntry<String, int> entry in entries.entries) {
               if (entry.key == "FORM") {
-                response = await DotApis.getInstance().versioningDynamicFormTemplate(VersionDao.last(VersionDao.form));
+                response =
+                    await DotApis.getInstance().versioningDynamicFormTemplate(
+                  VersionDao.last(VersionDao.form),
+                );
 
                 if (response.statusCode == 200) {
                   await Offlines.insertOrUpdate(
@@ -324,7 +343,8 @@ class DismissKeyboard extends StatelessWidget {
       onTap: () {
         FocusScopeNode currentFocus = FocusScope.of(context);
 
-        if (!currentFocus.hasPrimaryFocus && currentFocus.focusedChild != null) {
+        if (!currentFocus.hasPrimaryFocus &&
+            currentFocus.focusedChild != null) {
           FocusManager.instance.primaryFocus?.unfocus();
         }
       },
@@ -345,7 +365,8 @@ class SignInPage extends StatefulWidget {
 class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
   final TextEditingController tecUsername = TextEditingController();
   final TextEditingController tecPassword = TextEditingController();
-  final GlobalKey<FormState> formState = GlobalKey<FormState>(debugLabel: "formState");
+  final GlobalKey<FormState> formState =
+      GlobalKey<FormState>(debugLabel: "formState");
 
   bool obscurePassword = true;
 
@@ -398,7 +419,9 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
                           prefixIcon: const Icon(Icons.password),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                             ),
                             onPressed: () {
                               setState(() {
@@ -416,7 +439,8 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
                   width: Dimensions.screenWidth,
                   child: FilledButton(
                     onPressed: () async {
-                      if (formState.currentState != null && formState.currentState!.validate()) {
+                      if (formState.currentState != null &&
+                          formState.currentState!.validate()) {
                         try {
                           context.loaderOverlay.show();
 
@@ -440,13 +464,17 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
                             ),
                           );
 
-                          (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
-                            HttpClient httpClient = HttpClient()..badCertificateCallback = (cert, host, port) => true;
+                          (dio.httpClientAdapter as IOHttpClientAdapter)
+                              .createHttpClient = () {
+                            HttpClient httpClient = HttpClient()
+                              ..badCertificateCallback =
+                                  (cert, host, port) => true;
 
                             return httpClient;
                           };
 
-                          String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+                          String timestamp =
+                              DateTime.now().millisecondsSinceEpoch.toString();
 
                           Response response = await dio.post(
                             "v1/sign-in",
@@ -466,11 +494,14 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
                           if (response.statusCode == 200) {
                             Map<String, dynamic> json = response.data;
 
-                            int responseCode = Formats.tryParseNumber(json["RC"]).toInt();
+                            int responseCode =
+                                Formats.tryParseNumber(json["RC"]).toInt();
 
                             if (responseCode == 0) {
-                              await BasePreferences.getInstance().setString(sessionIdKey, json["SI"]);
-                              await BasePreferences.getInstance().setString(usernameKey, json["UN"]);
+                              await BasePreferences.getInstance()
+                                  .setString(sessionIdKey, json["SI"]);
+                              await BasePreferences.getInstance()
+                                  .setString(usernameKey, json["UN"]);
 
                               context.go("/");
                             } else {
@@ -482,7 +513,9 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
                             print(stack);
                           }
 
-                          BaseOverlays.error(message: "Something wrong, please try again");
+                          BaseOverlays.error(
+                            message: "Something wrong, please try again",
+                          );
                         } finally {
                           context.loaderOverlay.hide();
                         }

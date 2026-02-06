@@ -18,7 +18,6 @@ class CustomDynamicFormSubDetailList extends StatefulWidget {
   final void Function()? onRefresh;
 
   const CustomDynamicFormSubDetailList({
-    super.key,
     required this.readOnly,
     required this.customerId,
     required this.headerForm,
@@ -26,6 +25,7 @@ class CustomDynamicFormSubDetailList extends StatefulWidget {
     required this.subDetailForm,
     required this.detailData,
     this.onRefresh,
+    super.key,
   });
 
   @override
@@ -264,9 +264,9 @@ class CustomDynamicFormSubDetailListState
             if (i + 1 < columns.length) {
               ListColumn lcRight = columns[i + 1];
 
-              children.add(const SizedBox(width: _gapInner));
+              children..add(const SizedBox(width: _gapInner))
 
-              children.add(
+              ..add(
                 childrenWidget(
                   description: lcRight.description,
                   value: DynamicForms.spell(

@@ -1,5 +1,4 @@
-
-// ignore_for_file: always_specify_types, cascade_invocations, always_put_required_named_parameters_first
+// ignore_for_file: always_specify_types, cascade_invocations, always_put_required_named_parameters_first, use_build_context_synchronously
 
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
@@ -28,7 +27,8 @@ class DynamicFormMenuPage extends StatefulWidget {
   DynamicFormMenuPageState createState() => DynamicFormMenuPageState();
 }
 
-class DynamicFormMenuPageState extends State<DynamicFormMenuPage> with WidgetsBindingObserver {
+class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
+    with WidgetsBindingObserver {
   DynamicFormMenuResponse? dynamicFormMenuResponse;
 
   bool loading = true;
@@ -111,21 +111,34 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage> with WidgetsBi
   }
 
   List<DynamicFormCategoryItem> filteredDynamicFormCategoryItems() {
-    return dynamicFormMenuResponse!.categories.where((element1) => element1.menus.any((element2) => element2.name.toLowerCase().contains(tecSearch.text.toLowerCase()))).toList();
+    return dynamicFormMenuResponse!.categories
+        .where(
+          (element1) => element1.menus.any(
+            (element2) => element2.name
+                .toLowerCase()
+                .contains(tecSearch.text.toLowerCase()),
+          ),
+        )
+        .toList();
   }
 
   List<DynamicFormMenuItem> filteredDynamicFormMenuItems({
     required DynamicFormCategoryItem dynamicFormCategoryItem,
   }) {
-    return dynamicFormCategoryItem.menus.where((element) => element.name.toLowerCase().contains(tecSearch.text.toLowerCase())).toList();
+    return dynamicFormCategoryItem.menus
+        .where(
+          (element) =>
+              element.name.toLowerCase().contains(tecSearch.text.toLowerCase()),
+        )
+        .toList();
   }
 
   void refresh() {
     context.read<DynamicFormMenuBloc>().add(
-      DynamicFormMenuLoad(
-        customerId: widget.customerId,
-      ),
-    );
+          DynamicFormMenuLoad(
+            customerId: widget.customerId,
+          ),
+        );
   }
 
   Widget body() {
@@ -140,7 +153,8 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage> with WidgetsBi
           return SizedBox(height: Dimensions.size15);
         },
         itemBuilder: (context, index1) {
-          DynamicFormCategoryItem dynamicFormCategoryItem = filteredDynamicFormCategoryItems()[index1];
+          DynamicFormCategoryItem dynamicFormCategoryItem =
+              filteredDynamicFormCategoryItems()[index1];
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,7 +171,9 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage> with WidgetsBi
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: filteredDynamicFormMenuItems(dynamicFormCategoryItem: dynamicFormCategoryItem).length,
+                itemCount: filteredDynamicFormMenuItems(
+                  dynamicFormCategoryItem: dynamicFormCategoryItem,
+                ).length,
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   mainAxisExtent: Dimensions.size60 * 2,
@@ -165,12 +181,16 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage> with WidgetsBi
                   mainAxisSpacing: Dimensions.size10,
                 ),
                 itemBuilder: (BuildContext context, int index2) {
-                  DynamicFormMenuItem dynamicFormMenuItem = filteredDynamicFormMenuItems(dynamicFormCategoryItem: dynamicFormCategoryItem)[index2];
+                  DynamicFormMenuItem dynamicFormMenuItem =
+                      filteredDynamicFormMenuItems(
+                    dynamicFormCategoryItem: dynamicFormCategoryItem,
+                  )[index2];
 
                   return InkWell(
                     onTap: () async {
                       if (dynamicFormMenuItem.type == "REPORT") {
-                        if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                        if (BaseSettings.navigatorType ==
+                            BaseNavigatorType.legacy) {
                           await Navigators.push(
                             DynamicReportPage(
                               dynamicFormMenuItem: dynamicFormMenuItem,
@@ -182,12 +202,14 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage> with WidgetsBi
                             "/dynamic-reports",
                             extra: {
                               "dynamicFormMenuItem": dynamicFormMenuItem,
-                              "dynamicFormCategoryItem": dynamicFormCategoryItem,
+                              "dynamicFormCategoryItem":
+                                  dynamicFormCategoryItem,
                             },
                           );
                         }
                       } else if (dynamicFormMenuItem.type == "SCHEDULE") {
-                        if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                        if (BaseSettings.navigatorType ==
+                            BaseNavigatorType.legacy) {
                           await Navigators.push(
                             DynamicSchedulePage(
                               dynamicFormMenuItem: dynamicFormMenuItem,
@@ -206,18 +228,21 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage> with WidgetsBi
                       } else {
                         String? referenceId;
 
-                        if (StringUtils.isNotNullOrEmpty(dynamicFormMenuItem.referenceId)) {
-                          if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                        if (StringUtils.isNotNullOrEmpty(
+                          dynamicFormMenuItem.referenceId,
+                        )) {
+                          if (BaseSettings.navigatorType ==
+                              BaseNavigatorType.legacy) {
                             referenceId = await Navigators.push(
                               DynamicFormListPage(
                                 dynamicFormMenuItem: DynamicFormMenuItem(
-                                    id: dynamicFormMenuItem.referenceId!,
-                                    name: dynamicFormMenuItem.referenceName!,
-                                    index: 0,
-                                    type: "",
-                                    icon: "",
-                                    referenceId: null,
-                                    referenceName: null,
+                                  id: dynamicFormMenuItem.referenceId!,
+                                  name: dynamicFormMenuItem.referenceName!,
+                                  index: 0,
+                                  type: "",
+                                  icon: "",
+                                  referenceId: null,
+                                  referenceName: null,
                                 ),
                                 customerId: widget.customerId,
                                 selectorMode: true,
@@ -239,7 +264,7 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage> with WidgetsBi
                                 ),
                                 "customerId": widget.customerId,
                                 "selectorMode": true,
-                                "referenceId": null
+                                "referenceId": null,
                               },
                             );
                           }
@@ -249,7 +274,8 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage> with WidgetsBi
                           }
                         }
 
-                        if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                        if (BaseSettings.navigatorType ==
+                            BaseNavigatorType.legacy) {
                           await Navigators.push(
                             DynamicFormListPage(
                               dynamicFormMenuItem: dynamicFormMenuItem,
@@ -280,7 +306,8 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage> with WidgetsBi
                       height: Dimensions.size100,
                       decoration: ShapeDecoration(
                         shape: SmoothRectangleBorder(
-                          borderRadius: BorderRadius.circular(Dimensions.size15),
+                          borderRadius:
+                              BorderRadius.circular(Dimensions.size15),
                           smoothness: 1,
                           side: BorderSide(
                             color: AppColors.onPrimaryContainer(),
@@ -320,4 +347,3 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage> with WidgetsBi
     );
   }
 }
-

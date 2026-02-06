@@ -18,12 +18,12 @@ class CustomDynamicFormDetailForm extends StatefulWidget {
   final Map<String, dynamic> data;
 
   const CustomDynamicFormDetailForm({
-    super.key,
     required this.customerId,
     required this.readOnly,
     required this.headerForm,
     required this.detailForm,
     required this.data,
+    super.key,
   });
 
   @override
@@ -318,7 +318,8 @@ class CustomDynamicFormDetailFormState
                     ),
                     child: CustomDynamicFormSubDetailList(
                       key: ValueKey(
-                          "SubDetailList-${subDetailForm.template.id}-$i"),
+                        "SubDetailList-${subDetailForm.template.id}-$i",
+                      ),
                       readOnly: widget.readOnly,
                       customerId: widget.customerId,
                       headerForm: widget.headerForm,

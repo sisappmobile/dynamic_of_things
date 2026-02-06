@@ -20,12 +20,12 @@ class CustomDynamicFormBulkDetailForm extends StatefulWidget {
   final List<Map<String, dynamic>> rows;
 
   const CustomDynamicFormBulkDetailForm({
-    super.key,
     required this.customerId,
     required this.readOnly,
     required this.headerForm,
     required this.detailForm,
     required this.rows,
+    super.key,
   });
 
   @override
@@ -248,7 +248,8 @@ class CustomDynamicFormBulkDetailFormState
                     ),
                     child: CustomDynamicFormSubDetailList(
                       key: ValueKey(
-                          "SubDetailList-${subDetailForm.template.id}"),
+                        "SubDetailList-${subDetailForm.template.id}",
+                      ),
                       readOnly: widget.readOnly,
                       customerId: widget.customerId,
                       headerForm: widget.headerForm,
