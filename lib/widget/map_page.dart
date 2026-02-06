@@ -52,7 +52,9 @@ class _MapPageState extends State<MapPage> {
     LocationPermission permission;
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return;
+    if (!serviceEnabled) {
+      return;
+    }
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
@@ -64,6 +66,9 @@ class _MapPageState extends State<MapPage> {
     final connectivity = Connectivity();
 
     _connectivitySub = connectivity.onConnectivityChanged.listen((result) {
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _isOnline = result != ConnectivityResult.none;
       });
@@ -80,53 +85,83 @@ class _MapPageState extends State<MapPage> {
     });
   }
 
-  Color _bg(BuildContext context) => AppColors.surfaceContainerLowest();
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+
   Color _card(BuildContext context) => AppColors.surface();
   Color _soft(BuildContext context) => AppColors.surfaceContainerLowest();
   Color _fg(BuildContext context) => AppColors.onSurface();
   Color _outline(BuildContext context) => AppColors.outline();
 
-  Widget _glassBar({
-    required BuildContext context,
-    required Widget child,
-    EdgeInsets? padding,
-  }) {
+  Widget _glassTopBar(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
 
-    return SafeArea(
-      bottom: false,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          Dimensions.size15,
-          safe.top > 0 ? Dimensions.size10 : Dimensions.size15,
-          Dimensions.size15,
-          Dimensions.size10,
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(Dimensions.size25),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-            child: Container(
-              padding: padding ??
-                  EdgeInsets.symmetric(
-                    horizontal: Dimensions.size15,
-                    vertical: Dimensions.size10,
-                  ),
-              decoration: BoxDecoration(
-                color: _card(context).withValues(alpha: 0.92),
-                borderRadius: BorderRadius.circular(Dimensions.size25),
-                border: Border.all(
-                  color: _outline(context).withValues(alpha: 0.18),
+    return Positioned(
+      left: 0,
+      right: 0,
+      top: 0,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            Dimensions.size15,
+            safe.top > 0 ? Dimensions.size10 : Dimensions.size15,
+            Dimensions.size15,
+            Dimensions.size10,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(Dimensions.size25),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: Dimensions.size15,
+                  vertical: Dimensions.size10,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    blurRadius: Dimensions.size25,
-                    offset: Offset(0, Dimensions.size15),
-                    color: Colors.black.withValues(alpha: 0.12),
+                decoration: BoxDecoration(
+                  color:
+                      _card(context).withValues(alpha: _isDark ? 0.78 : 0.90),
+                  borderRadius: BorderRadius.circular(Dimensions.size25),
+                  border: Border.all(
+                    color: _outline(context)
+                        .withValues(alpha: _isDark ? 0.22 : 0.18),
                   ),
-                ],
+                  boxShadow: [
+                    BoxShadow(
+                      blurRadius: Dimensions.size25,
+                      offset: Offset(0, Dimensions.size15),
+                      color:
+                          Colors.black.withValues(alpha: _isDark ? 0.18 : 0.12),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    _iconPill(
+                      context: context,
+                      icon: Icons.turn_left_rounded,
+                      onTap: () {
+                        Navigator.of(context).maybePop();
+                      },
+                    ),
+                    SizedBox(width: Dimensions.size10),
+                    Expanded(
+                      child: Text(
+                        "map".tr(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: Dimensions.text16,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.2,
+                          color: _fg(context),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: Dimensions.size10),
+                    _statusChip(context),
+                  ],
+                ),
               ),
-              child: child,
             ),
           ),
         ),
@@ -151,12 +186,13 @@ class _MapPageState extends State<MapPage> {
           width: Dimensions.size40,
           height: Dimensions.size40,
           decoration: ShapeDecoration(
-            color: _soft(context),
+            color: _soft(context).withValues(alpha: _isDark ? 0.72 : 1),
             shape: SmoothRectangleBorder(
               borderRadius: BorderRadius.circular(Dimensions.size15),
               smoothness: 1,
               side: BorderSide(
-                color: _outline(context).withValues(alpha: 0.22),
+                color:
+                    _outline(context).withValues(alpha: _isDark ? 0.22 : 0.18),
               ),
             ),
           ),
@@ -183,12 +219,12 @@ class _MapPageState extends State<MapPage> {
         vertical: Dimensions.size10,
       ),
       decoration: ShapeDecoration(
-        color: _soft(context),
+        color: _soft(context).withValues(alpha: _isDark ? 0.72 : 1),
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size15),
           smoothness: 1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.18),
+            color: _outline(context).withValues(alpha: _isDark ? 0.22 : 0.18),
           ),
         ),
       ),
@@ -203,11 +239,7 @@ class _MapPageState extends State<MapPage> {
               shape: BoxShape.circle,
               border: Border.all(color: primary.withValues(alpha: 0.25)),
             ),
-            child: Icon(
-              icon,
-              size: 16,
-              color: primary,
-            ),
+            child: Icon(icon, size: 16, color: primary),
           ),
           SizedBox(width: Dimensions.size10),
           Text(
@@ -250,7 +282,7 @@ class _MapPageState extends State<MapPage> {
                 BoxShadow(
                   blurRadius: 18,
                   offset: const Offset(0, 10),
-                  color: Colors.black.withValues(alpha: 0.16),
+                  color: Colors.black.withValues(alpha: _isDark ? 0.22 : 0.16),
                 ),
               ],
               shape: SmoothRectangleBorder(
@@ -292,98 +324,58 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
+  Widget _mapHost() {
+    return FutureBuilder<Directory>(
+      future: getApplicationDocumentsDirectory(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return FlutterMap(
+          options: MapOptions(
+            initialZoom: _minZoom.toDouble(),
+            minZoom: _isOnline ? null : _minZoom.toDouble(),
+            maxZoom: _maxZoom.toDouble(),
+          ),
+          children: [
+            _isOnline
+                ? TileLayer(
+                    urlTemplate:
+                        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                    userAgentPackageName: "com.sisapp.dynamic_of_things",
+                  )
+                : TileLayer(
+                    tileProvider: LocalDiskTileProvider(
+                      basePath: "${snapshot.data!.path}/offline_tiles",
+                    ),
+                  ),
+            CurrentLocationLayer(
+              alignPositionStream: _alignPositionStreamController.stream,
+              alignPositionOnUpdate: _alignPositionOnUpdate,
+            ),
+            MarkerLayer(
+              markers: widget.markers ?? [],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final EdgeInsets safe = MediaQuery.of(context).padding;
-
-    return Scaffold(
-      backgroundColor: _bg(context),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: FutureBuilder<Directory>(
-              future: getApplicationDocumentsDirectory(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                return FlutterMap(
-                  options: MapOptions(
-                    initialZoom: _minZoom.toDouble(),
-                    minZoom: _isOnline ? null : _minZoom.toDouble(),
-                    maxZoom: _maxZoom.toDouble(),
-                  ),
-                  children: [
-                    _isOnline
-                        ? TileLayer(
-                            urlTemplate:
-                                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                            userAgentPackageName:
-                                "com.sisapp.dynamic_of_things",
-                          )
-                        : TileLayer(
-                            tileProvider: LocalDiskTileProvider(
-                              basePath: "${snapshot.data!.path}/offline_tiles",
-                            ),
-                          ),
-                    CurrentLocationLayer(
-                      alignPositionStream:
-                          _alignPositionStreamController.stream,
-                      alignPositionOnUpdate: _alignPositionOnUpdate,
-                    ),
-                    MarkerLayer(
-                      markers: widget.markers ?? [],
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-          _glassBar(
-            context: context,
-            child: Row(
-              children: [
-                _iconPill(
-                  context: context,
-                  icon: Icons.turn_left_rounded,
-                  onTap: () {
-                    if (BaseSettings.navigatorType ==
-                        BaseNavigatorType.legacy) {
-                      Navigators.pop();
-                    } else {
-                      Navigator.of(context).pop();
-                    }
-                  },
-                ),
-                SizedBox(width: Dimensions.size10),
-                Expanded(
-                  child: Text(
-                    "map".tr(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: Dimensions.text16,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.2,
-                      color: _fg(context),
-                    ),
-                  ),
-                ),
-                SizedBox(width: Dimensions.size10),
-                _statusChip(context),
-              ],
-            ),
-          ),
-          _fabLocate(context),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: SizedBox(height: safe.bottom),
-          ),
-        ],
-      ),
+    return BaseScaffold(
+      context: context,
+      contentBuilder: () {
+        return Stack(
+          children: [
+            Positioned.fill(child: _mapHost()),
+            _glassTopBar(context),
+            _fabLocate(context),
+          ],
+        );
+      },
     );
   }
 
