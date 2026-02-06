@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
@@ -48,6 +50,8 @@ class DynamicFormPageState extends State<DynamicFormPage>
   bool loading = true;
 
   static const double _gapCard = 12;
+
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
 
   @override
   void initState() {
@@ -166,11 +170,10 @@ class DynamicFormPageState extends State<DynamicFormPage>
                     child: _topBar(),
                   ),
                   Expanded(child: _bodyHost()),
-                  SizedBox(height: safe.bottom + Dimensions.size85),
+                  SizedBox(height: safe.bottom),
                 ],
               ),
               Positioned(
-                left: Dimensions.size15,
                 right: Dimensions.size15,
                 bottom: safe.bottom + Dimensions.size10,
                 child: _bottomFloatingBar(),
@@ -305,6 +308,36 @@ class DynamicFormPageState extends State<DynamicFormPage>
     );
   }
 
+  Future<void> _handleSave() async {
+    if (headerForm == null || widget.readOnly) {
+      return;
+    }
+
+    if (!locationValid()) {
+      BaseOverlays.error(message: "location_required".tr());
+      return;
+    }
+
+    if (globalKey.currentState != null) {
+      if (globalKey.currentState!.validate()) {
+        BaseDialogs.confirmation(
+          title: "are_you_sure_want_to_proceed".tr(),
+          positiveCallback: () {
+            globalKey.currentState!.save();
+
+            context.read<DynamicFormBloc>().add(
+                  DynamicFormSave(
+                    formId: widget.dynamicFormMenuItem.id,
+                    customerId: widget.customerId,
+                    headerForm: headerForm!,
+                  ),
+                );
+          },
+        );
+      }
+    }
+  }
+
   Widget bottomBar() {
     if (headerForm != null && !widget.readOnly) {
       return Row(
@@ -312,29 +345,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
           Expanded(
             child: FilledButton.icon(
               onPressed: () async {
-                if (!locationValid()) {
-                  BaseOverlays.error(message: "location_required".tr());
-                  return;
-                }
-
-                if (globalKey.currentState != null) {
-                  if (globalKey.currentState!.validate()) {
-                    BaseDialogs.confirmation(
-                      title: "are_you_sure_want_to_proceed".tr(),
-                      positiveCallback: () {
-                        globalKey.currentState!.save();
-
-                        context.read<DynamicFormBloc>().add(
-                              DynamicFormSave(
-                                formId: widget.dynamicFormMenuItem.id,
-                                customerId: widget.customerId,
-                                headerForm: headerForm!,
-                              ),
-                            );
-                      },
-                    );
-                  }
-                }
+                await _handleSave();
               },
               icon: const Icon(Icons.save),
               label: Text("save".tr()),
@@ -358,7 +369,9 @@ class DynamicFormPageState extends State<DynamicFormPage>
         if (field.name == "latitude") {
           hasLatitudeField = true;
         } else if (StringUtils.inList(
-            field.name, ["longitude", "longtitude"])) {
+          field.name,
+          ["longitude", "longtitude"],
+        )) {
           hasLongitudeField = true;
         }
       }
@@ -379,7 +392,9 @@ class DynamicFormPageState extends State<DynamicFormPage>
           if (field.name == "latitude") {
             hasLatitudeValue = field.getValue(headerForm!.data) != null;
           } else if (StringUtils.inList(
-              field.name, ["longitude", "longtitude"])) {
+            field.name,
+            ["longitude", "longtitude"],
+          )) {
             hasLongitudeValue = field.getValue(headerForm!.data) != null;
           }
         }
@@ -404,12 +419,17 @@ class DynamicFormPageState extends State<DynamicFormPage>
           width: Dimensions.size30,
           height: Dimensions.size30,
           decoration: BoxDecoration(
-            color: primary.withValues(alpha: 0.10),
+            color: primary.withValues(alpha: _isDark ? 0.14 : 0.10),
             shape: BoxShape.circle,
-            border: Border.all(color: primary.withValues(alpha: 0.18)),
+            border: Border.all(
+              color: primary.withValues(alpha: _isDark ? 0.28 : 0.18),
+            ),
           ),
-          child: Icon(Icons.segment_rounded,
-              color: primary, size: Dimensions.size20),
+          child: Icon(
+            Icons.segment_rounded,
+            color: primary,
+            size: Dimensions.size20,
+          ),
         ),
         SizedBox(width: Dimensions.size10),
         Expanded(
@@ -445,7 +465,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
           borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.22),
+            color: _outline(context).withValues(alpha: _isDark ? 0.28 : 0.22),
           ),
         ),
       ),
@@ -535,7 +555,8 @@ class DynamicFormPageState extends State<DynamicFormPage>
               borderRadius: BorderRadius.circular(Dimensions.size15),
               smoothness: Dimensions.size1,
               side: BorderSide(
-                color: _outline(context).withValues(alpha: 0.18),
+                color:
+                    _outline(context).withValues(alpha: _isDark ? 0.26 : 0.18),
               ),
             ),
           ),
@@ -605,7 +626,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
           borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.22),
+            color: _outline(context).withValues(alpha: _isDark ? 0.28 : 0.22),
           ),
         ),
       ),
@@ -651,39 +672,85 @@ class DynamicFormPageState extends State<DynamicFormPage>
     );
   }
 
-  Widget _bottomFloatingBar() {
-    final Widget action = bottomBar();
-
-    if (action is SizedBox) {
-      return const SizedBox.shrink();
-    }
-
+  Widget _saveFloatingActionButton() {
     if (headerForm == null || widget.readOnly) {
       return const SizedBox.shrink();
     }
 
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: Dimensions.size15,
-        vertical: Dimensions.size10,
-      ),
-      decoration: ShapeDecoration(
-        color: _card(context),
-        shape: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimensions.size20),
-          smoothness: Dimensions.size1,
-          side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.22),
+    final Color primary = Theme.of(context).colorScheme.primary;
+    final Color onPrimary = Theme.of(context).colorScheme.onPrimary;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _handleSave,
+        borderRadius: BorderRadius.circular(Dimensions.size30),
+        child: Ink(
+          height: Dimensions.size55,
+          padding: EdgeInsets.symmetric(
+            horizontal: Dimensions.size20,
+          ),
+          decoration: ShapeDecoration(
+            color: primary,
+            shape: SmoothRectangleBorder(
+              borderRadius: BorderRadius.circular(Dimensions.size30),
+              smoothness: Dimensions.size1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: Dimensions.size35,
+                height: Dimensions.size35,
+                decoration: BoxDecoration(
+                  color: onPrimary.withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.save,
+                  color: onPrimary,
+                  size: Dimensions.size20,
+                ),
+              ),
+              SizedBox(width: Dimensions.size10),
+              Text(
+                "save".tr(),
+                style: TextStyle(
+                  color: onPrimary,
+                  fontSize: Dimensions.text14,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              SizedBox(width: Dimensions.size2),
+            ],
           ),
         ),
       ),
-      child: action,
     );
   }
 
-  Color _bg(BuildContext context) => AppColors.surfaceContainerLowest();
+  Widget _bottomFloatingBar() {
+    final Widget fab = _saveFloatingActionButton();
+
+    if (fab is SizedBox) {
+      return const SizedBox.shrink();
+    }
+
+    return fab;
+  }
+
+  Color _bg(BuildContext context) => _isDark
+      ? AppColors.surfaceContainerLowest()
+      : AppColors.surfaceContainerLowest();
+
   Color _card(BuildContext context) => AppColors.surface();
-  Color _soft(BuildContext context) => AppColors.surfaceContainerLowest();
+
+  Color _soft(BuildContext context) => _isDark
+      ? AppColors.surfaceContainerLow()
+      : AppColors.surfaceContainerLowest();
+
   Color _fg(BuildContext context) => AppColors.onSurface();
   Color _outline(BuildContext context) => AppColors.outline();
 }

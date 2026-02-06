@@ -13,12 +13,12 @@ class CustomDynamicForm extends StatefulWidget {
   final Map<String, dynamic> data;
 
   const CustomDynamicForm({
-    super.key,
     required this.readOnly,
     required this.customerId,
     required this.headerForm,
     required this.template,
     required this.data,
+    super.key,
   });
 
   @override
@@ -29,6 +29,8 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
     with AutomaticKeepAliveClientMixin {
   static const double _gapSection = 14;
   static const double _gapFields = 12;
+
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
 
   @override
   Widget build(BuildContext context) {
@@ -95,8 +97,18 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
     );
   }
 
-  Color _soft(BuildContext context) => AppColors.surfaceContainerLowest();
-  Color _soft2(BuildContext context) => AppColors.surfaceContainerLow();
+  Color _soft(BuildContext context) {
+    return _isDark
+        ? AppColors.surfaceContainerLow()
+        : AppColors.surfaceContainerLowest();
+  }
+
+  Color _soft2(BuildContext context) {
+    return _isDark
+        ? AppColors.surfaceContainer()
+        : AppColors.surfaceContainerLow();
+  }
+
   Color _fg(BuildContext context) => AppColors.onSurface();
   Color _outline(BuildContext context) => AppColors.outline();
 
@@ -111,8 +123,15 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
         color: _soft(context),
         borderRadius: BorderRadius.circular(Dimensions.size20),
         border: Border.all(
-          color: _outline(context).withValues(alpha: 0.14),
+          color: _outline(context).withValues(alpha: _isDark ? 0.30 : 0.14),
         ),
+        boxShadow: [
+          BoxShadow(
+            blurRadius: Dimensions.size20,
+            offset: Offset(0, Dimensions.size10),
+            color: Colors.black.withValues(alpha: _isDark ? 0.22 : 0.06),
+          ),
+        ],
       ),
       child: child,
     );
@@ -122,16 +141,8 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
     required BuildContext context,
     required Widget child,
   }) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(Dimensions.size10),
-      decoration: BoxDecoration(
-        color: _soft2(context),
-        borderRadius: BorderRadius.circular(Dimensions.size15),
-        border: Border.all(
-          color: _outline(context).withValues(alpha: 0.14),
-        ),
-      ),
+    return Padding(
+      padding: EdgeInsets.zero,
       child: child,
     );
   }
@@ -148,10 +159,10 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
               width: Dimensions.size30,
               height: Dimensions.size30,
               decoration: BoxDecoration(
-                color: primary.withValues(alpha: 0.10),
+                color: primary.withValues(alpha: _isDark ? 0.14 : 0.10),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: primary.withValues(alpha: 0.18),
+                  color: primary.withValues(alpha: _isDark ? 0.28 : 0.18),
                 ),
               ),
               child: Icon(
@@ -191,7 +202,9 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
         if (field.name == "latitude") {
           hasLatitudeField = true;
         } else if (StringUtils.inList(
-            field.name, ["longitude", "longtitude"])) {
+          field.name,
+          ["longitude", "longtitude"],
+        )) {
           hasLongitudeField = true;
         }
       }
@@ -211,7 +224,7 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
           color: _soft2(context),
           borderRadius: BorderRadius.circular(Dimensions.size15),
           border: Border.all(
-            color: _outline(context).withValues(alpha: 0.14),
+            color: _outline(context).withValues(alpha: _isDark ? 0.28 : 0.14),
           ),
         ),
         child: CustomDynamicFormLocationField(

@@ -1,3 +1,5 @@
+// ignore_for_file: empty_catches, use_build_context_synchronously, deprecated_member_use, depend_on_referenced_packages
+
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:camera/camera.dart";
@@ -48,13 +50,13 @@ class CustomDynamicFormField extends StatefulWidget {
   final Map<String, dynamic> data;
 
   const CustomDynamicFormField({
-    super.key,
     required this.readOnly,
     required this.customerId,
     required this.headerForm,
     required this.template,
     required this.field,
     required this.data,
+    super.key,
   });
 
   @override
@@ -64,11 +66,24 @@ class CustomDynamicFormField extends StatefulWidget {
 class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   TextEditingController controller = TextEditingController();
 
-  static const double _gap = 8;
   static const double _r = 14;
 
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+
   Color _card(BuildContext c) => AppColors.surface();
-  Color _soft(BuildContext c) => AppColors.surfaceContainerLowest();
+
+  Color _soft(BuildContext c) {
+    return _isDark
+        ? AppColors.surfaceContainer()
+        : AppColors.surfaceContainerLowest();
+  }
+
+  Color _pillBg(BuildContext c) {
+    return _isDark
+        ? AppColors.surfaceContainerLow()
+        : AppColors.surfaceContainerLowest();
+  }
+
   Color _fg(BuildContext c) => AppColors.onSurface();
   Color _outline(BuildContext c) => AppColors.outline();
   Color _primary(BuildContext c) => Theme.of(c).colorScheme.primary;
@@ -116,14 +131,14 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           BoxShadow(
             blurRadius: Dimensions.size20,
             offset: Offset(0, Dimensions.size10),
-            color: Colors.black.withValues(alpha: 0.06),
+            color: Colors.black.withValues(alpha: _isDark ? 0.22 : 0.06),
           ),
         ],
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.16),
+            color: _outline(context).withValues(alpha: _isDark ? 0.26 : 0.16),
           ),
         ),
       ),
@@ -143,9 +158,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         vertical: Dimensions.size5,
       ),
       decoration: BoxDecoration(
-        color: c.withValues(alpha: 0.10),
+        color: c.withValues(alpha: _isDark ? 0.16 : 0.10),
         borderRadius: BorderRadius.circular(Dimensions.size100),
-        border: Border.all(color: c.withValues(alpha: 0.22)),
+        border: Border.all(color: c.withValues(alpha: _isDark ? 0.32 : 0.22)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -344,7 +359,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                           side: BorderSide(
                             color: selected
                                 ? _primary(context).withValues(alpha: 0.30)
-                                : _outline(context).withValues(alpha: 0.18),
+                                : _outline(context)
+                                    .withValues(alpha: _isDark ? 0.28 : 0.18),
                           ),
                         ),
                       ),
@@ -1070,7 +1086,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           ..mime = lookupMimeType(platformFile.path!);
 
         if (StringUtils.inList(
-            platformFile.extension!, ["jpg", "jpeg", "png"])) {
+          platformFile.extension!,
+          ["jpg", "jpeg", "png"],
+        )) {
           XFile? xFile = await FlutterImageCompress.compressAndGetFile(
             platformFile.path!,
             await CustomAttachments.temporaryPath(fileName: platformFile.name),
@@ -1090,10 +1108,10 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       Images.camera(
         context: context,
         callback: (bytes) async {
-          Attachment attachment = Attachment();
-          attachment.name = DateTime.now().millisecondsSinceEpoch.toString();
-          attachment.mime = "image/png";
-          attachment.bytes = bytes;
+          Attachment attachment = Attachment()
+            ..name = DateTime.now().millisecondsSinceEpoch.toString()
+            ..mime = "image/png"
+            ..bytes = bytes;
           widget.field.setValue(widget.data, attachment);
         },
       );
@@ -1103,17 +1121,16 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           RecordPage(
             cameraDescriptions: value,
             callback: (xFile) async {
-              Attachment attachment = Attachment();
-              attachment.name =
-                  DateTime.now().millisecondsSinceEpoch.toString();
-              attachment.mime = "video/mp4";
-              attachment.bytes = await xFile.readAsBytes();
-              attachment.thumbnail = await vt.VideoThumbnail.thumbnailData(
-                video: xFile.path,
-                imageFormat: vt.ImageFormat.JPEG,
-                maxWidth: 128,
-                quality: 25,
-              );
+              Attachment attachment = Attachment()
+                ..name = DateTime.now().millisecondsSinceEpoch.toString()
+                ..mime = "video/mp4"
+                ..bytes = await xFile.readAsBytes()
+                ..thumbnail = await vt.VideoThumbnail.thumbnailData(
+                  video: xFile.path,
+                  imageFormat: vt.ImageFormat.JPEG,
+                  maxWidth: 128,
+                  quality: 25,
+                );
 
               widget.field.setValue(widget.data, attachment);
             },
@@ -1128,10 +1145,10 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         allowGallery: true,
         callback: (files) async {
           if (files.isNotEmpty) {
-            Attachment attachment = Attachment();
-            attachment.name = files.first.name;
-            attachment.mime = files.first.mimeType;
-            attachment.bytes = await files.first.readAsBytes();
+            Attachment attachment = Attachment()
+              ..name = files.first.name
+              ..mime = files.first.mimeType
+              ..bytes = await files.first.readAsBytes();
             widget.field.setValue(widget.data, attachment);
           }
         },
@@ -1143,16 +1160,16 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         allowGallery: true,
         callback: (files) async {
           if (files.isNotEmpty) {
-            Attachment attachment = Attachment();
-            attachment.name = files.first.name;
-            attachment.mime = "video/${files.first.extension}";
-            attachment.bytes = files.first.bytes;
-            attachment.thumbnail = await vt.VideoThumbnail.thumbnailData(
-              video: files.first.path!,
-              imageFormat: vt.ImageFormat.JPEG,
-              maxWidth: 128,
-              quality: 25,
-            );
+            Attachment attachment = Attachment()
+              ..name = files.first.name
+              ..mime = "video/${files.first.extension}"
+              ..bytes = files.first.bytes
+              ..thumbnail = await vt.VideoThumbnail.thumbnailData(
+                video: files.first.path!,
+                imageFormat: vt.ImageFormat.JPEG,
+                maxWidth: 128,
+                quality: 25,
+              );
 
             widget.field.setValue(widget.data, attachment);
           }
@@ -1231,14 +1248,15 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                   for (Section section in widget.template.sections) {
                     for (Field f in section.fields) {
                       if (StringUtils.equalsIgnoreCase(f.name, item.target)) {
-                        f.setValue(
-                          widget.data,
-                          await DynamicForms.decodeValue(
-                            field: f,
-                            value: v,
-                          ),
-                        );
-                        f.forceRefresh = true;
+                        f
+                          ..setValue(
+                            widget.data,
+                            await DynamicForms.decodeValue(
+                              field: f,
+                              value: v,
+                            ),
+                          )
+                          ..forceRefresh = true;
                         found = true;
                       }
                     }
@@ -1512,27 +1530,41 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     String? result;
 
     result = required(value);
-    if (result != null) return result;
+    if (result != null) {
+      return result;
+    }
 
     if (value != null) {
       if (widget.field.type == DynamicFormFieldType.SHORT_TEXT.name) {
         result = contains(value?.toString());
-        if (result != null) return result;
+        if (result != null) {
+          return result;
+        }
 
         result = notContains(value?.toString());
-        if (result != null) return result;
+        if (result != null) {
+          return result;
+        }
 
         result = minLength(value?.toString());
-        if (result != null) return result;
+        if (result != null) {
+          return result;
+        }
 
         result = maxLength(value?.toString());
-        if (result != null) return result;
+        if (result != null) {
+          return result;
+        }
       } else if (widget.field.type == DynamicFormFieldType.LONG_TEXT.name) {
         result = minLength(value as String);
-        if (result != null) return result;
+        if (result != null) {
+          return result;
+        }
 
         result = maxLength(value);
-        if (result != null) return result;
+        if (result != null) {
+          return result;
+        }
       } else if (widget.field.type == DynamicFormFieldType.NUMBER.name) {
         int integer = 0;
 
@@ -1541,40 +1573,64 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         } catch (e) {}
 
         result = greaterThan(integer);
-        if (result != null) return result;
+        if (result != null) {
+          return result;
+        }
 
         result = greaterThanOrEqualTo(integer);
-        if (result != null) return result;
+        if (result != null) {
+          return result;
+        }
 
         result = lessThan(integer);
-        if (result != null) return result;
+        if (result != null) {
+          return result;
+        }
 
         result = lessThanOrEqualTo(integer);
-        if (result != null) return result;
+        if (result != null) {
+          return result;
+        }
       } else if (widget.field.type == DynamicFormFieldType.EMAIL.name) {
         result = email(value as String);
-        if (result != null) return result;
+        if (result != null) {
+          return result;
+        }
       } else if (widget.field.type == DynamicFormFieldType.URL.name) {
         result = url(value as String);
-        if (result != null) return result;
+        if (result != null) {
+          return result;
+        }
       } else if (widget.field.type == DynamicFormFieldType.DATE.name) {
         result = before(value);
-        if (result != null) return result;
+        if (result != null) {
+          return result;
+        }
 
         result = after(value);
-        if (result != null) return result;
+        if (result != null) {
+          return result;
+        }
       } else if (widget.field.type == DynamicFormFieldType.TIME.name) {
         result = before(value);
-        if (result != null) return result;
+        if (result != null) {
+          return result;
+        }
 
         result = after(value);
-        if (result != null) return result;
+        if (result != null) {
+          return result;
+        }
       } else if (widget.field.type == DynamicFormFieldType.DATE_TIME.name) {
         result = before(value);
-        if (result != null) return result;
+        if (result != null) {
+          return result;
+        }
 
         result = after(value);
-        if (result != null) return result;
+        if (result != null) {
+          return result;
+        }
       }
     }
 
@@ -1616,10 +1672,10 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           Uint8List? bytes = await Navigators.push(SignaturePage());
 
           if (bytes != null) {
-            Attachment attachment = Attachment();
-            attachment.name = DateTime.now().millisecondsSinceEpoch.toString();
-            attachment.mime = "image/png";
-            attachment.bytes = bytes;
+            Attachment attachment = Attachment()
+              ..name = DateTime.now().millisecondsSinceEpoch.toString()
+              ..mime = "image/png"
+              ..bytes = bytes;
 
             widget.field.setValue(widget.data, attachment);
           }
@@ -1845,12 +1901,13 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             vertical: Dimensions.size10,
           ),
           decoration: ShapeDecoration(
-            color: _soft(context),
+            color: _pillBg(context),
             shape: SmoothRectangleBorder(
               borderRadius: BorderRadius.circular(Dimensions.size20),
               smoothness: Dimensions.size1,
               side: BorderSide(
-                color: _outline(context).withValues(alpha: 0.18),
+                color:
+                    _outline(context).withValues(alpha: _isDark ? 0.28 : 0.18),
               ),
             ),
           ),
@@ -1861,14 +1918,19 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 width: Dimensions.size30,
                 height: Dimensions.size30,
                 decoration: BoxDecoration(
-                  color: _primary(context).withValues(alpha: 0.12),
+                  color: _primary(context)
+                      .withValues(alpha: _isDark ? 0.16 : 0.12),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: _primary(context).withValues(alpha: 0.22),
+                    color: _primary(context)
+                        .withValues(alpha: _isDark ? 0.30 : 0.22),
                   ),
                 ),
-                child: Icon(icon,
-                    size: Dimensions.size20, color: _primary(context)),
+                child: Icon(
+                  icon,
+                  size: Dimensions.size20,
+                  color: _primary(context),
+                ),
               ),
               SizedBox(width: Dimensions.size10),
               Text(
@@ -2072,8 +2134,12 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         controller: controller,
         onChanged: onChanged,
         maxLengthEnforcement: MaxLengthEnforcement.enforced,
-        buildCounter: (context,
-            {required currentLength, required isFocused, required maxLength}) {
+        buildCounter: (
+          context, {
+          required currentLength,
+          required isFocused,
+          required maxLength,
+        }) {
           return const SizedBox.shrink();
         },
         maxLines: maxLines,
@@ -2083,7 +2149,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         decoration: InputDecoration(
           hintText: readOnly ? null : widget.field.title,
           hintStyle: TextStyle(
-            color: _fg(context).withValues(alpha: 0.45),
+            color: _fg(context).withValues(alpha: _isDark ? 0.55 : 0.45),
             fontWeight: FontWeight.w700,
           ),
           border: InputBorder.none,
@@ -2096,10 +2162,13 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
               ? Container(
                   margin: EdgeInsets.only(right: Dimensions.size5),
                   decoration: BoxDecoration(
-                    color: _card(context),
+                    color: _isDark
+                        ? AppColors.surfaceContainerHigh()
+                        : _card(context),
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: _outline(context).withValues(alpha: 0.18),
+                      color: _outline(context)
+                          .withValues(alpha: _isDark ? 0.30 : 0.18),
                     ),
                   ),
                   child: suffixIcon(),
@@ -2154,16 +2223,19 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 width: Dimensions.size30,
                 height: Dimensions.size30,
                 decoration: BoxDecoration(
-                  color: _card(context),
+                  color: _isDark
+                      ? AppColors.surfaceContainerHigh()
+                      : _card(context),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: _outline(context).withValues(alpha: 0.18),
+                    color: _outline(context)
+                        .withValues(alpha: _isDark ? 0.30 : 0.18),
                   ),
                 ),
                 child: Icon(
                   Icons.keyboard_arrow_down_rounded,
                   size: Dimensions.size20,
-                  color: _fg(context).withValues(alpha: 0.75),
+                  color: _fg(context).withValues(alpha: _isDark ? 0.88 : 0.75),
                 ),
               ),
             ],
@@ -2180,7 +2252,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       if (field.hasError) {
         return AppColors.error();
       } else {
-        return AppColors.outline();
+        return _outline(context).withValues(alpha: _isDark ? 0.55 : 1.0);
       }
     }
   }
@@ -2193,7 +2265,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 class NetworkVideoPlayer extends StatefulWidget {
   final String url;
 
-  const NetworkVideoPlayer({super.key, required this.url});
+  const NetworkVideoPlayer({required this.url, super.key});
 
   @override
   State<NetworkVideoPlayer> createState() => _NetworkVideoPlayerState();
