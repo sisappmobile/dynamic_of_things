@@ -1,12 +1,9 @@
-// ignore_for_file: always_specify_types, cascade_invocations, always_put_required_named_parameters_first, empty_catches, use_build_context_synchronously
-
 import "dart:io";
 import "dart:typed_data";
 
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
-import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
 import "package:dynamic_of_things/model/dynamic_report_data.dart";
@@ -42,9 +39,9 @@ class DynamicReportPage extends StatefulWidget {
   DynamicReportPageState createState() => DynamicReportPageState();
 }
 
-class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindingObserver {
+class DynamicReportPageState extends State<DynamicReportPage>
+    with WidgetsBindingObserver {
   Template? template;
-
   DataResponse? dataResponse;
 
   bool loading = true;
@@ -56,32 +53,47 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
   int pageSize = 20;
   int pageIndex = 1;
 
+  static const double _gapCard = 10;
+  static const double _gapInner = 5;
+
+  static const double _tilePadX = 10;
+  static const double _tilePadY = 10;
+
   @override
   void initState() {
     super.initState();
-
     WidgetsBinding.instance.addObserver(this);
 
     context.read<DynamicReportBloc>().add(
-      DynamicReportTemplate(
-        id: widget.dynamicFormMenuItem.id,
-      ),
-    );
+          DynamicReportTemplate(id: widget.dynamicFormMenuItem.id),
+        );
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    super.didChangePlatformBrightness();
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
+    final EdgeInsets safe = MediaQuery.of(context).padding;
+
     return BlocListener<DynamicReportBloc, DynamicReportState>(
       listener: (context, state) async {
         if (state is DynamicReportTemplateLoading) {
           context.loaderOverlay.show();
-
           setState(() {
             template = null;
           });
         } else if (state is DynamicReportTemplateSuccess) {
           template = state.template;
-
           refresh();
         } else if (state is DynamicReportTemplateFinished) {
           context.loaderOverlay.hide();
@@ -112,75 +124,59 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
           context.loaderOverlay.hide();
         }
       },
-      child: BaseScaffold(
-        context: context,
-        statusBuilder: () {
-          if (template != null) {
-            if (loading) {
-              return BaseBodyStatus.loading;
-            } else {
-              if (dataResponse != null) {
-                return BaseBodyStatus.loaded;
-              } else {
-                return BaseBodyStatus.fail;
-              }
-            }
-          }
-
-          return BaseBodyStatus.loading;
-        },
-        appBar: BaseAppBar(
-          context: context,
-          name: widget.dynamicFormMenuItem.name,
-          description: widget.dynamicFormCategoryItem.name,
-          trailings: [
-            IconButton(
-              onPressed: () async {
-                await openFilter();
-              },
-              icon: const Icon(Icons.filter_alt),
-            ),
-            IconButton(
-              onPressed: () async {
-                context.read<DynamicReportBloc>().add(
-                  DynamicReportExport(
-                    id: widget.dynamicFormMenuItem.id,
-                    dataRequest: DataRequest(
-                      size: pageSize,
-                      index: pageIndex - 1,
-                      sortField: sortField,
-                      sortDirection: sortDirection?.name,
-                      filters: Map.fromEntries(
-                        template!.filters.where((element) => element.value != null).map((e) {
-                          return MapEntry(e.id, e.value);
-                        }),
-                      ),
-                    ),
+      child: Scaffold(
+        backgroundColor: _bg(context),
+        body: Stack(
+          children: [
+            Column(
+              children: [
+                SizedBox(height: safe.top),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    Dimensions.size15,
+                    Dimensions.size10,
+                    Dimensions.size15,
+                    Dimensions.size10,
                   ),
-                );
-              },
-              icon: const Icon(Icons.cloud_download_outlined),
+                  child: _topBar(),
+                ),
+                Expanded(child: _body()),
+                SizedBox(height: safe.bottom + Dimensions.size75),
+              ],
+            ),
+            Positioned(
+              left: Dimensions.size15,
+              right: Dimensions.size15,
+              bottom: safe.bottom + Dimensions.size2,
+              child: _bottomFloatingBar(),
             ),
           ],
         ),
-        contentBuilder: body,
-        bottomNavigationBar: bottomBar(),
       ),
     );
   }
 
-  @override
-  void dispose() {
-    super.dispose();
+  void refresh() {
+    if (template == null) {
+      return;
+    }
 
-    WidgetsBinding.instance.removeObserver(this);
-  }
-
-  @override
-  void didChangePlatformBrightness() {
-    super.didChangePlatformBrightness();
-
-    setState(() {});
+    context.read<DynamicReportBloc>().add(
+          DynamicReportData(
+            id: widget.dynamicFormMenuItem.id,
+            dataRequest: DataRequest(
+              size: pageSize,
+              index: pageIndex - 1,
+              sortField: sortField,
+              sortDirection: sortDirection?.name,
+              filters: Map.fromEntries(
+                template!.filters
+                    .where((element) => element.value != null)
+                    .map((e) => MapEntry(e.id, e.value)),
+              ),
+            ),
+          ),
+        );
   }
 
   Future<void> download({
@@ -197,12 +193,10 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
 
       if (fileExists) {
         int count = 1;
-
         String newFileName = "1-$fileName";
 
         while (await File(path.join(directoryPath, newFileName)).exists()) {
           count++;
-
           newFileName = "$count-$fileName";
         }
 
@@ -231,181 +225,708 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
     }
   }
 
-  void refresh() {
-    context.read<DynamicReportBloc>().add(
-      DynamicReportData(
-        id: widget.dynamicFormMenuItem.id,
-        dataRequest: DataRequest(
-          size: pageSize,
-          index: pageIndex - 1,
-          sortField: sortField,
-          sortDirection: sortDirection?.name,
-          filters: Map.fromEntries(
-            template!.filters.where((element) => element.value != null).map((e) {
-              return MapEntry(e.id, e.value);
-            }),
+  Widget _topBar() {
+    final String title = (template?.title.isNotEmpty ?? false)
+        ? template!.title
+        : widget.dynamicFormMenuItem.name;
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: Dimensions.size15,
+        vertical: Dimensions.size10,
+      ),
+      decoration: ShapeDecoration(
+        color: _card(context),
+        shadows: [
+          BoxShadow(
+            blurRadius: Dimensions.size20,
+            offset: Offset(0, Dimensions.size10),
+            color: Colors.black.withValues(alpha: 0.10),
+          ),
+        ],
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size20),
+          smoothness: Dimensions.size1,
+          side: BorderSide(
+            color: _outline(context).withValues(alpha: 0.35),
           ),
         ),
       ),
-    );
-  }
-
-  Widget body() {
-    return RefreshIndicator(
-      onRefresh: () async {
-        refresh();
-      },
-      child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: dataResponse!.rows.length,
-        separatorBuilder: (BuildContext context, int index) {
-          return Divider(
-            color: AppColors.outline(),
-            height: 0,
-          );
-        },
-        itemBuilder: (BuildContext context, int index) {
-          Map<String, dynamic> map = dataResponse!.rows[index];
-
-          List<Widget> widgets = [];
-
-          for (int i = 0; i < template!.fields.length; i++) {
-            if (i % 2 == 0) {
-              List<Widget> children = [];
-
-              Field leftField = template!.fields[i];
-
-              children.add(
-                childrenWidget(
-                  description: leftField.caption,
-                  value: map[leftField.name] ?? "",
-                  left: true,
-                ),
-              );
-
-              if (i + 1 < template!.fields.length) {
-                Field rightField = template!.fields[i + 1];
-
-                children.add(
-                  SizedBox(
-                    width: Dimensions.size20,
-                  ),
-                );
-
-                children.add(
-                  childrenWidget(
-                    description: rightField.caption,
-                    value: map[rightField.name] ?? "",
-                    left: false,
-                  ),
-                );
+      child: Row(
+        children: [
+          _iconPill(
+            icon: Icons.turn_left_rounded,
+            onTap: () {
+              if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                Navigators.pop();
+              } else {
+                context.pop();
               }
-
-              widgets.add(
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: children,
-                ),
-              );
-
-              if (i + 2 < template!.fields.length) {
-                widgets.add(
-                  SizedBox(
-                    height: Dimensions.size10,
-                  ),
-                );
-              }
-            }
-          }
-
-          return Container(
-            width: MediaQuery.of(context).size.width,
-            padding: EdgeInsets.all(Dimensions.size20),
+            },
+          ),
+          SizedBox(width: Dimensions.size10),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: widgets,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: Dimensions.text16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                    color: _fg(context),
+                  ),
+                ),
+                SizedBox(height: Dimensions.size2),
+                Text(
+                  widget.dynamicFormCategoryItem.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: Dimensions.text12,
+                    fontWeight: FontWeight.w600,
+                    color: _fg(context).withValues(alpha: 0.65),
+                  ),
+                ),
+              ],
             ),
+          ),
+          SizedBox(width: Dimensions.size10),
+          _iconPill(
+            icon: Icons.tune,
+            onTap: () async => openFilter(),
+          ),
+          SizedBox(width: Dimensions.size10),
+          _iconPill(
+            icon: Icons.file_download_outlined,
+            onTap: () async {
+              if (template == null) {
+                return;
+              }
+
+              context.read<DynamicReportBloc>().add(
+                    DynamicReportExport(
+                      id: widget.dynamicFormMenuItem.id,
+                      dataRequest: DataRequest(
+                        size: pageSize,
+                        index: pageIndex - 1,
+                        sortField: sortField,
+                        sortDirection: sortDirection?.name,
+                        filters: Map.fromEntries(
+                          template!.filters
+                              .where((element) => element.value != null)
+                              .map((e) => MapEntry(e.id, e.value)),
+                        ),
+                      ),
+                    ),
+                  );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _iconPill({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size15),
+          smoothness: Dimensions.size1,
+        ),
+        child: Ink(
+          width: Dimensions.size40,
+          height: Dimensions.size40,
+          decoration: ShapeDecoration(
+            color: _soft(context),
+            shape: SmoothRectangleBorder(
+              borderRadius: BorderRadius.circular(Dimensions.size15),
+              smoothness: Dimensions.size1,
+              side: BorderSide(
+                color: _outline(context).withValues(alpha: 0.25),
+              ),
+            ),
+          ),
+          child: Icon(
+            icon,
+            color: _fg(context),
+            size: Dimensions.size25,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _body() {
+    if (template == null) {
+      return BaseWidgets.shimmer();
+    }
+
+    if (loading) {
+      return BaseWidgets.shimmer();
+    }
+
+    if (dataResponse == null) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(Dimensions.size20),
+          child: Text(
+            "common_something_wrong".tr(),
+            style: TextStyle(
+              color: _fg(context).withValues(alpha: 0.7),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (dataResponse!.rows.isEmpty) {
+      return ListView(
+        padding: EdgeInsets.all(Dimensions.size15),
+        children: [_emptyState()],
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async => refresh(),
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(
+          Dimensions.size15,
+          Dimensions.size10,
+          Dimensions.size15,
+          Dimensions.size10,
+        ),
+        itemCount: dataResponse!.rows.length,
+        separatorBuilder: (_, __) => const SizedBox(height: _gapCard),
+        itemBuilder: (context, index) {
+          final Map<String, dynamic> map = dataResponse!.rows[index];
+          return _reportCardDynamic(
+            index: index + 1,
+            row: map,
           );
         },
       ),
     );
   }
 
-  Widget bottomBar() {
-    return BaseBottomBar(
-      children: [
-        Text(
-          dataInfo(
-            pageIndex: pageIndex,
-            pageSize: pageSize,
-            dataSize: dataResponse?.size,
+  bool _isEmptyValue(String v) {
+    final String s = v.trim();
+    return s.isEmpty || s == "-" || s == "null";
+  }
+
+  Widget _reportCardDynamic({
+    required int index,
+    required Map<String, dynamic> row,
+  }) {
+    String valueOf(String fieldName) {
+      final dynamic v = row[fieldName];
+      if (v == null) {
+        return "-";
+      }
+
+      String s = v.toString();
+
+      s = s.replaceAll(RegExp(r"\s+"), " ").trim();
+
+      return StringUtils.isNotNullOrEmpty(s) ? s : "-";
+    }
+
+    String title = "-";
+    final Field? itemDescField = template!.fields
+        .where((f) => f.name == "item_desc")
+        .cast<Field?>()
+        .firstWhere((e) => e != null, orElse: () => null);
+
+    if (itemDescField != null) {
+      title = valueOf(itemDescField.name);
+    } else if (template!.fields.isNotEmpty) {
+      title = valueOf(template!.fields.first.name);
+    }
+
+    final Field? qtyField = template!.fields
+        .where((f) => f.name == "qty")
+        .cast<Field?>()
+        .firstWhere((e) => e != null, orElse: () => null);
+
+    final String qty = qtyField != null ? valueOf(qtyField.name) : "-";
+
+    final List<Field> fields = template!.fields.toList();
+    if (itemDescField != null) {
+      fields.removeWhere((f) => f.name == itemDescField.name);
+    }
+
+    return Container(
+      padding: EdgeInsets.all(Dimensions.size15),
+      decoration: ShapeDecoration(
+        color: _card(context),
+        shadows: [
+          BoxShadow(
+            blurRadius: Dimensions.size20,
+            offset: Offset(0, Dimensions.size10),
+            color: Colors.black.withValues(alpha: 0.10),
+          ),
+        ],
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size20),
+          smoothness: Dimensions.size1,
+          side: BorderSide(
+            color: _outline(context).withValues(alpha: 0.35),
           ),
         ),
-        Expanded(
-          child: CustomPagination(
-            onPageChanged: (int pageNumber) {
-              setState(() {
-                pageIndex = pageNumber;
-              });
-
-              refresh();
-            },
-            pageTotal: (size / pageSize).ceil(),
-            pageInit: pageIndex,
-            colorPrimary: AppColors.onSurface(),
-            colorSub: AppColors.surface(),
-            buttonRadius: Dimensions.size50,
-            buttonElevation: 0,
-            threshold: 1,
-          ),
-        ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IntrinsicWidth(
-              child: Container(
-                height: Dimensions.size35,
-                decoration: ShapeDecoration(
-                  shape: SmoothRectangleBorder(
-                    borderRadius: BorderRadius.circular(Dimensions.size10),
-                    smoothness: 1,
-                    side: BorderSide(
-                      color: AppColors.outline(),
-                    ),
-                  ),
-                  color: AppColors.surface(),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton(
-                    isExpanded: true,
-                    borderRadius: BorderRadius.all(
-                      Radius.circular(Dimensions.size5),
-                    ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: Dimensions.size10,
-                    ),
-                    value: pageSize,
-                    items: const [
-                      DropdownMenuItem(value: 20, child: Text("20")),
-                      DropdownMenuItem(value: 50, child: Text("50")),
-                      DropdownMenuItem(value: 100, child: Text("100")),
-                    ],
-                    onChanged: (value) {
-                      pageSize = value!;
-
-                      refresh();
-                    },
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _chip("#$index"),
+              SizedBox(width: Dimensions.size10),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: Dimensions.text16,
+                    fontWeight: FontWeight.w900,
+                    height: 1.15,
+                    color: _fg(context),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ],
+              SizedBox(width: Dimensions.size10),
+              _chipCompact(label: "Qty", value: qty),
+            ],
+          ),
+          SizedBox(height: Dimensions.size10),
+          Divider(
+            height: 0,
+            color: _outline(context).withValues(alpha: 0.30),
+          ),
+          SizedBox(height: Dimensions.size10),
+          LayoutBuilder(
+            builder: (context, c) {
+              final double rowW = c.maxWidth;
+
+              final bool can3 = rowW >= 340;
+              final int colsDefault = can3 ? 3 : 2;
+
+              final double gap = _gapInner;
+
+              double colW(int cols) => (rowW - gap * (cols - 1)) / cols;
+
+              final List<Widget> blocks = [];
+              final List<Widget> bucket = [];
+
+              void flushBucket({required int cols}) {
+                if (bucket.isEmpty) {
+                  return;
+                }
+
+                final double w = colW(cols);
+
+                blocks.add(
+                  Wrap(
+                    spacing: gap,
+                    runSpacing: gap,
+                    children: bucket
+                        .map((child) => SizedBox(width: w, child: child))
+                        .toList(),
+                  ),
+                );
+
+                bucket.clear();
+              }
+
+              final List<Field> ordered = [...fields]..sort((a, b) {
+                  final aa = _isTriMetric(a) ? 0 : 1;
+                  final bb = _isTriMetric(b) ? 0 : 1;
+                  return aa.compareTo(bb);
+                });
+
+              bool metricMode = false;
+
+              for (final Field f in ordered) {
+                if (qtyField != null && f.name == qtyField.name) {
+                  continue;
+                }
+
+                final String val = valueOf(f.name);
+                final bool empty = _isEmptyValue(val);
+                final bool isMetric = _isTriMetric(f);
+
+                if (isMetric) {
+                  if (!metricMode) {
+                    flushBucket(cols: colsDefault);
+                    metricMode = true;
+                  }
+
+                  bucket.add(
+                    _kvSmart(f.caption, empty ? "-" : val, compact: true),
+                  );
+
+                  if (bucket.length == 3) {
+                    flushBucket(cols: can3 ? 3 : 2);
+                    metricMode = false;
+                  }
+                  continue;
+                }
+
+                if (metricMode) {
+                  flushBucket(cols: can3 ? 3 : 2);
+                  metricMode = false;
+                }
+
+                final bool full = _forceFullWidth(f, val);
+
+                if (full) {
+                  flushBucket(cols: colsDefault);
+
+                  blocks.add(
+                    SizedBox(
+                      width: rowW,
+                      child: _kvSmart(
+                        f.caption,
+                        empty ? "-" : val,
+                        compact: false,
+                      ),
+                    ),
+                  );
+                } else {
+                  bucket.add(
+                    _kvSmart(f.caption, empty ? "-" : val, compact: true),
+                  );
+
+                  if (bucket.length == colsDefault) {
+                    flushBucket(cols: colsDefault);
+                  }
+                }
+              }
+
+              if (metricMode) {
+                flushBucket(cols: can3 ? 3 : 2);
+              } else {
+                flushBucket(cols: colsDefault);
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (int i = 0; i < blocks.length; i++) ...[
+                    if (i > 0) SizedBox(height: gap),
+                    blocks[i],
+                  ],
+                ],
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
-  String dataInfo({
+  Widget _kvSmart(
+    String k,
+    String v, {
+    required bool compact,
+  }) {
+    final bool empty = _isEmptyValue(v);
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: _tilePadX,
+        vertical: _tilePadY,
+      ),
+      decoration: ShapeDecoration(
+        color: _soft(context),
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size15),
+          smoothness: Dimensions.size1,
+          side: BorderSide(
+            color: _outline(context).withValues(alpha: 0.20),
+          ),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            k,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: Dimensions.text12,
+              fontWeight: FontWeight.w700,
+              color: _fg(context).withValues(alpha: 0.65),
+            ),
+          ),
+          SizedBox(height: Dimensions.size4),
+          Text(
+            empty ? "-" : v,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: Dimensions.text14,
+              fontWeight: FontWeight.w900,
+              height: 1.15,
+              color: _fg(context).withValues(alpha: empty ? 0.35 : 1),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(String text) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: Dimensions.size10,
+        vertical: Dimensions.size5,
+      ),
+      decoration: ShapeDecoration(
+        color: _soft(context),
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size50),
+          smoothness: Dimensions.size1,
+          side: BorderSide(
+            color: _outline(context).withValues(alpha: 0.25),
+          ),
+        ),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: Dimensions.text12,
+          fontWeight: FontWeight.w800,
+          color: _fg(context).withValues(alpha: 0.85),
+        ),
+      ),
+    );
+  }
+
+  Widget _chipCompact({
+    required String label,
+    required String value,
+  }) {
+    final bool empty = _isEmptyValue(value);
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: Dimensions.size10,
+        vertical: Dimensions.size5,
+      ),
+      decoration: ShapeDecoration(
+        color: _soft(context),
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size50),
+          smoothness: Dimensions.size1,
+          side: BorderSide(
+            color: _outline(context).withValues(alpha: 0.25),
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            "$label:",
+            style: TextStyle(
+              fontSize: Dimensions.text12,
+              fontWeight: FontWeight.w800,
+              color: _fg(context).withValues(alpha: 0.70),
+            ),
+          ),
+          SizedBox(width: Dimensions.size5),
+          Text(
+            empty ? "-" : value,
+            style: TextStyle(
+              fontSize: Dimensions.text12,
+              fontWeight: FontWeight.w900,
+              color: _fg(context).withValues(alpha: empty ? 0.40 : 0.90),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyState() {
+    return Container(
+      padding: EdgeInsets.all(Dimensions.size20),
+      decoration: ShapeDecoration(
+        color: _card(context),
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size20),
+          smoothness: Dimensions.size1,
+          side: BorderSide(
+            color: _outline(context).withValues(alpha: 0.35),
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.inbox_outlined,
+            size: Dimensions.size45,
+            color: _fg(context).withValues(alpha: 0.65),
+          ),
+          SizedBox(height: Dimensions.size10),
+          Text(
+            "no_data".tr(),
+            style: TextStyle(
+              fontSize: Dimensions.text16,
+              fontWeight: FontWeight.w900,
+              color: _fg(context),
+            ),
+          ),
+          SizedBox(height: Dimensions.size5),
+          Text(
+            "try_adjust_filter_or_pull_to_refresh".tr(),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: _fg(context).withValues(alpha: 0.70),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _bottomFloatingBar() {
+    final String info = _dataInfo(
+      pageIndex: pageIndex,
+      pageSize: pageSize,
+      dataSize: dataResponse?.size,
+    );
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: Dimensions.size15,
+        vertical: Dimensions.size10,
+      ),
+      decoration: ShapeDecoration(
+        color: _card(context),
+        shadows: [
+          BoxShadow(
+            blurRadius: Dimensions.size25,
+            offset: Offset(0, Dimensions.size15),
+            color: Colors.black.withValues(alpha: 0.14),
+          ),
+        ],
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size20),
+          smoothness: Dimensions.size1,
+          side: BorderSide(
+            color: _outline(context).withValues(alpha: 0.35),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: Dimensions.size10,
+                vertical: Dimensions.size10,
+              ),
+              decoration: ShapeDecoration(
+                color: _soft(context),
+                shape: SmoothRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.size15),
+                  smoothness: Dimensions.size1,
+                  side: BorderSide(
+                    color: _outline(context).withValues(alpha: 0.22),
+                  ),
+                ),
+              ),
+              child: Text(
+                info,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: Dimensions.text12,
+                  fontWeight: FontWeight.w800,
+                  color: _fg(context).withValues(alpha: 0.85),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(width: Dimensions.size10),
+          Expanded(
+            flex: 4,
+            child: CustomPagination(
+              onPageChanged: (int pageNumber) {
+                setState(() {
+                  pageIndex = pageNumber;
+                });
+                refresh();
+              },
+              pageTotal: (size / pageSize).ceil(),
+              pageInit: pageIndex,
+              colorPrimary: _fg(context),
+              colorSub: _soft(context),
+              buttonRadius: Dimensions.size50,
+              buttonElevation: 0,
+              threshold: 1,
+            ),
+          ),
+          SizedBox(width: Dimensions.size10),
+          Container(
+            height: Dimensions.size40,
+            padding: EdgeInsets.symmetric(horizontal: Dimensions.size10),
+            decoration: ShapeDecoration(
+              color: _soft(context),
+              shape: SmoothRectangleBorder(
+                borderRadius: BorderRadius.circular(Dimensions.size15),
+                smoothness: Dimensions.size1,
+                side: BorderSide(
+                  color: _outline(context).withValues(alpha: 0.22),
+                ),
+              ),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                value: pageSize,
+                borderRadius: BorderRadius.circular(Dimensions.size15),
+                icon: Icon(Icons.expand_more, size: Dimensions.size20),
+                items: const [
+                  DropdownMenuItem(value: 20, child: Text("20")),
+                  DropdownMenuItem(value: 50, child: Text("50")),
+                  DropdownMenuItem(value: 100, child: Text("100")),
+                ],
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+
+                  setState(() {
+                    pageSize = value;
+                    pageIndex = 1;
+                  });
+
+                  refresh();
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _dataInfo({
     required int pageIndex,
     required int pageSize,
     required int? dataSize,
@@ -417,7 +938,6 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
       if (start > dataSize) {
         start = dataSize;
       }
-
       if (until > dataSize) {
         until = dataSize;
       }
@@ -428,406 +948,573 @@ class DynamicReportPageState extends State<DynamicReportPage> with WidgetsBindin
     }
   }
 
-  Widget childrenWidget({
-    required String description,
-    required String value,
-    required bool left,
+  Future<void> openFilter() async {
+    final GlobalKey<FormState> formState =
+        GlobalKey<FormState>(debugLabel: "formState");
+
+    if (template == null) {
+      return;
+    }
+
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      barrierColor: Colors.black26,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        final EdgeInsets insets = MediaQuery.of(context).viewInsets;
+        final EdgeInsets safe = MediaQuery.of(context).padding;
+
+        return StatefulBuilder(
+          builder: (context, setStateSheet) {
+            final bool hasActiveFilter = template!.filters.any(
+              (filter) =>
+                  filter.value != null ||
+                  (filter.controller != null &&
+                      StringUtils.isNotNullOrEmpty(filter.controller!.text)),
+            );
+
+            final int count = template!.filters.length;
+            final bool compact = count <= 3;
+            final double maxH =
+                MediaQuery.of(context).size.height * (compact ? 0.62 : 0.90);
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: insets.bottom),
+              child: SafeArea(
+                top: false,
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: maxH),
+                    child: Container(
+                      margin: EdgeInsets.all(Dimensions.size15),
+                      decoration: ShapeDecoration(
+                        color: _card(context),
+                        shape: SmoothRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(Dimensions.size25),
+                          smoothness: Dimensions.size1,
+                          side: BorderSide(
+                            color: _outline(context).withValues(alpha: 0.35),
+                          ),
+                        ),
+                        shadows: [
+                          BoxShadow(
+                            blurRadius: Dimensions.size30,
+                            offset: const Offset(0, 16),
+                            color: Colors.black.withValues(alpha: 0.18),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              Dimensions.size15,
+                              Dimensions.size15,
+                              Dimensions.size15,
+                              Dimensions.size10,
+                            ),
+                            child: Row(
+                              children: [
+                                _iconPill(
+                                  icon: Icons.close,
+                                  onTap: () {
+                                    if (BaseSettings.navigatorType ==
+                                        BaseNavigatorType.legacy) {
+                                      Navigators.pop();
+                                    } else {
+                                      context.pop();
+                                    }
+                                  },
+                                ),
+                                SizedBox(width: Dimensions.size10),
+                                Expanded(
+                                  child: Text(
+                                    "filter".tr(),
+                                    style: TextStyle(
+                                      fontSize: Dimensions.text18,
+                                      fontWeight: FontWeight.w900,
+                                      color: _fg(context),
+                                    ),
+                                  ),
+                                ),
+                                if (hasActiveFilter)
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      BaseDialogs.confirmation(
+                                        title:
+                                            "are_you_sure_want_to_proceed".tr(),
+                                        positiveCallback: () {
+                                          for (Filter filter
+                                              in template!.filters) {
+                                            filter
+                                              ..value = null
+                                              ..controller = null;
+                                          }
+                                          setStateSheet(() {});
+                                        },
+                                      );
+                                    },
+                                    icon: const Icon(Icons.clear_all),
+                                    label: Text("clear".tr()),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Divider(
+                            height: 0,
+                            color: _outline(context).withValues(alpha: 0.35),
+                          ),
+                          Flexible(
+                            fit: FlexFit.loose,
+                            child: Padding(
+                              padding: EdgeInsets.all(Dimensions.size15),
+                              child: Form(
+                                key: formState,
+                                autovalidateMode: AutovalidateMode.always,
+                                child: ListView.separated(
+                                  shrinkWrap: compact,
+                                  physics: compact
+                                      ? const NeverScrollableScrollPhysics()
+                                      : const BouncingScrollPhysics(),
+                                  padding: EdgeInsets.only(
+                                    bottom: Dimensions.size15,
+                                  ),
+                                  itemCount: template!.filters.length,
+                                  separatorBuilder: (context, index) =>
+                                      SizedBox(height: Dimensions.size15),
+                                  itemBuilder: (context, index) {
+                                    final Filter filter =
+                                        template!.filters[index];
+
+                                    if (filter.controller == null) {
+                                      filter.controller =
+                                          TextEditingController();
+
+                                      if (filter.value != null) {
+                                        if (filter.type == "DATE") {
+                                          filter.controller!.text =
+                                              Formats.dateTime(filter.value);
+                                        } else if (filter.type == "NUMERIC") {
+                                          filter.controller!.text =
+                                              Formats.tryParseNumber(
+                                            filter.value,
+                                          ).currency();
+                                        } else if (filter.type == "STRING") {
+                                          filter.controller!.text =
+                                              filter.value;
+                                        } else if (StringUtils.inList(
+                                          filter.type,
+                                          ["DATA", "COMBOBOX"],
+                                        )) {
+                                          filter.controller!.text =
+                                              filter.value;
+                                        }
+                                      }
+                                    }
+
+                                    return _filterCard(
+                                      title: filter.caption,
+                                      canClear: filter.value != null ||
+                                          StringUtils.isNotNullOrEmpty(
+                                            filter.controller!.text,
+                                          ),
+                                      onClear: () {
+                                        filter
+                                          ..value = null
+                                          ..controller = null;
+                                        setStateSheet(() {});
+                                      },
+                                      child: _buildFilterInput(
+                                        filter: filter,
+                                        setStateSheet: setStateSheet,
+                                        onChanged: () => setStateSheet(() {}),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              Dimensions.size15,
+                              Dimensions.size5,
+                              Dimensions.size15,
+                              Dimensions.size15 + safe.bottom * 0.0,
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () {
+                                      if (BaseSettings.navigatorType ==
+                                          BaseNavigatorType.legacy) {
+                                        Navigators.pop();
+                                      } else {
+                                        context.pop();
+                                      }
+                                    },
+                                    icon: const Icon(Icons.close),
+                                    label: Text("close".tr()),
+                                  ),
+                                ),
+                                SizedBox(width: Dimensions.size10),
+                                Expanded(
+                                  child: FilledButton.icon(
+                                    onPressed: () async {
+                                      if (formState.currentState != null &&
+                                          formState.currentState!.validate()) {
+                                        formState.currentState!.save();
+
+                                        setState(() {
+                                          pageIndex = 1;
+                                        });
+
+                                        refresh();
+                                      }
+
+                                      if (BaseSettings.navigatorType ==
+                                          BaseNavigatorType.legacy) {
+                                        Navigators.pop();
+                                      } else {
+                                        context.pop();
+                                      }
+                                    },
+                                    icon: const Icon(Icons.search),
+                                    label: Text("search".tr()),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _filterCard({
+    required String title,
+    required Widget child,
+    required bool canClear,
+    required VoidCallback onClear,
   }) {
-    return Expanded(
+    return Container(
+      padding: EdgeInsets.all(Dimensions.size15),
+      decoration: ShapeDecoration(
+        color: _soft(context),
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size20),
+          smoothness: 1,
+          side: BorderSide(
+            color: _outline(context).withValues(alpha: 0.20),
+          ),
+        ),
+      ),
       child: Column(
-        crossAxisAlignment: left ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            description,
-            textAlign: left ? TextAlign.start : TextAlign.end,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: Dimensions.text14,
+                    fontWeight: FontWeight.w900,
+                    color: _fg(context),
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: canClear ? onClear : null,
+                icon: const Icon(Icons.backspace),
+              ),
+            ],
           ),
-          Text(
-            value,
-            textAlign: left ? TextAlign.start : TextAlign.end,
-            style: TextStyle(
-              fontSize: Dimensions.text16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          SizedBox(height: Dimensions.size10),
+          child,
         ],
       ),
     );
   }
 
-  Future<void> openFilter() async {
-    final GlobalKey<FormState> formState = GlobalKey<FormState>(debugLabel: "formState");
+  Widget _buildFilterInput({
+    required Filter filter,
+    required void Function(void Function()) setStateSheet,
+    required VoidCallback onChanged,
+  }) {
+    Widget widget = const SizedBox.shrink();
 
-    return await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      shape: SmoothRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(Dimensions.size20),
-          topRight: Radius.circular(Dimensions.size20),
-        ),
-        smoothness: 1,
-        side: BorderSide(color: AppColors.outline()),
-      ),
-      barrierColor: Colors.black12,
-      backgroundColor: AppColors.surface(),
-      builder: (BuildContext context) {
-        return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-          child: StatefulBuilder(
-            builder: (context, setState) {
-              return Column(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(Dimensions.size15),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: AppColors.outline(),
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          onPressed: () {
-                            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                              Navigators.pop();
-                            } else {
-                              context.pop();
-                            }
-                          },
-                          icon: const Icon(
-                            Icons.turn_left,
-                          ),
-                        ),
-                        Expanded(
-                          child: Container(
-                            margin: EdgeInsets.only(
-                              left: Dimensions.size5,
-                            ),
-                            child: Text(
-                              "filter".tr(),
-                              style: TextStyle(
-                                fontSize: Dimensions.text16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      padding: EdgeInsets.all(Dimensions.size20),
-                      color: AppColors.surface(),
-                      child: Form(
-                        key: formState,
-                        autovalidateMode: AutovalidateMode.always,
-                        child: ListView.separated(
-                          itemCount: template!.filters.length,
-                          padding: EdgeInsets.only(
-                            bottom: Dimensions.size100,
-                          ),
-                          itemBuilder: (BuildContext context, int index) {
-                            Filter filter = template!.filters[index];
-
-                            if (filter.controller == null) {
-                              filter.controller = TextEditingController();
-
-                              if (filter.value != null) {
-                                if (filter.type == "DATE") {
-                                  filter.controller!.text = Formats.dateTime(filter.value);
-                                } else if (filter.type == "NUMERIC") {
-                                  filter.controller!.text = Formats.tryParseNumber(filter.value).currency();
-                                } else if (filter.type == "STRING") {
-                                  filter.controller!.text = filter.value;
-                                } else if (StringUtils.inList(filter.type, ["DATA", "COMBOBOX"])) {
-                                  filter.controller!.text = filter.value;
-                                }
-                              }
-                            }
-
-                            Widget widget = const SizedBox.shrink();
-
-                            if (filter.type == "STRING") {
-                              widget = TextFormField(
-                                controller: filter.controller,
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  filled: true,
-                                ),
-                                keyboardType: TextInputType.text,
-                                onChanged: (value) {
-                                  setState(() {});
-                                },
-                                onSaved: (newValue) {
-                                  if (StringUtils.isNotNullOrEmpty(newValue)) {
-                                    filter.value = newValue;
-                                  } else {
-                                    filter.value = null;
-                                  }
-                                },
-                              );
-                            } else if (filter.type == "NUMERIC") {
-                              widget = TextFormField(
-                                controller: filter.controller,
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  filled: true,
-                                ),
-                                inputFormatters: [
-                                  ThousandsFormatter(
-                                    allowFraction: true,
-                                    formatter: NumberFormat.decimalPattern("id_ID"),
-                                  ),
-                                ],
-                                keyboardType: TextInputType.number,
-                                onChanged: (value) {
-                                  setState(() {});
-                                },
-                                onSaved: (newValue) {
-                                  filter.value = int.tryParse(newValue ?? "");
-                                },
-                              );
-                            } else if (filter.type == "CHECKBOX") {
-                              widget = Align(
-                                alignment: Alignment.centerLeft,
-                                child: SizedBox(
-                                  width: Dimensions.size20,
-                                  height: Dimensions.size20,
-                                  child: Checkbox(
-                                    tristate: true,
-                                    value: filter.value,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        filter.value = value;
-                                      });
-                                    },
-                                  ),
-                                ),
-                              );
-                            } else if (filter.type == "DATE") {
-                              widget = TextFormField(
-                                controller: filter.controller,
-                                decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
-                                  filled: true,
-                                  suffixIcon: Icon(
-                                    Icons.event,
-                                  ),
-                                ),
-                                onTap: () {
-                                  BaseSheets.date(
-                                    jiffy: filter.value ?? Jiffy.now(),
-                                    min: Jiffy.parseFromDateTime(DateTime(1900, 1, 1)),
-                                    max: Jiffy.parseFromDateTime(DateTime(2099, 12, 31)),
-                                    onSelected: (jiffy) {
-                                      setState(() {
-                                        filter.value = jiffy;
-                                        filter.controller!.text = Formats.date(
-                                          filter.value,
-                                          defaultString: "",
-                                        );
-                                      });
-                                    },
-                                  );
-                                },
-                                readOnly: true,
-                              );
-                            } else if (StringUtils.inList(filter.type, ["DATA", "COMBOBOX"])) {
-                              widget = Material(
-                                child: InkWell(
-                                  onTap: () async {
-                                    Map<String, String>? items;
-
-                                    try {
-                                      context.loaderOverlay.show();
-
-                                      items = await DotApis.getInstance().dynamicReportResource(
-                                          id: template!.id,
-                                          field: filter.name
-                                      );
-                                    } catch (e) {
-                                      BaseOverlays.error(message: "something_wrong_please_try_again".tr());
-                                    } finally {
-                                      context.loaderOverlay.hide();
-                                    }
-
-                                    if (items != null) {
-                                      List<SpinnerItem> spinnerItems = [];
-
-                                      for (MapEntry<String, String> mapEntry in items.entries) {
-                                        spinnerItems.add(
-                                          SpinnerItem(
-                                            identity: mapEntry.key,
-                                            description: mapEntry.value,
-                                          ),
-                                        );
-                                      }
-
-                                      SpinnerItem? selectedItem = await BaseSheets.spinner(
-                                        context: context,
-                                        title: filter.caption,
-                                        spinnerItems: spinnerItems,
-                                      );
-
-                                      if (selectedItem != null) {
-                                        filter.value = selectedItem.identity;
-                                        filter.controller!.text = selectedItem.description;
-                                      } else {
-                                        filter.value = null;
-                                        filter.controller!.text = "";
-                                      }
-                                    }
-                                  },
-                                  customBorder: SmoothRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    smoothness: 1,
-                                  ),
-                                  child: Ink(
-                                    width: double.infinity,
-                                    height: Dimensions.size55,
-                                    decoration: ShapeDecoration(
-                                      shape: SmoothRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                        smoothness: 1,
-                                        side: BorderSide(
-                                          color: AppColors.outline(),
-                                        ),
-                                      ),
-                                      color: AppColors.surfaceContainerLowest(),
-                                    ),
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: Dimensions.size15,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            filter.controller!.text,
-                                            style: TextStyle(
-                                              fontSize: Dimensions.text16,
-                                            ),
-                                          ),
-                                        ),
-                                        SizedBox(width: Dimensions.size10),
-                                        Icon(
-                                          Icons.arrow_downward,
-                                          size: Dimensions.size20,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }
-
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      filter.caption,
-                                      style: TextStyle(
-                                        fontSize: Dimensions.text16,
-                                        fontWeight: FontWeight.bold,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Divider(
-                                        color: AppColors.outline().withValues(alpha: 0.5),
-                                        indent: Dimensions.size10,
-                                        height: 0,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      onPressed: filter.value != null ||
-                                          StringUtils.isNotNullOrEmpty(
-                                            filter.controller!.text,
-                                          )
-                                          ? () {
-                                        filter.value = null;
-                                        filter.controller = null;
-
-                                        setState(() {});
-                                      }
-                                          : null,
-                                      icon: const Icon(Icons.backspace),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(
-                                  height: Dimensions.size10,
-                                ),
-                                widget,
-                              ],
-                            );
-                          },
-                          separatorBuilder: (BuildContext context, int index) {
-                            return SizedBox(
-                              height: Dimensions.size10,
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                  BaseBottomBar(
-                    children: [
-                      Visibility(
-                        visible: template!.filters.any((filter) => filter.value != null || (filter.controller != null && StringUtils.isNotNullOrEmpty(filter.controller!.text))),
-                        child: TextButton.icon(
-                          onPressed: () async {
-                            BaseDialogs.confirmation(
-                              title: "are_you_sure_want_to_proceed".tr(),
-                              positiveCallback: () {
-                                for (Filter filter in template!.filters) {
-                                  filter.value = null;
-                                  filter.controller = null;
-                                }
-
-                                setState(() {});
-                              },
-                            );
-                          },
-                          icon: const Icon(
-                            Icons.clear_all,
-                          ),
-                          label: Text("clear".tr()),
-                        ),
-                      ),
-                      const Spacer(),
-                      FilledButton.icon(
-                        onPressed: () async {
-                          if (formState.currentState != null && formState.currentState!.validate()) {
-                            formState.currentState!.save();
-
-                            refresh();
-                          }
-
-                          if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                            Navigators.pop();
-                          } else {
-                            context.pop();
-                          }
-                        },
-                        icon:  const Icon(
-                          Icons.search,
-                        ),
-                        label: Text("search".tr()),
-                      ),
-                    ],
-                  ),
-                ],
-              );
+    if (filter.type == "STRING") {
+      widget = TextFormField(
+        controller: filter.controller,
+        decoration: _inputDeco(hint: filter.caption),
+        keyboardType: TextInputType.text,
+        onChanged: (_) => onChanged(),
+        onSaved: (newValue) {
+          if (StringUtils.isNotNullOrEmpty(newValue)) {
+            filter.value = newValue;
+          } else {
+            filter.value = null;
+          }
+        },
+      );
+    } else if (filter.type == "NUMERIC") {
+      widget = TextFormField(
+        controller: filter.controller,
+        decoration: _inputDeco(hint: filter.caption),
+        inputFormatters: [
+          ThousandsFormatter(
+            allowFraction: true,
+            formatter: NumberFormat.decimalPattern("id_ID"),
+          ),
+        ],
+        keyboardType: TextInputType.number,
+        onChanged: (_) => onChanged(),
+        onSaved: (newValue) {
+          filter.value = int.tryParse(newValue ?? "");
+        },
+      );
+    } else if (filter.type == "CHECKBOX") {
+      widget = Align(
+        alignment: Alignment.centerLeft,
+        child: SizedBox(
+          width: Dimensions.size25,
+          height: Dimensions.size25,
+          child: Checkbox(
+            tristate: true,
+            value: filter.value,
+            onChanged: (value) {
+              setStateSheet(() {
+                filter.value = value;
+              });
             },
           ),
-        );
-      },
+        ),
+      );
+    } else if (filter.type == "DATE") {
+      widget = TextFormField(
+        controller: filter.controller,
+        decoration: _inputDeco(
+          hint: filter.caption,
+          suffixIcon: const Icon(Icons.event),
+        ),
+        onTap: () {
+          BaseSheets.date(
+            jiffy: filter.value ?? Jiffy.now(),
+            min: Jiffy.parseFromDateTime(DateTime(1900, 1, 1)),
+            max: Jiffy.parseFromDateTime(DateTime(2099, 12, 31)),
+            onSelected: (jiffy) {
+              setStateSheet(() {
+                filter.value = jiffy;
+                filter.controller!.text = Formats.date(
+                  filter.value,
+                  defaultString: "",
+                );
+              });
+            },
+          );
+        },
+        readOnly: true,
+      );
+    } else if (StringUtils.inList(filter.type, ["DATA", "COMBOBOX"])) {
+      widget = Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () async {
+            Map<String, String>? items;
+
+            try {
+              context.loaderOverlay.show();
+
+              items = await DotApis.getInstance().dynamicReportResource(
+                id: template!.id,
+                field: filter.name,
+              );
+            } catch (e) {
+              BaseOverlays.error(
+                message: "something_wrong_please_try_again".tr(),
+              );
+            } finally {
+              context.loaderOverlay.hide();
+            }
+
+            if (items != null) {
+              final List<SpinnerItem> spinnerItems = [];
+
+              for (MapEntry<String, String> mapEntry in items.entries) {
+                spinnerItems.add(
+                  SpinnerItem(
+                    identity: mapEntry.key,
+                    description: mapEntry.value,
+                  ),
+                );
+              }
+
+              final SpinnerItem? selectedItem = await BaseSheets.spinner(
+                context: context,
+                title: filter.caption,
+                spinnerItems: spinnerItems,
+              );
+
+              if (selectedItem != null) {
+                setStateSheet(() {
+                  filter.value = selectedItem.identity;
+                  filter.controller!.text = selectedItem.description;
+                });
+              } else {
+                setStateSheet(() {
+                  filter.value = null;
+                  filter.controller!.text = "";
+                });
+              }
+            }
+          },
+          customBorder: SmoothRectangleBorder(
+            borderRadius: BorderRadius.circular(Dimensions.size15),
+            smoothness: Dimensions.size1,
+          ),
+          child: Ink(
+            width: double.infinity,
+            height: Dimensions.size55,
+            decoration: ShapeDecoration(
+              color: _card(context),
+              shape: SmoothRectangleBorder(
+                borderRadius: BorderRadius.circular(Dimensions.size15),
+                smoothness: Dimensions.size1,
+                side: BorderSide(
+                  color: _outline(context).withValues(alpha: 0.35),
+                ),
+              ),
+            ),
+            padding: EdgeInsets.symmetric(horizontal: Dimensions.size15),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    StringUtils.isNotNullOrEmpty(filter.controller!.text)
+                        ? filter.controller!.text
+                        : "choose".tr(),
+                    style: TextStyle(
+                      fontSize: Dimensions.text16,
+                      fontWeight: FontWeight.w700,
+                      color: _fg(context).withValues(
+                        alpha: StringUtils.isNotNullOrEmpty(
+                          filter.controller!.text,
+                        )
+                            ? 1
+                            : 0.65,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: Dimensions.size10),
+                Icon(Icons.unfold_more, size: Dimensions.size25),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return widget;
+  }
+
+  InputDecoration _inputDeco({
+    required String hint,
+    Widget? suffixIcon,
+  }) {
+    final OutlineInputBorder outline = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(Dimensions.size20),
+      borderSide: BorderSide(
+        color: _outline(context).withValues(alpha: 0.45),
+        width: 1,
+      ),
+    );
+
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: _card(context),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: Dimensions.size15,
+        vertical: Dimensions.size15,
+      ),
+      enabledBorder: outline,
+      focusedBorder: outline.copyWith(
+        borderSide: BorderSide(
+          color: _fg(context).withValues(alpha: 0.60),
+          width: 1.2,
+        ),
+      ),
+      errorBorder: outline.copyWith(
+        borderSide: BorderSide(
+          color: Colors.red.withValues(alpha: 0.60),
+          width: 1,
+        ),
+      ),
+      focusedErrorBorder: outline.copyWith(
+        borderSide: BorderSide(
+          color: Colors.red.withValues(alpha: 0.70),
+          width: 1.2,
+        ),
+      ),
+      suffixIcon: suffixIcon,
     );
   }
+
+  bool _isTriMetric(Field f) {
+    final k = f.name.toLowerCase();
+    final c = f.caption.toLowerCase();
+
+    bool hit(String s) => k.contains(s) || c.contains(s);
+
+    return hit("qty_alloc") ||
+        hit("alloc") ||
+        hit("qty_transit") ||
+        hit("transit") ||
+        hit("booked_total") ||
+        hit("booked total") ||
+        hit("booked");
+  }
+
+  bool _forceFullWidth(Field f, String v) {
+    final k = f.name.toLowerCase();
+
+    if (k.contains("booking")) {
+      return true;
+    }
+
+    if (k == "itemdesc" || k == "item_desc") {
+      return false;
+    }
+
+    if (k.contains("remark") || k.contains("note")) {
+      return true;
+    }
+    if (v.length > 30) {
+      return true;
+    }
+
+    return false;
+  }
+
+  Color _bg(BuildContext context) => AppColors.surfaceContainerLowest();
+  Color _card(BuildContext context) => AppColors.surface();
+  Color _soft(BuildContext context) => AppColors.surfaceContainerLowest();
+  Color _fg(BuildContext context) => AppColors.onSurface();
+  Color _outline(BuildContext context) => AppColors.outline();
 }

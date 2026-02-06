@@ -1,4 +1,4 @@
-// ignore_for_file: always_specify_types, use_build_context_synchronously, cascade_invocations, always_put_required_named_parameters_first, constant_identifier_names, avoid_print
+// ignore_for_file: always_specify_types, use_build_context_synchronously, cascade_invocations, always_put_required_named_parameters_first, constant_identifier_names, avoid_print, deprecated_member_use
 
 import "dart:io";
 import "dart:typed_data";
@@ -65,14 +65,20 @@ class BottomSheets {
                       vertical: Dimensions.size5,
                     ),
                     onTap: menuItem.onTap,
-                    leading: menuItem.iconData != null ? Icon(
-                      menuItem.iconData,
-                      color: menuItem.onTap != null ? AppColors.onSurface() : AppColors.onSurface().withOpacity(0.3),
-                    ) : null,
+                    leading: menuItem.iconData != null
+                        ? Icon(
+                            menuItem.iconData,
+                            color: menuItem.onTap != null
+                                ? AppColors.onSurface()
+                                : AppColors.onSurface().withOpacity(0.3),
+                          )
+                        : null,
                     title: Text(
                       menuItem.title,
                       style: TextStyle(
-                        color: menuItem.onTap != null ? AppColors.onSurface() : AppColors.onSurface().withOpacity(0.3),
+                        color: menuItem.onTap != null
+                            ? AppColors.onSurface()
+                            : AppColors.onSurface().withOpacity(0.3),
                         fontWeight: FontWeight.bold,
                         fontSize: Dimensions.text16,
                       ),
@@ -128,9 +134,13 @@ class BottomSheets {
     required BuildContext context,
     required Uint8List bytes,
   }) async {
-    File file = await CustomAttachments.temporarySave(fileName: "video-preview", bytes: bytes);
+    File file = await CustomAttachments.temporarySave(
+      fileName: "video-preview",
+      bytes: bytes,
+    );
 
-    VideoPlayerController videoPlayerController = VideoPlayerController.file(file);
+    VideoPlayerController videoPlayerController =
+        VideoPlayerController.file(file);
 
     await videoPlayerController.initialize();
     await videoPlayerController.setLooping(true);

@@ -1,7 +1,5 @@
 // ignore_for_file: always_specify_types, use_build_context_synchronously, always_put_required_named_parameters_first, cascade_invocations
 
-import "dart:io";
-
 import "package:base/base.dart";
 import "package:camera/camera.dart";
 import "package:dynamic_of_things/helper/images.dart";
@@ -49,11 +47,13 @@ class Dialogs {
                     child: InkWell(
                       onTap: () async {
                         if (multiple) {
-                          List<XFile> xFiles = await ImagePicker().pickMultiImage(
+                          List<XFile> xFiles =
+                              await ImagePicker().pickMultiImage(
                             imageQuality: 20,
                           );
 
-                          if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                          if (BaseSettings.navigatorType ==
+                              BaseNavigatorType.legacy) {
                             Navigators.pop();
                           } else {
                             context.pop();
@@ -67,7 +67,8 @@ class Dialogs {
                           );
 
                           if (xFile != null) {
-                            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                            if (BaseSettings.navigatorType ==
+                                BaseNavigatorType.legacy) {
                               Navigators.pop();
                             } else {
                               context.pop();
@@ -80,7 +81,10 @@ class Dialogs {
                       child: Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: [const Icon(Icons.photo), Text("common_gallery".tr())],
+                          children: [
+                            const Icon(Icons.photo),
+                            Text("common_gallery".tr()),
+                          ],
                         ),
                       ),
                     ),
@@ -98,7 +102,8 @@ class Dialogs {
                         Images.camera(
                           context: context,
                           callback: (bytes) {
-                            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                            if (BaseSettings.navigatorType ==
+                                BaseNavigatorType.legacy) {
                               Navigators.pop();
                             } else {
                               context.pop();
@@ -107,7 +112,8 @@ class Dialogs {
                             callback.call([
                               XFile.fromData(
                                 bytes,
-                                name: "${DateTime.now().millisecondsSinceEpoch.toString()}.png",
+                                name:
+                                    "${DateTime.now().millisecondsSinceEpoch.toString()}.png",
                                 mimeType: "png",
                               ),
                             ]);
@@ -117,7 +123,10 @@ class Dialogs {
                       child: Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: [const Icon(Icons.camera_alt), Text("common_camera".tr())],
+                          children: [
+                            const Icon(Icons.camera_alt),
+                            Text("common_camera".tr()),
+                          ],
                         ),
                       ),
                     ),
@@ -186,13 +195,16 @@ class Dialogs {
                     decoration: boxDecoration,
                     child: InkWell(
                       onTap: () async {
-                        FilePickerResult? filePickerResult = await FilePicker.platform.pickFiles(
+                        FilePickerResult? filePickerResult =
+                            await FilePicker.platform.pickFiles(
                           withData: true,
                           type: FileType.video,
                         );
 
-                        if (filePickerResult != null && filePickerResult.files.isNotEmpty) {
-                          if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                        if (filePickerResult != null &&
+                            filePickerResult.files.isNotEmpty) {
+                          if (BaseSettings.navigatorType ==
+                              BaseNavigatorType.legacy) {
                             Navigators.pop();
                           } else {
                             context.pop();
@@ -204,7 +216,10 @@ class Dialogs {
                       child: Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: [const Icon(Icons.photo), Text("common_gallery".tr())],
+                          children: [
+                            const Icon(Icons.photo),
+                            Text("common_gallery".tr()),
+                          ],
                         ),
                       ),
                     ),
@@ -224,7 +239,8 @@ class Dialogs {
                             RecordPage(
                               cameraDescriptions: value,
                               callback: (xFile) async {
-                                if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                                if (BaseSettings.navigatorType ==
+                                    BaseNavigatorType.legacy) {
                                   Navigators.pop();
                                 } else {
                                   context.pop();
@@ -245,7 +261,10 @@ class Dialogs {
                       child: Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: [const Icon(Icons.camera_alt), Text("common_camera".tr())],
+                          children: [
+                            const Icon(Icons.camera_alt),
+                            Text("common_camera".tr()),
+                          ],
                         ),
                       ),
                     ),

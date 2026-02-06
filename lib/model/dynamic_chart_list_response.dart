@@ -8,18 +8,20 @@ class ListResponse {
   });
 
   factory ListResponse.fromJson(Map<String, dynamic> json) => ListResponse(
-    charts: json["charts"] != null ? List<Chart>.from(
-      json["charts"].map((e) {
-        String type = e["type"];
+        charts: json["charts"] != null
+            ? List<Chart>.from(
+                json["charts"].map((e) {
+                  String type = e["type"];
 
-        if (type == "Card") {
-          return Summary.fromJson(e);
-        } else if (type == "Bar Chart") {
-          return Bar.fromJson(e);
-        }
-      }),
-    ) : [],
-  );
+                  if (type == "Card") {
+                    return Summary.fromJson(e);
+                  } else if (type == "Bar Chart") {
+                    return Bar.fromJson(e);
+                  }
+                }),
+              )
+            : [],
+      );
 }
 
 class Chart {
@@ -36,11 +38,11 @@ class Chart {
   });
 
   factory Chart.fromJson(Map<String, dynamic> json) => Chart(
-    id: json["id"],
-    title: json["title"],
-    type: json["type"],
-    size: json["size"],
-  );
+        id: json["id"],
+        title: json["title"],
+        type: json["type"],
+        size: json["size"],
+      );
 }
 
 class Summary extends Chart {
@@ -57,13 +59,13 @@ class Summary extends Chart {
   });
 
   factory Summary.fromJson(Map<String, dynamic> json) => Summary(
-    id: json["id"],
-    title: json["title"],
-    type: json["type"],
-    size: json["size"],
-    icon: json["icon"],
-    color: json["color"],
-  );
+        id: json["id"],
+        title: json["title"],
+        type: json["type"],
+        size: json["size"],
+        icon: json["icon"],
+        color: json["color"],
+      );
 }
 
 class Bar extends Chart {
@@ -80,11 +82,11 @@ class Bar extends Chart {
   });
 
   factory Bar.fromJson(Map<String, dynamic> json) => Bar(
-    id: json["id"],
-    title: json["title"],
-    type: json["type"],
-    size: json["size"],
-    xLabel: json["xLabel"],
-    yLabel: json["yLabel"],
-  );
+        id: json["id"],
+        title: json["title"],
+        type: json["type"],
+        size: json["size"],
+        xLabel: json["xLabel"],
+        yLabel: json["yLabel"],
+      );
 }

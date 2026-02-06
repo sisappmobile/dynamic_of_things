@@ -1,5 +1,3 @@
-// ignore_for_file: always_specify_types, use_build_context_synchronously, empty_catches, cascade_invocations, always_put_required_named_parameters_first, invalid_use_of_protected_member
-
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:camera/camera.dart";
@@ -28,7 +26,8 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:flutter_image_compress/flutter_image_compress.dart";
-import "package:get/get_utils/src/extensions/internacionalization.dart" hide Trans;
+import "package:get/get_utils/src/extensions/internacionalization.dart"
+    hide Trans;
 import "package:go_router/go_router.dart";
 import "package:loader_overlay/loader_overlay.dart";
 import "package:material_symbols_icons/material_symbols_icons.dart";
@@ -77,7 +76,14 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     return ListenableBuilder(
       listenable: widget.field,
       builder: (context, child) {
-        if (!StringUtils.inList(widget.field.type, [DynamicFormFieldType.SHORT_TEXT.name, DynamicFormFieldType.LONG_TEXT.name, DynamicFormFieldType.NUMBER.name, DynamicFormFieldType.EMAIL.name, DynamicFormFieldType.URL.name]) || widget.field.forceRefresh) {
+        if (!StringUtils.inList(widget.field.type, [
+              DynamicFormFieldType.SHORT_TEXT.name,
+              DynamicFormFieldType.LONG_TEXT.name,
+              DynamicFormFieldType.NUMBER.name,
+              DynamicFormFieldType.EMAIL.name,
+              DynamicFormFieldType.URL.name,
+            ]) ||
+            widget.field.forceRefresh) {
           controller.text = widget.field.label(widget.data);
 
           widget.field.forceRefresh = false;
@@ -135,7 +141,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             field: field,
             body: textField(
               field,
-              onChanged: (value) => widget.field.setValue(widget.data, Formats.tryParseNumber(value)),
+              onChanged: (value) => widget.field
+                  .setValue(widget.data, Formats.tryParseNumber(value)),
               inputFormatters: [
                 ThousandsFormatter(
                   formatter: NumberFormat.decimalPattern("id"),
@@ -225,7 +232,6 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         },
       );
     } else if (widget.field.type == DynamicFormFieldType.RADIO.name) {
-      // TODO: Need to be checked
       return FormField(
         validator: (value) {
           return validate();
@@ -251,7 +257,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                       child: Radio(
                         value: string,
                         groupValue: widget.field.getValue(widget.data),
-                        onChanged: !isReadOnly() ? (value) => changed(value) : null,
+                        onChanged:
+                            !isReadOnly() ? (value) => changed(value) : null,
                       ),
                     ),
                     Text(
@@ -263,14 +270,14 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                   ],
                 );
               },
-              separatorBuilder: (context, index) => SizedBox(height: Dimensions.size15),
+              separatorBuilder: (context, index) =>
+                  SizedBox(height: Dimensions.size15),
               itemCount: widget.field.data.length,
             ),
           );
         },
       );
     } else if (widget.field.type == DynamicFormFieldType.CHECK.name) {
-      // TODO: Need to be checked
       return FormField(
         validator: (value) {
           return validate();
@@ -280,21 +287,23 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             field: field,
             body: Switch(
               value: (widget.field.getValue(widget.data) ?? false) as bool,
-              onChanged: !isReadOnly() ? (value) {
-                setState(() {
-                  widget.field.setValue(widget.data, value);
-                });
+              onChanged: !isReadOnly()
+                  ? (value) {
+                      setState(() {
+                        widget.field.setValue(widget.data, value);
+                      });
 
-                if (widget.field.hasScript) {
-                  context.read<DynamicFormBloc>().add(
-                    DynamicFormRefresh(
-                      formId: widget.headerForm.template.id,
-                      customerId: widget.customerId,
-                      headerForm: widget.headerForm,
-                    ),
-                  );
-                }
-              } : null,
+                      if (widget.field.hasScript) {
+                        context.read<DynamicFormBloc>().add(
+                              DynamicFormRefresh(
+                                formId: widget.headerForm.template.id,
+                                customerId: widget.customerId,
+                                headerForm: widget.headerForm,
+                              ),
+                            );
+                      }
+                    }
+                  : null,
             ),
           );
         },
@@ -311,7 +320,15 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           );
         },
       );
-    } else if (StringUtils.inList(widget.field.type, [DynamicFormFieldType.FILE.name, DynamicFormFieldType.FOTO.name, DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.SIGNATURE.name, DynamicFormFieldType.UPLOAD_FOTO.name, DynamicFormFieldType.UPLOAD_VIDEO.name, DynamicFormFieldType.UPLOAD_SIGNATURE.name])) {
+    } else if (StringUtils.inList(widget.field.type, [
+      DynamicFormFieldType.FILE.name,
+      DynamicFormFieldType.FOTO.name,
+      DynamicFormFieldType.VIDEO.name,
+      DynamicFormFieldType.SIGNATURE.name,
+      DynamicFormFieldType.UPLOAD_FOTO.name,
+      DynamicFormFieldType.UPLOAD_VIDEO.name,
+      DynamicFormFieldType.UPLOAD_SIGNATURE.name,
+    ])) {
       return FormField(
         validator: (value) {
           return validate();
@@ -376,7 +393,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   String? contains(String? value) {
     value ??= "";
 
-    Validation? validation = widget.field.validations.firstWhereOrNull((element) => element.type == DynamicFormValidationType.CONTAINS.name);
+    Validation? validation = widget.field.validations.firstWhereOrNull(
+      (element) => element.type == DynamicFormValidationType.CONTAINS.name,
+    );
 
     if (validation != null) {
       if (!value.contains(validation.value)) {
@@ -392,7 +411,14 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   }
 
   Widget? suffixIcon() {
-    if (!isReadOnly() && StringUtils.inList(widget.field.type, [DynamicFormFieldType.SHORT_TEXT.name, DynamicFormFieldType.LONG_TEXT.name, DynamicFormFieldType.NUMBER.name, DynamicFormFieldType.EMAIL.name, DynamicFormFieldType.URL.name])) {
+    if (!isReadOnly() &&
+        StringUtils.inList(widget.field.type, [
+          DynamicFormFieldType.SHORT_TEXT.name,
+          DynamicFormFieldType.LONG_TEXT.name,
+          DynamicFormFieldType.NUMBER.name,
+          DynamicFormFieldType.EMAIL.name,
+          DynamicFormFieldType.URL.name,
+        ])) {
       return IconButton(
         icon: const Icon(
           Icons.more_vert,
@@ -438,7 +464,11 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           );
         },
       );
-    } else if (!isReadOnly() && StringUtils.inList(widget.field.type, [DynamicFormFieldType.QRCODE.name, DynamicFormFieldType.BARCODE.name])) {
+    } else if (!isReadOnly() &&
+        StringUtils.inList(widget.field.type, [
+          DynamicFormFieldType.QRCODE.name,
+          DynamicFormFieldType.BARCODE.name,
+        ])) {
       return IconButton(
         icon: const Icon(
           Icons.qr_code_scanner,
@@ -476,14 +506,20 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           );
         },
       );
-    } else if (StringUtils.inList(widget.field.type, [DynamicFormFieldType.DATE.name, DynamicFormFieldType.DATE_TIME.name])) {
+    } else if (StringUtils.inList(widget.field.type, [
+      DynamicFormFieldType.DATE.name,
+      DynamicFormFieldType.DATE_TIME.name,
+    ])) {
       return IconButton(
         icon: const Icon(
           Icons.event,
         ),
         onPressed: !isReadOnly() ? () => onPressed() : null,
       );
-    } else if (StringUtils.inList(widget.field.type, [DynamicFormFieldType.TIME.name])) {
+    } else if (StringUtils.inList(
+      widget.field.type,
+      [DynamicFormFieldType.TIME.name],
+    )) {
       return IconButton(
         icon: const Icon(
           Icons.access_time,
@@ -498,7 +534,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   String? notContains(String? value) {
     value ??= "";
 
-    Validation? validation = widget.field.validations.firstWhereOrNull((element) => element.type == DynamicFormValidationType.NOT_CONTAINS.name);
+    Validation? validation = widget.field.validations.firstWhereOrNull(
+      (element) => element.type == DynamicFormValidationType.NOT_CONTAINS.name,
+    );
 
     if (validation != null) {
       if (value.contains(validation.value)) {
@@ -516,7 +554,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   String? minLength(String? value) {
     value ??= "";
 
-    Validation? validation = widget.field.validations.firstWhereOrNull((element) => element.type == DynamicFormValidationType.MIN_LENGTH.name);
+    Validation? validation = widget.field.validations.firstWhereOrNull(
+      (element) => element.type == DynamicFormValidationType.MIN_LENGTH.name,
+    );
 
     if (validation != null) {
       int minLength;
@@ -540,7 +580,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   }
 
   int? maxLengthValue() {
-    Validation? validation = widget.field.validations.firstWhereOrNull((element) => element.type == DynamicFormValidationType.MAX_LENGTH.name);
+    Validation? validation = widget.field.validations.firstWhereOrNull(
+      (element) => element.type == DynamicFormValidationType.MAX_LENGTH.name,
+    );
 
     int result = 0;
 
@@ -562,7 +604,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   String? maxLength(String? value) {
     value ??= "";
 
-    Validation? validation = widget.field.validations.firstWhereOrNull((element) => element.type == DynamicFormValidationType.MAX_LENGTH.name);
+    Validation? validation = widget.field.validations.firstWhereOrNull(
+      (element) => element.type == DynamicFormValidationType.MAX_LENGTH.name,
+    );
 
     if (validation != null) {
       int? maxLength = maxLengthValue();
@@ -572,7 +616,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           if (StringUtils.isNotNullOrEmpty(validation.errorMessage)) {
             return validation.errorMessage;
           } else {
-            return "maximum_character_is".tr(args: [validation.value.toString()]);
+            return "maximum_character_is"
+                .tr(args: [validation.value.toString()]);
           }
         }
       }
@@ -582,7 +627,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   }
 
   String? greaterThan(int value) {
-    Validation? validation = widget.field.validations.firstWhereOrNull((element) => element.type == DynamicFormValidationType.GREATER_THAN.name);
+    Validation? validation = widget.field.validations.firstWhereOrNull(
+      (element) => element.type == DynamicFormValidationType.GREATER_THAN.name,
+    );
 
     if (validation != null) {
       int greaterThan;
@@ -597,7 +644,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         if (StringUtils.isNotNullOrEmpty(validation.errorMessage)) {
           return validation.errorMessage;
         } else {
-          return "value_must_be_greater_than".tr(args: [validation.value.toString()]);
+          return "value_must_be_greater_than"
+              .tr(args: [validation.value.toString()]);
         }
       }
     }
@@ -606,7 +654,11 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   }
 
   String? greaterThanOrEqualTo(int value) {
-    Validation? validation = widget.field.validations.firstWhereOrNull((element) => element.type == DynamicFormValidationType.GREATER_THAN_OR_EQUAL_TO.name);
+    Validation? validation = widget.field.validations.firstWhereOrNull(
+      (element) =>
+          element.type ==
+          DynamicFormValidationType.GREATER_THAN_OR_EQUAL_TO.name,
+    );
 
     if (validation != null) {
       int greaterThanOrEqualTo;
@@ -621,7 +673,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         if (StringUtils.isNotNullOrEmpty(validation.errorMessage)) {
           return validation.errorMessage;
         } else {
-          return "value_must_be_greater_than_or_equal_to".tr(args: [validation.value.toString()]);
+          return "value_must_be_greater_than_or_equal_to"
+              .tr(args: [validation.value.toString()]);
         }
       }
     }
@@ -630,7 +683,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   }
 
   String? lessThan(int value) {
-    Validation? validation = widget.field.validations.firstWhereOrNull((element) => element.type == DynamicFormValidationType.LESS_THAN.name);
+    Validation? validation = widget.field.validations.firstWhereOrNull(
+      (element) => element.type == DynamicFormValidationType.LESS_THAN.name,
+    );
 
     if (validation != null) {
       int lessThan;
@@ -645,7 +700,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         if (StringUtils.isNotNullOrEmpty(validation.errorMessage)) {
           return validation.errorMessage;
         } else {
-          return "value_must_be_less_than".tr(args: [validation.value.toString()]);
+          return "value_must_be_less_than"
+              .tr(args: [validation.value.toString()]);
         }
       }
     }
@@ -654,7 +710,10 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   }
 
   String? lessThanOrEqualTo(int value) {
-    Validation? validation = widget.field.validations.firstWhereOrNull((element) => element.type == DynamicFormValidationType.LESS_THAN_OR_EQUAL_TO.name);
+    Validation? validation = widget.field.validations.firstWhereOrNull(
+      (element) =>
+          element.type == DynamicFormValidationType.LESS_THAN_OR_EQUAL_TO.name,
+    );
 
     if (validation != null) {
       int lessThanOrEqualTo;
@@ -669,7 +728,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         if (StringUtils.isNotNullOrEmpty(validation.errorMessage)) {
           return validation.errorMessage;
         } else {
-          return "value_must_be_less_than_or_equal_to".tr(args: [validation.value.toString()]);
+          return "value_must_be_less_than_or_equal_to"
+              .tr(args: [validation.value.toString()]);
         }
       }
     }
@@ -681,7 +741,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     value ??= "";
 
     if (StringUtils.isNotNullOrEmpty(value)) {
-      if (!RegExp(r'^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$').hasMatch(value)) {
+      if (!RegExp(
+        r'^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$',
+      ).hasMatch(value)) {
         return "incorrect_email_format".tr();
       }
     }
@@ -702,7 +764,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   }
 
   String? before(dynamic object) {
-    Validation? validation = widget.field.validations.firstWhereOrNull((element) => element.type == DynamicFormValidationType.BEFORE.name);
+    Validation? validation = widget.field.validations.firstWhereOrNull(
+      (element) => element.type == DynamicFormValidationType.BEFORE.name,
+    );
 
     if (validation != null) {
       if (widget.field.type == DynamicFormFieldType.DATE.name) {
@@ -742,7 +806,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   }
 
   String? after(dynamic value) {
-    Validation? validation = widget.field.validations.firstWhereOrNull((element) => element.type == DynamicFormValidationType.AFTER.name);
+    Validation? validation = widget.field.validations.firstWhereOrNull(
+      (element) => element.type == DynamicFormValidationType.AFTER.name,
+    );
 
     if (validation != null) {
       if (widget.field.type == DynamicFormFieldType.DATE.name) {
@@ -795,12 +861,12 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
         if (widget.field.hasScript) {
           context.read<DynamicFormBloc>().add(
-            DynamicFormRefresh(
-              formId: widget.headerForm.template.id,
-              customerId: widget.customerId,
-              headerForm: widget.headerForm,
-            ),
-          );
+                DynamicFormRefresh(
+                  formId: widget.headerForm.template.id,
+                  customerId: widget.customerId,
+                  headerForm: widget.headerForm,
+                ),
+              );
         }
       }
     } else if (widget.field.type == DynamicFormFieldType.TIME.name) {
@@ -814,12 +880,12 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
         if (widget.field.hasScript) {
           context.read<DynamicFormBloc>().add(
-            DynamicFormRefresh(
-              formId: widget.headerForm.template.id,
-              customerId: widget.customerId,
-              headerForm: widget.headerForm,
-            ),
-          );
+                DynamicFormRefresh(
+                  formId: widget.headerForm.template.id,
+                  customerId: widget.customerId,
+                  headerForm: widget.headerForm,
+                ),
+              );
         }
       }
     } else if (widget.field.type == DynamicFormFieldType.DATE_TIME.name) {
@@ -850,12 +916,12 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
             if (widget.field.hasScript) {
               context.read<DynamicFormBloc>().add(
-                DynamicFormRefresh(
-                  formId: widget.headerForm.template.id,
-                  customerId: widget.customerId,
-                  headerForm: widget.headerForm,
-                ),
-              );
+                    DynamicFormRefresh(
+                      formId: widget.headerForm.template.id,
+                      customerId: widget.customerId,
+                      headerForm: widget.headerForm,
+                    ),
+                  );
             }
           });
         }
@@ -873,7 +939,10 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           ..name = platformFile.name
           ..mime = lookupMimeType(platformFile.path!);
 
-        if (StringUtils.inList(platformFile.extension!, ["jpg", "jpeg", "png"])) {
+        if (StringUtils.inList(
+          platformFile.extension!,
+          ["jpg", "jpeg", "png"],
+        )) {
           XFile? xFile = await FlutterImageCompress.compressAndGetFile(
             platformFile.path!,
             await CustomAttachments.temporaryPath(fileName: platformFile.name),
@@ -910,7 +979,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             callback: (xFile) async {
               Attachment attachment = Attachment();
 
-              attachment.name = DateTime.now().millisecondsSinceEpoch.toString();
+              attachment.name =
+                  DateTime.now().millisecondsSinceEpoch.toString();
               attachment.mime = "video/mp4";
               attachment.bytes = await xFile.readAsBytes();
               attachment.thumbnail = await vt.VideoThumbnail.thumbnailData(
@@ -970,7 +1040,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       SpinnerItem? selectedItem = await BaseSheets.spinner(
         context: context,
         title: widget.field.title,
-        spinnerItems: widget.field.data.map((e) => SpinnerItem(identity: e, description: e)).toList(),
+        spinnerItems: widget.field.data
+            .map((e) => SpinnerItem(identity: e, description: e))
+            .toList(),
       );
 
       if (selectedItem != null) {
@@ -989,7 +1061,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         try {
           context.loaderOverlay.show();
 
-          dynamicFormResourceResponse = await DotApis.getInstance().dynamicFormResource(
+          dynamicFormResourceResponse =
+              await DotApis.getInstance().dynamicFormResource(
             formId: widget.template.id,
             name: widget.field.name,
             data: widget.data,
@@ -1026,17 +1099,28 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           widget.field.setValue(widget.data, value);
 
           if (dynamicFormResourceResponse.loadOnFields.isNotEmpty) {
-            for (DynamicFormResourceLoadOnFieldItem dynamicFormResourceLoadOnFieldItem in dynamicFormResourceResponse.loadOnFields) {
+            for (DynamicFormResourceLoadOnFieldItem dynamicFormResourceLoadOnFieldItem
+                in dynamicFormResourceResponse.loadOnFields) {
               if (!dynamicFormResourceLoadOnFieldItem.detail) {
-                dynamic value = selectedItem[dynamicFormResourceLoadOnFieldItem.source];
+                dynamic value =
+                    selectedItem[dynamicFormResourceLoadOnFieldItem.source];
 
                 if (value != null) {
                   bool found = false;
 
                   for (Section section in widget.template.sections) {
                     for (Field field in section.fields) {
-                      if (StringUtils.equalsIgnoreCase(field.name, dynamicFormResourceLoadOnFieldItem.target)) {
-                        field.setValue(widget.data, await DynamicForms.decodeValue(field: field, value: value));
+                      if (StringUtils.equalsIgnoreCase(
+                        field.name,
+                        dynamicFormResourceLoadOnFieldItem.target,
+                      )) {
+                        field.setValue(
+                          widget.data,
+                          await DynamicForms.decodeValue(
+                            field: field,
+                            value: value,
+                          ),
+                        );
                         field.forceRefresh = true;
 
                         found = true;
@@ -1045,7 +1129,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                   }
 
                   if (!found) {
-                    widget.data[dynamicFormResourceLoadOnFieldItem.target] = value;
+                    widget.data[dynamicFormResourceLoadOnFieldItem.target] =
+                        value;
                   }
                 }
               }
@@ -1056,7 +1141,10 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             for (Section section in widget.template.sections) {
               for (Field field in section.fields) {
                 if (StringUtils.isNotNullOrEmpty(field.enableAfter)) {
-                  if (StringUtils.equalsIgnoreCase(field.enableAfter, widget.field.name)) {
+                  if (StringUtils.equalsIgnoreCase(
+                    field.enableAfter,
+                    widget.field.name,
+                  )) {
                     field.enable();
                   }
                 }
@@ -1067,7 +1155,11 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           bool needRefresh = false;
 
           if (dynamicFormResourceResponse.detailSetups.isNotEmpty) {
-            List<Map<String, dynamic>> details = selectedItem["details"] != null ? List<Map<String, dynamic>>.from(selectedItem["details"].map((e) => e)) : [];
+            List<Map<String, dynamic>> details = selectedItem["details"] != null
+                ? List<Map<String, dynamic>>.from(
+                    selectedItem["details"].map((e) => e),
+                  )
+                : [];
 
             DetailForm? detailForm = widget.headerForm.detailForms.firstOrNull;
 
@@ -1098,19 +1190,21 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
           if (needRefresh || widget.field.hasScript) {
             context.read<DynamicFormBloc>().add(
-              DynamicFormRefresh(
-                formId: widget.headerForm.template.id,
-                customerId: widget.customerId,
-                headerForm: widget.headerForm,
-              ),
-            );
+                  DynamicFormRefresh(
+                    formId: widget.headerForm.template.id,
+                    customerId: widget.customerId,
+                    headerForm: widget.headerForm,
+                  ),
+                );
           }
 
-          if (!DynamicForms.offline && widget.headerForm.detailForms.isNotEmpty) {
+          if (!DynamicForms.offline &&
+              widget.headerForm.detailForms.isNotEmpty) {
             try {
               context.loaderOverlay.show();
 
-              Map<String, dynamic>? result = await DotApis.getInstance().dynamicFormSelect(
+              Map<String, dynamic>? result =
+                  await DotApis.getInstance().dynamicFormSelect(
                 formId: widget.template.id,
                 name: widget.field.name,
                 value: value,
@@ -1119,7 +1213,13 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
               if (result != null) {
                 for (DetailForm detailForm in widget.headerForm.detailForms) {
-                  List<Map<String, dynamic>> details = result[detailForm.template.tableName] != null ? List<Map<String, dynamic>>.from(result[detailForm.template.tableName].map((e) => e)) : [];
+                  List<Map<String, dynamic>> details =
+                      result[detailForm.template.tableName] != null
+                          ? List<Map<String, dynamic>>.from(
+                              result[detailForm.template.tableName]
+                                  .map((e) => e),
+                            )
+                          : [];
 
                   if (details.isNotEmpty) {
                     for (Map<String, dynamic> detail in details) {
@@ -1141,7 +1241,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 }
               }
             } catch (e) {
-              BaseOverlays.error(message: "something_wrong_please_try_again".tr());
+              BaseOverlays.error(
+                message: "something_wrong_please_try_again".tr(),
+              );
             } finally {
               context.loaderOverlay.hide();
             }
@@ -1160,12 +1262,12 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
     if (widget.field.hasScript) {
       context.read<DynamicFormBloc>().add(
-        DynamicFormRefresh(
-          formId: widget.headerForm.template.id,
-          customerId: widget.customerId,
-          headerForm: widget.headerForm,
-        ),
-      );
+            DynamicFormRefresh(
+              formId: widget.headerForm.template.id,
+              customerId: widget.customerId,
+              headerForm: widget.headerForm,
+            ),
+          );
     }
   }
 
@@ -1226,7 +1328,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   }
 
   DateTime? minDate() {
-    Validation? validation = widget.field.validations.firstWhereOrNull((element) => element.type == DynamicFormValidationType.AFTER.name);
+    Validation? validation = widget.field.validations.firstWhereOrNull(
+      (element) => element.type == DynamicFormValidationType.AFTER.name,
+    );
 
     if (validation != null) {
       return DateTime.parse(validation.value);
@@ -1236,7 +1340,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   }
 
   DateTime? maxDate() {
-    Validation? validation = widget.field.validations.firstWhereOrNull((element) => element.type == DynamicFormValidationType.BEFORE.name);
+    Validation? validation = widget.field.validations.firstWhereOrNull(
+      (element) => element.type == DynamicFormValidationType.BEFORE.name,
+    );
 
     if (validation != null) {
       return DateTime.parse(validation.value);
@@ -1246,7 +1352,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   }
 
   TimeOfDay? minTime() {
-    Validation? validation = widget.field.validations.firstWhereOrNull((element) => element.type == DynamicFormValidationType.AFTER.name);
+    Validation? validation = widget.field.validations.firstWhereOrNull(
+      (element) => element.type == DynamicFormValidationType.AFTER.name,
+    );
 
     if (validation != null) {
       return Formats.parseTime(validation.value);
@@ -1256,7 +1364,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   }
 
   TimeOfDay? maxTime() {
-    Validation? validation = widget.field.validations.firstWhereOrNull((element) => element.type == DynamicFormValidationType.BEFORE.name);
+    Validation? validation = widget.field.validations.firstWhereOrNull(
+      (element) => element.type == DynamicFormValidationType.BEFORE.name,
+    );
 
     if (validation != null) {
       return Formats.parseTime(validation.value);
@@ -1454,7 +1564,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           return "this_field_is_required".tr();
         }
       }
-    } else if (widget.field.type == DynamicFormFieldType.UPLOAD_SIGNATURE.name) {
+    } else if (widget.field.type ==
+        DynamicFormFieldType.UPLOAD_SIGNATURE.name) {
       if (widget.field.required) {
         if (value == null) {
           return "this_field_is_required".tr();
@@ -1578,7 +1689,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 ),
               ),
               Visibility(
-                visible: widget.field.type == DynamicFormFieldType.UPLOAD_SIGNATURE.name,
+                visible: widget.field.type ==
+                    DynamicFormFieldType.UPLOAD_SIGNATURE.name,
                 child: Container(
                   margin: EdgeInsets.only(left: Dimensions.size10),
                   child: signatureButton(),
@@ -1646,7 +1758,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                           } else {
                             BottomSheets.imagePreview(
                               context: context,
-                              imageProvider: MemoryImage(attachment.thumbnail ?? attachment.bytes!),
+                              imageProvider: MemoryImage(
+                                attachment.thumbnail ?? attachment.bytes!,
+                              ),
                             );
                           }
                         },
@@ -1826,7 +1940,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     );
   }
 
-  Widget textField(FormFieldState field, {
+  Widget textField(
+    FormFieldState field, {
     ValueChanged<String>? onChanged,
     int? maxLines,
     int? minLines,
@@ -1859,7 +1974,12 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         controller: controller,
         onChanged: onChanged,
         maxLengthEnforcement: MaxLengthEnforcement.enforced,
-        buildCounter: (context, {required currentLength, required isFocused, required maxLength}) {
+        buildCounter: (
+          context, {
+          required currentLength,
+          required isFocused,
+          required maxLength,
+        }) {
           return const SizedBox.shrink();
         },
         maxLines: maxLines,
@@ -1999,9 +2119,7 @@ class _NetworkVideoPlayerState extends State<NetworkVideoPlayer> {
           Center(
             child: IconButton(
               icon: Icon(
-                _controller.value.isPlaying
-                    ? Icons.pause
-                    : Icons.play_arrow,
+                _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
                 size: 48,
                 color: Colors.white,
               ),

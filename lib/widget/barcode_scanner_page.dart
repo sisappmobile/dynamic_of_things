@@ -94,7 +94,8 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage> {
                 }
 
                 if (!widget.silent) {
-                  BaseOverlays.success(message: "barcode_scanner_success_dialog".tr());
+                  BaseOverlays.success(
+                      message: "barcode_scanner_success_dialog".tr());
                 }
 
                 widget.onSuccess(data);
@@ -115,7 +116,8 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage> {
                     onPressed: () {
                       if (scannerWordCase == ScannerWordCase.NORMAL_CASE) {
                         scannerWordCase = ScannerWordCase.UPPER_CASE;
-                      } else if (scannerWordCase == ScannerWordCase.UPPER_CASE) {
+                      } else if (scannerWordCase ==
+                          ScannerWordCase.UPPER_CASE) {
                         scannerWordCase = ScannerWordCase.LOWER_CASE;
                       } else {
                         scannerWordCase = ScannerWordCase.NORMAL_CASE;

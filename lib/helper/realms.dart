@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_single_cascade_in_expression_statements
+// ignore_for_file: avoid_single_cascade_in_expression_statements, depend_on_referenced_packages
 
 import "package:dynamic_of_things/realm/schemas.dart";
 import "package:path/path.dart" as path;
@@ -9,11 +9,17 @@ class Realms {
 
   static Realm get() {
     realm ??= Realm(
-      Configuration.local([
-        Version.schema,
-        DynamicForm.schema,
-        Schema.schema,
-      ], path: path.join(Configuration.defaultStoragePath, "dynamic_of_things.realm")),
+      Configuration.local(
+        [
+          Version.schema,
+          DynamicForm.schema,
+          Schema.schema,
+        ],
+        path: path.join(
+          Configuration.defaultStoragePath,
+          "dynamic_of_things.realm",
+        ),
+      ),
     );
 
     return realm!;

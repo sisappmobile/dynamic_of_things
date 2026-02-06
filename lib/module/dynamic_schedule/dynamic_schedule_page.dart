@@ -1,7 +1,4 @@
-// ignore_for_file: always_specify_types, cascade_invocations, always_put_required_named_parameters_first, empty_catches, use_build_context_synchronously
-
 import "package:base/base.dart";
-import "package:dynamic_of_things/helper/bottom_sheets.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
 import "package:dynamic_of_things/model/dynamic_schedule_data.dart";
 import "package:dynamic_of_things/model/dynamic_schedule_template.dart";
@@ -32,18 +29,24 @@ class DynamicSchedulePage extends StatefulWidget {
   DynamicSchedulePageState createState() => DynamicSchedulePageState();
 }
 
-class DynamicSchedulePageState extends State<DynamicSchedulePage> with WidgetsBindingObserver {
+class DynamicSchedulePageState extends State<DynamicSchedulePage>
+    with WidgetsBindingObserver {
   Template? template;
 
-  List<Item> items = [];
+  List<Item> items = <Item>[];
+  ItemDataSource _dataSource = ItemDataSource(<Item>[]);
 
   bool loading = true;
 
-  DateTime today = DateTime.now();
+  final DateTime today = DateTime.now();
 
   String? formId;
+  List<DateTime> visibleDates = <DateTime>[];
 
-  List<DateTime> visibleDates = [];
+  DateTime _selectedDate = DateTime.now();
+  final CalendarController _calendarController = CalendarController();
+
+  String? _lastFetchKey;
 
   @override
   void initState() {
@@ -51,26 +54,53 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage> with WidgetsBi
 
     WidgetsBinding.instance.addObserver(this);
 
+    _selectedDate = DateTime(today.year, today.month, today.day);
+    _calendarController.view = CalendarView.month;
+
     context.read<DynamicScheduleBloc>().add(
-      DynamicScheduleTemplate(
-        id: widget.dynamicFormMenuItem.id,
-        customerId: widget.customerId,
-      ),
-    );
+          DynamicScheduleTemplate(
+            id: widget.dynamicFormMenuItem.id,
+            customerId: widget.customerId,
+          ),
+        );
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _calendarController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    super.didChangePlatformBrightness();
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
+    final EdgeInsets safe = MediaQuery.of(context).padding;
+
     return BlocListener<DynamicScheduleBloc, DynamicScheduleState>(
       listener: (context, state) async {
         if (state is DynamicScheduleTemplateLoading) {
           setState(() {
             loading = true;
             template = null;
+            items = <Item>[];
+            _dataSource = ItemDataSource(<Item>[]);
           });
         } else if (state is DynamicScheduleTemplateSuccess) {
           setState(() {
             template = state.template;
+          });
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) {
+              return;
+            }
+            _refreshForCurrentView();
           });
         } else if (state is DynamicScheduleTemplateFinished) {
           setState(() {
@@ -78,299 +108,1583 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage> with WidgetsBi
           });
         } else if (state is DynamicScheduleDataLoading) {
           context.loaderOverlay.show();
+        } else if (state is DynamicScheduleDataSuccess) {
+          final List<Item> deduped = _dedupById(state.items);
 
           setState(() {
-            items.clear();
-          });
-        } else if (state is DynamicScheduleDataSuccess) {
-          setState(() {
-            items.addAll(state.items);
+            items = deduped;
+            _dataSource = ItemDataSource(deduped);
           });
         } else if (state is DynamicScheduleDataFinished) {
           context.loaderOverlay.hide();
         }
       },
-      child: BaseScaffold(
-        context: context,
-        statusBuilder: () {
-          if (loading) {
-            return BaseBodyStatus.loading;
-          } else {
-            if (template != null) {
-              return BaseBodyStatus.loaded;
-            } else {
-              return BaseBodyStatus.fail;
-            }
-          }
-        },
-        appBar: appBar(),
-        contentBuilder: body,
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-
-    WidgetsBinding.instance.removeObserver(this);
-  }
-
-  @override
-  void didChangePlatformBrightness() {
-    super.didChangePlatformBrightness();
-
-    setState(() {});
-  }
-
-  void refresh() {
-    context.read<DynamicScheduleBloc>().add(
-      DynamicScheduleData(
-        id: widget.dynamicFormMenuItem.id,
-        begin: Jiffy.parseFromDateTime(visibleDates.first),
-        until: Jiffy.parseFromDateTime(visibleDates.last),
-        formId: formId,
-        customerId: widget.customerId,
-      ),
-    );
-  }
-
-  BaseAppBar appBar() {
-    Widget addButton() {
-      if (hasCreateAccess()) {
-        return OutlinedButton.icon(
-          onPressed: () async {
-            bool result = false;
-
-            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-              result = await Navigators.push(
-                DynamicFormPage(
-                  dynamicFormMenuItem: widget.dynamicFormMenuItem,
-                  customerId: widget.customerId,
-                ),
-              ) ?? false;
-            } else {
-              result = await context.push(
-                "/dynamic-forms",
-                extra: {
-                  "dynamicFormMenuItem": widget.dynamicFormMenuItem,
-                  "customerId": widget.customerId,
-                },
-              ) ?? false;
-            }
-
-            if (result) {
-              refresh();
-            }
-          },
-          style: OutlinedButton.styleFrom(
-            visualDensity: VisualDensity.compact,
-            shape: SmoothRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-              smoothness: 1,
-            ),
-            padding: EdgeInsets.symmetric(
-              horizontal: Dimensions.size10,
-            ),
-          ),
-          icon: Icon(Icons.add),
-          label: Text("add".tr()),
-        );
-      }
-
-      return const SizedBox.shrink();
-    }
-
-    PreferredSize? bottomWidget() {
-      if (template != null && template!.forms.length > 1) {
-        return PreferredSize(
-          preferredSize: Size.fromHeight(50),
-          child: SizedBox(
-            height: 50,
-            child: ListView.separated(
+      child: Scaffold(
+        backgroundColor: _bg(context),
+        body: Column(
+          children: [
+            SizedBox(height: safe.top),
+            Padding(
               padding: EdgeInsets.fromLTRB(
                 Dimensions.size15,
-                0,
+                Dimensions.size10,
                 Dimensions.size15,
-                Dimensions.size15,
+                Dimensions.size10,
               ),
-              scrollDirection: Axis.horizontal,
-              physics: BouncingScrollPhysics(),
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return FilterChip(
-                    label: Text("all".tr()),
-                    selected: formId == null,
-                    shape: SmoothRectangleBorder(
-                      smoothness: 1,
-                      borderRadius: BorderRadius.circular(Dimensions.size10),
-                      side: BorderSide(color: formId == null ? AppColors.onPrimaryContainer() : AppColors.outline()),
-                    ),
-                    selectedColor: AppColors.primaryContainer(),
-                    onSelected: (value) {
-                      formId = null;
-
-                      refresh();
-                    },
-                  );
-                } else {
-                  MapEntry<String, String> mapEntry = template!.forms.entries.elementAt(index - 1);
-
-                  return FilterChip(
-                    label: Text(mapEntry.value),
-                    selected: formId == mapEntry.key,
-                    shape: SmoothRectangleBorder(
-                      smoothness: 1,
-                      borderRadius: BorderRadius.circular(Dimensions.size10),
-                      side: BorderSide(color: formId == mapEntry.key ? AppColors.onPrimaryContainer() : AppColors.outline()),
-                    ),
-                    selectedColor: AppColors.primaryContainer(),
-                    onSelected: (value) {
-                      formId = mapEntry.key;
-
-                      refresh();
-                    },
-                  );
-                }
-              },
-              separatorBuilder: (context, index) {
-                return SizedBox(width: Dimensions.size5);
-              },
-              itemCount: template!.forms.length + 1,
+              child: _topBar(),
             ),
-          ),
-        );
-      }
-
-      return null;
-    }
-
-    return BaseAppBar(
-      context: context,
-      name: widget.dynamicFormMenuItem.name,
-      trailings: [addButton()],
-      bottom: bottomWidget(),
+            if (_showChips())
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  Dimensions.size15,
+                  0,
+                  Dimensions.size15,
+                  Dimensions.size10,
+                ),
+                child: _chipsRow(),
+              ),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  Dimensions.size15,
+                  0,
+                  Dimensions.size15,
+                  Dimensions.size15,
+                ),
+                child: _contentModernSeparatedCards(),
+              ),
+            ),
+            SizedBox(height: safe.bottom),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget body() {
-    return SfCalendar(
-      view: CalendarView.month,
-      initialDisplayDate: DateTime(today.year, today.month, today.day),
-      dataSource: ItemDataSource(items),
-      monthViewSettings: const MonthViewSettings(
-        appointmentDisplayMode: MonthAppointmentDisplayMode.indicator,
-        showAgenda: true,
-        appointmentDisplayCount: 3,
-      ),
-      onViewChanged: (viewChangedDetails) {
-        visibleDates = viewChangedDetails.visibleDates;
+  void _refreshForCurrentView() {
+    if (template == null) {
+      return;
+    }
 
-        refresh();
-      },
-      onTap: (CalendarTapDetails details) {
-        if (details.targetElement == CalendarElement.appointment && details.appointments != null && details.appointments!.isNotEmpty) {
-          Item item = details.appointments!.first as Item;
+    final DateTime base = _calendarController.displayDate ?? _selectedDate;
 
-          List<MenuItem> menuItems = [
-            MenuItem(
-              iconData: Icons.visibility,
-              title: "Lihat Data",
-              onTap: hasViewAccess() ? () async {
-                bool result = false;
+    if (visibleDates.isNotEmpty) {
+      _refreshRange(visibleDates.first, visibleDates.last);
+      return;
+    }
 
-                if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                  Navigators.pop();
+    final DateTime first = DateTime(base.year, base.month, 1);
+    final DateTime last = DateTime(base.year, base.month + 1, 0);
+    _refreshRange(first, last);
+  }
 
-                  result = await Navigators.push(
-                    DynamicFormPage(
-                      dynamicFormMenuItem: widget.dynamicFormMenuItem,
-                      readOnly: true,
-                      dataId: item.id,
-                      customerId: widget.customerId,
-                    ),
-                  ) ?? false;
-                } else {
-                  context.pop();
+  void _refreshRange(DateTime begin, DateTime until) {
+    if (template == null) {
+      return;
+    }
 
-                  result = await context.push(
-                    "/dynamic-forms",
-                    extra: {
-                      "dynamicFormMenuItem": widget.dynamicFormMenuItem,
-                      "readOnly": true,
-                      "dataId": item.id,
-                      "customerId": widget.customerId,
-                    },
-                  ) ?? false;
-                }
+    final DateTime b = DateTime(begin.year, begin.month, begin.day);
+    final DateTime u = DateTime(until.year, until.month, until.day);
 
-                if (result) {
-                  refresh();
-                }
-              } : null,
-            ),
-            MenuItem(
-              iconData: Icons.edit,
-              title: "edit".tr(),
-              onTap: hasEditAccess() ? () async {
-                bool result = false;
+    final String key =
+        "${b.toIso8601String()}|${u.toIso8601String()}|${formId ?? "ALL"}";
+    if (_lastFetchKey == key) {
+      return;
+    }
+    _lastFetchKey = key;
 
-                if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                  Navigators.pop();
+    context.read<DynamicScheduleBloc>().add(
+          DynamicScheduleData(
+            id: widget.dynamicFormMenuItem.id,
+            begin: Jiffy.parseFromDateTime(b),
+            until: Jiffy.parseFromDateTime(u),
+            formId: formId,
+            customerId: widget.customerId,
+          ),
+        );
+  }
 
-                  result = await Navigators.push(
-                    DynamicFormPage(
-                      dynamicFormMenuItem: widget.dynamicFormMenuItem,
-                      readOnly: false,
-                      dataId: item.id,
-                      customerId: widget.customerId,
-                    ),
-                  ) ?? false;
-                } else {
-                  context.pop();
-
-                  result = await context.push(
-                    "/dynamic-forms",
-                    extra: {
-                      "dynamicFormMenuItem": widget.dynamicFormMenuItem,
-                      "readOnly": false,
-                      "dataId": item.id,
-                      "customerId": widget.customerId,
-                    },
-                  ) ?? false;
-                }
-
-                if (result) {
-                  refresh();
-                }
-              } : null,
-            ),
-          ];
-
-          BottomSheets.popupMenu(
-            context: context,
-            menuItems: menuItems,
-          );
-        }
-      },
-    );
+  List<Item> _dedupById(List<Item> source) {
+    final Map<dynamic, Item> map = <dynamic, Item>{};
+    for (final Item it in source) {
+      map[it.id] = it;
+    }
+    final List<Item> out = map.values.toList()
+      ..sort((a, b) => a.begin.dateTime.compareTo(b.begin.dateTime));
+    return out;
   }
 
   bool hasCreateAccess() {
-    return template != null && template!.actions.any((element) => element.resourceId == "BTN_CREATE");
+    return template != null &&
+        template!.actions.any((element) => element.resourceId == "BTN_CREATE");
   }
 
   bool hasViewAccess() {
-    return template != null && template!.actions.any((element) => element.resourceId == "BTN_VIEW");
+    return template != null &&
+        template!.actions.any((element) => element.resourceId == "BTN_VIEW");
   }
 
   bool hasEditAccess() {
-    return template != null && template!.actions.any((element) => element.resourceId == "BTN_EDIT");
+    return template != null &&
+        template!.actions.any((element) => element.resourceId == "BTN_EDIT");
   }
+
+  Widget _contentModernSeparatedCards() {
+    if (loading) {
+      return _centerCard(child: BaseWidgets.shimmer());
+    }
+
+    if (template == null) {
+      return _centerCard(
+        child: Text(
+          "common_something_wrong".tr(),
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: _fg(context).withValues(alpha: 0.75),
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        children: [
+          _calendarCard(),
+          SizedBox(height: Dimensions.size10),
+          _agendaCard(),
+        ],
+      ),
+    );
+  }
+
+  Widget _calendarCard() {
+    return Container(
+      decoration: ShapeDecoration(
+        color: _card(context),
+        shadows: [
+          BoxShadow(
+            blurRadius: Dimensions.size25,
+            offset: const Offset(0, 12),
+            color: Colors.black.withValues(alpha: 0.10),
+          ),
+        ],
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size25),
+          smoothness: Dimensions.size1,
+          side: BorderSide(color: _outline(context).withValues(alpha: 0.30)),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              Dimensions.size15,
+              Dimensions.size15,
+              Dimensions.size15,
+              Dimensions.size10,
+            ),
+            child: _monthSwitcherHeader(),
+          ),
+          SizedBox(
+            height: 360,
+            child: SfCalendar(
+              key: ValueKey<String>(
+                "${formId ?? "ALL"}-${items.length}-${(_calendarController.displayDate ?? _selectedDate).month}-${(_calendarController.displayDate ?? _selectedDate).year}",
+              ),
+              controller: _calendarController,
+              view: CalendarView.month,
+              initialDisplayDate: DateTime(today.year, today.month, today.day),
+              dataSource: _dataSource,
+              backgroundColor: _card(context),
+              headerHeight: 0,
+              viewHeaderHeight: Dimensions.size45,
+              monthViewSettings: const MonthViewSettings(
+                appointmentDisplayMode: MonthAppointmentDisplayMode.none,
+                showAgenda: false,
+                appointmentDisplayCount: 3,
+              ),
+              viewHeaderStyle: ViewHeaderStyle(
+                backgroundColor: _card(context),
+                dayTextStyle: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: _fg(context).withValues(alpha: 0.65),
+                ),
+                dateTextStyle: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: _fg(context),
+                ),
+              ),
+              monthCellBuilder: (context, details) {
+                final DateTime d = details.date;
+
+                final bool isToday = d.year == today.year &&
+                    d.month == today.month &&
+                    d.day == today.day;
+
+                final bool isSelected = d.year == _selectedDate.year &&
+                    d.month == _selectedDate.month &&
+                    d.day == _selectedDate.day;
+
+                final Color fg = _fg(context);
+                final Color muted = fg.withValues(alpha: 0.45);
+
+                final DateTime display = _calendarController.displayDate ?? d;
+                final bool inSameMonth =
+                    d.month == display.month && d.year == display.year;
+
+                final Color textColor = inSameMonth ? fg : muted;
+
+                return InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedDate = DateTime(d.year, d.month, d.day);
+                    });
+                  },
+                  child: Container(
+                    margin: EdgeInsets.all(Dimensions.size5),
+                    decoration: ShapeDecoration(
+                      color: isSelected
+                          ? AppColors.primaryContainer().withValues(alpha: 0.45)
+                          : Colors.transparent,
+                      shape: SmoothRectangleBorder(
+                        borderRadius: BorderRadius.circular(Dimensions.size15),
+                        smoothness: Dimensions.size1,
+                        side: BorderSide(
+                          color: isSelected
+                              ? AppColors.onPrimaryContainer()
+                                  .withValues(alpha: 0.18)
+                              : Colors.transparent,
+                        ),
+                      ),
+                    ),
+                    child: Stack(
+                      children: [
+                        Align(
+                          alignment: Alignment.topCenter,
+                          child: Padding(
+                            padding: EdgeInsets.only(top: Dimensions.size10),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: Dimensions.size10,
+                                vertical: Dimensions.size5,
+                              ),
+                              decoration: ShapeDecoration(
+                                color: isToday
+                                    ? AppColors.primaryContainer()
+                                    : Colors.transparent,
+                                shape: SmoothRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(Dimensions.size15),
+                                  smoothness: Dimensions.size1,
+                                ),
+                              ),
+                              child: Text(
+                                "${d.day}",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: Dimensions.text12,
+                                  color: isToday
+                                      ? AppColors.onPrimaryContainer()
+                                      : textColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (details.appointments.isNotEmpty)
+                          Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Padding(
+                              padding:
+                                  EdgeInsets.only(bottom: Dimensions.size5),
+                              child:
+                                  _dotsIndicator(details.appointments.length),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              onViewChanged: (viewChangedDetails) {
+                visibleDates = viewChangedDetails.visibleDates;
+
+                final DateTime display =
+                    _calendarController.displayDate ?? _selectedDate;
+
+                if (_selectedDate.month != display.month ||
+                    _selectedDate.year != display.year) {
+                  setState(() {
+                    _selectedDate = DateTime(display.year, display.month, 1);
+                  });
+                }
+
+                _refreshForCurrentView();
+              },
+              onTap: (CalendarTapDetails details) {
+                if (details.targetElement == CalendarElement.appointment &&
+                    details.appointments != null &&
+                    details.appointments!.isNotEmpty) {
+                  final Item item = details.appointments!.first as Item;
+                  _openItemMenuModern(item);
+                } else if (details.targetElement ==
+                    CalendarElement.calendarCell) {
+                  final DateTime d = details.date ?? _selectedDate;
+                  setState(() {
+                    _selectedDate = DateTime(d.year, d.month, d.day);
+                  });
+                }
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _monthSwitcherHeader() {
+    final DateTime display = _calendarController.displayDate ?? _selectedDate;
+    final DateTime prev = DateTime(display.year, display.month - 1, 1);
+    final DateTime next = DateTime(display.year, display.month + 1, 1);
+
+    return Row(
+      children: [
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: _monthSideTap(
+              label: _monthNameId(prev),
+              onTap: () => _jumpToMonth(prev),
+              alignLeft: true,
+            ),
+          ),
+        ),
+        _monthCenterPill(display),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: _monthSideTap(
+              label: _monthNameId(next),
+              onTap: () => _jumpToMonth(next),
+              alignLeft: false,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _monthCenterPill(DateTime display) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: Dimensions.size15,
+        vertical: Dimensions.size10,
+      ),
+      decoration: ShapeDecoration(
+        color: _soft(context),
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size100),
+          smoothness: Dimensions.size1,
+          side: BorderSide(color: _outline(context).withValues(alpha: 0.22)),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            "${_monthNameId(display)} ${display.year}",
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: Dimensions.text14,
+              color: _fg(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _monthSideTap({
+    required String label,
+    required VoidCallback onTap,
+    required bool alignLeft,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(Dimensions.size100),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: Dimensions.size5,
+            vertical: Dimensions.size5,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: alignLeft
+                ? [
+                    Icon(
+                      Icons.chevron_left_rounded,
+                      size: Dimensions.size20,
+                      color: _fg(context).withValues(alpha: 0.55),
+                    ),
+                    SizedBox(width: Dimensions.size2),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: _fg(context).withValues(alpha: 0.65),
+                      ),
+                    ),
+                  ]
+                : [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: _fg(context).withValues(alpha: 0.65),
+                      ),
+                    ),
+                    SizedBox(width: Dimensions.size2),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: Dimensions.size20,
+                      color: _fg(context).withValues(alpha: 0.55),
+                    ),
+                  ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _jumpToMonth(DateTime month) {
+    final DateTime d = DateTime(month.year, month.month, 1);
+
+    setState(() {
+      _selectedDate = d;
+    });
+
+    _calendarController.displayDate = d;
+
+    _refreshForCurrentView();
+  }
+
+  Widget _agendaCard() {
+    return Container(
+      decoration: ShapeDecoration(
+        color: _card(context),
+        shadows: [
+          BoxShadow(
+            blurRadius: Dimensions.size25,
+            offset: Offset(0, Dimensions.size10),
+            color: Colors.black.withValues(alpha: 0.10),
+          ),
+        ],
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size25),
+          smoothness: 1,
+          side: BorderSide(color: _outline(context).withValues(alpha: 0.30)),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              Dimensions.size15,
+              Dimensions.size15,
+              Dimensions.size15,
+              Dimensions.size10,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _agendaTitleForCurrentTab(_selectedDate),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: _fg(context),
+                    ),
+                  ),
+                ),
+                _badge("${_itemsForDay(_selectedDate).length}"),
+              ],
+            ),
+          ),
+          Divider(height: 0, color: _outline(context).withValues(alpha: 0.25)),
+          _agendaList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _agendaList() {
+    final List<Item> dayItems = _itemsForDay(_selectedDate);
+
+    if (dayItems.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(
+          Dimensions.size15,
+          Dimensions.size15,
+          Dimensions.size15,
+          Dimensions.size15,
+        ),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(Dimensions.size15),
+          decoration: ShapeDecoration(
+            color: _soft(context),
+            shape: SmoothRectangleBorder(
+              borderRadius: BorderRadius.circular(Dimensions.size20),
+              smoothness: Dimensions.size1,
+              side:
+                  BorderSide(color: _outline(context).withValues(alpha: 0.22)),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.event_busy,
+                color: _fg(context).withValues(alpha: 0.55),
+              ),
+              SizedBox(width: Dimensions.size10),
+              Expanded(
+                child: Text(
+                  _trSafe("no_data", "no_data".tr()),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: _fg(context).withValues(alpha: 0.75),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(
+        Dimensions.size15,
+        Dimensions.size10,
+        Dimensions.size15,
+        Dimensions.size15,
+      ),
+      itemCount: dayItems.length,
+      separatorBuilder: (_, __) => SizedBox(height: Dimensions.size10),
+      itemBuilder: (context, i) => _agendaTile(dayItems[i]),
+    );
+  }
+
+  Widget _agendaTile(Item it) {
+    final DateTime begin = it.begin.dateTime;
+    final DateTime until = it.until.dateTime;
+
+    final bool isAllDay = _isAllDay(begin, until);
+    final String title = it.title;
+    final String desc = it.description.trim();
+
+    final String dow = _weekdayAbbrevId(begin).toUpperCase();
+    final String day = "${begin.day}";
+    final String time = isAllDay ? "Seharian" : _timeRange(begin, until);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _openItemMenuModern(it),
+        customBorder: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size20),
+          smoothness: 1,
+        ),
+        child: Ink(
+          padding: EdgeInsets.all(Dimensions.size15),
+          decoration: ShapeDecoration(
+            color: _soft(context),
+            shadows: [
+              BoxShadow(
+                blurRadius: Dimensions.size20,
+                offset: Offset(0, Dimensions.size10),
+                color: Colors.black.withValues(alpha: 0.07),
+              ),
+            ],
+            shape: SmoothRectangleBorder(
+              borderRadius: BorderRadius.circular(Dimensions.size20),
+              smoothness: Dimensions.size1,
+              side:
+                  BorderSide(color: _outline(context).withValues(alpha: 0.22)),
+            ),
+          ),
+          child: Row(
+            children: [
+              _dateBadgeRed(dow: dow, day: day),
+              SizedBox(width: Dimensions.size10),
+              Container(
+                width: Dimensions.size1,
+                height: Dimensions.size45,
+                color: _outline(context).withValues(alpha: 0.25),
+              ),
+              SizedBox(width: Dimensions.size10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: Dimensions.text14,
+                        color: _fg(context),
+                      ),
+                    ),
+                    SizedBox(height: Dimensions.size2),
+                    Text(
+                      desc.isNotEmpty ? desc : time,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: Dimensions.text12,
+                        color: _fg(context).withValues(alpha: 0.65),
+                      ),
+                    ),
+                    if (!isAllDay) ...[
+                      SizedBox(height: Dimensions.size2),
+                      Text(
+                        time,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: Dimensions.text11,
+                          color: _fg(context).withValues(alpha: 0.55),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              SizedBox(width: Dimensions.size10),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: _fg(context).withValues(alpha: 0.55),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openItemMenuModern(Item item) {
+    final bool canView = hasViewAccess();
+    final bool canEdit = hasEditAccess();
+
+    final DateTime begin = item.begin.dateTime;
+    final DateTime until = item.until.dateTime;
+
+    final bool isAllDay = _isAllDay(begin, until);
+    final String dow = _weekdayAbbrevId(begin).toUpperCase();
+    final String day = "${begin.day}";
+
+    final String whenLine =
+        "${_weekdayLongId(begin)}, ${begin.day} ${_monthAbbrevId(begin)} ${begin.year}"
+        "${isAllDay ? " • Seharian" : " • ${_timeRange(begin, until)}"}";
+
+    final List<Widget> actions = <Widget>[];
+
+    if (canView) {
+      actions.add(
+        _sheetActionTile(
+          icon: Icons.visibility_rounded,
+          title: _trSafe("view_data", "view".tr()),
+          subtitle: item.description.trim().isEmpty ? null : item.description,
+          enabled: true,
+          onTap: () async {
+            Navigator.of(context).pop();
+            await _openForm(item: item, readOnly: true);
+          },
+        ),
+      );
+    }
+
+    if (canEdit) {
+      actions.add(
+        _sheetActionTile(
+          icon: Icons.edit_rounded,
+          title: _trSafe("edit", "edit".tr()),
+          enabled: true,
+          onTap: () async {
+            Navigator.of(context).pop();
+            await _openForm(item: item, readOnly: false);
+          },
+        ),
+      );
+    }
+
+    if (actions.isEmpty) {
+      actions.add(
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            Dimensions.size15,
+            Dimensions.size15,
+            Dimensions.size15,
+            Dimensions.size15,
+          ),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(Dimensions.size15),
+            decoration: ShapeDecoration(
+              color: _soft(context),
+              shape: SmoothRectangleBorder(
+                borderRadius: BorderRadius.circular(Dimensions.size20),
+                smoothness: Dimensions.size1,
+                side: BorderSide(
+                  color: _outline(context).withValues(alpha: 0.22),
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.lock_outline_rounded,
+                  color: _fg(context).withValues(alpha: 0.55),
+                ),
+                SizedBox(width: Dimensions.size10),
+                Expanded(
+                  child: Text(
+                    _trSafe("no_access", "no_action_available".tr()),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: _fg(context).withValues(alpha: 0.75),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: false,
+      useSafeArea: false,
+      builder: (_) {
+        return SafeArea(
+          top: false,
+          child: Wrap(
+            children: [
+              Container(
+                margin: EdgeInsets.fromLTRB(
+                  Dimensions.size15,
+                  0,
+                  Dimensions.size15,
+                  Dimensions.size15,
+                ),
+                decoration: ShapeDecoration(
+                  color: _card(context),
+                  shadows: [
+                    BoxShadow(
+                      blurRadius: Dimensions.size30,
+                      offset: Offset(0, Dimensions.size20),
+                      color: Colors.black.withValues(alpha: 0.18),
+                    ),
+                  ],
+                  shape: SmoothRectangleBorder(
+                    borderRadius: BorderRadius.circular(Dimensions.size25),
+                    smoothness: Dimensions.size1,
+                    side: BorderSide(
+                      color: _outline(context).withValues(alpha: 0.25),
+                    ),
+                  ),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(height: Dimensions.size10),
+                    Container(
+                      width: Dimensions.size45,
+                      height: Dimensions.size5,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(Dimensions.size100),
+                        color: _outline(context).withValues(alpha: 0.35),
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        Dimensions.size15,
+                        Dimensions.size15,
+                        Dimensions.size15,
+                        Dimensions.size10,
+                      ),
+                      child: Row(
+                        children: [
+                          _dateBadgeRed(dow: dow, day: day),
+                          SizedBox(width: Dimensions.size10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: Dimensions.text16,
+                                    color: _fg(context),
+                                  ),
+                                ),
+                                SizedBox(height: Dimensions.size2),
+                                Text(
+                                  whenLine,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: Dimensions.text12,
+                                    color: _fg(context).withValues(alpha: 0.65),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          _tinyIconButton(
+                            icon: Icons.close_rounded,
+                            onTap: () => Navigator.of(context).pop(),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Divider(
+                      height: 0,
+                      color: _outline(context).withValues(alpha: 0.20),
+                    ),
+                    ...actions,
+                    SizedBox(height: Dimensions.size10),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _dateBadgeRed({required String dow, required String day}) {
+    final Color bg = Theme.of(context).colorScheme.error;
+    final Color fg = Theme.of(context).colorScheme.onError;
+
+    return Container(
+      width: Dimensions.size55,
+      padding: EdgeInsets.symmetric(
+        vertical: Dimensions.size10,
+        horizontal: Dimensions.size10,
+      ),
+      decoration: ShapeDecoration(
+        color: bg,
+        shadows: [
+          BoxShadow(
+            blurRadius: Dimensions.size15,
+            offset: Offset(0, Dimensions.size10),
+            color: bg.withValues(alpha: 0.30),
+          ),
+        ],
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size15),
+          smoothness: Dimensions.size1,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            dow,
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: Dimensions.text11,
+              letterSpacing: 0.6,
+              color: fg,
+            ),
+          ),
+          SizedBox(height: Dimensions.size2),
+          Text(
+            day,
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: Dimensions.text18,
+              height: 1.0,
+              color: fg,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sheetActionTile({
+    required IconData icon,
+    required String title,
+    required bool enabled,
+    required VoidCallback? onTap,
+    String? subtitle,
+  }) {
+    final Color fg =
+        enabled ? _fg(context) : _fg(context).withValues(alpha: 0.35);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            Dimensions.size15,
+            Dimensions.size10,
+            Dimensions.size15,
+            Dimensions.size10,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: Dimensions.size40,
+                height: Dimensions.size40,
+                decoration: ShapeDecoration(
+                  color: _soft(context),
+                  shape: SmoothRectangleBorder(
+                    borderRadius: BorderRadius.circular(Dimensions.size15),
+                    smoothness: Dimensions.size1,
+                    side: BorderSide(
+                      color: _outline(context).withValues(alpha: 0.18),
+                    ),
+                  ),
+                ),
+                child: Icon(icon, color: fg, size: Dimensions.size20),
+              ),
+              SizedBox(width: Dimensions.size10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: fg,
+                      ),
+                    ),
+                    if (subtitle != null && subtitle.trim().isNotEmpty) ...[
+                      SizedBox(height: Dimensions.size2),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: Dimensions.text12,
+                          color: fg.withValues(alpha: enabled ? 0.70 : 0.60),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: fg.withValues(alpha: 0.65),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openForm({required Item item, required bool readOnly}) async {
+    bool result = false;
+
+    if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+      result = await Navigators.push(
+            DynamicFormPage(
+              dynamicFormMenuItem: widget.dynamicFormMenuItem,
+              readOnly: readOnly,
+              dataId: item.id,
+              customerId: widget.customerId,
+            ),
+          ) ??
+          false;
+    } else {
+      result = await context.push(
+            "/dynamic-forms",
+            extra: {
+              "dynamicFormMenuItem": widget.dynamicFormMenuItem,
+              "readOnly": readOnly,
+              "dataId": item.id,
+              "customerId": widget.customerId,
+            },
+          ) ??
+          false;
+    }
+
+    if (result) {
+      _refreshForCurrentView();
+    }
+  }
+
+  Widget _topBar() {
+    final String subTitle = (formId == null)
+        ? _trSafe("all", "Semua")
+        : (template?.forms[formId] ?? "");
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: Dimensions.size15,
+        vertical: Dimensions.size15,
+      ),
+      decoration: ShapeDecoration(
+        color: _card(context),
+        shadows: [
+          BoxShadow(
+            blurRadius: Dimensions.size20,
+            offset: Offset(0, Dimensions.size10),
+            color: Colors.black.withValues(alpha: 0.10),
+          ),
+        ],
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size25),
+          smoothness: Dimensions.size1,
+          side: BorderSide(color: _outline(context).withValues(alpha: 0.30)),
+        ),
+      ),
+      child: Row(
+        children: [
+          _iconPill(
+            icon: Icons.turn_left_rounded,
+            onTap: () {
+              if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                Navigators.pop();
+              } else {
+                context.pop();
+              }
+            },
+          ),
+          SizedBox(width: Dimensions.size10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.dynamicFormMenuItem.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: Dimensions.text16,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.2,
+                    color: _fg(context),
+                  ),
+                ),
+                SizedBox(height: Dimensions.size2),
+                Text(
+                  subTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: Dimensions.text12,
+                    fontWeight: FontWeight.w700,
+                    color: _fg(context).withValues(alpha: 0.65),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (hasCreateAccess()) ...[
+            SizedBox(width: Dimensions.size10),
+            _primaryPillButton(
+              icon: Icons.add,
+              label: _trSafe("add", "add".tr()),
+              onTap: () async {
+                bool result = false;
+
+                if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                  result = await Navigators.push(
+                        DynamicFormPage(
+                          dynamicFormMenuItem: widget.dynamicFormMenuItem,
+                          customerId: widget.customerId,
+                        ),
+                      ) ??
+                      false;
+                } else {
+                  result = await context.push(
+                        "/dynamic-forms",
+                        extra: {
+                          "dynamicFormMenuItem": widget.dynamicFormMenuItem,
+                          "customerId": widget.customerId,
+                        },
+                      ) ??
+                      false;
+                }
+
+                if (result) {
+                  _refreshForCurrentView();
+                }
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  bool _showChips() => template != null && template!.forms.length > 1;
+
+  Widget _chipsRow() {
+    final List<Widget> chips = <Widget>[
+      _pillChip(
+        label: _trSafe("all", "All"),
+        selected: formId == null,
+        onTap: () {
+          setState(() => formId = null);
+          _refreshForCurrentView();
+        },
+      ),
+    ];
+
+    for (final MapEntry<String, String> e in template!.forms.entries) {
+      chips.add(
+        _pillChip(
+          label: e.value,
+          selected: formId == e.key,
+          onTap: () {
+            setState(() => formId = e.key);
+            _refreshForCurrentView();
+          },
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: Dimensions.size45,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: chips.length,
+        separatorBuilder: (_, __) => SizedBox(width: Dimensions.size10),
+        itemBuilder: (_, i) => chips[i],
+      ),
+    );
+  }
+
+  Widget _pillChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    final Color bg = selected ? AppColors.primaryContainer() : _card(context);
+    final Color fg = selected ? AppColors.onPrimaryContainer() : _fg(context);
+    final Color bd = selected
+        ? AppColors.onPrimaryContainer().withValues(alpha: 0.20)
+        : _outline(context).withValues(alpha: 0.30);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size50),
+          smoothness: Dimensions.size1,
+        ),
+        child: Ink(
+          padding: EdgeInsets.symmetric(
+            horizontal: Dimensions.size15,
+            vertical: Dimensions.size10,
+          ),
+          decoration: ShapeDecoration(
+            color: bg,
+            shadows: selected
+                ? [
+                    BoxShadow(
+                      blurRadius: Dimensions.size20,
+                      offset: Offset(0, Dimensions.size10),
+                      color: Colors.black.withValues(alpha: 0.10),
+                    ),
+                  ]
+                : [],
+            shape: SmoothRectangleBorder(
+              borderRadius: BorderRadius.circular(Dimensions.size50),
+              smoothness: Dimensions.size1,
+              side: BorderSide(color: bd),
+            ),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                color: fg,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _centerCard({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      alignment: Alignment.center,
+      padding: EdgeInsets.all(Dimensions.size20),
+      decoration: ShapeDecoration(
+        color: _card(context),
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size25),
+          smoothness: Dimensions.size1,
+          side: BorderSide(color: _outline(context).withValues(alpha: 0.30)),
+        ),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _iconPill({required IconData icon, required VoidCallback onTap}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size15),
+          smoothness: Dimensions.size1,
+        ),
+        child: Ink(
+          width: Dimensions.size40,
+          height: Dimensions.size40,
+          decoration: ShapeDecoration(
+            color: _soft(context),
+            shape: SmoothRectangleBorder(
+              borderRadius: BorderRadius.circular(Dimensions.size15),
+              smoothness: Dimensions.size1,
+              side:
+                  BorderSide(color: _outline(context).withValues(alpha: 0.22)),
+            ),
+          ),
+          child: Icon(icon, color: _fg(context), size: Dimensions.size25),
+        ),
+      ),
+    );
+  }
+
+  Widget _primaryPillButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size50),
+          smoothness: Dimensions.size1,
+        ),
+        child: Ink(
+          padding: EdgeInsets.symmetric(
+            horizontal: Dimensions.size15,
+            vertical: Dimensions.size10,
+          ),
+          decoration: ShapeDecoration(
+            color: AppColors.primaryContainer(),
+            shape: SmoothRectangleBorder(
+              borderRadius: BorderRadius.circular(Dimensions.size50),
+              smoothness: Dimensions.size1,
+              side: BorderSide(
+                color: AppColors.onPrimaryContainer().withValues(alpha: 0.15),
+              ),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: Dimensions.size20,
+                color: AppColors.onPrimaryContainer(),
+              ),
+              SizedBox(width: Dimensions.size5),
+              Text(
+                label,
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.onPrimaryContainer(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _tinyIconButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size15),
+          smoothness: 1,
+        ),
+        child: Ink(
+          width: Dimensions.size35,
+          height: Dimensions.size35,
+          decoration: ShapeDecoration(
+            color: _soft(context),
+            shape: SmoothRectangleBorder(
+              borderRadius: BorderRadius.circular(Dimensions.size15),
+              smoothness: Dimensions.size1,
+              side:
+                  BorderSide(color: _outline(context).withValues(alpha: 0.22)),
+            ),
+          ),
+          child: Icon(icon, color: _fg(context), size: Dimensions.size20),
+        ),
+      ),
+    );
+  }
+
+  Widget _dotsIndicator(int count) {
+    final int n = count.clamp(1, 4);
+    final Color dot =
+        Theme.of(context).colorScheme.error.withValues(alpha: 0.90);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(n, (i) {
+        return Container(
+          width: Dimensions.size5,
+          height: Dimensions.size5,
+          margin: EdgeInsets.symmetric(horizontal: Dimensions.size2),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: dot,
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _badge(String text) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: Dimensions.size10,
+        vertical: Dimensions.size5,
+      ),
+      decoration: ShapeDecoration(
+        color: _soft(context),
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size50),
+          smoothness: Dimensions.size1,
+          side: BorderSide(color: _outline(context).withValues(alpha: 0.22)),
+        ),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontWeight: FontWeight.w900,
+          fontSize: Dimensions.text12,
+          color: _fg(context).withValues(alpha: 0.85),
+        ),
+      ),
+    );
+  }
+
+  String _trSafe(String key, String fallback) {
+    final String v = key.tr();
+    if (v == key) {
+      return fallback;
+    }
+    return v;
+  }
+
+  String _agendaTitleForCurrentTab(DateTime d) {
+    final String tabName = (formId == null)
+        ? _trSafe("all", "Semua")
+        : (template?.forms[formId] ?? "");
+
+    final String dayLong = _weekdayLongId(d);
+    final String monthAbbrev = _monthAbbrevId(d);
+    return "$tabName • $dayLong, ${d.day} $monthAbbrev";
+  }
+
+  bool _isAllDay(DateTime begin, DateTime until) {
+    if (begin.isAtSameMomentAs(until)) {
+      return true;
+    }
+    final Duration diff = until.difference(begin);
+    if (begin.hour == 0 &&
+        begin.minute == 0 &&
+        until.hour == 0 &&
+        until.minute == 0 &&
+        diff.inHours >= 23) {
+      return true;
+    }
+    return false;
+  }
+
+  String _timeRange(DateTime begin, DateTime until) {
+    if (_isAllDay(begin, until)) {
+      return "Seharian";
+    }
+    final String a = Jiffy.parseFromDateTime(begin).format(pattern: "HH:mm");
+    final String b = Jiffy.parseFromDateTime(until).format(pattern: "HH:mm");
+    return "$a-$b";
+  }
+
+  List<Item> _itemsForDay(DateTime day) {
+    final DateTime start = DateTime(day.year, day.month, day.day);
+    final DateTime end = start.add(const Duration(days: 1));
+
+    final List<Item> out = <Item>[];
+
+    for (final Item it in items) {
+      final DateTime b = it.begin.dateTime;
+      final DateTime u = it.until.dateTime;
+
+      final bool overlap = b.isBefore(end) && !u.isBefore(start);
+      if (overlap) {
+        out.add(it);
+      }
+    }
+
+    out.sort((a, b) => a.begin.dateTime.compareTo(b.begin.dateTime));
+    return out;
+  }
+
+  String _weekdayLongId(DateTime d) {
+    switch (d.weekday) {
+      case DateTime.monday:
+        return "Senin";
+      case DateTime.tuesday:
+        return "Selasa";
+      case DateTime.wednesday:
+        return "Rabu";
+      case DateTime.thursday:
+        return "Kamis";
+      case DateTime.friday:
+        return "Jumat";
+      case DateTime.saturday:
+        return "Sabtu";
+      case DateTime.sunday:
+        return "Minggu";
+    }
+    return "Hari";
+  }
+
+  String _weekdayAbbrevId(DateTime d) {
+    switch (d.weekday) {
+      case DateTime.monday:
+        return "Sen";
+      case DateTime.tuesday:
+        return "Sel";
+      case DateTime.wednesday:
+        return "Rab";
+      case DateTime.thursday:
+        return "Kam";
+      case DateTime.friday:
+        return "Jum";
+      case DateTime.saturday:
+        return "Sab";
+      case DateTime.sunday:
+        return "Min";
+    }
+    return "Hari";
+  }
+
+  String _monthAbbrevId(DateTime d) {
+    switch (d.month) {
+      case 1:
+        return "Jan";
+      case 2:
+        return "Feb";
+      case 3:
+        return "Mar";
+      case 4:
+        return "Apr";
+      case 5:
+        return "Mei";
+      case 6:
+        return "Jun";
+      case 7:
+        return "Jul";
+      case 8:
+        return "Agu";
+      case 9:
+        return "Sep";
+      case 10:
+        return "Okt";
+      case 11:
+        return "Nov";
+      case 12:
+        return "Des";
+    }
+    return "Bln";
+  }
+
+  String _monthNameId(DateTime d) {
+    switch (d.month) {
+      case 1:
+        return "Januari";
+      case 2:
+        return "Februari";
+      case 3:
+        return "Maret";
+      case 4:
+        return "April";
+      case 5:
+        return "Mei";
+      case 6:
+        return "Juni";
+      case 7:
+        return "Juli";
+      case 8:
+        return "Agustus";
+      case 9:
+        return "September";
+      case 10:
+        return "Oktober";
+      case 11:
+        return "November";
+      case 12:
+        return "Desember";
+    }
+    return "Bulan";
+  }
+
+  Color _bg(BuildContext context) => AppColors.surfaceContainerLowest();
+  Color _card(BuildContext context) => AppColors.surface();
+  Color _soft(BuildContext context) => AppColors.surfaceContainerLowest();
+  Color _fg(BuildContext context) => AppColors.onSurface();
+  Color _outline(BuildContext context) => AppColors.outline();
 }
 
 class ItemDataSource extends CalendarDataSource {
-  final List<Color> colors = [
+  final List<Color> colors = <Color>[
     ...Colors.primaries,
     ...Colors.accents,
   ];
@@ -380,36 +1694,22 @@ class ItemDataSource extends CalendarDataSource {
   }
 
   @override
-  Object? getId(int index) {
-    return _getItemData(index).id;
-  }
+  Object? getId(int index) => _getItemData(index).id;
 
   @override
-  DateTime getStartTime(int index) {
-    return _getItemData(index).begin.dateTime;
-  }
+  DateTime getStartTime(int index) => _getItemData(index).begin.dateTime;
 
   @override
-  DateTime getEndTime(int index) {
-    return _getItemData(index).until.dateTime;
-  }
+  DateTime getEndTime(int index) => _getItemData(index).until.dateTime;
 
   @override
-  String getSubject(int index) {
-    return _getItemData(index).title;
-  }
+  String getSubject(int index) => _getItemData(index).title;
 
   @override
-  String getNotes(int index) {
-    return _getItemData(index).description;
-  }
+  String getNotes(int index) => _getItemData(index).description;
 
   @override
-  Color getColor(int index) {
-    return colors[index % colors.length];
-  }
+  Color getColor(int index) => colors[index % colors.length];
 
-  Item _getItemData(int index) {
-    return appointments![index] as Item;
-  }
+  Item _getItemData(int index) => appointments![index] as Item;
 }

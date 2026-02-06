@@ -1,5 +1,3 @@
-// ignore_for_file: cascade_invocations
-
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:dio/dio.dart";
@@ -15,8 +13,8 @@ import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_map/flutter_map.dart";
 import "package:go_router/go_router.dart";
-import "package:smooth_corner/smooth_corner.dart";
 import "package:latlong2/latlong.dart";
+import "package:smooth_corner/smooth_corner.dart";
 
 class SpinnerPage extends StatefulWidget {
   final HeaderForm headerForm;
@@ -143,7 +141,8 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
         if (response.statusCode == 200) {
           setState(() {
             items = List<Map<String, dynamic>>.from(response.data);
-            size = Formats.tryParseNumber(response.headers.value("X-Data-Size")).toInt();
+            size = Formats.tryParseNumber(response.headers.value("X-Data-Size"))
+                .toInt();
           });
         }
       }
@@ -166,18 +165,27 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
       if (items != null) {
         return IconButton(
           onPressed: () async {
-            if (widget.dynamicFormResourceResponse.fields.any((element) => StringUtils.inList(element.name, ["latitude", "longitude", "longtitude"]))) {
+            if (widget.dynamicFormResourceResponse.fields.any((element) =>
+                StringUtils.inList(
+                    element.name, ["latitude", "longitude", "longtitude"]))) {
               Map<String, dynamic>? result = await Navigators.push(
                 MapPage(
-                  markers: items!.where((element) => element["latitude"] != null && (element["longitude"] != null || element["longtitude"] != null)).map((element) {
+                  markers: items!
+                      .where((element) =>
+                          element["latitude"] != null &&
+                          (element["longitude"] != null ||
+                              element["longtitude"] != null))
+                      .map((element) {
                     return Marker(
                       point: LatLng(
                         double.parse(element["latitude"]),
-                        double.parse(element["longitude"] ?? element["longtitude"]),
+                        double.parse(
+                            element["longitude"] ?? element["longtitude"]),
                       ),
                       child: GestureDetector(
                         onTap: () async {
-                          if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                          if (BaseSettings.navigatorType ==
+                              BaseNavigatorType.legacy) {
                             Navigators.pop(result: element);
                           } else {
                             context.pop(element);
@@ -200,7 +208,10 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
                 context.pop(result);
               }
             } else {
-              BaseOverlays.error(message: "map_view_can_only_be_used_if_there_is_longitude_and_latitude_data".tr());
+              BaseOverlays.error(
+                  message:
+                      "map_view_can_only_be_used_if_there_is_longitude_and_latitude_data"
+                          .tr());
             }
           },
           icon: const Icon(Icons.map),
@@ -226,7 +237,10 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
   }
 
   Widget body() {
-    List<DynamicFormResourceFieldItem> dynamicFormResourceFieldItems = widget.dynamicFormResourceResponse.fields.where((element) => element.showed).toList();
+    List<DynamicFormResourceFieldItem> dynamicFormResourceFieldItems = widget
+        .dynamicFormResourceResponse.fields
+        .where((element) => element.showed)
+        .toList();
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -249,7 +263,8 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
             if (i % 2 == 0) {
               List<Widget> children = [];
 
-              DynamicFormResourceFieldItem dfrfiLeft = dynamicFormResourceFieldItems[i];
+              DynamicFormResourceFieldItem dfrfiLeft =
+                  dynamicFormResourceFieldItems[i];
 
               children.add(
                 Expanded(
@@ -277,7 +292,8 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
               );
 
               if (i + 1 < dynamicFormResourceFieldItems.length) {
-                DynamicFormResourceFieldItem dfrfiRight = dynamicFormResourceFieldItems[i + 1];
+                DynamicFormResourceFieldItem dfrfiRight =
+                    dynamicFormResourceFieldItems[i + 1];
 
                 children.add(
                   SizedBox(
@@ -426,49 +442,34 @@ class CustomPagination extends StatefulWidget {
     this.groupSpacing = 10.0,
   });
 
-  ///Trigger when page changed
   final Function(int) onPageChanged;
 
-  ///End of numbers.
   final int pageTotal;
 
-  ///Page number to be displayed first, default is 1.
   final int pageInit;
 
-  ///Numbers to show at once. default is 10.
   final int threshold;
 
-  ///Color of numbers. default is black.
   final Color colorPrimary;
 
-  ///Color of background. default is white.
   final Color colorSub;
 
-  ///to First, to Previous, to next, to Last Button UI.
   final Widget? controlButton;
 
-  ///The icon of button to previous.
   final Widget iconPrevious;
 
-  ///The icon of button to next.
   final Widget iconNext;
 
-  ///The size of numbers. default is 15.
   final double fontSize;
 
-  ///The fontFamily of numbers.
   final String? fontFamily;
 
-  ///The elevation of the buttons.
   final double buttonElevation;
 
-  ///The Radius of the buttons.
   final double buttonRadius;
 
-  // Spacing between buttons, default is 4.0
   final double buttonSpacing;
 
-  // Spacing between button groups, default is 10.0
   final double groupSpacing;
 
   @override
@@ -501,8 +502,10 @@ class NumberPaginationState extends State<CustomPagination> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: List.generate(
-          rangeEnd <= widget.pageTotal ? widget.threshold : widget.pageTotal % widget.threshold,
-              (index) => Flexible(
+          rangeEnd <= widget.pageTotal
+              ? widget.threshold
+              : widget.pageTotal % widget.threshold,
+          (index) => Flexible(
             child: Padding(
               padding: const EdgeInsets.all(1.5),
               child: OutlinedButton(
@@ -514,8 +517,12 @@ class NumberPaginationState extends State<CustomPagination> {
                   ),
                   padding: EdgeInsets.zero,
                   minimumSize: const Size(48, 48),
-                  foregroundColor: (currentPage - 1) % widget.threshold == index ? widget.colorSub : widget.colorPrimary,
-                  backgroundColor: (currentPage - 1) % widget.threshold == index ? widget.colorPrimary : widget.colorSub,
+                  foregroundColor: (currentPage - 1) % widget.threshold == index
+                      ? widget.colorSub
+                      : widget.colorPrimary,
+                  backgroundColor: (currentPage - 1) % widget.threshold == index
+                      ? widget.colorPrimary
+                      : widget.colorSub,
                 ),
                 onPressed: () => _changePage(index + 1 + rangeStart),
                 child: Text(
@@ -523,7 +530,9 @@ class NumberPaginationState extends State<CustomPagination> {
                   style: TextStyle(
                     fontSize: widget.fontSize,
                     fontFamily: widget.fontFamily,
-                    color: (currentPage - 1) % widget.threshold == index ? widget.colorSub : widget.colorPrimary,
+                    color: (currentPage - 1) % widget.threshold == index
+                        ? widget.colorSub
+                        : widget.colorPrimary,
                   ),
                 ),
               ),
@@ -559,7 +568,9 @@ class NumberPaginationState extends State<CustomPagination> {
 
   @override
   Widget build(BuildContext context) {
-    final rangeStart = currentPage % widget.threshold == 0 ? currentPage - widget.threshold : (currentPage ~/ widget.threshold) * widget.threshold;
+    final rangeStart = currentPage % widget.threshold == 0
+        ? currentPage - widget.threshold
+        : (currentPage ~/ widget.threshold) * widget.threshold;
 
     final rangeEnd = rangeStart + widget.threshold;
 
@@ -570,7 +581,7 @@ class NumberPaginationState extends State<CustomPagination> {
         _buildControlButton(
           widget.iconPrevious,
           currentPage != 1,
-              () => _changePage(currentPage - 1),
+          () => _changePage(currentPage - 1),
         ),
         SizedBox(width: widget.groupSpacing),
         _buildPageNumbers(rangeStart, rangeEnd),
@@ -578,7 +589,7 @@ class NumberPaginationState extends State<CustomPagination> {
         _buildControlButton(
           widget.iconNext,
           currentPage != widget.pageTotal,
-              () => _changePage(currentPage + 1),
+          () => _changePage(currentPage + 1),
         ),
       ],
     );

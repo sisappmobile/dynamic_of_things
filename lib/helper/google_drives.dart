@@ -1,4 +1,4 @@
-// ignore_for_file: always_specify_types, use_build_context_synchronously, always_put_required_named_parameters_first, cascade_invocations
+// ignore_for_file: always_specify_types, use_build_context_synchronously, always_put_required_named_parameters_first, cascade_invocations, depend_on_referenced_packages
 
 import "package:googleapis/drive/v3.dart" as drive;
 import "package:googleapis_auth/auth_io.dart";
@@ -42,7 +42,8 @@ class GoogleDrives {
     required List<int> bytes,
   }) async {
     if (bytes.isNotEmpty) {
-      ServiceAccountCredentials serviceAccountCredentials = ServiceAccountCredentials.fromJson(credentialJson);
+      ServiceAccountCredentials serviceAccountCredentials =
+          ServiceAccountCredentials.fromJson(credentialJson);
 
       List<String> scopes = [
         drive.DriveApi.driveFileScope,
@@ -52,12 +53,18 @@ class GoogleDrives {
 
       http.Client client = http.Client();
 
-      AccessCredentials accessCredentials = await obtainAccessCredentialsViaServiceAccount(serviceAccountCredentials, scopes, client);
+      AccessCredentials accessCredentials =
+          await obtainAccessCredentialsViaServiceAccount(
+        serviceAccountCredentials,
+        scopes,
+        client,
+      );
 
       client.close();
 
       GoogleHttpClient googleHttpClient = GoogleHttpClient({
-        "Authorization" : "${accessCredentials.accessToken.type} ${accessCredentials.accessToken.data}",
+        "Authorization":
+            "${accessCredentials.accessToken.type} ${accessCredentials.accessToken.data}",
       });
 
       drive.DriveApi driveApi = drive.DriveApi(googleHttpClient);
@@ -81,7 +88,8 @@ class GoogleDrives {
   Future<List<int>> download({
     required String id,
   }) async {
-    ServiceAccountCredentials serviceAccountCredentials = ServiceAccountCredentials.fromJson(credentialJson);
+    ServiceAccountCredentials serviceAccountCredentials =
+        ServiceAccountCredentials.fromJson(credentialJson);
 
     List<String> scopes = [
       drive.DriveApi.driveFileScope,
@@ -91,17 +99,26 @@ class GoogleDrives {
 
     http.Client client = http.Client();
 
-    AccessCredentials accessCredentials = await obtainAccessCredentialsViaServiceAccount(serviceAccountCredentials, scopes, client);
+    AccessCredentials accessCredentials =
+        await obtainAccessCredentialsViaServiceAccount(
+      serviceAccountCredentials,
+      scopes,
+      client,
+    );
 
     client.close();
 
     GoogleHttpClient googleHttpClient = GoogleHttpClient({
-      "Authorization" : "${accessCredentials.accessToken.type} ${accessCredentials.accessToken.data}",
+      "Authorization":
+          "${accessCredentials.accessToken.type} ${accessCredentials.accessToken.data}",
     });
 
     drive.DriveApi driveApi = drive.DriveApi(googleHttpClient);
 
-    drive.Media media = await driveApi.files.get(id, downloadOptions: drive.DownloadOptions.fullMedia) as drive.Media;
+    drive.Media media = await driveApi.files.get(
+      id,
+      downloadOptions: drive.DownloadOptions.fullMedia,
+    ) as drive.Media;
 
     List<int> results = [];
 
