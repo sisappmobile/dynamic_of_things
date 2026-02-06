@@ -1,9 +1,6 @@
-import "dart:ui";
-
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:collection/collection.dart";
-import "package:dynamic_of_things/helper/bottom_sheets.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/offlines.dart";
 import "package:dynamic_of_things/model/dynamic_form_list_response.dart";
@@ -144,9 +141,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                   child: _topBar(),
                 ),
                 Expanded(child: _bodyHost()),
-                SizedBox(
-                    height: safe
-                        .bottom), // cukup safe area saja, tanpa jarak “dock”
+                SizedBox(height: safe.bottom),
               ],
             ),
             Positioned(
@@ -567,10 +562,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                           }
                         }
                       } else {
-                        BottomSheets.popupMenu(
-                          context: context,
-                          menuItems: menuItems,
-                        );
+                        _showActionSheet(menuItems);
                       }
                     }
                   }
@@ -777,7 +769,6 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                 ),
                 decoration: ShapeDecoration(
                   color: primary,
-                  
                   shape: SmoothRectangleBorder(
                     borderRadius: BorderRadius.circular(Dimensions.size30),
                     smoothness: Dimensions.size1,
@@ -1173,4 +1164,291 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
   Color _soft(BuildContext context) => AppColors.surfaceContainerLowest();
   Color _fg(BuildContext context) => AppColors.onSurface();
   Color _outline(BuildContext context) => AppColors.outline();
+
+  void _showActionSheet(List<MenuItem> menuItems) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.35),
+      builder: (ctx) {
+        final Color card = _card(ctx);
+        final Color soft = _soft(ctx);
+        final Color fg = _fg(ctx);
+        final Color outline = _outline(ctx);
+        final Color primary = Theme.of(ctx).colorScheme.primary;
+
+        Color tint(Color c, double a) => c.withValues(alpha: a);
+
+        final bool hasView = menuItems.any(
+          (m) =>
+              m.iconData == Icons.visibility ||
+              m.title.toLowerCase().contains("lihat"),
+        );
+        final bool hasEdit = menuItems.any(
+          (m) =>
+              m.iconData == Icons.edit ||
+              m.title.toLowerCase().contains("edit") ||
+              m.title.toLowerCase().contains("ubah"),
+        );
+        final bool noViewEdit = !hasView && !hasEdit;
+
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              Dimensions.size15,
+              Dimensions.size10,
+              Dimensions.size15,
+              Dimensions.size15,
+            ),
+            child: Container(
+              padding: EdgeInsets.fromLTRB(
+                Dimensions.size15,
+                Dimensions.size10,
+                Dimensions.size15,
+                Dimensions.size15,
+              ),
+              decoration: ShapeDecoration(
+                color: card,
+                shadows: [
+                  BoxShadow(
+                    blurRadius: Dimensions.size30,
+                    offset: Offset(0, Dimensions.size20),
+                    color: Colors.black.withValues(alpha: 0.16),
+                  ),
+                ],
+                shape: SmoothRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.size30),
+                  smoothness: Dimensions.size1,
+                  side: BorderSide(color: outline.withValues(alpha: 0.16)),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: Dimensions.size45,
+                    height: Dimensions.size5,
+                    decoration: BoxDecoration(
+                      color: fg.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(Dimensions.size15),
+                    ),
+                  ),
+                  SizedBox(height: Dimensions.size15),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          "Aksi",
+                          style: TextStyle(
+                            fontSize: Dimensions.text14,
+                            fontWeight: FontWeight.w900,
+                            color: fg,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ),
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => Navigator.pop(ctx),
+                          customBorder: const CircleBorder(),
+                          child: Ink(
+                            width: Dimensions.size40,
+                            height: Dimensions.size40,
+                            decoration: BoxDecoration(
+                              color: soft,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: outline.withValues(alpha: 0.18),
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.close_rounded,
+                              size: Dimensions.size20,
+                              color: fg,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (noViewEdit) ...[
+                    SizedBox(height: Dimensions.size10),
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: Dimensions.size15,
+                        vertical: Dimensions.size10,
+                      ),
+                      decoration: ShapeDecoration(
+                        color: soft,
+                        shape: SmoothRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(Dimensions.size20),
+                          smoothness: Dimensions.size1,
+                          side: BorderSide(
+                              color: outline.withValues(alpha: 0.16)),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: Dimensions.size30,
+                            height: Dimensions.size30,
+                            decoration: BoxDecoration(
+                              color: tint(primary, 0.10),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: tint(primary, 0.25)),
+                            ),
+                            child: Icon(
+                              Icons.lock_outline_rounded,
+                              size: Dimensions.size20,
+                              color: primary,
+                            ),
+                          ),
+                          SizedBox(width: Dimensions.size10),
+                          Expanded(
+                            child: Text(
+                              "Tidak ada akses untuk melihat atau mengubah data",
+                              style: TextStyle(
+                                fontSize: Dimensions.text12,
+                                fontWeight: FontWeight.w700,
+                                color: fg.withValues(alpha: 0.70),
+                                height: 1.2,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  SizedBox(height: Dimensions.size15),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: menuItems.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: 2.35,
+                    ),
+                    itemBuilder: (_, i) {
+                      final MenuItem item = menuItems[i];
+                      final bool enabled = item.onTap != null;
+                      final IconData icon = item.iconData ?? Icons.bolt_rounded;
+
+                      final bool isFirst = i == 0;
+
+                      final Color tileBg = enabled
+                          ? (isFirst ? tint(primary, 0.10) : soft)
+                          : soft.withValues(alpha: 0.55);
+
+                      final Color tileBorder = enabled
+                          ? (isFirst
+                              ? tint(primary, 0.28)
+                              : tint(outline, 0.18))
+                          : tint(outline, 0.12);
+
+                      final Color iconBg = enabled
+                          ? (isFirst ? tint(primary, 0.16) : tint(fg, 0.06))
+                          : tint(fg, 0.04);
+
+                      final Color iconColor = enabled
+                          ? (isFirst ? primary : fg)
+                          : fg.withValues(alpha: 0.35);
+
+                      final Color textColor =
+                          enabled ? fg : fg.withValues(alpha: 0.35);
+
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: enabled ? item.onTap : null,
+                          borderRadius:
+                              BorderRadius.circular(Dimensions.size20),
+                          child: Ink(
+                            decoration: ShapeDecoration(
+                              color: tileBg,
+                              shadows: enabled
+                                  ? [
+                                      BoxShadow(
+                                        blurRadius: 14,
+                                        offset: const Offset(0, 8),
+                                        color: Colors.black
+                                            .withValues(alpha: 0.07),
+                                      ),
+                                    ]
+                                  : const [],
+                              shape: SmoothRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(Dimensions.size20),
+                                smoothness: Dimensions.size1,
+                                side: BorderSide(color: tileBorder),
+                              ),
+                            ),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: Dimensions.size10,
+                                vertical: Dimensions.size10,
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: Dimensions.size35,
+                                    height: Dimensions.size35,
+                                    decoration: BoxDecoration(
+                                      color: iconBg,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isFirst
+                                            ? tint(primary, 0.30)
+                                            : outline.withValues(alpha: 0.16),
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      icon,
+                                      size: Dimensions.size20,
+                                      color: iconColor,
+                                    ),
+                                  ),
+                                  SizedBox(width: Dimensions.size10),
+                                  Expanded(
+                                    child: Text(
+                                      item.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: Dimensions.text12,
+                                        fontWeight: FontWeight.w900,
+                                        color: textColor,
+                                        letterSpacing: 0.1,
+                                      ),
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.chevron_right_rounded,
+                                    size: Dimensions.size20,
+                                    color: enabled
+                                        ? fg.withValues(alpha: 0.40)
+                                        : fg.withValues(alpha: 0.18),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
