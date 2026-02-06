@@ -34,7 +34,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
   Template? template;
 
   List<Item> items = <Item>[];
-  ItemDataSource _dataSource = ItemDataSource(<Item>[]);
+  ItemDataSource dataSource = ItemDataSource(<Item>[]);
 
   bool loading = true;
 
@@ -43,10 +43,10 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
   String? formId;
   List<DateTime> visibleDates = <DateTime>[];
 
-  DateTime _selectedDate = DateTime.now();
-  final CalendarController _calendarController = CalendarController();
+  DateTime selectedDate = DateTime.now();
+  final CalendarController calendarController = CalendarController();
 
-  String? _lastFetchKey;
+  String? lastFetchKey;
 
   @override
   void initState() {
@@ -54,8 +54,8 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
 
     WidgetsBinding.instance.addObserver(this);
 
-    _selectedDate = DateTime(today.year, today.month, today.day);
-    _calendarController.view = CalendarView.month;
+    selectedDate = DateTime(today.year, today.month, today.day);
+    calendarController.view = CalendarView.month;
 
     context.read<DynamicScheduleBloc>().add(
           DynamicScheduleTemplate(
@@ -68,7 +68,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _calendarController.dispose();
+    calendarController.dispose();
     super.dispose();
   }
 
@@ -89,7 +89,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
             loading = true;
             template = null;
             items = <Item>[];
-            _dataSource = ItemDataSource(<Item>[]);
+            dataSource = ItemDataSource(<Item>[]);
           });
         } else if (state is DynamicScheduleTemplateSuccess) {
           setState(() {
@@ -100,7 +100,6 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
             if (!mounted) {
               return;
             }
-            _refreshForCurrentView();
           });
         } else if (state is DynamicScheduleTemplateFinished) {
           setState(() {
@@ -109,18 +108,18 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
         } else if (state is DynamicScheduleDataLoading) {
           context.loaderOverlay.show();
         } else if (state is DynamicScheduleDataSuccess) {
-          final List<Item> deduped = _dedupById(state.items);
+          final List<Item> deduped = duplicateByid(state.items);
 
           setState(() {
             items = deduped;
-            _dataSource = ItemDataSource(deduped);
+            dataSource = ItemDataSource(deduped);
           });
         } else if (state is DynamicScheduleDataFinished) {
           context.loaderOverlay.hide();
         }
       },
       child: Scaffold(
-        backgroundColor: _bg(context),
+        backgroundColor: AppColors.surfaceContainerLowest(),
         body: Column(
           children: [
             SizedBox(height: safe.top),
@@ -131,9 +130,9 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                 Dimensions.size15,
                 Dimensions.size10,
               ),
-              child: _topBar(),
+              child: appBar(),
             ),
-            if (_showChips())
+            if (template != null && template!.forms.length > 1)
               Padding(
                 padding: EdgeInsets.fromLTRB(
                   Dimensions.size15,
@@ -141,7 +140,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                   Dimensions.size15,
                   Dimensions.size10,
                 ),
-                child: _chipsRow(),
+                child: chipRow(),
               ),
             Expanded(
               child: Padding(
@@ -151,7 +150,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                   Dimensions.size15,
                   Dimensions.size15,
                 ),
-                child: _contentModernSeparatedCards(),
+                child: separatedCard(),
               ),
             ),
             SizedBox(height: safe.bottom),
@@ -161,24 +160,24 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     );
   }
 
-  void _refreshForCurrentView() {
+  void refresh() {
     if (template == null) {
       return;
     }
 
-    final DateTime base = _calendarController.displayDate ?? _selectedDate;
+    final DateTime base = calendarController.displayDate ?? selectedDate;
 
     if (visibleDates.isNotEmpty) {
-      _refreshRange(visibleDates.first, visibleDates.last);
+      refreshRange(visibleDates.first, visibleDates.last);
       return;
     }
 
     final DateTime first = DateTime(base.year, base.month, 1);
     final DateTime last = DateTime(base.year, base.month + 1, 0);
-    _refreshRange(first, last);
+    refreshRange(first, last);
   }
 
-  void _refreshRange(DateTime begin, DateTime until) {
+  void refreshRange(DateTime begin, DateTime until) {
     if (template == null) {
       return;
     }
@@ -188,10 +187,10 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
 
     final String key =
         "${b.toIso8601String()}|${u.toIso8601String()}|${formId ?? "ALL"}";
-    if (_lastFetchKey == key) {
+    if (lastFetchKey == key) {
       return;
     }
-    _lastFetchKey = key;
+    lastFetchKey = key;
 
     context.read<DynamicScheduleBloc>().add(
           DynamicScheduleData(
@@ -204,7 +203,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
         );
   }
 
-  List<Item> _dedupById(List<Item> source) {
+  List<Item> duplicateByid(List<Item> source) {
     final Map<dynamic, Item> map = <dynamic, Item>{};
     for (final Item it in source) {
       map[it.id] = it;
@@ -229,18 +228,18 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
         template!.actions.any((element) => element.resourceId == "BTN_EDIT");
   }
 
-  Widget _contentModernSeparatedCards() {
+  Widget separatedCard() {
     if (loading) {
-      return _centerCard(child: BaseWidgets.shimmer());
+      return centerCard(child: BaseWidgets.shimmer());
     }
 
     if (template == null) {
-      return _centerCard(
+      return centerCard(
         child: Text(
           "common_something_wrong".tr(),
           style: TextStyle(
             fontWeight: FontWeight.w700,
-            color: _fg(context).withValues(alpha: 0.75),
+            color: AppColors.onSurface().withValues(alpha: 0.75),
           ),
         ),
       );
@@ -250,193 +249,252 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
       physics: const BouncingScrollPhysics(),
       child: Column(
         children: [
-          _calendarCard(),
-          SizedBox(height: Dimensions.size10),
-          _agendaCard(),
-        ],
-      ),
-    );
-  }
-
-  Widget _calendarCard() {
-    return Container(
-      decoration: ShapeDecoration(
-        color: _card(context),
-        shadows: [
-          BoxShadow(
-            blurRadius: Dimensions.size25,
-            offset: const Offset(0, 12),
-            color: Colors.black.withValues(alpha: 0.10),
-          ),
-        ],
-        shape: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimensions.size25),
-          smoothness: Dimensions.size1,
-          side: BorderSide(color: _outline(context).withValues(alpha: 0.30)),
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              Dimensions.size15,
-              Dimensions.size15,
-              Dimensions.size15,
-              Dimensions.size10,
+          Container(
+            decoration: ShapeDecoration(
+              color: AppColors.surface(),
+              shadows: [
+                BoxShadow(
+                  blurRadius: Dimensions.size25,
+                  offset: const Offset(0, 12),
+                  color: Colors.black.withValues(alpha: 0.10),
+                ),
+              ],
+              shape: SmoothRectangleBorder(
+                borderRadius: BorderRadius.circular(Dimensions.size25),
+                smoothness: Dimensions.size1,
+                side: BorderSide(
+                  color: AppColors.outline().withValues(alpha: 0.30),
+                ),
+              ),
             ),
-            child: _monthSwitcherHeader(),
-          ),
-          SizedBox(
-            height: 360,
-            child: SfCalendar(
-              key: ValueKey<String>(
-                "${formId ?? "ALL"}-${items.length}-${(_calendarController.displayDate ?? _selectedDate).month}-${(_calendarController.displayDate ?? _selectedDate).year}",
-              ),
-              controller: _calendarController,
-              view: CalendarView.month,
-              initialDisplayDate: DateTime(today.year, today.month, today.day),
-              dataSource: _dataSource,
-              backgroundColor: _card(context),
-              headerHeight: 0,
-              viewHeaderHeight: Dimensions.size45,
-              monthViewSettings: const MonthViewSettings(
-                appointmentDisplayMode: MonthAppointmentDisplayMode.none,
-                showAgenda: false,
-                appointmentDisplayCount: 3,
-              ),
-              viewHeaderStyle: ViewHeaderStyle(
-                backgroundColor: _card(context),
-                dayTextStyle: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: _fg(context).withValues(alpha: 0.65),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    Dimensions.size15,
+                    Dimensions.size15,
+                    Dimensions.size15,
+                    Dimensions.size10,
+                  ),
+                  child: monthSwitcher(),
                 ),
-                dateTextStyle: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  color: _fg(context),
-                ),
-              ),
-              monthCellBuilder: (context, details) {
-                final DateTime d = details.date;
-
-                final bool isToday = d.year == today.year &&
-                    d.month == today.month &&
-                    d.day == today.day;
-
-                final bool isSelected = d.year == _selectedDate.year &&
-                    d.month == _selectedDate.month &&
-                    d.day == _selectedDate.day;
-
-                final Color fg = _fg(context);
-                final Color muted = fg.withValues(alpha: 0.45);
-
-                final DateTime display = _calendarController.displayDate ?? d;
-                final bool inSameMonth =
-                    d.month == display.month && d.year == display.year;
-
-                final Color textColor = inSameMonth ? fg : muted;
-
-                return InkWell(
-                  onTap: () {
-                    setState(() {
-                      _selectedDate = DateTime(d.year, d.month, d.day);
-                    });
-                  },
-                  child: Container(
-                    margin: EdgeInsets.all(Dimensions.size5),
-                    decoration: ShapeDecoration(
-                      color: isSelected
-                          ? AppColors.primaryContainer().withValues(alpha: 0.45)
-                          : Colors.transparent,
-                      shape: SmoothRectangleBorder(
-                        borderRadius: BorderRadius.circular(Dimensions.size15),
-                        smoothness: Dimensions.size1,
-                        side: BorderSide(
-                          color: isSelected
-                              ? AppColors.onPrimaryContainer()
-                                  .withValues(alpha: 0.18)
-                              : Colors.transparent,
-                        ),
+                SizedBox(
+                  height: 360,
+                  child: SfCalendar(
+                    key: ValueKey<String>(
+                      "${formId ?? "ALL"}-${items.length}-${(calendarController.displayDate ?? selectedDate).month}-${(calendarController.displayDate ?? selectedDate).year}",
+                    ),
+                    controller: calendarController,
+                    view: CalendarView.month,
+                    initialDisplayDate:
+                        DateTime(today.year, today.month, today.day),
+                    dataSource: dataSource,
+                    backgroundColor: AppColors.surface(),
+                    headerHeight: 0,
+                    viewHeaderHeight: Dimensions.size45,
+                    monthViewSettings: const MonthViewSettings(
+                      appointmentDisplayMode: MonthAppointmentDisplayMode.none,
+                      showAgenda: false,
+                      appointmentDisplayCount: 3,
+                    ),
+                    viewHeaderStyle: ViewHeaderStyle(
+                      backgroundColor: AppColors.surface(),
+                      dayTextStyle: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.onSurface().withValues(alpha: 0.65),
+                      ),
+                      dateTextStyle: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.onSurface(),
                       ),
                     ),
-                    child: Stack(
-                      children: [
-                        Align(
-                          alignment: Alignment.topCenter,
-                          child: Padding(
-                            padding: EdgeInsets.only(top: Dimensions.size10),
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: Dimensions.size10,
-                                vertical: Dimensions.size5,
-                              ),
-                              decoration: ShapeDecoration(
-                                color: isToday
-                                    ? AppColors.primaryContainer()
+                    monthCellBuilder: (context, details) {
+                      final DateTime d = details.date;
+
+                      final bool isToday = d.year == today.year &&
+                          d.month == today.month &&
+                          d.day == today.day;
+
+                      final bool isSelected = d.year == selectedDate.year &&
+                          d.month == selectedDate.month &&
+                          d.day == selectedDate.day;
+
+                      final Color fg = AppColors.onSurface();
+                      final Color muted = fg.withValues(alpha: 0.45);
+
+                      final DateTime display =
+                          calendarController.displayDate ?? d;
+                      final bool inSameMonth =
+                          d.month == display.month && d.year == display.year;
+
+                      final Color textColor = inSameMonth ? fg : muted;
+
+                      return InkWell(
+                        onTap: () {
+                          setState(() {
+                            selectedDate = DateTime(d.year, d.month, d.day);
+                          });
+                        },
+                        child: Container(
+                          margin: EdgeInsets.all(Dimensions.size5),
+                          decoration: ShapeDecoration(
+                            color: isSelected
+                                ? AppColors.primaryContainer()
+                                    .withValues(alpha: 0.45)
+                                : Colors.transparent,
+                            shape: SmoothRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(Dimensions.size15),
+                              smoothness: Dimensions.size1,
+                              side: BorderSide(
+                                color: isSelected
+                                    ? AppColors.onPrimaryContainer()
+                                        .withValues(alpha: 0.18)
                                     : Colors.transparent,
-                                shape: SmoothRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(Dimensions.size15),
-                                  smoothness: Dimensions.size1,
-                                ),
-                              ),
-                              child: Text(
-                                "${d.day}",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: Dimensions.text12,
-                                  color: isToday
-                                      ? AppColors.onPrimaryContainer()
-                                      : textColor,
-                                ),
                               ),
                             ),
+                          ),
+                          child: Stack(
+                            children: [
+                              Align(
+                                alignment: Alignment.topCenter,
+                                child: Padding(
+                                  padding:
+                                      EdgeInsets.only(top: Dimensions.size10),
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: Dimensions.size10,
+                                      vertical: Dimensions.size5,
+                                    ),
+                                    decoration: ShapeDecoration(
+                                      color: isToday
+                                          ? AppColors.primaryContainer()
+                                          : Colors.transparent,
+                                      shape: SmoothRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          Dimensions.size15,
+                                        ),
+                                        smoothness: Dimensions.size1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      "${d.day}",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: Dimensions.text12,
+                                        color: isToday
+                                            ? AppColors.onPrimaryContainer()
+                                            : textColor,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (details.appointments.isNotEmpty)
+                                Align(
+                                  alignment: Alignment.bottomCenter,
+                                  child: Padding(
+                                    padding: EdgeInsets.only(
+                                      bottom: Dimensions.size5,
+                                    ),
+                                    child: dotIndicator(
+                                      details.appointments.length,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                        if (details.appointments.isNotEmpty)
-                          Align(
-                            alignment: Alignment.bottomCenter,
-                            child: Padding(
-                              padding:
-                                  EdgeInsets.only(bottom: Dimensions.size5),
-                              child:
-                                  _dotsIndicator(details.appointments.length),
-                            ),
-                          ),
-                      ],
-                    ),
+                      );
+                    },
+                    onViewChanged: (viewChangedDetails) {
+                      visibleDates = viewChangedDetails.visibleDates;
+
+                      final DateTime display =
+                          calendarController.displayDate ?? selectedDate;
+
+                      if (selectedDate.month != display.month ||
+                          selectedDate.year != display.year) {
+                        setState(() {
+                          selectedDate =
+                              DateTime(display.year, display.month, 1);
+                        });
+                      }
+
+                      refresh();
+                    },
+                    onTap: (CalendarTapDetails details) {
+                      if (details.targetElement ==
+                              CalendarElement.appointment &&
+                          details.appointments != null &&
+                          details.appointments!.isNotEmpty) {
+                        final Item item = details.appointments!.first as Item;
+                        openItemMenu(item);
+                      } else if (details.targetElement ==
+                          CalendarElement.calendarCell) {
+                        final DateTime d = details.date ?? selectedDate;
+                        setState(() {
+                          selectedDate = DateTime(d.year, d.month, d.day);
+                        });
+                      }
+                    },
                   ),
-                );
-              },
-              onViewChanged: (viewChangedDetails) {
-                visibleDates = viewChangedDetails.visibleDates;
-
-                final DateTime display =
-                    _calendarController.displayDate ?? _selectedDate;
-
-                if (_selectedDate.month != display.month ||
-                    _selectedDate.year != display.year) {
-                  setState(() {
-                    _selectedDate = DateTime(display.year, display.month, 1);
-                  });
-                }
-
-                _refreshForCurrentView();
-              },
-              onTap: (CalendarTapDetails details) {
-                if (details.targetElement == CalendarElement.appointment &&
-                    details.appointments != null &&
-                    details.appointments!.isNotEmpty) {
-                  final Item item = details.appointments!.first as Item;
-                  _openItemMenuModern(item);
-                } else if (details.targetElement ==
-                    CalendarElement.calendarCell) {
-                  final DateTime d = details.date ?? _selectedDate;
-                  setState(() {
-                    _selectedDate = DateTime(d.year, d.month, d.day);
-                  });
-                }
-              },
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: Dimensions.size10),
+          Container(
+            decoration: ShapeDecoration(
+              color: AppColors.surface(),
+              shadows: [
+                BoxShadow(
+                  blurRadius: Dimensions.size25,
+                  offset: Offset(0, Dimensions.size10),
+                  color: Colors.black.withValues(alpha: 0.10),
+                ),
+              ],
+              shape: SmoothRectangleBorder(
+                borderRadius: BorderRadius.circular(Dimensions.size25),
+                smoothness: 1,
+                side: BorderSide(
+                  color: AppColors.outline().withValues(alpha: 0.30),
+                ),
+              ),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    Dimensions.size15,
+                    Dimensions.size15,
+                    Dimensions.size15,
+                    Dimensions.size10,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          agendaTitle(selectedDate),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.onSurface(),
+                          ),
+                        ),
+                      ),
+                      badge("${itemForDay(selectedDate).length}"),
+                    ],
+                  ),
+                ),
+                Divider(
+                  height: 0,
+                  color: AppColors.outline().withValues(alpha: 0.25),
+                ),
+                agendaList(),
+              ],
             ),
           ),
         ],
@@ -444,8 +502,8 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     );
   }
 
-  Widget _monthSwitcherHeader() {
-    final DateTime display = _calendarController.displayDate ?? _selectedDate;
+  Widget monthSwitcher() {
+    final DateTime display = calendarController.displayDate ?? selectedDate;
     final DateTime prev = DateTime(display.year, display.month - 1, 1);
     final DateTime next = DateTime(display.year, display.month + 1, 1);
 
@@ -454,20 +512,20 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
         Expanded(
           child: Align(
             alignment: Alignment.centerLeft,
-            child: _monthSideTap(
-              label: _monthNameId(prev),
-              onTap: () => _jumpToMonth(prev),
+            child: monthSide(
+              label: monthName(prev),
+              onTap: () => jumptToMonth(prev),
               alignLeft: true,
             ),
           ),
         ),
-        _monthCenterPill(display),
+        monthCenter(display),
         Expanded(
           child: Align(
             alignment: Alignment.centerRight,
-            child: _monthSideTap(
-              label: _monthNameId(next),
-              onTap: () => _jumpToMonth(next),
+            child: monthSide(
+              label: monthName(next),
+              onTap: () => jumptToMonth(next),
               alignLeft: false,
             ),
           ),
@@ -476,29 +534,29 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     );
   }
 
-  Widget _monthCenterPill(DateTime display) {
+  Widget monthCenter(DateTime display) {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: Dimensions.size15,
         vertical: Dimensions.size10,
       ),
       decoration: ShapeDecoration(
-        color: _soft(context),
+        color: AppColors.surfaceContainerLowest(),
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size100),
           smoothness: Dimensions.size1,
-          side: BorderSide(color: _outline(context).withValues(alpha: 0.22)),
+          side: BorderSide(color: AppColors.outline().withValues(alpha: 0.22)),
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            "${_monthNameId(display)} ${display.year}",
+            "${monthName(display)} ${display.year}",
             style: TextStyle(
               fontWeight: FontWeight.w900,
               fontSize: Dimensions.text14,
-              color: _fg(context),
+              color: AppColors.onSurface(),
             ),
           ),
         ],
@@ -506,7 +564,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     );
   }
 
-  Widget _monthSideTap({
+  Widget monthSide({
     required String label,
     required VoidCallback onTap,
     required bool alignLeft,
@@ -528,14 +586,14 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                     Icon(
                       Icons.chevron_left_rounded,
                       size: Dimensions.size20,
-                      color: _fg(context).withValues(alpha: 0.55),
+                      color: AppColors.onSurface().withValues(alpha: 0.55),
                     ),
                     SizedBox(width: Dimensions.size2),
                     Text(
                       label,
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
-                        color: _fg(context).withValues(alpha: 0.65),
+                        color: AppColors.onSurface().withValues(alpha: 0.65),
                       ),
                     ),
                   ]
@@ -544,14 +602,14 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                       label,
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
-                        color: _fg(context).withValues(alpha: 0.65),
+                        color: AppColors.onSurface().withValues(alpha: 0.65),
                       ),
                     ),
                     SizedBox(width: Dimensions.size2),
                     Icon(
                       Icons.chevron_right_rounded,
                       size: Dimensions.size20,
-                      color: _fg(context).withValues(alpha: 0.55),
+                      color: AppColors.onSurface().withValues(alpha: 0.55),
                     ),
                   ],
           ),
@@ -560,70 +618,20 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     );
   }
 
-  void _jumpToMonth(DateTime month) {
+  void jumptToMonth(DateTime month) {
     final DateTime d = DateTime(month.year, month.month, 1);
 
     setState(() {
-      _selectedDate = d;
+      selectedDate = d;
     });
 
-    _calendarController.displayDate = d;
+    calendarController.displayDate = d;
 
-    _refreshForCurrentView();
+    refresh();
   }
 
-  Widget _agendaCard() {
-    return Container(
-      decoration: ShapeDecoration(
-        color: _card(context),
-        shadows: [
-          BoxShadow(
-            blurRadius: Dimensions.size25,
-            offset: Offset(0, Dimensions.size10),
-            color: Colors.black.withValues(alpha: 0.10),
-          ),
-        ],
-        shape: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimensions.size25),
-          smoothness: 1,
-          side: BorderSide(color: _outline(context).withValues(alpha: 0.30)),
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              Dimensions.size15,
-              Dimensions.size15,
-              Dimensions.size15,
-              Dimensions.size10,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _agendaTitleForCurrentTab(_selectedDate),
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: _fg(context),
-                    ),
-                  ),
-                ),
-                _badge("${_itemsForDay(_selectedDate).length}"),
-              ],
-            ),
-          ),
-          Divider(height: 0, color: _outline(context).withValues(alpha: 0.25)),
-          _agendaList(),
-        ],
-      ),
-    );
-  }
-
-  Widget _agendaList() {
-    final List<Item> dayItems = _itemsForDay(_selectedDate);
+  Widget agendaList() {
+    final List<Item> dayItems = itemForDay(selectedDate);
 
     if (dayItems.isEmpty) {
       return Padding(
@@ -637,27 +645,28 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
           width: double.infinity,
           padding: EdgeInsets.all(Dimensions.size15),
           decoration: ShapeDecoration(
-            color: _soft(context),
+            color: AppColors.surfaceContainerLowest(),
             shape: SmoothRectangleBorder(
               borderRadius: BorderRadius.circular(Dimensions.size20),
               smoothness: Dimensions.size1,
-              side:
-                  BorderSide(color: _outline(context).withValues(alpha: 0.22)),
+              side: BorderSide(
+                color: AppColors.outline().withValues(alpha: 0.22),
+              ),
             ),
           ),
           child: Row(
             children: [
               Icon(
                 Icons.event_busy,
-                color: _fg(context).withValues(alpha: 0.55),
+                color: AppColors.onSurface().withValues(alpha: 0.55),
               ),
               SizedBox(width: Dimensions.size10),
               Expanded(
                 child: Text(
-                  _trSafe("no_data", "no_data".tr()),
+                  trSafe("no_data", "no_data".tr()),
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
-                    color: _fg(context).withValues(alpha: 0.75),
+                    color: AppColors.onSurface().withValues(alpha: 0.75),
                   ),
                 ),
               ),
@@ -678,26 +687,26 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
       ),
       itemCount: dayItems.length,
       separatorBuilder: (_, __) => SizedBox(height: Dimensions.size10),
-      itemBuilder: (context, i) => _agendaTile(dayItems[i]),
+      itemBuilder: (context, i) => agenda(dayItems[i]),
     );
   }
 
-  Widget _agendaTile(Item it) {
+  Widget agenda(Item it) {
     final DateTime begin = it.begin.dateTime;
     final DateTime until = it.until.dateTime;
 
-    final bool isAllDay = _isAllDay(begin, until);
+    final bool isAllDay = allDay(begin, until);
     final String title = it.title;
     final String desc = it.description.trim();
 
-    final String dow = _weekdayAbbrevId(begin).toUpperCase();
+    final String dow = weekdayById(begin).toUpperCase();
     final String day = "${begin.day}";
-    final String time = isAllDay ? "Seharian" : _timeRange(begin, until);
+    final String time = isAllDay ? "Seharian" : timeRange(begin, until);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _openItemMenuModern(it),
+        onTap: () => openItemMenu(it),
         customBorder: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: 1,
@@ -705,7 +714,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
         child: Ink(
           padding: EdgeInsets.all(Dimensions.size15),
           decoration: ShapeDecoration(
-            color: _soft(context),
+            color: AppColors.surfaceContainerLowest(),
             shadows: [
               BoxShadow(
                 blurRadius: Dimensions.size20,
@@ -716,18 +725,19 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
             shape: SmoothRectangleBorder(
               borderRadius: BorderRadius.circular(Dimensions.size20),
               smoothness: Dimensions.size1,
-              side:
-                  BorderSide(color: _outline(context).withValues(alpha: 0.22)),
+              side: BorderSide(
+                color: AppColors.outline().withValues(alpha: 0.22),
+              ),
             ),
           ),
           child: Row(
             children: [
-              _dateBadgeRed(dow: dow, day: day),
+              dateBadgeRed(dow: dow, day: day),
               SizedBox(width: Dimensions.size10),
               Container(
                 width: Dimensions.size1,
                 height: Dimensions.size45,
-                color: _outline(context).withValues(alpha: 0.25),
+                color: AppColors.outline().withValues(alpha: 0.25),
               ),
               SizedBox(width: Dimensions.size10),
               Expanded(
@@ -741,7 +751,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: Dimensions.text14,
-                        color: _fg(context),
+                        color: AppColors.onSurface(),
                       ),
                     ),
                     SizedBox(height: Dimensions.size2),
@@ -752,7 +762,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: Dimensions.text12,
-                        color: _fg(context).withValues(alpha: 0.65),
+                        color: AppColors.onSurface().withValues(alpha: 0.65),
                       ),
                     ),
                     if (!isAllDay) ...[
@@ -764,7 +774,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                         style: TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: Dimensions.text11,
-                          color: _fg(context).withValues(alpha: 0.55),
+                          color: AppColors.onSurface().withValues(alpha: 0.55),
                         ),
                       ),
                     ],
@@ -774,7 +784,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
               SizedBox(width: Dimensions.size10),
               Icon(
                 Icons.chevron_right_rounded,
-                color: _fg(context).withValues(alpha: 0.55),
+                color: AppColors.onSurface().withValues(alpha: 0.55),
               ),
             ],
           ),
@@ -783,33 +793,33 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     );
   }
 
-  void _openItemMenuModern(Item item) {
+  void openItemMenu(Item item) {
     final bool canView = hasViewAccess();
     final bool canEdit = hasEditAccess();
 
     final DateTime begin = item.begin.dateTime;
     final DateTime until = item.until.dateTime;
 
-    final bool isAllDay = _isAllDay(begin, until);
-    final String dow = _weekdayAbbrevId(begin).toUpperCase();
+    final bool isAllDay = allDay(begin, until);
+    final String dow = weekdayById(begin).toUpperCase();
     final String day = "${begin.day}";
 
     final String whenLine =
-        "${_weekdayLongId(begin)}, ${begin.day} ${_monthAbbrevId(begin)} ${begin.year}"
-        "${isAllDay ? " • Seharian" : " • ${_timeRange(begin, until)}"}";
+        "${weekdayLongId(begin)}, ${begin.day} ${monthById(begin)} ${begin.year}"
+        "${isAllDay ? " • Seharian" : " • ${timeRange(begin, until)}"}";
 
     final List<Widget> actions = <Widget>[];
 
     if (canView) {
       actions.add(
-        _sheetActionTile(
+        bottomSheetAction(
           icon: Icons.visibility_rounded,
-          title: _trSafe("view_data", "view".tr()),
+          title: trSafe("view_data", "view".tr()),
           subtitle: item.description.trim().isEmpty ? null : item.description,
           enabled: true,
           onTap: () async {
             Navigator.of(context).pop();
-            await _openForm(item: item, readOnly: true);
+            await openForm(item: item, readOnly: true);
           },
         ),
       );
@@ -817,13 +827,13 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
 
     if (canEdit) {
       actions.add(
-        _sheetActionTile(
+        bottomSheetAction(
           icon: Icons.edit_rounded,
-          title: _trSafe("edit", "edit".tr()),
+          title: trSafe("edit", "edit".tr()),
           enabled: true,
           onTap: () async {
             Navigator.of(context).pop();
-            await _openForm(item: item, readOnly: false);
+            await openForm(item: item, readOnly: false);
           },
         ),
       );
@@ -842,12 +852,12 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
             width: double.infinity,
             padding: EdgeInsets.all(Dimensions.size15),
             decoration: ShapeDecoration(
-              color: _soft(context),
+              color: AppColors.surfaceContainerLowest(),
               shape: SmoothRectangleBorder(
                 borderRadius: BorderRadius.circular(Dimensions.size20),
                 smoothness: Dimensions.size1,
                 side: BorderSide(
-                  color: _outline(context).withValues(alpha: 0.22),
+                  color: AppColors.outline().withValues(alpha: 0.22),
                 ),
               ),
             ),
@@ -855,15 +865,15 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
               children: [
                 Icon(
                   Icons.lock_outline_rounded,
-                  color: _fg(context).withValues(alpha: 0.55),
+                  color: AppColors.onSurface().withValues(alpha: 0.55),
                 ),
                 SizedBox(width: Dimensions.size10),
                 Expanded(
                   child: Text(
-                    _trSafe("no_access", "no_action_available".tr()),
+                    trSafe("no_access", "no_action_available".tr()),
                     style: TextStyle(
                       fontWeight: FontWeight.w800,
-                      color: _fg(context).withValues(alpha: 0.75),
+                      color: AppColors.onSurface().withValues(alpha: 0.75),
                     ),
                   ),
                 ),
@@ -892,7 +902,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                   Dimensions.size15,
                 ),
                 decoration: ShapeDecoration(
-                  color: _card(context),
+                  color: AppColors.surface(),
                   shadows: [
                     BoxShadow(
                       blurRadius: Dimensions.size30,
@@ -904,7 +914,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                     borderRadius: BorderRadius.circular(Dimensions.size25),
                     smoothness: Dimensions.size1,
                     side: BorderSide(
-                      color: _outline(context).withValues(alpha: 0.25),
+                      color: AppColors.outline().withValues(alpha: 0.25),
                     ),
                   ),
                 ),
@@ -918,7 +928,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                       height: Dimensions.size5,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(Dimensions.size100),
-                        color: _outline(context).withValues(alpha: 0.35),
+                        color: AppColors.outline().withValues(alpha: 0.35),
                       ),
                     ),
                     Padding(
@@ -930,7 +940,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                       ),
                       child: Row(
                         children: [
-                          _dateBadgeRed(dow: dow, day: day),
+                          dateBadgeRed(dow: dow, day: day),
                           SizedBox(width: Dimensions.size10),
                           Expanded(
                             child: Column(
@@ -943,7 +953,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                                   style: TextStyle(
                                     fontWeight: FontWeight.w900,
                                     fontSize: Dimensions.text16,
-                                    color: _fg(context),
+                                    color: AppColors.onSurface(),
                                   ),
                                 ),
                                 SizedBox(height: Dimensions.size2),
@@ -954,13 +964,14 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
                                     fontSize: Dimensions.text12,
-                                    color: _fg(context).withValues(alpha: 0.65),
+                                    color: AppColors.onSurface()
+                                        .withValues(alpha: 0.65),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          _tinyIconButton(
+                          iconButton(
                             icon: Icons.close_rounded,
                             onTap: () => Navigator.of(context).pop(),
                           ),
@@ -969,7 +980,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                     ),
                     Divider(
                       height: 0,
-                      color: _outline(context).withValues(alpha: 0.20),
+                      color: AppColors.outline().withValues(alpha: 0.20),
                     ),
                     ...actions,
                     SizedBox(height: Dimensions.size10),
@@ -983,7 +994,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     );
   }
 
-  Widget _dateBadgeRed({required String dow, required String day}) {
+  Widget dateBadgeRed({required String dow, required String day}) {
     final Color bg = Theme.of(context).colorScheme.error;
     final Color fg = Theme.of(context).colorScheme.onError;
 
@@ -1034,15 +1045,16 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     );
   }
 
-  Widget _sheetActionTile({
+  Widget bottomSheetAction({
     required IconData icon,
     required String title,
     required bool enabled,
     required VoidCallback? onTap,
     String? subtitle,
   }) {
-    final Color fg =
-        enabled ? _fg(context) : _fg(context).withValues(alpha: 0.35);
+    final Color fg = enabled
+        ? AppColors.onSurface()
+        : AppColors.onSurface().withValues(alpha: 0.35);
 
     return Material(
       color: Colors.transparent,
@@ -1061,12 +1073,12 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                 width: Dimensions.size40,
                 height: Dimensions.size40,
                 decoration: ShapeDecoration(
-                  color: _soft(context),
+                  color: AppColors.surfaceContainerLowest(),
                   shape: SmoothRectangleBorder(
                     borderRadius: BorderRadius.circular(Dimensions.size15),
                     smoothness: Dimensions.size1,
                     side: BorderSide(
-                      color: _outline(context).withValues(alpha: 0.18),
+                      color: AppColors.outline().withValues(alpha: 0.18),
                     ),
                   ),
                 ),
@@ -1111,7 +1123,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     );
   }
 
-  Future<void> _openForm({required Item item, required bool readOnly}) async {
+  Future<void> openForm({required Item item, required bool readOnly}) async {
     bool result = false;
 
     if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
@@ -1138,13 +1150,13 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     }
 
     if (result) {
-      _refreshForCurrentView();
+      refresh();
     }
   }
 
-  Widget _topBar() {
+  Widget appBar() {
     final String subTitle = (formId == null)
-        ? _trSafe("all", "Semua")
+        ? trSafe("all", "Semua")
         : (template?.forms[formId] ?? "");
 
     return Container(
@@ -1153,7 +1165,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
         vertical: Dimensions.size15,
       ),
       decoration: ShapeDecoration(
-        color: _card(context),
+        color: AppColors.surface(),
         shadows: [
           BoxShadow(
             blurRadius: Dimensions.size20,
@@ -1164,12 +1176,12 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size25),
           smoothness: Dimensions.size1,
-          side: BorderSide(color: _outline(context).withValues(alpha: 0.30)),
+          side: BorderSide(color: AppColors.outline().withValues(alpha: 0.30)),
         ),
       ),
       child: Row(
         children: [
-          _iconPill(
+          iconPill(
             icon: Icons.turn_left_rounded,
             onTap: () {
               if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
@@ -1192,7 +1204,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                     fontSize: Dimensions.text16,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.2,
-                    color: _fg(context),
+                    color: AppColors.onSurface(),
                   ),
                 ),
                 SizedBox(height: Dimensions.size2),
@@ -1203,7 +1215,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                   style: TextStyle(
                     fontSize: Dimensions.text12,
                     fontWeight: FontWeight.w700,
-                    color: _fg(context).withValues(alpha: 0.65),
+                    color: AppColors.onSurface().withValues(alpha: 0.65),
                   ),
                 ),
               ],
@@ -1211,9 +1223,9 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
           ),
           if (hasCreateAccess()) ...[
             SizedBox(width: Dimensions.size10),
-            _primaryPillButton(
+            pillButton(
               icon: Icons.add,
-              label: _trSafe("add", "add".tr()),
+              label: trSafe("add", "add".tr()),
               onTap: () async {
                 bool result = false;
 
@@ -1237,7 +1249,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                 }
 
                 if (result) {
-                  _refreshForCurrentView();
+                  refresh();
                 }
               },
             ),
@@ -1247,28 +1259,26 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     );
   }
 
-  bool _showChips() => template != null && template!.forms.length > 1;
-
-  Widget _chipsRow() {
+  Widget chipRow() {
     final List<Widget> chips = <Widget>[
-      _pillChip(
-        label: _trSafe("all", "All"),
+      pillChip(
+        label: trSafe("all", "All"),
         selected: formId == null,
         onTap: () {
           setState(() => formId = null);
-          _refreshForCurrentView();
+          refresh();
         },
       ),
     ];
 
     for (final MapEntry<String, String> e in template!.forms.entries) {
       chips.add(
-        _pillChip(
+        pillChip(
           label: e.value,
           selected: formId == e.key,
           onTap: () {
             setState(() => formId = e.key);
-            _refreshForCurrentView();
+            refresh();
           },
         ),
       );
@@ -1286,16 +1296,18 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     );
   }
 
-  Widget _pillChip({
+  Widget pillChip({
     required String label,
     required bool selected,
     required VoidCallback onTap,
   }) {
-    final Color bg = selected ? AppColors.primaryContainer() : _card(context);
-    final Color fg = selected ? AppColors.onPrimaryContainer() : _fg(context);
+    final Color bg =
+        selected ? AppColors.primaryContainer() : AppColors.surface();
+    final Color fg =
+        selected ? AppColors.onPrimaryContainer() : AppColors.onSurface();
     final Color bd = selected
         ? AppColors.onPrimaryContainer().withValues(alpha: 0.20)
-        : _outline(context).withValues(alpha: 0.30);
+        : AppColors.outline().withValues(alpha: 0.30);
 
     return Material(
       color: Colors.transparent,
@@ -1343,24 +1355,24 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     );
   }
 
-  Widget _centerCard({required Widget child}) {
+  Widget centerCard({required Widget child}) {
     return Container(
       width: double.infinity,
       alignment: Alignment.center,
       padding: EdgeInsets.all(Dimensions.size20),
       decoration: ShapeDecoration(
-        color: _card(context),
+        color: AppColors.surface(),
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size25),
           smoothness: Dimensions.size1,
-          side: BorderSide(color: _outline(context).withValues(alpha: 0.30)),
+          side: BorderSide(color: AppColors.outline().withValues(alpha: 0.30)),
         ),
       ),
       child: child,
     );
   }
 
-  Widget _iconPill({required IconData icon, required VoidCallback onTap}) {
+  Widget iconPill({required IconData icon, required VoidCallback onTap}) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1373,21 +1385,23 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
           width: Dimensions.size40,
           height: Dimensions.size40,
           decoration: ShapeDecoration(
-            color: _soft(context),
+            color: AppColors.surfaceContainerLowest(),
             shape: SmoothRectangleBorder(
               borderRadius: BorderRadius.circular(Dimensions.size15),
               smoothness: Dimensions.size1,
-              side:
-                  BorderSide(color: _outline(context).withValues(alpha: 0.22)),
+              side: BorderSide(
+                color: AppColors.outline().withValues(alpha: 0.22),
+              ),
             ),
           ),
-          child: Icon(icon, color: _fg(context), size: Dimensions.size25),
+          child:
+              Icon(icon, color: AppColors.onSurface(), size: Dimensions.size25),
         ),
       ),
     );
   }
 
-  Widget _primaryPillButton({
+  Widget pillButton({
     required IconData icon,
     required String label,
     required VoidCallback onTap,
@@ -1438,7 +1452,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     );
   }
 
-  Widget _tinyIconButton({
+  Widget iconButton({
     required IconData icon,
     required VoidCallback onTap,
   }) {
@@ -1454,21 +1468,23 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
           width: Dimensions.size35,
           height: Dimensions.size35,
           decoration: ShapeDecoration(
-            color: _soft(context),
+            color: AppColors.surfaceContainerLowest(),
             shape: SmoothRectangleBorder(
               borderRadius: BorderRadius.circular(Dimensions.size15),
               smoothness: Dimensions.size1,
-              side:
-                  BorderSide(color: _outline(context).withValues(alpha: 0.22)),
+              side: BorderSide(
+                color: AppColors.outline().withValues(alpha: 0.22),
+              ),
             ),
           ),
-          child: Icon(icon, color: _fg(context), size: Dimensions.size20),
+          child:
+              Icon(icon, color: AppColors.onSurface(), size: Dimensions.size20),
         ),
       ),
     );
   }
 
-  Widget _dotsIndicator(int count) {
+  Widget dotIndicator(int count) {
     final int n = count.clamp(1, 4);
     final Color dot =
         Theme.of(context).colorScheme.error.withValues(alpha: 0.90);
@@ -1489,18 +1505,18 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     );
   }
 
-  Widget _badge(String text) {
+  Widget badge(String text) {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: Dimensions.size10,
         vertical: Dimensions.size5,
       ),
       decoration: ShapeDecoration(
-        color: _soft(context),
+        color: AppColors.surfaceContainerLowest(),
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size50),
           smoothness: Dimensions.size1,
-          side: BorderSide(color: _outline(context).withValues(alpha: 0.22)),
+          side: BorderSide(color: AppColors.outline().withValues(alpha: 0.22)),
         ),
       ),
       child: Text(
@@ -1508,13 +1524,13 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
         style: TextStyle(
           fontWeight: FontWeight.w900,
           fontSize: Dimensions.text12,
-          color: _fg(context).withValues(alpha: 0.85),
+          color: AppColors.onSurface().withValues(alpha: 0.85),
         ),
       ),
     );
   }
 
-  String _trSafe(String key, String fallback) {
+  String trSafe(String key, String fallback) {
     final String v = key.tr();
     if (v == key) {
       return fallback;
@@ -1522,17 +1538,17 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     return v;
   }
 
-  String _agendaTitleForCurrentTab(DateTime d) {
+  String agendaTitle(DateTime d) {
     final String tabName = (formId == null)
-        ? _trSafe("all", "Semua")
+        ? trSafe("all", "Semua")
         : (template?.forms[formId] ?? "");
 
-    final String dayLong = _weekdayLongId(d);
-    final String monthAbbrev = _monthAbbrevId(d);
+    final String dayLong = weekdayLongId(d);
+    final String monthAbbrev = monthById(d);
     return "$tabName • $dayLong, ${d.day} $monthAbbrev";
   }
 
-  bool _isAllDay(DateTime begin, DateTime until) {
+  bool allDay(DateTime begin, DateTime until) {
     if (begin.isAtSameMomentAs(until)) {
       return true;
     }
@@ -1547,8 +1563,8 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     return false;
   }
 
-  String _timeRange(DateTime begin, DateTime until) {
-    if (_isAllDay(begin, until)) {
+  String timeRange(DateTime begin, DateTime until) {
+    if (allDay(begin, until)) {
       return "Seharian";
     }
     final String a = Jiffy.parseFromDateTime(begin).format(pattern: "HH:mm");
@@ -1556,7 +1572,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     return "$a-$b";
   }
 
-  List<Item> _itemsForDay(DateTime day) {
+  List<Item> itemForDay(DateTime day) {
     final DateTime start = DateTime(day.year, day.month, day.day);
     final DateTime end = start.add(const Duration(days: 1));
 
@@ -1576,7 +1592,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     return out;
   }
 
-  String _weekdayLongId(DateTime d) {
+  String weekdayLongId(DateTime d) {
     switch (d.weekday) {
       case DateTime.monday:
         return "Senin";
@@ -1596,7 +1612,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     return "Hari";
   }
 
-  String _weekdayAbbrevId(DateTime d) {
+  String weekdayById(DateTime d) {
     switch (d.weekday) {
       case DateTime.monday:
         return "Sen";
@@ -1616,7 +1632,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     return "Hari";
   }
 
-  String _monthAbbrevId(DateTime d) {
+  String monthById(DateTime d) {
     switch (d.month) {
       case 1:
         return "Jan";
@@ -1646,7 +1662,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     return "Bln";
   }
 
-  String _monthNameId(DateTime d) {
+  String monthName(DateTime d) {
     switch (d.month) {
       case 1:
         return "Januari";
@@ -1675,12 +1691,6 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     }
     return "Bulan";
   }
-
-  Color _bg(BuildContext context) => AppColors.surfaceContainerLowest();
-  Color _card(BuildContext context) => AppColors.surface();
-  Color _soft(BuildContext context) => AppColors.surfaceContainerLowest();
-  Color _fg(BuildContext context) => AppColors.onSurface();
-  Color _outline(BuildContext context) => AppColors.outline();
 }
 
 class ItemDataSource extends CalendarDataSource {
@@ -1694,22 +1704,22 @@ class ItemDataSource extends CalendarDataSource {
   }
 
   @override
-  Object? getId(int index) => _getItemData(index).id;
+  Object? getId(int index) => getItemData(index).id;
 
   @override
-  DateTime getStartTime(int index) => _getItemData(index).begin.dateTime;
+  DateTime getStartTime(int index) => getItemData(index).begin.dateTime;
 
   @override
-  DateTime getEndTime(int index) => _getItemData(index).until.dateTime;
+  DateTime getEndTime(int index) => getItemData(index).until.dateTime;
 
   @override
-  String getSubject(int index) => _getItemData(index).title;
+  String getSubject(int index) => getItemData(index).title;
 
   @override
-  String getNotes(int index) => _getItemData(index).description;
+  String getNotes(int index) => getItemData(index).description;
 
   @override
   Color getColor(int index) => colors[index % colors.length];
 
-  Item _getItemData(int index) => appointments![index] as Item;
+  Item getItemData(int index) => appointments![index] as Item;
 }

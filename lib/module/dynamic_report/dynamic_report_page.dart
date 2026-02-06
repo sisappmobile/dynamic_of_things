@@ -127,7 +127,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
         }
       },
       child: Scaffold(
-        backgroundColor: _bg(context),
+        backgroundColor: AppColors.surfaceContainerLowest(),
         body: Stack(
           children: [
             Column(
@@ -140,9 +140,9 @@ class DynamicReportPageState extends State<DynamicReportPage>
                     Dimensions.size15,
                     Dimensions.size10,
                   ),
-                  child: _topBar(),
+                  child: appbar(),
                 ),
-                Expanded(child: _body()),
+                Expanded(child: body()),
                 SizedBox(height: safe.bottom + Dimensions.size75),
               ],
             ),
@@ -150,7 +150,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
               left: Dimensions.size15,
               right: Dimensions.size15,
               bottom: safe.bottom + Dimensions.size2,
-              child: _bottomFloatingBar(),
+              child: floatingactionbar(),
             ),
           ],
         ),
@@ -227,7 +227,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     }
   }
 
-  Widget _topBar() {
+  Widget appbar() {
     final String title = (template?.title.isNotEmpty ?? false)
         ? template!.title
         : widget.dynamicFormMenuItem.name;
@@ -238,7 +238,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
         vertical: Dimensions.size10,
       ),
       decoration: ShapeDecoration(
-        color: _card(context),
+        color: AppColors.surface(),
         shadows: [
           BoxShadow(
             blurRadius: Dimensions.size20,
@@ -250,13 +250,13 @@ class DynamicReportPageState extends State<DynamicReportPage>
           borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.35),
+            color: AppColors.outline().withValues(alpha: 0.35),
           ),
         ),
       ),
       child: Row(
         children: [
-          _iconPill(
+          iconPill(
             icon: Icons.turn_left_rounded,
             onTap: () {
               if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
@@ -279,7 +279,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
                     fontSize: Dimensions.text16,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.2,
-                    color: _fg(context),
+                    color: AppColors.onSurface(),
                   ),
                 ),
                 SizedBox(height: Dimensions.size2),
@@ -290,19 +290,19 @@ class DynamicReportPageState extends State<DynamicReportPage>
                   style: TextStyle(
                     fontSize: Dimensions.text12,
                     fontWeight: FontWeight.w600,
-                    color: _fg(context).withValues(alpha: 0.65),
+                    color: AppColors.onSurface().withValues(alpha: 0.65),
                   ),
                 ),
               ],
             ),
           ),
           SizedBox(width: Dimensions.size10),
-          _iconPill(
+          iconPill(
             icon: Icons.tune,
             onTap: () async => openFilter(),
           ),
           SizedBox(width: Dimensions.size10),
-          _iconPill(
+          iconPill(
             icon: Icons.file_download_outlined,
             onTap: () async {
               if (template == null) {
@@ -332,7 +332,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     );
   }
 
-  Widget _iconPill({
+  Widget iconPill({
     required IconData icon,
     required VoidCallback onTap,
   }) {
@@ -348,18 +348,18 @@ class DynamicReportPageState extends State<DynamicReportPage>
           width: Dimensions.size40,
           height: Dimensions.size40,
           decoration: ShapeDecoration(
-            color: _soft(context),
+            color: AppColors.surfaceContainerLowest(),
             shape: SmoothRectangleBorder(
               borderRadius: BorderRadius.circular(Dimensions.size15),
               smoothness: Dimensions.size1,
               side: BorderSide(
-                color: _outline(context).withValues(alpha: 0.25),
+                color: AppColors.outline().withValues(alpha: 0.25),
               ),
             ),
           ),
           child: Icon(
             icon,
-            color: _fg(context),
+            color: AppColors.onSurface(),
             size: Dimensions.size25,
           ),
         ),
@@ -367,7 +367,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     );
   }
 
-  Widget _body() {
+  Widget body() {
     if (template == null) {
       return BaseWidgets.shimmer();
     }
@@ -383,7 +383,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
           child: Text(
             "common_something_wrong".tr(),
             style: TextStyle(
-              color: _fg(context).withValues(alpha: 0.7),
+              color: AppColors.onSurface().withValues(alpha: 0.7),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -394,7 +394,48 @@ class DynamicReportPageState extends State<DynamicReportPage>
     if (dataResponse!.rows.isEmpty) {
       return ListView(
         padding: EdgeInsets.all(Dimensions.size15),
-        children: [_emptyState()],
+        children: [
+          Container(
+            padding: EdgeInsets.all(Dimensions.size20),
+            decoration: ShapeDecoration(
+              color: AppColors.surface(),
+              shape: SmoothRectangleBorder(
+                borderRadius: BorderRadius.circular(Dimensions.size20),
+                smoothness: Dimensions.size1,
+                side: BorderSide(
+                  color: AppColors.outline().withValues(alpha: 0.35),
+                ),
+              ),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.inbox_outlined,
+                  size: Dimensions.size45,
+                  color: AppColors.onSurface().withValues(alpha: 0.65),
+                ),
+                SizedBox(height: Dimensions.size10),
+                Text(
+                  "no_data".tr(),
+                  style: TextStyle(
+                    fontSize: Dimensions.text16,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.onSurface(),
+                  ),
+                ),
+                SizedBox(height: Dimensions.size5),
+                Text(
+                  "try_adjust_filter_or_pull_to_refresh".tr(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.onSurface().withValues(alpha: 0.70),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       );
     }
 
@@ -412,7 +453,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
         separatorBuilder: (_, __) => const SizedBox(height: _gapCard),
         itemBuilder: (context, index) {
           final Map<String, dynamic> map = dataResponse!.rows[index];
-          return _reportCardDynamic(
+          return cardDynamic(
             index: index + 1,
             row: map,
           );
@@ -421,12 +462,12 @@ class DynamicReportPageState extends State<DynamicReportPage>
     );
   }
 
-  bool _isEmptyValue(String v) {
+  bool empthyValue(String v) {
     final String s = v.trim();
     return s.isEmpty || s == "-" || s == "null";
   }
 
-  Widget _reportCardDynamic({
+  Widget cardDynamic({
     required int index,
     required Map<String, dynamic> row,
   }) {
@@ -462,7 +503,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
 
     final String? qtyValue = qtyField != null ? valueOf(qtyField.name) : null;
 
-    final bool showQty = qtyValue != null && !_isEmptyValue(qtyValue);
+    final bool showQty = qtyValue != null && !empthyValue(qtyValue);
 
     final List<Field> fields = template!.fields.toList();
     if (itemDescField != null) {
@@ -472,7 +513,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     return Container(
       padding: EdgeInsets.all(Dimensions.size15),
       decoration: ShapeDecoration(
-        color: _card(context),
+        color: AppColors.surface(),
         shadows: [
           BoxShadow(
             blurRadius: Dimensions.size20,
@@ -484,7 +525,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
           borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.35),
+            color: AppColors.outline().withValues(alpha: 0.35),
           ),
         ),
       ),
@@ -493,7 +534,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
         children: [
           Row(
             children: [
-              _chip("#$index"),
+              chipQuantity("#$index"),
               SizedBox(width: Dimensions.size10),
               Expanded(
                 child: Text(
@@ -504,20 +545,20 @@ class DynamicReportPageState extends State<DynamicReportPage>
                     fontSize: Dimensions.text16,
                     fontWeight: FontWeight.w900,
                     height: 1.15,
-                    color: _fg(context),
+                    color: AppColors.onSurface(),
                   ),
                 ),
               ),
               if (showQty) ...[
                 SizedBox(width: Dimensions.size10),
-                _chipCompact(label: "Qty", value: qtyValue!),
+                chipCompatQuantity(label: "Qty", value: qtyValue),
               ],
             ],
           ),
           SizedBox(height: Dimensions.size10),
           Divider(
             height: 0,
-            color: _outline(context).withValues(alpha: 0.30),
+            color: AppColors.outline().withValues(alpha: 0.30),
           ),
           SizedBox(height: Dimensions.size10),
           LayoutBuilder(
@@ -555,8 +596,8 @@ class DynamicReportPageState extends State<DynamicReportPage>
               }
 
               final List<Field> ordered = [...fields]..sort((a, b) {
-                  final aa = _isTriMetric(a) ? 0 : 1;
-                  final bb = _isTriMetric(b) ? 0 : 1;
+                  final aa = isTricMetric(a) ? 0 : 1;
+                  final bb = isTricMetric(b) ? 0 : 1;
                   return aa.compareTo(bb);
                 });
 
@@ -568,8 +609,8 @@ class DynamicReportPageState extends State<DynamicReportPage>
                 }
 
                 final String val = valueOf(f.name);
-                final bool empty = _isEmptyValue(val);
-                final bool isMetric = _isTriMetric(f);
+                final bool empty = empthyValue(val);
+                final bool isMetric = isTricMetric(f);
 
                 if (isMetric) {
                   if (!metricMode) {
@@ -578,7 +619,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
                   }
 
                   bucket.add(
-                    _kvSmart(f.caption, empty ? "-" : val, compact: true),
+                    kvSmart(f.caption, empty ? "-" : val, compact: true),
                   );
 
                   if (bucket.length == 3) {
@@ -593,7 +634,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
                   metricMode = false;
                 }
 
-                final bool full = _forceFullWidth(f, val);
+                final bool full = forceFullWidth(f, val);
 
                 if (full) {
                   flushBucket(cols: colsDefault);
@@ -601,7 +642,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
                   blocks.add(
                     SizedBox(
                       width: rowW,
-                      child: _kvSmart(
+                      child: kvSmart(
                         f.caption,
                         empty ? "-" : val,
                         compact: false,
@@ -610,7 +651,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
                   );
                 } else {
                   bucket.add(
-                    _kvSmart(f.caption, empty ? "-" : val, compact: true),
+                    kvSmart(f.caption, empty ? "-" : val, compact: true),
                   );
 
                   if (bucket.length == colsDefault) {
@@ -641,12 +682,12 @@ class DynamicReportPageState extends State<DynamicReportPage>
     );
   }
 
-  Widget _kvSmart(
+  Widget kvSmart(
     String k,
     String v, {
     required bool compact,
   }) {
-    final bool empty = _isEmptyValue(v);
+    final bool empty = empthyValue(v);
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -654,12 +695,12 @@ class DynamicReportPageState extends State<DynamicReportPage>
         vertical: _tilePadY,
       ),
       decoration: ShapeDecoration(
-        color: _soft(context),
+        color: AppColors.surfaceContainerLowest(),
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size15),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.20),
+            color: AppColors.outline().withValues(alpha: 0.20),
           ),
         ),
       ),
@@ -673,7 +714,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
             style: TextStyle(
               fontSize: Dimensions.text12,
               fontWeight: FontWeight.w700,
-              color: _fg(context).withValues(alpha: 0.65),
+              color: AppColors.onSurface().withValues(alpha: 0.65),
             ),
           ),
           SizedBox(height: Dimensions.size4),
@@ -685,7 +726,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
               fontSize: Dimensions.text14,
               fontWeight: FontWeight.w900,
               height: 1.15,
-              color: _fg(context).withValues(alpha: empty ? 0.35 : 1),
+              color: AppColors.onSurface().withValues(alpha: empty ? 0.35 : 1),
             ),
           ),
         ],
@@ -693,19 +734,19 @@ class DynamicReportPageState extends State<DynamicReportPage>
     );
   }
 
-  Widget _chip(String text) {
+  Widget chipQuantity(String text) {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: Dimensions.size10,
         vertical: Dimensions.size5,
       ),
       decoration: ShapeDecoration(
-        color: _soft(context),
+        color: AppColors.surfaceContainerLowest(),
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size50),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.25),
+            color: AppColors.outline().withValues(alpha: 0.25),
           ),
         ),
       ),
@@ -714,17 +755,17 @@ class DynamicReportPageState extends State<DynamicReportPage>
         style: TextStyle(
           fontSize: Dimensions.text12,
           fontWeight: FontWeight.w800,
-          color: _fg(context).withValues(alpha: 0.85),
+          color: AppColors.onSurface().withValues(alpha: 0.85),
         ),
       ),
     );
   }
 
-  Widget _chipCompact({
+  Widget chipCompatQuantity({
     required String label,
     required String value,
   }) {
-    final bool empty = _isEmptyValue(value);
+    final bool empty = empthyValue(value);
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -732,12 +773,12 @@ class DynamicReportPageState extends State<DynamicReportPage>
         vertical: Dimensions.size5,
       ),
       decoration: ShapeDecoration(
-        color: _soft(context),
+        color: AppColors.surfaceContainerLowest(),
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size50),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.25),
+            color: AppColors.outline().withValues(alpha: 0.25),
           ),
         ),
       ),
@@ -749,7 +790,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
             style: TextStyle(
               fontSize: Dimensions.text12,
               fontWeight: FontWeight.w800,
-              color: _fg(context).withValues(alpha: 0.70),
+              color: AppColors.onSurface().withValues(alpha: 0.70),
             ),
           ),
           SizedBox(width: Dimensions.size5),
@@ -758,7 +799,8 @@ class DynamicReportPageState extends State<DynamicReportPage>
             style: TextStyle(
               fontSize: Dimensions.text12,
               fontWeight: FontWeight.w900,
-              color: _fg(context).withValues(alpha: empty ? 0.40 : 0.90),
+              color:
+                  AppColors.onSurface().withValues(alpha: empty ? 0.40 : 0.90),
             ),
           ),
         ],
@@ -766,51 +808,8 @@ class DynamicReportPageState extends State<DynamicReportPage>
     );
   }
 
-  Widget _emptyState() {
-    return Container(
-      padding: EdgeInsets.all(Dimensions.size20),
-      decoration: ShapeDecoration(
-        color: _card(context),
-        shape: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimensions.size20),
-          smoothness: Dimensions.size1,
-          side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.35),
-          ),
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.inbox_outlined,
-            size: Dimensions.size45,
-            color: _fg(context).withValues(alpha: 0.65),
-          ),
-          SizedBox(height: Dimensions.size10),
-          Text(
-            "no_data".tr(),
-            style: TextStyle(
-              fontSize: Dimensions.text16,
-              fontWeight: FontWeight.w900,
-              color: _fg(context),
-            ),
-          ),
-          SizedBox(height: Dimensions.size5),
-          Text(
-            "try_adjust_filter_or_pull_to_refresh".tr(),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: _fg(context).withValues(alpha: 0.70),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _bottomFloatingBar() {
-    final String info = _dataInfo(
+  Widget floatingactionbar() {
+    final String info = dataInfo(
       pageIndex: pageIndex,
       pageSize: pageSize,
       dataSize: dataResponse?.size,
@@ -822,7 +821,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
         vertical: Dimensions.size10,
       ),
       decoration: ShapeDecoration(
-        color: _card(context),
+        color: AppColors.surface(),
         shadows: [
           BoxShadow(
             blurRadius: Dimensions.size25,
@@ -834,7 +833,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
           borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.35),
+            color: AppColors.outline().withValues(alpha: 0.35),
           ),
         ),
       ),
@@ -848,12 +847,12 @@ class DynamicReportPageState extends State<DynamicReportPage>
                 vertical: Dimensions.size10,
               ),
               decoration: ShapeDecoration(
-                color: _soft(context),
+                color: AppColors.surfaceContainerLowest(),
                 shape: SmoothRectangleBorder(
                   borderRadius: BorderRadius.circular(Dimensions.size15),
                   smoothness: Dimensions.size1,
                   side: BorderSide(
-                    color: _outline(context).withValues(alpha: 0.22),
+                    color: AppColors.outline().withValues(alpha: 0.22),
                   ),
                 ),
               ),
@@ -864,7 +863,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
                 style: TextStyle(
                   fontSize: Dimensions.text12,
                   fontWeight: FontWeight.w800,
-                  color: _fg(context).withValues(alpha: 0.85),
+                  color: AppColors.onSurface().withValues(alpha: 0.85),
                 ),
               ),
             ),
@@ -881,8 +880,8 @@ class DynamicReportPageState extends State<DynamicReportPage>
               },
               pageTotal: (size / pageSize).ceil(),
               pageInit: pageIndex,
-              colorPrimary: _fg(context),
-              colorSub: _soft(context),
+              colorPrimary: AppColors.onSurface(),
+              colorSub: AppColors.surfaceContainerLowest(),
               buttonRadius: Dimensions.size50,
               buttonElevation: 0,
               threshold: 1,
@@ -893,12 +892,12 @@ class DynamicReportPageState extends State<DynamicReportPage>
             height: Dimensions.size40,
             padding: EdgeInsets.symmetric(horizontal: Dimensions.size10),
             decoration: ShapeDecoration(
-              color: _soft(context),
+              color: AppColors.surfaceContainerLowest(),
               shape: SmoothRectangleBorder(
                 borderRadius: BorderRadius.circular(Dimensions.size15),
                 smoothness: Dimensions.size1,
                 side: BorderSide(
-                  color: _outline(context).withValues(alpha: 0.22),
+                  color: AppColors.outline().withValues(alpha: 0.22),
                 ),
               ),
             ),
@@ -932,7 +931,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     );
   }
 
-  String _dataInfo({
+  String dataInfo({
     required int pageIndex,
     required int pageSize,
     required int? dataSize,
@@ -997,13 +996,13 @@ class DynamicReportPageState extends State<DynamicReportPage>
                     child: Container(
                       margin: EdgeInsets.all(Dimensions.size15),
                       decoration: ShapeDecoration(
-                        color: _card(context),
+                        color: AppColors.surface(),
                         shape: SmoothRectangleBorder(
                           borderRadius:
                               BorderRadius.circular(Dimensions.size25),
                           smoothness: Dimensions.size1,
                           side: BorderSide(
-                            color: _outline(context).withValues(alpha: 0.35),
+                            color: AppColors.outline().withValues(alpha: 0.35),
                           ),
                         ),
                         shadows: [
@@ -1026,7 +1025,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
                             ),
                             child: Row(
                               children: [
-                                _iconPill(
+                                iconPill(
                                   icon: Icons.close,
                                   onTap: () {
                                     if (BaseSettings.navigatorType ==
@@ -1044,7 +1043,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
                                     style: TextStyle(
                                       fontSize: Dimensions.text18,
                                       fontWeight: FontWeight.w900,
-                                      color: _fg(context),
+                                      color: AppColors.onSurface(),
                                     ),
                                   ),
                                 ),
@@ -1073,7 +1072,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
                           ),
                           Divider(
                             height: 0,
-                            color: _outline(context).withValues(alpha: 0.35),
+                            color: AppColors.outline().withValues(alpha: 0.35),
                           ),
                           Flexible(
                             fit: FlexFit.loose,
@@ -1123,7 +1122,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
                                       }
                                     }
 
-                                    return _filterCard(
+                                    return filterCard(
                                       title: filter.caption,
                                       canClear: filter.value != null ||
                                           StringUtils.isNotNullOrEmpty(
@@ -1135,7 +1134,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
                                           ..controller = null;
                                         setStateSheet(() {});
                                       },
-                                      child: _buildFilterInput(
+                                      child: filterInput(
                                         filter: filter,
                                         setStateSheet: setStateSheet,
                                         onChanged: () => setStateSheet(() {}),
@@ -1211,7 +1210,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     );
   }
 
-  Widget _filterCard({
+  Widget filterCard({
     required String title,
     required Widget child,
     required bool canClear,
@@ -1220,12 +1219,12 @@ class DynamicReportPageState extends State<DynamicReportPage>
     return Container(
       padding: EdgeInsets.all(Dimensions.size15),
       decoration: ShapeDecoration(
-        color: _soft(context),
+        color: AppColors.surfaceContainerLowest(),
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: 1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.20),
+            color: AppColors.outline().withValues(alpha: 0.20),
           ),
         ),
       ),
@@ -1240,7 +1239,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
                   style: TextStyle(
                     fontSize: Dimensions.text14,
                     fontWeight: FontWeight.w900,
-                    color: _fg(context),
+                    color: AppColors.onSurface(),
                   ),
                 ),
               ),
@@ -1257,7 +1256,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     );
   }
 
-  Widget _buildFilterInput({
+  Widget filterInput({
     required Filter filter,
     required void Function(void Function()) setStateSheet,
     required VoidCallback onChanged,
@@ -1267,7 +1266,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     if (filter.type == "STRING") {
       widget = TextFormField(
         controller: filter.controller,
-        decoration: _inputDeco(hint: filter.caption),
+        decoration: inputDecoration(hint: filter.caption),
         keyboardType: TextInputType.text,
         onChanged: (_) => onChanged(),
         onSaved: (newValue) {
@@ -1281,7 +1280,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     } else if (filter.type == "NUMERIC") {
       widget = TextFormField(
         controller: filter.controller,
-        decoration: _inputDeco(hint: filter.caption),
+        decoration: inputDecoration(hint: filter.caption),
         inputFormatters: [
           ThousandsFormatter(
             allowFraction: true,
@@ -1314,7 +1313,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     } else if (filter.type == "DATE") {
       widget = TextFormField(
         controller: filter.controller,
-        decoration: _inputDeco(
+        decoration: inputDecoration(
           hint: filter.caption,
           suffixIcon: const Icon(Icons.event),
         ),
@@ -1397,12 +1396,12 @@ class DynamicReportPageState extends State<DynamicReportPage>
             width: double.infinity,
             height: Dimensions.size55,
             decoration: ShapeDecoration(
-              color: _card(context),
+              color: AppColors.surface(),
               shape: SmoothRectangleBorder(
                 borderRadius: BorderRadius.circular(Dimensions.size15),
                 smoothness: Dimensions.size1,
                 side: BorderSide(
-                  color: _outline(context).withValues(alpha: 0.35),
+                  color: AppColors.outline().withValues(alpha: 0.35),
                 ),
               ),
             ),
@@ -1417,7 +1416,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
                     style: TextStyle(
                       fontSize: Dimensions.text16,
                       fontWeight: FontWeight.w700,
-                      color: _fg(context).withValues(
+                      color: AppColors.onSurface().withValues(
                         alpha: StringUtils.isNotNullOrEmpty(
                           filter.controller!.text,
                         )
@@ -1439,14 +1438,14 @@ class DynamicReportPageState extends State<DynamicReportPage>
     return widget;
   }
 
-  InputDecoration _inputDeco({
+  InputDecoration inputDecoration({
     required String hint,
     Widget? suffixIcon,
   }) {
     final OutlineInputBorder outline = OutlineInputBorder(
       borderRadius: BorderRadius.circular(Dimensions.size20),
       borderSide: BorderSide(
-        color: _outline(context).withValues(alpha: 0.45),
+        color: AppColors.outline().withValues(alpha: 0.45),
         width: 1,
       ),
     );
@@ -1454,7 +1453,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     return InputDecoration(
       hintText: hint,
       filled: true,
-      fillColor: _card(context),
+      fillColor: AppColors.surface(),
       contentPadding: EdgeInsets.symmetric(
         horizontal: Dimensions.size15,
         vertical: Dimensions.size15,
@@ -1462,7 +1461,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
       enabledBorder: outline,
       focusedBorder: outline.copyWith(
         borderSide: BorderSide(
-          color: _fg(context).withValues(alpha: 0.60),
+          color: AppColors.onSurface().withValues(alpha: 0.60),
           width: 1.2,
         ),
       ),
@@ -1482,7 +1481,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     );
   }
 
-  bool _isTriMetric(Field f) {
+  bool isTricMetric(Field f) {
     final k = f.name.toLowerCase();
     final c = f.caption.toLowerCase();
 
@@ -1497,7 +1496,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
         hit("booked");
   }
 
-  bool _forceFullWidth(Field f, String v) {
+  bool forceFullWidth(Field f, String v) {
     final k = f.name.toLowerCase();
 
     if (k.contains("booking")) {
@@ -1517,10 +1516,4 @@ class DynamicReportPageState extends State<DynamicReportPage>
 
     return false;
   }
-
-  Color _bg(BuildContext context) => AppColors.surfaceContainerLowest();
-  Color _card(BuildContext context) => AppColors.surface();
-  Color _soft(BuildContext context) => AppColors.surfaceContainerLowest();
-  Color _fg(BuildContext context) => AppColors.onSurface();
-  Color _outline(BuildContext context) => AppColors.outline();
 }
