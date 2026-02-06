@@ -1,9 +1,10 @@
-// ignore_for_file: unused_field
+// ignore_for_file: unused_field, camel_case_types
 
 import "dart:math" as math;
 
 import "package:base/base.dart";
 import "package:collection/collection.dart";
+import "package:dynamic_of_things/enumeration/chart_model.dart";
 import "package:dynamic_of_things/model/dynamic_chart_list_response.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_event.dart";
@@ -23,14 +24,12 @@ class DynamicChartPage extends StatefulWidget {
   DynamicChartPageState createState() => DynamicChartPageState();
 }
 
-enum _RangePreset { today, last7, last30 }
-
 class DynamicChartPageState extends State<DynamicChartPage>
     with WidgetsBindingObserver {
   ListResponse? listResponse;
 
-  final _RangePreset _preset = _RangePreset.last7;
-  DateTimeRange? _customRange;
+  final RangePreset preset = RangePreset.last7;
+  DateTimeRange? customRange;
 
   @override
   void initState() {
@@ -55,42 +54,42 @@ class DynamicChartPageState extends State<DynamicChartPage>
     context.read<DynamicChartBloc>().add(DynamicChartLoad());
   }
 
-  Jiffy _begin() {
-    if (_customRange != null) {
-      return Jiffy.parseFromDateTime(_customRange!.start);
+  Jiffy begin() {
+    if (customRange != null) {
+      return Jiffy.parseFromDateTime(customRange!.start);
     }
 
     final Jiffy now = Jiffy.now();
-    if (_preset == _RangePreset.today) {
+    if (preset == RangePreset.today) {
       return now;
     }
-    if (_preset == _RangePreset.last7) {
+    if (preset == RangePreset.last7) {
       return now.subtract(days: 6);
     }
     return now.subtract(days: 29);
   }
 
-  Jiffy _until() {
-    if (_customRange != null) {
-      return Jiffy.parseFromDateTime(_customRange!.end);
+  Jiffy until() {
+    if (customRange != null) {
+      return Jiffy.parseFromDateTime(customRange!.end);
     }
     return Jiffy.now();
   }
 
-  String _rangeLabel() {
-    final Jiffy b = _begin();
-    final Jiffy u = _until();
+  String rangeLabel() {
+    final Jiffy b = begin();
+    final Jiffy u = until();
 
     final String a = b.format(pattern: "d MMM yyyy");
     final String z = u.format(pattern: "d MMM yyyy");
     return "$a - $z";
   }
 
-  Future<void> _pickRange() async {
+  Future<void> pickRangeDate() async {
     final DateTime now = DateTime.now();
 
-    final DateTime initialStart = _customRange?.start ?? _begin().dateTime;
-    final DateTime initialEnd = _customRange?.end ?? _until().dateTime;
+    final DateTime initialStart = customRange?.start ?? begin().dateTime;
+    final DateTime initialEnd = customRange?.end ?? until().dateTime;
 
     final DateTimeRange? picked = await showDateRangePicker(
       context: context,
@@ -112,19 +111,19 @@ class DynamicChartPageState extends State<DynamicChartPage>
     );
 
     setState(() {
-      _customRange = normalized;
+      customRange = normalized;
     });
 
-    _refetchAllForRange();
+    refreshAllRange();
   }
 
-  void _refetchAllForRange() {
+  void refreshAllRange() {
     if (listResponse == null) {
       return;
     }
 
-    final Jiffy b = _begin();
-    final Jiffy u = _until();
+    final Jiffy b = begin();
+    final Jiffy u = until();
 
     for (final Chart c in listResponse!.charts) {
       context.read<DynamicChartBloc>().add(
@@ -146,7 +145,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
           setState(() => listResponse = null);
         } else if (state is DynamicChartLoadSuccess) {
           setState(() => listResponse = state.listResponse);
-          _refetchAllForRange();
+          refreshAllRange();
         } else if (state is DynamicChartLoadFinished) {
           context.loaderOverlay.hide();
         }
@@ -157,13 +156,13 @@ class DynamicChartPageState extends State<DynamicChartPage>
           bottom: false,
           child: Column(
             children: [
-              _CleanTopBar(
+              appBar(
                 title: "dynamic_chart".tr(),
-                rangeLabel: _rangeLabel(),
-                onPickRange: _pickRange,
+                rangeLabel: rangeLabel(),
+                onPickRange: pickRangeDate,
                 onBack: () => Navigator.of(context).maybePop(),
               ),
-              Expanded(child: _body()),
+              Expanded(child: body()),
             ],
           ),
         ),
@@ -171,7 +170,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
     );
   }
 
-  Widget _body() {
+  Widget body() {
     if (listResponse == null) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -182,7 +181,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
           Dimensions.size30,
         ),
         children: const [
-          _LoadingCardSkeleton(),
+          LoadingCard(),
         ],
       );
     }
@@ -209,10 +208,10 @@ class DynamicChartPageState extends State<DynamicChartPage>
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 640),
-                child: _CleanChartCard(
+                child: ChartCard(
                   chart: c,
-                  begin: _begin(),
-                  until: _until(),
+                  begin: begin(),
+                  until: until(),
                 ),
               ),
             ),
@@ -223,17 +222,18 @@ class DynamicChartPageState extends State<DynamicChartPage>
   }
 }
 
-class _CleanTopBar extends StatelessWidget {
+class appBar extends StatelessWidget {
   final String title;
   final String rangeLabel;
   final VoidCallback onPickRange;
   final VoidCallback onBack;
 
-  const _CleanTopBar({
+  const appBar({
     required this.title,
     required this.rangeLabel,
     required this.onPickRange,
     required this.onBack,
+    super.key,
   });
 
   @override
@@ -321,7 +321,7 @@ class _CleanTopBar extends StatelessWidget {
   }
 }
 
-class _InsightPanel extends StatelessWidget {
+class Insight extends StatelessWidget {
   final num total;
   final int rows;
   final String rangeLabel;
@@ -329,15 +329,16 @@ class _InsightPanel extends StatelessWidget {
   final List<MapEntry<String, num>> compositionByVariable;
   final List<MapEntry<String, num>> compositionByCategory;
 
-  const _InsightPanel({
+  const Insight({
     required this.total,
     required this.rows,
     required this.rangeLabel,
     required this.compositionByVariable,
     required this.compositionByCategory,
+    super.key,
   });
 
-  String _pctText(num v) {
+  String persentText(num v) {
     if (total <= 0) {
       return "0%";
     }
@@ -424,7 +425,7 @@ class _InsightPanel extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: Dimensions.size10),
-                Text("${v.toString()}  (${_pctText(v)})", style: valueStyle),
+                Text("${v.toString()}  (${persentText(v)})", style: valueStyle),
               ],
             ),
             SizedBox(height: Dimensions.size5),
@@ -492,13 +493,13 @@ class _InsightPanel extends StatelessWidget {
   }
 }
 
-class _Insight {
+class InsightWidget {
   final num total;
   final int rows;
   final List<MapEntry<String, num>> compositionByVariable;
   final List<MapEntry<String, num>> compositionByCategory;
 
-  const _Insight({
+  const InsightWidget({
     required this.total,
     required this.rows,
     required this.compositionByVariable,
@@ -506,7 +507,7 @@ class _Insight {
   });
 }
 
-List<MapEntry<String, num>> _topWithOthers(
+List<MapEntry<String, num>> topWithOther(
   Map<String, num> map, {
   int take = 5,
   String othersLabel = "Lainnya",
@@ -527,7 +528,7 @@ List<MapEntry<String, num>> _topWithOthers(
   ];
 }
 
-_Insight _buildInsight(List<Map<String, dynamic>> src) {
+InsightWidget buildInsight(List<Map<String, dynamic>> src) {
   final Map<String, num> byCategory = {};
   final Map<String, num> byVariable = {};
 
@@ -550,15 +551,15 @@ _Insight _buildInsight(List<Map<String, dynamic>> src) {
     byVariable[safeVariable] = (byVariable[safeVariable] ?? 0) + value;
   }
 
-  return _Insight(
+  return InsightWidget(
     total: total,
     rows: rows,
-    compositionByVariable: _topWithOthers(
+    compositionByVariable: topWithOther(
       byVariable,
       take: 5,
       othersLabel: "other".tr(),
     ),
-    compositionByCategory: _topWithOthers(
+    compositionByCategory: topWithOther(
       byCategory,
       take: 5,
       othersLabel: "other".tr(),
@@ -566,88 +567,80 @@ _Insight _buildInsight(List<Map<String, dynamic>> src) {
   );
 }
 
-enum _ChartModel {
-  stackedColumn,
-  groupedColumn,
-  line,
-  stackedArea,
-  stackedBar,
-  pie,
-}
-
-extension _ChartModelX on _ChartModel {
+extension ChartModelX on ChartModel {
   String label() {
     switch (this) {
-      case _ChartModel.stackedColumn:
+      case ChartModel.stackedColumn:
         return "Stacked Column";
-      case _ChartModel.groupedColumn:
+      case ChartModel.groupedColumn:
         return "Grouped Column";
-      case _ChartModel.line:
+      case ChartModel.line:
         return "Line";
-      case _ChartModel.stackedArea:
+      case ChartModel.stackedArea:
         return "Stacked Area";
-      case _ChartModel.stackedBar:
+      case ChartModel.stackedBar:
         return "Stacked Bar";
-      case _ChartModel.pie:
+      case ChartModel.pie:
         return "Pie";
     }
   }
 
   IconData icon() {
     switch (this) {
-      case _ChartModel.stackedColumn:
+      case ChartModel.stackedColumn:
         return Icons.stacked_bar_chart_rounded;
-      case _ChartModel.groupedColumn:
+      case ChartModel.groupedColumn:
         return Icons.bar_chart_rounded;
-      case _ChartModel.line:
+      case ChartModel.line:
         return Icons.show_chart_rounded;
-      case _ChartModel.stackedArea:
+      case ChartModel.stackedArea:
         return Icons.area_chart_rounded;
-      case _ChartModel.stackedBar:
+      case ChartModel.stackedBar:
         return Icons.view_week_rounded;
-      case _ChartModel.pie:
+      case ChartModel.pie:
         return Icons.pie_chart_rounded;
     }
   }
 
   bool isStacked() {
     switch (this) {
-      case _ChartModel.stackedColumn:
-      case _ChartModel.stackedArea:
-      case _ChartModel.stackedBar:
+      case ChartModel.stackedColumn:
+      case ChartModel.stackedArea:
+      case ChartModel.stackedBar:
         return true;
-      case _ChartModel.groupedColumn:
-      case _ChartModel.line:
-      case _ChartModel.pie:
+      case ChartModel.groupedColumn:
+      case ChartModel.line:
+      case ChartModel.pie:
         return false;
     }
   }
 
-  bool isCircular() => this == _ChartModel.pie;
+  bool isCircular() => this == ChartModel.pie;
 }
 
-class _CleanChartCard extends StatefulWidget {
+class ChartCard extends StatefulWidget {
   final Chart chart;
   final Jiffy begin;
   final Jiffy until;
 
-  const _CleanChartCard({
+  const ChartCard({
     required this.chart,
     required this.begin,
     required this.until,
+    super.key,
   });
 
   @override
-  State<_CleanChartCard> createState() => _CleanChartCardState();
+  State<ChartCard> createState() => ChartCardState();
 }
 
-class _CleanChartCardState extends State<_CleanChartCard> {
+class ChartCardState extends State<ChartCard> {
   bool loading = true;
   List<Map<String, dynamic>>? raw;
 
-  late ZoomPanBehavior _zoom;
+  late ZoomPanBehavior zoom;
 
-  _ChartModel _model = _ChartModel.stackedColumn;
+  ChartModel model = ChartModel.stackedColumn;
 
   static const List<Color> basePalette = [
     Color(0xFFB9A7FF),
@@ -664,28 +657,28 @@ class _CleanChartCardState extends State<_CleanChartCard> {
   void initState() {
     super.initState();
 
-    _zoom = ZoomPanBehavior(
+    zoom = ZoomPanBehavior(
       enablePanning: true,
       enablePinching: true,
       zoomMode: ZoomMode.x,
     );
 
-    _fetch();
+    fetch();
   }
 
   @override
-  void didUpdateWidget(covariant _CleanChartCard oldWidget) {
+  void didUpdateWidget(covariant ChartCard oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     final bool changed = oldWidget.begin.dateTime != widget.begin.dateTime ||
         oldWidget.until.dateTime != widget.until.dateTime;
 
     if (changed) {
-      _fetch();
+      fetch();
     }
   }
 
-  void _fetch() {
+  void fetch() {
     context.read<DynamicChartBloc>().add(
           DynamicChartData(
             id: widget.chart.id,
@@ -695,11 +688,11 @@ class _CleanChartCardState extends State<_CleanChartCard> {
         );
   }
 
-  Future<void> _pickModel() async {
+  Future<void> selectModel() async {
     final ColorScheme csRoot = Theme.of(context).colorScheme;
     final bool darkRoot = Theme.of(context).brightness == Brightness.dark;
 
-    final _ChartModel? selected = await showModalBottomSheet<_ChartModel>(
+    final ChartModel? selected = await showModalBottomSheet<ChartModel>(
       context: context,
       useSafeArea: false,
       isScrollControlled: false,
@@ -719,13 +712,13 @@ class _CleanChartCardState extends State<_CleanChartCard> {
         final ColorScheme cs = Theme.of(context).colorScheme;
         final bool dark = Theme.of(context).brightness == Brightness.dark;
 
-        final List<_ChartModel> models = <_ChartModel>[
-          _ChartModel.stackedColumn,
-          _ChartModel.groupedColumn,
-          _ChartModel.line,
-          _ChartModel.stackedArea,
-          _ChartModel.stackedBar,
-          _ChartModel.pie,
+        final List<ChartModel> models = <ChartModel>[
+          ChartModel.stackedColumn,
+          ChartModel.groupedColumn,
+          ChartModel.line,
+          ChartModel.stackedArea,
+          ChartModel.stackedBar,
+          ChartModel.pie,
         ];
 
         final double bottomInset = MediaQuery.of(context).padding.bottom;
@@ -751,25 +744,25 @@ class _CleanChartCardState extends State<_CleanChartCard> {
 
         final bool needsScroll = estimatedH > maxH;
 
-        Color modelColor(_ChartModel m) {
+        Color modelColor(ChartModel m) {
           switch (m) {
-            case _ChartModel.stackedColumn:
+            case ChartModel.stackedColumn:
               return const Color.fromARGB(255, 157, 162, 0);
-            case _ChartModel.groupedColumn:
+            case ChartModel.groupedColumn:
               return const Color.fromARGB(255, 19, 96, 0);
-            case _ChartModel.line:
+            case ChartModel.line:
               return const Color.fromARGB(255, 255, 152, 63);
-            case _ChartModel.stackedArea:
+            case ChartModel.stackedArea:
               return const Color.fromARGB(255, 0, 0, 0);
-            case _ChartModel.stackedBar:
+            case ChartModel.stackedBar:
               return const Color.fromARGB(255, 0, 27, 125);
-            case _ChartModel.pie:
+            case ChartModel.pie:
               return const Color.fromARGB(255, 255, 0, 0);
           }
         }
 
-        Widget gridItem(_ChartModel m) {
-          final bool active = m == _model;
+        Widget gridItem(ChartModel m) {
+          final bool active = m == model;
 
           final Color border =
               cs.outlineVariant.withValues(alpha: dark ? 0.35 : 0.55);
@@ -912,7 +905,7 @@ class _CleanChartCardState extends State<_CleanChartCard> {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      "select_chart_model".tr(),
+                      "select_chartmodel".tr(),
                       style: TextStyle(
                         fontSize: Dimensions.text16,
                         fontWeight: FontWeight.w900,
@@ -956,7 +949,7 @@ class _CleanChartCardState extends State<_CleanChartCard> {
     if (selected == null) {
       return;
     }
-    setState(() => _model = selected);
+    setState(() => model = selected);
   }
 
   @override
@@ -980,11 +973,11 @@ class _CleanChartCardState extends State<_CleanChartCard> {
           setState(() => loading = false);
         }
       },
-      child: loading ? const _LoadingCardSkeleton() : _content(),
+      child: loading ? const LoadingCard() : content(),
     );
   }
 
-  List<String> _allVariablesSorted(List<Map<String, dynamic>> src) {
+  List<String> allVariableSorted(List<Map<String, dynamic>> src) {
     final Map<String, num> totals = {};
     for (final e in src) {
       final String v = e["variable"].toString();
@@ -998,7 +991,7 @@ class _CleanChartCardState extends State<_CleanChartCard> {
     return sorted.map((e) => e.key).toList();
   }
 
-  Color _colorForIndex(int i) {
+  Color colorIndex(int i) {
     if (i < basePalette.length) {
       return basePalette[i];
     }
@@ -1008,20 +1001,20 @@ class _CleanChartCardState extends State<_CleanChartCard> {
     return hsv.toColor();
   }
 
-  String _rangeLabel() {
+  String rangeLabel() {
     final String a = widget.begin.format(pattern: "d MMM yyyy");
     final String z = widget.until.format(pattern: "d MMM yyyy");
     return "$a - $z";
   }
 
-  Widget _content() {
+  Widget content() {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final bool dark = Theme.of(context).brightness == Brightness.dark;
 
     final bool hasData = raw != null && raw!.isNotEmpty;
 
     final List<String> variables =
-        hasData ? _allVariablesSorted(raw!) : <String>[];
+        hasData ? allVariableSorted(raw!) : <String>[];
 
     final Color cardBg = cs.surface;
     final Color border =
@@ -1033,9 +1026,9 @@ class _CleanChartCardState extends State<_CleanChartCard> {
       color: cs.onSurface.withValues(alpha: 0.92),
     );
 
-    final List<_PieSlice> pieSlices = hasData
-        ? _buildPieSlices(raw!, maxSlices: 7, minPct: 2.5)
-        : <_PieSlice>[];
+    final List<PieSlice> pieSlices = hasData
+        ? pieChartSlices(raw!, maxSlices: 7, minPct: 2.5)
+        : <PieSlice>[];
 
     final List<String> pieCats = pieSlices.map((e) => e.label).toList();
 
@@ -1073,29 +1066,29 @@ class _CleanChartCardState extends State<_CleanChartCard> {
                 ),
               ),
               SizedBox(width: Dimensions.size10),
-              _ChartModelPill(
-                model: _model,
-                onTap: _pickModel,
+              ChartModelPill(
+                model: model,
+                onTap: selectModel,
               ),
             ],
           ),
           SizedBox(height: Dimensions.size10),
-          if (_model == _ChartModel.pie && pieCats.isNotEmpty)
-            _ScrollableLegend(
+          if (model == ChartModel.pie && pieCats.isNotEmpty)
+            ScroolLegend(
               variables: pieCats,
-              colorForIndex: _colorForIndex,
+              colorForIndex: colorIndex,
             )
-          else if (_model != _ChartModel.pie && variables.isNotEmpty)
-            _ScrollableLegend(
+          else if (model != ChartModel.pie && variables.isNotEmpty)
+            ScroolLegend(
               variables: variables,
-              colorForIndex: _colorForIndex,
+              colorForIndex: colorIndex,
             ),
-          if ((_model == _ChartModel.pie && pieCats.isNotEmpty) ||
-              (_model != _ChartModel.pie && variables.isNotEmpty))
+          if ((model == ChartModel.pie && pieCats.isNotEmpty) ||
+              (model != ChartModel.pie && variables.isNotEmpty))
             SizedBox(height: Dimensions.size10),
           SizedBox(
             height: 320,
-            child: hasData ? _buildAnyChart(variables) : _emptyState(),
+            child: hasData ? anyChart(variables) : empthy(),
           ),
         ],
       ),
@@ -1104,11 +1097,11 @@ class _CleanChartCardState extends State<_CleanChartCard> {
     final Widget insightCard = hasData
         ? Builder(
             builder: (_) {
-              final _Insight ins = _buildInsight(raw!);
-              return _InsightPanel(
+              final InsightWidget ins = buildInsight(raw!);
+              return Insight(
                 total: ins.total,
                 rows: ins.rows,
-                rangeLabel: _rangeLabel(),
+                rangeLabel: rangeLabel(),
                 compositionByVariable: ins.compositionByVariable,
                 compositionByCategory: ins.compositionByCategory,
               );
@@ -1125,7 +1118,7 @@ class _CleanChartCardState extends State<_CleanChartCard> {
     );
   }
 
-  Widget _emptyState() {
+  Widget empthy() {
     final ColorScheme cs = Theme.of(context).colorScheme;
     return Center(
       child: Text(
@@ -1139,14 +1132,14 @@ class _CleanChartCardState extends State<_CleanChartCard> {
     );
   }
 
-  Widget _buildAnyChart(List<String> variables) {
-    if (_model == _ChartModel.pie) {
-      return _buildPieChart();
+  Widget anyChart(List<String> variables) {
+    if (model == ChartModel.pie) {
+      return pieChart();
     }
-    return _buildCartesianChart(variables);
+    return cartesianChart(variables);
   }
 
-  List<_PieSlice> _buildPieSlices(
+  List<PieSlice> pieChartSlices(
     List<Map<String, dynamic>> src, {
     int maxSlices = 8,
     double minPct = 2.5,
@@ -1171,10 +1164,10 @@ class _CleanChartCardState extends State<_CleanChartCard> {
       ..sort((a, b) => b.value.compareTo(a.value));
 
     if (sorted.isEmpty || grand <= 0) {
-      return <_PieSlice>[];
+      return <PieSlice>[];
     }
 
-    final List<_PieSlice> out = [];
+    final List<PieSlice> out = [];
     num other = 0;
 
     for (final e in sorted) {
@@ -1183,26 +1176,26 @@ class _CleanChartCardState extends State<_CleanChartCard> {
       if (out.length >= maxSlices || pct < minPct) {
         other += e.value;
       } else {
-        out.add(_PieSlice(label: e.key, value: e.value));
+        out.add(PieSlice(label: e.key, value: e.value));
       }
     }
 
     if (other > 0) {
-      out.add(_PieSlice(label: "other".tr(), value: other));
+      out.add(PieSlice(label: "other".tr(), value: other));
     }
 
     return out;
   }
 
-  Widget _buildPieChart() {
+  Widget pieChart() {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final bool dark = Theme.of(context).brightness == Brightness.dark;
 
-    final List<_PieSlice> slices =
-        _buildPieSlices(raw!, maxSlices: 7, minPct: 2.5);
+    final List<PieSlice> slices =
+        pieChartSlices(raw!, maxSlices: 7, minPct: 2.5);
 
     if (slices.isEmpty) {
-      return _emptyState();
+      return empthy();
     }
 
     final num total = slices.fold<num>(0, (p, e) => p + e.value);
@@ -1226,12 +1219,12 @@ class _CleanChartCardState extends State<_CleanChartCard> {
         color: cs.surfaceContainerHighest,
         textStyle: TextStyle(color: cs.onSurface),
       ),
-      series: <CircularSeries<_PieSlice, String>>[
-        DoughnutSeries<_PieSlice, String>(
+      series: <CircularSeries<PieSlice, String>>[
+        DoughnutSeries<PieSlice, String>(
           dataSource: slices,
-          xValueMapper: (_PieSlice s, _) => s.label,
-          yValueMapper: (_PieSlice s, _) => s.value.toDouble(),
-          pointColorMapper: (_PieSlice s, int i) => _colorForIndex(i),
+          xValueMapper: (PieSlice s, _) => s.label,
+          yValueMapper: (PieSlice s, _) => s.value.toDouble(),
+          pointColorMapper: (PieSlice s, int i) => colorIndex(i),
           cornerStyle: CornerStyle.endCurve,
           innerRadius: "66%",
           radius: "92%",
@@ -1247,7 +1240,7 @@ class _CleanChartCardState extends State<_CleanChartCard> {
             ),
             builder:
                 (dynamic data, dynamic point, dynamic series, int i, int s) {
-              final _PieSlice sl = slices[i];
+              final PieSlice sl = slices[i];
               final double p = pctVal(sl.value);
               if (p < 5) {
                 return const SizedBox.shrink();
@@ -1267,12 +1260,12 @@ class _CleanChartCardState extends State<_CleanChartCard> {
     );
   }
 
-  Widget _buildCartesianChart(List<String> variables) {
+  Widget cartesianChart(List<String> variables) {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final bool dark = Theme.of(context).brightness == Brightness.dark;
 
-    final _Agg agg = _aggregate(raw!);
-    final List<_CatPoint> points = agg.points;
+    final Agg agg = aggregate(raw!);
+    final List<CatPoint> points = agg.points;
 
     num maxYForStacked() {
       return points.fold<num>(0, (p, e) {
@@ -1290,7 +1283,7 @@ class _CleanChartCardState extends State<_CleanChartCard> {
     }
 
     final num maxY =
-        _model.isStacked() ? maxYForStacked() : maxYForNonStacked();
+        model.isStacked() ? maxYForStacked() : maxYForNonStacked();
 
     final double maxAxis = maxY <= 0 ? 0 : (maxY * 1.10).ceilToDouble();
     final double interval = maxAxis <= 0 ? 1 : (maxAxis / 4).ceilToDouble();
@@ -1318,7 +1311,7 @@ class _CleanChartCardState extends State<_CleanChartCard> {
         autoScrollingMode: AutoScrollingMode.start,
         axisLabelFormatter: (AxisLabelRenderDetails d) {
           final String full = d.text;
-          final _CatPoint? p =
+          final CatPoint? p =
               points.firstWhereOrNull((e) => e.category == full);
           return ChartAxisLabel(p?.shortLabel ?? full, d.textStyle);
         },
@@ -1341,24 +1334,24 @@ class _CleanChartCardState extends State<_CleanChartCard> {
         ),
       ),
       legend: const Legend(isVisible: false),
-      tooltipBehavior: _buildTooltip(points),
-      zoomPanBehavior: _zoom,
-      series: _buildSeries(points, variables),
+      tooltipBehavior: toolTip(points),
+      zoomPanBehavior: zoom,
+      series: series(points, variables),
     );
   }
 
-  List<CartesianSeries<_CatPoint, String>> _buildSeries(
-    List<_CatPoint> points,
+  List<CartesianSeries<CatPoint, String>> series(
+    List<CatPoint> points,
     List<String> variables,
   ) {
-    switch (_model) {
-      case _ChartModel.stackedColumn:
+    switch (model) {
+      case ChartModel.stackedColumn:
         return variables.mapIndexed((index, variable) {
-          final Color c = _colorForIndex(index);
-          return StackedColumnSeries<_CatPoint, String>(
+          final Color c = colorIndex(index);
+          return StackedColumnSeries<CatPoint, String>(
             dataSource: points,
-            xValueMapper: (_CatPoint p, _) => p.category,
-            yValueMapper: (_CatPoint p, _) =>
+            xValueMapper: (CatPoint p, _) => p.category,
+            yValueMapper: (CatPoint p, _) =>
                 (p.values[variable] ?? 0).toDouble(),
             name: variable,
             color: c,
@@ -1368,13 +1361,13 @@ class _CleanChartCardState extends State<_CleanChartCard> {
           );
         }).toList();
 
-      case _ChartModel.groupedColumn:
+      case ChartModel.groupedColumn:
         return variables.mapIndexed((index, variable) {
-          final Color c = _colorForIndex(index);
-          return ColumnSeries<_CatPoint, String>(
+          final Color c = colorIndex(index);
+          return ColumnSeries<CatPoint, String>(
             dataSource: points,
-            xValueMapper: (_CatPoint p, _) => p.category,
-            yValueMapper: (_CatPoint p, _) =>
+            xValueMapper: (CatPoint p, _) => p.category,
+            yValueMapper: (CatPoint p, _) =>
                 (p.values[variable] ?? 0).toDouble(),
             name: variable,
             color: c,
@@ -1384,13 +1377,13 @@ class _CleanChartCardState extends State<_CleanChartCard> {
           );
         }).toList();
 
-      case _ChartModel.line:
+      case ChartModel.line:
         return variables.mapIndexed((index, variable) {
-          final Color c = _colorForIndex(index);
-          return LineSeries<_CatPoint, String>(
+          final Color c = colorIndex(index);
+          return LineSeries<CatPoint, String>(
             dataSource: points,
-            xValueMapper: (_CatPoint p, _) => p.category,
-            yValueMapper: (_CatPoint p, _) =>
+            xValueMapper: (CatPoint p, _) => p.category,
+            yValueMapper: (CatPoint p, _) =>
                 (p.values[variable] ?? 0).toDouble(),
             name: variable,
             color: c,
@@ -1399,13 +1392,13 @@ class _CleanChartCardState extends State<_CleanChartCard> {
           );
         }).toList();
 
-      case _ChartModel.stackedArea:
+      case ChartModel.stackedArea:
         return variables.mapIndexed((index, variable) {
-          final Color c = _colorForIndex(index);
-          return StackedAreaSeries<_CatPoint, String>(
+          final Color c = colorIndex(index);
+          return StackedAreaSeries<CatPoint, String>(
             dataSource: points,
-            xValueMapper: (_CatPoint p, _) => p.category,
-            yValueMapper: (_CatPoint p, _) =>
+            xValueMapper: (CatPoint p, _) => p.category,
+            yValueMapper: (CatPoint p, _) =>
                 (p.values[variable] ?? 0).toDouble(),
             name: variable,
             color: c.withValues(alpha: 0.80),
@@ -1414,13 +1407,13 @@ class _CleanChartCardState extends State<_CleanChartCard> {
           );
         }).toList();
 
-      case _ChartModel.stackedBar:
+      case ChartModel.stackedBar:
         return variables.mapIndexed((index, variable) {
-          final Color c = _colorForIndex(index);
-          return StackedBarSeries<_CatPoint, String>(
+          final Color c = colorIndex(index);
+          return StackedBarSeries<CatPoint, String>(
             dataSource: points,
-            xValueMapper: (_CatPoint p, _) => p.category,
-            yValueMapper: (_CatPoint p, _) =>
+            xValueMapper: (CatPoint p, _) => p.category,
+            yValueMapper: (CatPoint p, _) =>
                 (p.values[variable] ?? 0).toDouble(),
             name: variable,
             color: c,
@@ -1430,12 +1423,12 @@ class _CleanChartCardState extends State<_CleanChartCard> {
           );
         }).toList();
 
-      case _ChartModel.pie:
-        return <CartesianSeries<_CatPoint, String>>[];
+      case ChartModel.pie:
+        return <CartesianSeries<CatPoint, String>>[];
     }
   }
 
-  TooltipBehavior _buildTooltip(List<_CatPoint> points) {
+  TooltipBehavior toolTip(List<CatPoint> points) {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final bool dark = Theme.of(context).brightness == Brightness.dark;
 
@@ -1459,7 +1452,7 @@ class _CleanChartCardState extends State<_CleanChartCard> {
           return const SizedBox.shrink();
         }
 
-        final _CatPoint p = points[pointIndex];
+        final CatPoint p = points[pointIndex];
         final String cat = p.category;
 
         final List<MapEntry<String, num>> entries = p.values.entries.toList()
@@ -1483,7 +1476,7 @@ class _CleanChartCardState extends State<_CleanChartCard> {
               ),
               SizedBox(height: Dimensions.size10),
               ...entries.take(10).mapIndexed((i, e) {
-                final Color c = _colorForIndex(i);
+                final Color c = colorIndex(i);
                 return Padding(
                   padding: EdgeInsets.only(bottom: Dimensions.size5),
                   child: Row(
@@ -1523,7 +1516,7 @@ class _CleanChartCardState extends State<_CleanChartCard> {
     );
   }
 
-  _Agg _aggregate(List<Map<String, dynamic>> src) {
+  Agg aggregate(List<Map<String, dynamic>> src) {
     final Map<String, Map<String, num>> map = {};
 
     for (final Map<String, dynamic> e in src) {
@@ -1535,8 +1528,8 @@ class _CleanChartCardState extends State<_CleanChartCard> {
       map[category]![variable] = (map[category]![variable] ?? 0) + value;
     }
 
-    final List<_CatPoint> points = map.entries.map((entry) {
-      return _CatPoint(
+    final List<CatPoint> points = map.entries.map((entry) {
+      return CatPoint(
         category: entry.key,
         values: entry.value,
       );
@@ -1547,26 +1540,26 @@ class _CleanChartCardState extends State<_CleanChartCard> {
         return tb.compareTo(ta);
       });
 
-    return _Agg(points: points);
+    return Agg(points: points);
   }
 }
 
-class _PieSlice {
+class PieSlice {
   final String label;
   final num value;
-  const _PieSlice({required this.label, required this.value});
+  const PieSlice({required this.label, required this.value});
 }
 
-class _Agg {
-  final List<_CatPoint> points;
-  _Agg({required this.points});
+class Agg {
+  final List<CatPoint> points;
+  Agg({required this.points});
 }
 
-class _CatPoint {
+class CatPoint {
   final String category;
   final Map<String, num> values;
 
-  _CatPoint({
+  CatPoint({
     required this.category,
     required this.values,
   });
@@ -1591,13 +1584,14 @@ class _CatPoint {
   }
 }
 
-class _ScrollableLegend extends StatelessWidget {
+class ScroolLegend extends StatelessWidget {
   final List<String> variables;
   final Color Function(int index) colorForIndex;
 
-  const _ScrollableLegend({
+  const ScroolLegend({
     required this.variables,
     required this.colorForIndex,
+    super.key,
   });
 
   @override
@@ -1612,7 +1606,7 @@ class _ScrollableLegend extends StatelessWidget {
             return Padding(
               padding:
                   EdgeInsets.only(right: i == variables.length - 1 ? 0 : 14),
-              child: _LegendDot(
+              child: DotLegend(
                 label: v,
                 color: colorForIndex(i),
               ),
@@ -1624,13 +1618,14 @@ class _ScrollableLegend extends StatelessWidget {
   }
 }
 
-class _ChartModelPill extends StatelessWidget {
-  final _ChartModel model;
+class ChartModelPill extends StatelessWidget {
+  final ChartModel model;
   final VoidCallback onTap;
 
-  const _ChartModelPill({
+  const ChartModelPill({
     required this.model,
     required this.onTap,
+    super.key,
   });
 
   @override
@@ -1680,13 +1675,14 @@ class _ChartModelPill extends StatelessWidget {
   }
 }
 
-class _LegendDot extends StatelessWidget {
+class DotLegend extends StatelessWidget {
   final String label;
   final Color color;
 
-  const _LegendDot({
+  const DotLegend({
     required this.label,
     required this.color,
+    super.key,
   });
 
   @override
@@ -1724,8 +1720,8 @@ class _LegendDot extends StatelessWidget {
   }
 }
 
-class _LoadingCardSkeleton extends StatelessWidget {
-  const _LoadingCardSkeleton();
+class LoadingCard extends StatelessWidget {
+  const LoadingCard({super.key});
 
   @override
   Widget build(BuildContext context) {

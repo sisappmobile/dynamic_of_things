@@ -9,6 +9,7 @@
   "select_all": "Select all",
   "save": "Save",
   "option": "Option",
+  "barcode_scanner_success_dialog":"Barcode Successfully Scanned",
   "map_view_can_only_be_used_if_there_is_longitude_and_latitude_data": "Map view can only be used if there is longitude and latitude data.",
   "select_period": "Select period",
   "the_maximum_period_is": "The maximum period is",

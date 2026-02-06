@@ -10,6 +10,7 @@
   "save": "Simpan",
   "no_action_available": "Tidak ada aksi yang tersedia",
   "option": "Opsi",
+  "barcode_scanner_success_dialog":"Barcode berhasil di scan",
   "map_view_can_only_be_used_if_there_is_longitude_and_latitude_data": "Tampilan peta hanya dapat digunakan jika terdapat data bujur dan lintang.",
   "cancel": "Batal",
   "use": "Gunakan",

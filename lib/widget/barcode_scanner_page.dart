@@ -45,7 +45,7 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage>
 
   ScannerWordCase scannerWordCase = ScannerWordCase.NORMAL_CASE;
 
-  bool _isScanning = true;
+  bool isScanning = true;
 
   @override
   void initState() {
@@ -59,21 +59,21 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage>
     super.dispose();
   }
 
-  Future<void> _toggleTorch() async {
+  Future<void> torchToggle() async {
     await cameraController.toggleTorch();
     if (mounted) {
       setState(() {});
     }
   }
 
-  Future<void> _switchCamera() async {
+  Future<void> cameraSwitch() async {
     await cameraController.switchCamera();
     if (mounted) {
       setState(() {});
     }
   }
 
-  void _cycleWordCase() {
+  void cycleWordCase() {
     if (scannerWordCase == ScannerWordCase.NORMAL_CASE) {
       scannerWordCase = ScannerWordCase.UPPER_CASE;
     } else if (scannerWordCase == ScannerWordCase.UPPER_CASE) {
@@ -84,7 +84,7 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage>
     setState(() {});
   }
 
-  void _handlePop() {
+  void popHandle() {
     if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
       Navigators.pop();
     } else {
@@ -92,12 +92,12 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage>
     }
   }
 
-  Future<void> _resumeScanning() async {
+  Future<void> resumeScanning() async {
     try {
       await cameraController.start();
     } catch (_) {}
     if (mounted) {
-      setState(() => _isScanning = true);
+      setState(() => isScanning = true);
     }
   }
 
@@ -112,7 +112,7 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage>
         centerTitle: true,
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          onPressed: _handlePop,
+          onPressed: popHandle,
           icon: const Icon(
             Icons.turn_left_rounded,
             color: Colors.white,
@@ -132,7 +132,7 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage>
               ),
             ),
             SizedBox(height: Dimensions.size5),
-            _StatusPill(
+            StatusPill(
               icon: Icons.text_fields_rounded,
               label: scannerWordCase.spell(),
             ),
@@ -158,7 +158,7 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage>
               controller: cameraController,
               onDetect: (capture) {
                 cameraController.stop();
-                _isScanning = false;
+                isScanning = false;
 
                 final List<Barcode> barcodes = capture.barcodes;
 
@@ -171,7 +171,7 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage>
                     data = data.toLowerCase();
                   }
 
-                  _handlePop();
+                  popHandle();
 
                   if (!widget.silent) {
                     BaseOverlays.success(
@@ -181,7 +181,7 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage>
 
                   widget.onSuccess(data);
                 } else {
-                  _resumeScanning();
+                  resumeScanning();
                 }
               },
             ),
@@ -191,7 +191,7 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage>
               padding: EdgeInsets.symmetric(horizontal: Dimensions.size20),
               child: AspectRatio(
                 aspectRatio: 1,
-                child: _ScanFrame(isActive: _isScanning),
+                child: ScanFrame(isActive: isScanning),
               ),
             ),
           ),
@@ -230,31 +230,31 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage>
             left: Dimensions.size15,
             right: Dimensions.size15,
             bottom: (media.padding.bottom) + Dimensions.size15,
-            child: _SolidBar(
+            child: SolidBar(
               child: Row(
                 children: [
                   Expanded(
-                    child: _ActionTile(
+                    child: ActionTile(
                       icon: Symbols.match_case,
                       title: "Case",
                       subtitle: scannerWordCase.spell(),
-                      onTap: _cycleWordCase,
+                      onTap: cycleWordCase,
                     ),
                   ),
                   SizedBox(width: Dimensions.size10),
                   Expanded(
-                    child: _ActionTile(
+                    child: ActionTile(
                       icon: cameraController.torchEnabled
                           ? Icons.flash_on_rounded
                           : Icons.flash_off_rounded,
                       title: "Flash".tr(),
                       subtitle: cameraController.torchEnabled ? "On" : "Off",
-                      onTap: _toggleTorch,
+                      onTap: torchToggle,
                     ),
                   ),
                   SizedBox(width: Dimensions.size10),
                   Expanded(
-                    child: _ActionTile(
+                    child: ActionTile(
                       icon: cameraController.facing == CameraFacing.front
                           ? Icons.camera_front_rounded
                           : Icons.camera_rear_rounded,
@@ -262,7 +262,7 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage>
                       subtitle: cameraController.facing == CameraFacing.front
                           ? "Front".tr()
                           : "Rear".tr(),
-                      onTap: _switchCamera,
+                      onTap: cameraSwitch,
                     ),
                   ),
                 ],
@@ -275,9 +275,12 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage>
   }
 }
 
-class _SolidBar extends StatelessWidget {
+class SolidBar extends StatelessWidget {
   final Widget child;
-  const _SolidBar({required this.child});
+  const SolidBar({
+    required this.child,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -295,17 +298,18 @@ class _SolidBar extends StatelessWidget {
   }
 }
 
-class _ActionTile extends StatelessWidget {
+class ActionTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
 
-  const _ActionTile({
+  const ActionTile({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.onTap,
+    super.key,
   });
 
   @override
@@ -377,13 +381,14 @@ class _ActionTile extends StatelessWidget {
   }
 }
 
-class _StatusPill extends StatelessWidget {
+class StatusPill extends StatelessWidget {
   final IconData icon;
   final String label;
 
-  const _StatusPill({
+  const StatusPill({
     required this.icon,
     required this.label,
+    super.key,
   });
 
   @override
@@ -424,10 +429,10 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
-class _ScanFrame extends StatelessWidget {
+class ScanFrame extends StatelessWidget {
   final bool isActive;
 
-  const _ScanFrame({required this.isActive});
+  const ScanFrame({required this.isActive, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -449,7 +454,7 @@ class _ScanFrame extends StatelessWidget {
           child: Padding(
             padding: EdgeInsets.all(Dimensions.size15),
             child: CustomPaint(
-              painter: _CornerPainter(
+              painter: CornerPainter(
                 color: Colors.white.withOpacity(0.95),
                 strokeWidth: Dimensions.size4,
                 radius: Dimensions.size20,
@@ -462,12 +467,12 @@ class _ScanFrame extends StatelessWidget {
   }
 }
 
-class _CornerPainter extends CustomPainter {
+class CornerPainter extends CustomPainter {
   final Color color;
   final double strokeWidth;
   final double radius;
 
-  _CornerPainter({
+  CornerPainter({
     required this.color,
     required this.strokeWidth,
     required this.radius,
@@ -519,7 +524,7 @@ class _CornerPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _CornerPainter oldDelegate) {
+  bool shouldRepaint(covariant CornerPainter oldDelegate) {
     return oldDelegate.color != color ||
         oldDelegate.strokeWidth != strokeWidth ||
         oldDelegate.radius != radius;

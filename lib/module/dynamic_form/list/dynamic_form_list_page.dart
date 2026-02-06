@@ -49,11 +49,11 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
 
   TextEditingController tecSearch = TextEditingController();
 
-  static const double _gapCard = 10;
-  static const double _gapInner = 8;
+  static const double gapcard = 10;
+  static const double gapInner = 8;
 
-  static const double _tilePadX = 10;
-  static const double _tilePadY = 10;
+  static const double tilePaddingX = 10;
+  static const double tilePaddingY = 10;
 
   @override
   void initState() {
@@ -127,7 +127,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
         }
       },
       child: Scaffold(
-        backgroundColor: _bg(context),
+        backgroundColor: AppColors.surfaceContainerLowest(),
         body: Stack(
           children: [
             Column(
@@ -140,16 +140,123 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                     Dimensions.size15,
                     Dimensions.size10,
                   ),
-                  child: _topBar(),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: Dimensions.size15,
+                      vertical: Dimensions.size10,
+                    ),
+                    decoration: ShapeDecoration(
+                      color: AppColors.surface(),
+                      shadows: [
+                        BoxShadow(
+                          blurRadius: Dimensions.size20,
+                          offset: Offset(0, Dimensions.size10),
+                          color: Colors.black.withValues(alpha: 0.10),
+                        ),
+                      ],
+                      shape: SmoothRectangleBorder(
+                        borderRadius: BorderRadius.circular(Dimensions.size20),
+                        smoothness: Dimensions.size1,
+                        side: BorderSide(
+                          color: AppColors.outline().withValues(alpha: 0.35),
+                        ),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            iconPill(
+                              icon: Icons.turn_left_rounded,
+                              onTap: () {
+                                if (BaseSettings.navigatorType ==
+                                    BaseNavigatorType.legacy) {
+                                  Navigators.pop();
+                                } else {
+                                  context.pop();
+                                }
+                              },
+                            ),
+                            SizedBox(width: Dimensions.size10),
+                            Expanded(
+                              child: Text(
+                                widget.dynamicFormMenuItem.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: Dimensions.text16,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.2,
+                                  color: AppColors.onSurface(),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: Dimensions.size10),
+                            mapModeButton(),
+                          ],
+                        ),
+                        SizedBox(height: Dimensions.size10),
+                        Container(
+                          height: Dimensions.size50,
+                          decoration: ShapeDecoration(
+                            color: AppColors.surfaceContainerLowest(),
+                            shape: SmoothRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(Dimensions.size15),
+                              smoothness: Dimensions.size1,
+                              side: BorderSide(
+                                color:
+                                    AppColors.outline().withValues(alpha: 0.22),
+                              ),
+                            ),
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: Dimensions.size15,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.search,
+                                color: AppColors.onSurface()
+                                    .withValues(alpha: 0.65),
+                              ),
+                              SizedBox(width: Dimensions.size10),
+                              Expanded(
+                                child: TextField(
+                                  controller: tecSearch,
+                                  onChanged: (value) {
+                                    setState(() {});
+                                  },
+                                  decoration: InputDecoration(
+                                    hintText: "search".tr(),
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                  ),
+                                ),
+                              ),
+                              if (StringUtils.isNotNullOrEmpty(tecSearch.text))
+                                icon(
+                                  icon: Icons.close,
+                                  onTap: () {
+                                    tecSearch.clear();
+                                    setState(() {});
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                Expanded(child: _bodyHost()),
+                Expanded(child: bodyHost()),
                 SizedBox(height: safe.bottom),
               ],
             ),
             Positioned(
               right: Dimensions.size15,
               bottom: safe.bottom + Dimensions.size5,
-              child: _bottomFloatingBar(),
+              child: bottomFloatingActionBar(),
             ),
           ],
         ),
@@ -208,7 +315,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
             ["latitude", "longitude", "longtitude"],
           ),
         )) {
-      return _iconPill(
+      return iconPill(
         icon: Icons.map,
         onTap: () async {
           Field? primaryKey = listResponse!.fields
@@ -305,7 +412,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
         ),
         itemCount: filteredDatas().length,
         separatorBuilder: (BuildContext context, int index) {
-          return const SizedBox(height: _gapCard);
+          return const SizedBox(height: gapcard);
         },
         itemBuilder: (BuildContext context, int index) {
           Map<String, dynamic> map = filteredDatas()[index];
@@ -353,7 +460,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
 
                 children
                   ..add(
-                    SizedBox(width: _gapInner),
+                    SizedBox(width: gapInner),
                   )
                   ..add(
                     childrenWidget(
@@ -375,7 +482,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
               );
 
               if (i + 2 < fields.length) {
-                widgets.add(SizedBox(height: _gapInner));
+                widgets.add(SizedBox(height: gapInner));
               }
             }
           }
@@ -566,7 +673,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                           }
                         }
                       } else {
-                        _showActionSheet(menuItems);
+                        actionBottomSheet(menuItems);
                       }
                     }
                   }
@@ -578,7 +685,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
               ),
               child: Ink(
                 decoration: ShapeDecoration(
-                  color: _card(context),
+                  color: AppColors.surface(),
                   shadows: [
                     BoxShadow(
                       blurRadius: Dimensions.size20,
@@ -590,7 +697,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                     borderRadius: BorderRadius.circular(Dimensions.size20),
                     smoothness: Dimensions.size1,
                     side: BorderSide(
-                      color: _outline(context).withValues(alpha: 0.35),
+                      color: AppColors.outline().withValues(alpha: 0.35),
                     ),
                   ),
                 ),
@@ -692,16 +799,16 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     return Expanded(
       child: Container(
         padding: EdgeInsets.symmetric(
-          horizontal: _tilePadX,
-          vertical: _tilePadY,
+          horizontal: tilePaddingX,
+          vertical: tilePaddingY,
         ),
         decoration: ShapeDecoration(
-          color: _soft(context),
+          color: AppColors.surfaceContainerLowest(),
           shape: SmoothRectangleBorder(
             borderRadius: BorderRadius.circular(Dimensions.size15),
             smoothness: Dimensions.size1,
             side: BorderSide(
-              color: _outline(context).withValues(alpha: 0.20),
+              color: AppColors.outline().withValues(alpha: 0.20),
             ),
           ),
         ),
@@ -717,7 +824,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
               style: TextStyle(
                 fontSize: Dimensions.text12,
                 fontWeight: FontWeight.w700,
-                color: _fg(context).withValues(alpha: 0.65),
+                color: AppColors.onSurface().withValues(alpha: 0.65),
               ),
             ),
             SizedBox(height: Dimensions.size4),
@@ -730,7 +837,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                 fontSize: Dimensions.text14,
                 fontWeight: FontWeight.w900,
                 height: 1.15,
-                color: _fg(context),
+                color: AppColors.onSurface(),
               ),
             ),
           ],
@@ -871,116 +978,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     }
   }
 
-  Widget _topBar() {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: Dimensions.size15,
-        vertical: Dimensions.size10,
-      ),
-      decoration: ShapeDecoration(
-        color: _card(context),
-        shadows: [
-          BoxShadow(
-            blurRadius: Dimensions.size20,
-            offset: Offset(0, Dimensions.size10),
-            color: Colors.black.withValues(alpha: 0.10),
-          ),
-        ],
-        shape: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimensions.size20),
-          smoothness: Dimensions.size1,
-          side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.35),
-          ),
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              _iconPill(
-                icon: Icons.turn_left_rounded,
-                onTap: () {
-                  if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                    Navigators.pop();
-                  } else {
-                    context.pop();
-                  }
-                },
-              ),
-              SizedBox(width: Dimensions.size10),
-              Expanded(
-                child: Text(
-                  widget.dynamicFormMenuItem.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: Dimensions.text16,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.2,
-                    color: _fg(context),
-                  ),
-                ),
-              ),
-              SizedBox(width: Dimensions.size10),
-              mapModeButton(),
-            ],
-          ),
-          SizedBox(height: Dimensions.size10),
-          _searchBox(),
-        ],
-      ),
-    );
-  }
-
-  Widget _searchBox() {
-    return Container(
-      height: Dimensions.size50,
-      decoration: ShapeDecoration(
-        color: _soft(context),
-        shape: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimensions.size15),
-          smoothness: Dimensions.size1,
-          side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.22),
-          ),
-        ),
-      ),
-      padding: EdgeInsets.symmetric(horizontal: Dimensions.size15),
-      child: Row(
-        children: [
-          Icon(
-            Icons.search,
-            color: _fg(context).withValues(alpha: 0.65),
-          ),
-          SizedBox(width: Dimensions.size10),
-          Expanded(
-            child: TextField(
-              controller: tecSearch,
-              onChanged: (value) {
-                setState(() {});
-              },
-              decoration: InputDecoration(
-                hintText: "search".tr(),
-                border: InputBorder.none,
-                isDense: true,
-              ),
-            ),
-          ),
-          if (StringUtils.isNotNullOrEmpty(tecSearch.text))
-            _iconTiny(
-              icon: Icons.close,
-              onTap: () {
-                tecSearch.clear();
-                setState(() {});
-              },
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _iconTiny({
+  Widget icon({
     required IconData icon,
     required VoidCallback onTap,
   }) {
@@ -994,14 +992,14 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
           child: Icon(
             icon,
             size: Dimensions.size20,
-            color: _fg(context).withValues(alpha: 0.75),
+            color: AppColors.onSurface().withValues(alpha: 0.75),
           ),
         ),
       ),
     );
   }
 
-  Widget _iconPill({
+  Widget iconPill({
     required IconData icon,
     required VoidCallback onTap,
   }) {
@@ -1017,18 +1015,18 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
           width: Dimensions.size40,
           height: Dimensions.size40,
           decoration: ShapeDecoration(
-            color: _soft(context),
+            color: AppColors.surfaceContainerLowest(),
             shape: SmoothRectangleBorder(
               borderRadius: BorderRadius.circular(Dimensions.size15),
               smoothness: Dimensions.size1,
               side: BorderSide(
-                color: _outline(context).withValues(alpha: 0.25),
+                color: AppColors.outline().withValues(alpha: 0.25),
               ),
             ),
           ),
           child: Icon(
             icon,
-            color: _fg(context),
+            color: AppColors.onSurface(),
             size: Dimensions.size25,
           ),
         ),
@@ -1036,7 +1034,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     );
   }
 
-  Widget _bodyHost() {
+  Widget bodyHost() {
     if (loading) {
       return BaseWidgets.shimmer();
     }
@@ -1044,110 +1042,106 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     if (listResponse == null) {
       return ListView(
         padding: EdgeInsets.all(Dimensions.size15),
-        children: [_failState()],
+        children: [
+          Container(
+            padding: EdgeInsets.all(Dimensions.size20),
+            decoration: ShapeDecoration(
+              color: AppColors.surface(),
+              shape: SmoothRectangleBorder(
+                borderRadius: BorderRadius.circular(Dimensions.size20),
+                smoothness: Dimensions.size1,
+                side: BorderSide(
+                  color: AppColors.outline().withValues(alpha: 0.35),
+                ),
+              ),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: Dimensions.size45,
+                  color: AppColors.onSurface().withValues(alpha: 0.65),
+                ),
+                SizedBox(height: Dimensions.size10),
+                Text(
+                  "common_something_wrong".tr(),
+                  style: TextStyle(
+                    fontSize: Dimensions.text16,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.onSurface(),
+                  ),
+                ),
+                SizedBox(height: Dimensions.size15),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => refresh(),
+                        icon: const Icon(Icons.refresh),
+                        label: Text("refresh".tr()),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       );
     }
 
     if (filteredDatas().isEmpty) {
       return ListView(
         padding: EdgeInsets.all(Dimensions.size15),
-        children: [_emptyState()],
+        children: [
+          Container(
+            padding: EdgeInsets.all(Dimensions.size20),
+            decoration: ShapeDecoration(
+              color: AppColors.surface(),
+              shape: SmoothRectangleBorder(
+                borderRadius: BorderRadius.circular(Dimensions.size20),
+                smoothness: Dimensions.size1,
+                side: BorderSide(
+                  color: AppColors.outline().withValues(alpha: 0.35),
+                ),
+              ),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.inbox_outlined,
+                  size: Dimensions.size45,
+                  color: AppColors.onSurface().withValues(alpha: 0.65),
+                ),
+                SizedBox(height: Dimensions.size10),
+                Text(
+                  "no_data".tr(),
+                  style: TextStyle(
+                    fontSize: Dimensions.text16,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.onSurface(),
+                  ),
+                ),
+                SizedBox(height: Dimensions.size5),
+                Text(
+                  "try_adjust_filter_or_pull_to_refresh".tr(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.onSurface().withValues(alpha: 0.70),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       );
     }
 
     return body();
   }
 
-  Widget _failState() {
-    return Container(
-      padding: EdgeInsets.all(Dimensions.size20),
-      decoration: ShapeDecoration(
-        color: _card(context),
-        shape: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimensions.size20),
-          smoothness: Dimensions.size1,
-          side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.35),
-          ),
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: Dimensions.size45,
-            color: _fg(context).withValues(alpha: 0.65),
-          ),
-          SizedBox(height: Dimensions.size10),
-          Text(
-            "common_something_wrong".tr(),
-            style: TextStyle(
-              fontSize: Dimensions.text16,
-              fontWeight: FontWeight.w900,
-              color: _fg(context),
-            ),
-          ),
-          SizedBox(height: Dimensions.size15),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => refresh(),
-                  icon: const Icon(Icons.refresh),
-                  label: Text("refresh".tr()),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _emptyState() {
-    return Container(
-      padding: EdgeInsets.all(Dimensions.size20),
-      decoration: ShapeDecoration(
-        color: _card(context),
-        shape: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimensions.size20),
-          smoothness: Dimensions.size1,
-          side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.35),
-          ),
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.inbox_outlined,
-            size: Dimensions.size45,
-            color: _fg(context).withValues(alpha: 0.65),
-          ),
-          SizedBox(height: Dimensions.size10),
-          Text(
-            "no_data".tr(),
-            style: TextStyle(
-              fontSize: Dimensions.text16,
-              fontWeight: FontWeight.w900,
-              color: _fg(context),
-            ),
-          ),
-          SizedBox(height: Dimensions.size5),
-          Text(
-            "try_adjust_filter_or_pull_to_refresh".tr(),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: _fg(context).withValues(alpha: 0.70),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _bottomFloatingBar() {
+  Widget bottomFloatingActionBar() {
     final Widget fab = floatingActionButton();
 
     if (fab is SizedBox) {
@@ -1163,22 +1157,20 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     );
   }
 
-  Color _bg(BuildContext context) => AppColors.surfaceContainerLowest();
-  Color _card(BuildContext context) => AppColors.surface();
-  Color _soft(BuildContext context) => AppColors.surfaceContainerLowest();
-  Color _fg(BuildContext context) => AppColors.onSurface();
-  Color _outline(BuildContext context) => AppColors.outline();
-
-  void _showActionSheet(List<MenuItem> menuItems) {
+  void actionBottomSheet(List<MenuItem> menuItems) {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.35),
       builder: (ctx) {
-        final Color card = _card(ctx);
-        final Color soft = _soft(ctx);
-        final Color fg = _fg(ctx);
-        final Color outline = _outline(ctx);
+        final Color card = AppColors.surface();
+        ctx;
+        final Color soft = AppColors.surfaceContainerLowest();
+        ctx;
+        final Color fg = AppColors.onSurface();
+        ctx;
+        final Color outline = AppColors.outline();
+        ctx;
         final Color primary = Theme.of(ctx).colorScheme.primary;
 
         Color tint(Color c, double a) => c.withValues(alpha: a);

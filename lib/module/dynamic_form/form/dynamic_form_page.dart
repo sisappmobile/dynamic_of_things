@@ -49,9 +49,9 @@ class DynamicFormPageState extends State<DynamicFormPage>
 
   bool loading = true;
 
-  static const double _gapCard = 12;
+  static const double gapCard = 12;
 
-  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+  bool get isDark => Theme.of(context).brightness == Brightness.dark;
 
   @override
   void initState() {
@@ -152,7 +152,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
         } else if (state is DynamicFormRefreshFinished) {}
       },
       child: Scaffold(
-        backgroundColor: _bg(context),
+        backgroundColor: backgroundColor(context),
         body: SafeArea(
           top: true,
           bottom: false,
@@ -167,16 +167,16 @@ class DynamicFormPageState extends State<DynamicFormPage>
                       Dimensions.size15,
                       Dimensions.size10,
                     ),
-                    child: _topBar(),
+                    child: appBar(),
                   ),
-                  Expanded(child: _bodyHost()),
+                  Expanded(child: bodyHost()),
                   SizedBox(height: safe.bottom),
                 ],
               ),
               Positioned(
                 right: Dimensions.size15,
                 bottom: safe.bottom + Dimensions.size10,
-                child: _bottomFloatingBar(),
+                child: bottomActionFloatingBar(),
               ),
             ],
           ),
@@ -271,7 +271,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
                         Dimensions.size15,
                         Dimensions.size10,
                       ),
-                      child: _sectionHeader(title: detailForm.template.title),
+                      child: header(title: detailForm.template.title),
                     ),
                     CustomDynamicForm(
                       key: ValueKey("DetailForm-${headerForm!.template.id}"),
@@ -308,7 +308,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
     );
   }
 
-  Future<void> _handleSave() async {
+  Future<void> saveHandler() async {
     if (headerForm == null || widget.readOnly) {
       return;
     }
@@ -345,7 +345,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
           Expanded(
             child: FilledButton.icon(
               onPressed: () async {
-                await _handleSave();
+                await saveHandler();
               },
               icon: const Icon(Icons.save),
               label: Text("save".tr()),
@@ -410,7 +410,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
     return false;
   }
 
-  Widget _sectionHeader({required String title}) {
+  Widget header({required String title}) {
     final Color primary = Theme.of(context).colorScheme.primary;
 
     return Row(
@@ -419,10 +419,10 @@ class DynamicFormPageState extends State<DynamicFormPage>
           width: Dimensions.size30,
           height: Dimensions.size30,
           decoration: BoxDecoration(
-            color: primary.withValues(alpha: _isDark ? 0.14 : 0.10),
+            color: primary.withValues(alpha: isDark ? 0.14 : 0.10),
             shape: BoxShape.circle,
             border: Border.all(
-              color: primary.withValues(alpha: _isDark ? 0.28 : 0.18),
+              color: primary.withValues(alpha: isDark ? 0.28 : 0.18),
             ),
           ),
           child: Icon(
@@ -436,7 +436,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
           child: Text(
             title.toUpperCase(),
             style: TextStyle(
-              color: _fg(context),
+              color: AppColors.onSurface(),
               fontSize: Dimensions.text14,
               fontWeight: FontWeight.w900,
               letterSpacing: 0.2,
@@ -447,7 +447,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
     );
   }
 
-  Widget _topBar() {
+  Widget appBar() {
     final String title = (headerForm?.template.title.isNotEmpty ?? false)
         ? headerForm!.template.title
         : widget.dynamicFormMenuItem.name;
@@ -460,18 +460,18 @@ class DynamicFormPageState extends State<DynamicFormPage>
         vertical: Dimensions.size10,
       ),
       decoration: ShapeDecoration(
-        color: _card(context),
+        color: AppColors.surface(),
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: _isDark ? 0.28 : 0.22),
+            color: AppColors.outline().withValues(alpha: isDark ? 0.28 : 0.22),
           ),
         ),
       ),
       child: Row(
         children: [
-          _iconPill(
+          iconPill(
             icon: Icons.turn_left_rounded,
             onTap: () {
               if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
@@ -494,7 +494,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
                     fontSize: Dimensions.text16,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.2,
-                    color: _fg(context),
+                    color: AppColors.onSurface(),
                   ),
                 ),
                 SizedBox(height: Dimensions.size2),
@@ -505,14 +505,14 @@ class DynamicFormPageState extends State<DynamicFormPage>
                   style: TextStyle(
                     fontSize: Dimensions.text12,
                     fontWeight: FontWeight.w700,
-                    color: _fg(context).withValues(alpha: 0.65),
+                    color: AppColors.onSurface().withValues(alpha: 0.65),
                   ),
                 ),
               ],
             ),
           ),
           SizedBox(width: Dimensions.size10),
-          _iconPill(
+          iconPill(
             icon: Icons.cloud_sync,
             onTap: () {
               if (headerForm == null) {
@@ -534,7 +534,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
     );
   }
 
-  Widget _iconPill({
+  Widget iconPill({
     required IconData icon,
     required VoidCallback onTap,
   }) {
@@ -550,19 +550,19 @@ class DynamicFormPageState extends State<DynamicFormPage>
           width: Dimensions.size40,
           height: Dimensions.size40,
           decoration: ShapeDecoration(
-            color: _soft(context),
+            color: softColor(context),
             shape: SmoothRectangleBorder(
               borderRadius: BorderRadius.circular(Dimensions.size15),
               smoothness: Dimensions.size1,
               side: BorderSide(
                 color:
-                    _outline(context).withValues(alpha: _isDark ? 0.26 : 0.18),
+                    AppColors.outline().withValues(alpha: isDark ? 0.26 : 0.18),
               ),
             ),
           ),
           child: Icon(
             icon,
-            color: _fg(context),
+            color: AppColors.onSurface(),
             size: Dimensions.size25,
           ),
         ),
@@ -570,7 +570,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
     );
   }
 
-  Widget _bodyHost() {
+  Widget bodyHost() {
     if (loading) {
       return BaseWidgets.shimmer();
     }
@@ -579,7 +579,59 @@ class DynamicFormPageState extends State<DynamicFormPage>
       return ListView(
         padding: EdgeInsets.all(Dimensions.size15),
         children: [
-          _failState(),
+          Container(
+            padding: EdgeInsets.all(Dimensions.size20),
+            decoration: ShapeDecoration(
+              color: AppColors.surface(),
+              shape: SmoothRectangleBorder(
+                borderRadius: BorderRadius.circular(Dimensions.size20),
+                smoothness: Dimensions.size1,
+                side: BorderSide(
+                  color: AppColors.outline()
+                      .withValues(alpha: isDark ? 0.28 : 0.22),
+                ),
+              ),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: Dimensions.size45,
+                  color: AppColors.onSurface().withValues(alpha: 0.65),
+                ),
+                SizedBox(height: Dimensions.size10),
+                Text(
+                  "common_something_wrong".tr(),
+                  style: TextStyle(
+                    fontSize: Dimensions.text16,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.onSurface(),
+                  ),
+                ),
+                SizedBox(height: Dimensions.size5),
+                Text(
+                  "pull_to_refresh_or_try_again".tr(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.onSurface().withValues(alpha: 0.70),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: Dimensions.size15),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => refresh(),
+                        icon: const Icon(Icons.refresh),
+                        label: Text("refresh".tr()),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
       );
     }
@@ -610,69 +662,14 @@ class DynamicFormPageState extends State<DynamicFormPage>
         children: [
           body(),
           if (headerForm!.detailForms.isNotEmpty) ...[
-            const SizedBox(height: _gapCard),
+            const SizedBox(height: gapCard),
           ],
         ],
       ),
     );
   }
 
-  Widget _failState() {
-    return Container(
-      padding: EdgeInsets.all(Dimensions.size20),
-      decoration: ShapeDecoration(
-        color: _card(context),
-        shape: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimensions.size20),
-          smoothness: Dimensions.size1,
-          side: BorderSide(
-            color: _outline(context).withValues(alpha: _isDark ? 0.28 : 0.22),
-          ),
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: Dimensions.size45,
-            color: _fg(context).withValues(alpha: 0.65),
-          ),
-          SizedBox(height: Dimensions.size10),
-          Text(
-            "common_something_wrong".tr(),
-            style: TextStyle(
-              fontSize: Dimensions.text16,
-              fontWeight: FontWeight.w900,
-              color: _fg(context),
-            ),
-          ),
-          SizedBox(height: Dimensions.size5),
-          Text(
-            "pull_to_refresh_or_try_again".tr(),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: _fg(context).withValues(alpha: 0.70),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          SizedBox(height: Dimensions.size15),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => refresh(),
-                  icon: const Icon(Icons.refresh),
-                  label: Text("refresh".tr()),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _saveFloatingActionButton() {
+  Widget saveFloatingActionBar() {
     if (headerForm == null || widget.readOnly) {
       return const SizedBox.shrink();
     }
@@ -683,7 +680,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: _handleSave,
+        onTap: saveHandler,
         borderRadius: BorderRadius.circular(Dimensions.size30),
         child: Ink(
           height: Dimensions.size55,
@@ -731,8 +728,8 @@ class DynamicFormPageState extends State<DynamicFormPage>
     );
   }
 
-  Widget _bottomFloatingBar() {
-    final Widget fab = _saveFloatingActionButton();
+  Widget bottomActionFloatingBar() {
+    final Widget fab = saveFloatingActionBar();
 
     if (fab is SizedBox) {
       return const SizedBox.shrink();
@@ -741,16 +738,11 @@ class DynamicFormPageState extends State<DynamicFormPage>
     return fab;
   }
 
-  Color _bg(BuildContext context) => _isDark
+  Color backgroundColor(BuildContext context) => isDark
       ? AppColors.surfaceContainerLowest()
       : AppColors.surfaceContainerLowest();
 
-  Color _card(BuildContext context) => AppColors.surface();
-
-  Color _soft(BuildContext context) => _isDark
+  Color softColor(BuildContext context) => isDark
       ? AppColors.surfaceContainerLow()
       : AppColors.surfaceContainerLowest();
-
-  Color _fg(BuildContext context) => AppColors.onSurface();
-  Color _outline(BuildContext context) => AppColors.outline();
 }
