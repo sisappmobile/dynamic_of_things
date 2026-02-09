@@ -12,6 +12,7 @@ import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_state.dart"
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
+import "package:go_router/go_router.dart";
 import "package:jiffy/jiffy.dart";
 import "package:loader_overlay/loader_overlay.dart";
 import "package:shimmer/shimmer.dart";
@@ -160,7 +161,13 @@ class DynamicChartPageState extends State<DynamicChartPage>
                 title: "dynamic_chart".tr(),
                 rangeLabel: rangeLabel(),
                 onPickRange: pickRangeDate,
-                onBack: () => Navigator.of(context).maybePop(),
+                onBack: () {
+                  if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                    Navigators.pop();
+                  } else {
+                    context.pop();
+                  }
+                },
               ),
               Expanded(child: body()),
             ],
@@ -1282,8 +1289,7 @@ class ChartCardState extends State<ChartCard> {
       });
     }
 
-    final num maxY =
-        model.isStacked() ? maxYForStacked() : maxYForNonStacked();
+    final num maxY = model.isStacked() ? maxYForStacked() : maxYForNonStacked();
 
     final double maxAxis = maxY <= 0 ? 0 : (maxY * 1.10).ceilToDouble();
     final double interval = maxAxis <= 0 ? 1 : (maxAxis / 4).ceilToDouble();
