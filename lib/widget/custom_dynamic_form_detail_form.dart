@@ -51,7 +51,7 @@ class CustomDynamicFormDetailFormState
     final EdgeInsets safe = MediaQuery.of(context).padding;
 
     return Scaffold(
-      backgroundColor: _bg(context),
+      backgroundColor: AppColors.surfaceContainerLowest(),
       body: Stack(
         children: [
           Column(
@@ -64,7 +64,7 @@ class CustomDynamicFormDetailFormState
                   Dimensions.size15,
                   Dimensions.size10,
                 ),
-                child: _topBar(),
+                child: appBar(),
               ),
               Expanded(child: body()),
               SizedBox(height: safe.bottom),
@@ -94,21 +94,14 @@ class CustomDynamicFormDetailFormState
     setState(() {});
   }
 
-  Color _bg(BuildContext context) => AppColors.surfaceContainerLowest();
-  Color _card(BuildContext context) => AppColors.surface();
-  Color _soft(BuildContext context) => AppColors.surfaceContainerLowest();
-  Color _fg(BuildContext context) => AppColors.onSurface();
-  Color _outline(BuildContext context) => AppColors.outline();
-  Color _primary(BuildContext context) => Theme.of(context).colorScheme.primary;
-
-  Widget _topBar() {
+  Widget appBar() {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: Dimensions.size15,
         vertical: Dimensions.size10,
       ),
       decoration: ShapeDecoration(
-        color: _card(context),
+        color: AppColors.surface(),
         shadows: [
           BoxShadow(
             blurRadius: Dimensions.size20,
@@ -120,13 +113,13 @@ class CustomDynamicFormDetailFormState
           borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.35),
+            color: AppColors.outline()..withValues(alpha: 0.35),
           ),
         ),
       ),
       child: Row(
         children: [
-          _iconPill(
+          iconPill(
             icon: Icons.turn_left_rounded,
             onTap: () {
               if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
@@ -148,7 +141,7 @@ class CustomDynamicFormDetailFormState
                   style: TextStyle(
                     fontSize: Dimensions.text12,
                     fontWeight: FontWeight.w800,
-                    color: _fg(context).withValues(alpha: 0.60),
+                    color: AppColors.onSurface().withValues(alpha: 0.60),
                     letterSpacing: 0.2,
                   ),
                 ),
@@ -161,7 +154,7 @@ class CustomDynamicFormDetailFormState
                     fontSize: Dimensions.text16,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.2,
-                    color: _fg(context),
+                    color: AppColors.onSurface(),
                   ),
                 ),
               ],
@@ -174,10 +167,10 @@ class CustomDynamicFormDetailFormState
               vertical: Dimensions.size5,
             ),
             decoration: BoxDecoration(
-              color: _soft(context),
+              color: AppColors.surfaceContainerLowest(),
               borderRadius: BorderRadius.circular(Dimensions.size100),
               border: Border.all(
-                color: _outline(context).withValues(alpha: 0.22),
+                color: AppColors.outline().withValues(alpha: 0.22),
               ),
             ),
             child: Row(
@@ -188,7 +181,7 @@ class CustomDynamicFormDetailFormState
                       ? Icons.visibility_rounded
                       : Icons.edit_rounded,
                   size: Dimensions.size15,
-                  color: _primary(context),
+                  color: Theme.of(context).colorScheme.primary,
                 ),
                 SizedBox(width: Dimensions.size5),
                 Text(
@@ -196,7 +189,7 @@ class CustomDynamicFormDetailFormState
                   style: TextStyle(
                     fontSize: Dimensions.text12,
                     fontWeight: FontWeight.w900,
-                    color: _fg(context),
+                    color: AppColors.onSurface(),
                     letterSpacing: 0.1,
                   ),
                 ),
@@ -208,7 +201,7 @@ class CustomDynamicFormDetailFormState
     );
   }
 
-  Widget _iconPill({
+  Widget iconPill({
     required IconData icon,
     required VoidCallback onTap,
   }) {
@@ -224,18 +217,18 @@ class CustomDynamicFormDetailFormState
           width: Dimensions.size40,
           height: Dimensions.size40,
           decoration: ShapeDecoration(
-            color: _soft(context),
+            color: AppColors.surfaceContainerLowest(),
             shape: SmoothRectangleBorder(
               borderRadius: BorderRadius.circular(Dimensions.size15),
               smoothness: Dimensions.size1,
               side: BorderSide(
-                color: _outline(context).withValues(alpha: 0.25),
+                color: AppColors.outline().withValues(alpha: 0.25),
               ),
             ),
           ),
           child: Icon(
             icon,
-            color: _fg(context),
+            color: AppColors.onSurface(),
             size: Dimensions.size25,
           ),
         ),
@@ -243,7 +236,7 @@ class CustomDynamicFormDetailFormState
     );
   }
 
-  Widget _sectionCard({
+  Widget card({
     required BuildContext context,
     required Widget child,
     EdgeInsets? padding,
@@ -251,7 +244,7 @@ class CustomDynamicFormDetailFormState
     return Container(
       padding: padding ?? EdgeInsets.all(Dimensions.size15),
       decoration: ShapeDecoration(
-        color: _card(context),
+        color: AppColors.surface(),
         shadows: [
           BoxShadow(
             blurRadius: Dimensions.size20,
@@ -263,7 +256,7 @@ class CustomDynamicFormDetailFormState
           borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.18),
+            color: AppColors.outline().withValues(alpha: 0.18),
           ),
         ),
       ),
@@ -273,7 +266,7 @@ class CustomDynamicFormDetailFormState
 
   Widget body() {
     return Container(
-      color: _bg(context),
+      color: AppColors.surfaceContainerLowest(),
       child: Form(
         key: formState,
         child: SingleChildScrollView(
@@ -285,7 +278,7 @@ class CustomDynamicFormDetailFormState
           ),
           child: Column(
             children: [
-              _sectionCard(
+              card(
                 context: context,
                 padding: EdgeInsets.fromLTRB(
                   Dimensions.size10,
@@ -308,7 +301,7 @@ class CustomDynamicFormDetailFormState
 
                 return Padding(
                   padding: EdgeInsets.only(top: Dimensions.size10),
-                  child: _sectionCard(
+                  child: card(
                     context: context,
                     padding: EdgeInsets.fromLTRB(
                       Dimensions.size10,
@@ -348,12 +341,12 @@ class CustomDynamicFormDetailFormState
 
   Widget bottomBar() {
     if (!widget.readOnly) {
-      return _primarySaveButton();
+      return buttonSave();
     }
     return const SizedBox.shrink();
   }
 
-  Widget _primarySaveButton() {
+  Widget buttonSave() {
     final Color primary = Theme.of(context).colorScheme.primary;
     final Color onPrimary = Theme.of(context).colorScheme.onPrimary;
 

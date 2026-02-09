@@ -77,14 +77,7 @@ class CustomDynamicFormBulkDetailFormState
     setState(() {});
   }
 
-  Color _bg(BuildContext context) => AppColors.surfaceContainerLowest();
-  Color _card(BuildContext context) => AppColors.surface();
-  Color _soft(BuildContext context) => AppColors.surfaceContainerLowest();
-  Color _fg(BuildContext context) => AppColors.onSurface();
-  Color _outline(BuildContext context) => AppColors.outline();
-  Color _primary(BuildContext context) => Theme.of(context).colorScheme.primary;
-
-  Widget _sectionCard({
+  Widget sectionCard({
     required BuildContext context,
     required Widget child,
     EdgeInsets? padding,
@@ -92,7 +85,7 @@ class CustomDynamicFormBulkDetailFormState
     return Container(
       padding: padding ?? EdgeInsets.all(Dimensions.size15),
       decoration: ShapeDecoration(
-        color: _card(context),
+        color: AppColors.surface(),
         shadows: [
           BoxShadow(
             blurRadius: Dimensions.size25,
@@ -104,7 +97,7 @@ class CustomDynamicFormBulkDetailFormState
           borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.18),
+            color: AppColors.outline().withValues(alpha: 0.18),
           ),
         ),
       ),
@@ -112,16 +105,16 @@ class CustomDynamicFormBulkDetailFormState
     );
   }
 
-  Widget _progressHeader(BuildContext context) {
-    final Color fg = _fg(context);
-    final Color outline = _outline(context);
-    final Color primary = _primary(context);
+  Widget progressHeader(BuildContext context) {
+    final Color fg = AppColors.onSurface();
+    final Color outline = AppColors.outline();
+    final Color primary = Theme.of(context).colorScheme.primary;
 
     final int current = index + 1;
     final int total = rows.length;
     final double progress = total <= 0 ? 0 : (current / total).clamp(0.0, 1.0);
 
-    return _sectionCard(
+    return sectionCard(
       context: context,
       padding: EdgeInsets.fromLTRB(
         Dimensions.size15,
@@ -201,7 +194,7 @@ class CustomDynamicFormBulkDetailFormState
   }
 
   Widget body() {
-    final Color bg = _bg(context);
+    final Color bg = AppColors.surfaceContainerLowest();
 
     return Container(
       color: bg,
@@ -216,9 +209,9 @@ class CustomDynamicFormBulkDetailFormState
           ),
           child: Column(
             children: [
-              _progressHeader(context),
+              progressHeader(context),
               SizedBox(height: Dimensions.size15),
-              _sectionCard(
+              sectionCard(
                 context: context,
                 padding: EdgeInsets.fromLTRB(
                   Dimensions.size15,
@@ -238,7 +231,7 @@ class CustomDynamicFormBulkDetailFormState
               ...widget.detailForm.subDetailForms.map((subDetailForm) {
                 return Padding(
                   padding: EdgeInsets.only(top: Dimensions.size15),
-                  child: _sectionCard(
+                  child: sectionCard(
                     context: context,
                     padding: EdgeInsets.fromLTRB(
                       Dimensions.size15,
@@ -279,7 +272,7 @@ class CustomDynamicFormBulkDetailFormState
   Widget bottomBar() {
     Widget previousButton() {
       if (index > 0) {
-        return _pillIconButton(
+        return pillIconButton(
           icon: Icons.arrow_back_rounded,
           onTap: () {
             if (valid()) {
@@ -323,7 +316,7 @@ class CustomDynamicFormBulkDetailFormState
 
     Widget nextButton() {
       if (index < rows.length - 1) {
-        return _pillIconButton(
+        return pillIconButton(
           icon: Icons.arrow_forward_rounded,
           onTap: () {
             if (valid()) {
@@ -334,7 +327,7 @@ class CustomDynamicFormBulkDetailFormState
           },
         );
       } else {
-        return _pillPrimaryButton(
+        return pillButton(
           icon: Icons.save_rounded,
           label: "save".tr(),
           onTap: () async {
@@ -377,10 +370,13 @@ class CustomDynamicFormBulkDetailFormState
                   vertical: Dimensions.size10,
                 ),
                 decoration: BoxDecoration(
-                  color: _card(context).withValues(alpha: 0.92),
+                  color: AppColors.surface().withValues(alpha: 0.92),
                   borderRadius: BorderRadius.circular(Dimensions.size25),
                   border: Border.all(
-                    color: _outline(context).withValues(alpha: 0.18),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.18),
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -409,7 +405,7 @@ class CustomDynamicFormBulkDetailFormState
     return const SizedBox.shrink();
   }
 
-  Widget _pillIconButton({
+  Widget pillIconButton({
     required IconData icon,
     required VoidCallback onTap,
   }) {
@@ -422,15 +418,16 @@ class CustomDynamicFormBulkDetailFormState
           width: Dimensions.size45,
           height: Dimensions.size45,
           decoration: BoxDecoration(
-            color: _soft(context),
+            color: AppColors.surfaceContainerLowest(),
             shape: BoxShape.circle,
             border: Border.all(
-              color: _outline(context).withValues(alpha: 0.18),
+              color:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.18),
             ),
           ),
           child: Icon(
             icon,
-            color: _fg(context),
+            color: Theme.of(context).colorScheme.primary,
             size: Dimensions.size20,
           ),
         ),
@@ -438,7 +435,7 @@ class CustomDynamicFormBulkDetailFormState
     );
   }
 
-  Widget _pillPrimaryButton({
+  Widget pillButton({
     required IconData icon,
     required String label,
     required VoidCallback onTap,
