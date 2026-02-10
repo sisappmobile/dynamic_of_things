@@ -1,14 +1,18 @@
-// ignore_for_file: unused_field, camel_case_types
+// ignore_for_file: deprecated_member_use
 
+import "dart:io";
 import "dart:math" as math;
 
 import "package:base/base.dart";
 import "package:collection/collection.dart";
 import "package:dynamic_of_things/enumeration/chart_model.dart";
+import "package:dynamic_of_things/enumeration/constant.dart";
+import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/model/dynamic_chart_list_response.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_event.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_state.dart";
+import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
@@ -28,6 +32,7 @@ class DynamicChartPage extends StatefulWidget {
 class DynamicChartPageState extends State<DynamicChartPage>
     with WidgetsBindingObserver {
   ListResponse? listResponse;
+  bool _prefsReady = false;
 
   final RangePreset preset = RangePreset.last7;
   DateTimeRange? customRange;
@@ -36,6 +41,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _initPrefs();
     refresh();
   }
 
@@ -53,6 +59,70 @@ class DynamicChartPageState extends State<DynamicChartPage>
 
   void refresh() {
     context.read<DynamicChartBloc>().add(DynamicChartLoad());
+  }
+
+  Future<void> _initPrefs() async {
+    try {
+      await Preferences.getInstance().init();
+    } catch (_) {
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _prefsReady = true;
+    });
+  }
+
+  bool get isGlass {
+    if (!_prefsReady) {
+      return false;
+    }
+
+    final int t = Preferences.getInstance()
+            .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
+        1;
+    return t == 2;
+  }
+
+  Widget _glassBackground() {
+    final String p = (Preferences.getInstance()
+                .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
+            "")
+        .trim();
+
+    if (p.isEmpty) {
+      return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
+    }
+    if (p.startsWith("assets/")) {
+      return Image.asset(p, fit: BoxFit.cover);
+    }
+
+    final File f = File(p);
+    if (f.existsSync()) {
+      return Image.file(f, fit: BoxFit.cover);
+    }
+
+    return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
+  }
+
+  Widget _glassOverlay() {
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[
+            Color.fromRGBO(0, 0, 0, 0.55),
+            Color.fromRGBO(0, 0, 0, 0.22),
+            Color.fromRGBO(0, 0, 0, 0.40),
+          ],
+        ),
+      ),
+    );
   }
 
   Jiffy begin() {
@@ -139,6 +209,8 @@ class DynamicChartPageState extends State<DynamicChartPage>
 
   @override
   Widget build(BuildContext context) {
+    final bool glass = isGlass;
+
     return BlocListener<DynamicChartBloc, DynamicChartState>(
       listener: (context, state) async {
         if (state is DynamicChartLoadLoading) {
@@ -152,32 +224,44 @@ class DynamicChartPageState extends State<DynamicChartPage>
         }
       },
       child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              appBar(
-                title: "dynamic_chart".tr(),
-                rangeLabel: rangeLabel(),
-                onPickRange: pickRangeDate,
-                onBack: () {
-                  if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                    Navigators.pop();
-                  } else {
-                    context.pop();
-                  }
-                },
-              ),
-              Expanded(child: body()),
+        backgroundColor: glass
+            ? Colors.transparent
+            : Theme.of(context).scaffoldBackgroundColor,
+        body: Stack(
+          children: [
+            if (glass) ...[
+              Positioned.fill(child: _glassBackground()),
+              Positioned.fill(child: _glassOverlay()),
             ],
-          ),
+            SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  AppBarDynamicChart(
+                    isGlass: glass,
+                    title: "dynamic_chart".tr(),
+                    rangeLabel: rangeLabel(),
+                    onPickRange: pickRangeDate,
+                    onBack: () {
+                      if (BaseSettings.navigatorType ==
+                          BaseNavigatorType.legacy) {
+                        Navigators.pop();
+                      } else {
+                        context.pop();
+                      }
+                    },
+                  ),
+                  Expanded(child: body(glass: glass)),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget body() {
+  Widget body({required bool glass}) {
     if (listResponse == null) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -187,8 +271,8 @@ class DynamicChartPageState extends State<DynamicChartPage>
           Dimensions.size15,
           Dimensions.size30,
         ),
-        children: const [
-          LoadingCard(),
+        children: [
+          LoadingCard(isGlass: glass),
         ],
       );
     }
@@ -216,6 +300,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 640),
                 child: ChartCard(
+                  isGlass: glass,
                   chart: c,
                   begin: begin(),
                   until: until(),
@@ -229,17 +314,19 @@ class DynamicChartPageState extends State<DynamicChartPage>
   }
 }
 
-class appBar extends StatelessWidget {
+class AppBarDynamicChart extends StatelessWidget {
   final String title;
   final String rangeLabel;
   final VoidCallback onPickRange;
   final VoidCallback onBack;
+  final bool isGlass;
 
-  const appBar({
+  const AppBarDynamicChart({
     required this.title,
     required this.rangeLabel,
     required this.onPickRange,
     required this.onBack,
+    required this.isGlass,
     super.key,
   });
 
@@ -247,6 +334,95 @@ class appBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final bool dark = Theme.of(context).brightness == Brightness.dark;
+
+    if (isGlass) {
+      return Container(
+        height: Dimensions.size60,
+        padding: EdgeInsets.symmetric(horizontal: Dimensions.size15),
+        child: Row(
+          children: [
+            GlassContainer(
+              blur: Dimensions.size20,
+              borderRadius: Dimensions.size20,
+              opacity: 0.12,
+              borderOpacity: 0.22,
+              padding: EdgeInsets.zero,
+              child: SizedBox(
+                width: Dimensions.size45,
+                height: Dimensions.size45,
+                child: IconButton(
+                  onPressed: onBack,
+                  padding: EdgeInsets.zero,
+                  icon: Icon(
+                    Icons.turn_left_rounded,
+                    color: Colors.white.withOpacity(0.95),
+                    size: Dimensions.size25,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: Dimensions.size10),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: Dimensions.text14,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white.withOpacity(0.95),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            SizedBox(width: Dimensions.size10),
+            InkWell(
+              borderRadius: BorderRadius.circular(Dimensions.size15),
+              onTap: onPickRange,
+              child: GlassContainer(
+                blur: Dimensions.size20,
+                borderRadius: Dimensions.size15,
+                opacity: 0.12,
+                borderOpacity: 0.22,
+                padding: EdgeInsets.symmetric(horizontal: Dimensions.size10),
+                child: SizedBox(
+                  height: Dimensions.size40,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.date_range_rounded,
+                        size: Dimensions.size20,
+                        color: Colors.white.withOpacity(0.92),
+                      ),
+                      SizedBox(width: Dimensions.size10),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 180),
+                        child: Text(
+                          rangeLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: Dimensions.text12,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white.withOpacity(0.92),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: Dimensions.size5),
+                      Icon(
+                        Icons.expand_more_rounded,
+                        size: Dimensions.size20,
+                        color: Colors.white.withOpacity(0.90),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     final Color iconColor = cs.onSurface.withValues(alpha: 0.90);
     final Color pillBg = cs.surfaceContainerHighest.withValues(alpha: 0.55);
@@ -336,12 +512,15 @@ class Insight extends StatelessWidget {
   final List<MapEntry<String, num>> compositionByVariable;
   final List<MapEntry<String, num>> compositionByCategory;
 
+  final bool isGlass;
+
   const Insight({
     required this.total,
     required this.rows,
     required this.rangeLabel,
     required this.compositionByVariable,
     required this.compositionByCategory,
+    required this.isGlass,
     super.key,
   });
 
@@ -362,32 +541,61 @@ class Insight extends StatelessWidget {
     final TextStyle titleStyle = TextStyle(
       fontSize: Dimensions.text12,
       fontWeight: FontWeight.w900,
-      color: cs.onSurface.withValues(alpha: 0.88),
+      color: isGlass
+          ? Colors.white.withOpacity(0.92)
+          : cs.onSurface.withValues(alpha: 0.88),
     );
 
     final TextStyle subStyle = TextStyle(
       fontSize: Dimensions.text12,
       fontWeight: FontWeight.w700,
-      color: cs.onSurfaceVariant.withValues(alpha: 0.85),
+      color: isGlass
+          ? Colors.white.withOpacity(0.78)
+          : cs.onSurfaceVariant.withValues(alpha: 0.85),
     );
 
     final TextStyle labelStyle = TextStyle(
       fontSize: Dimensions.text12,
       fontWeight: FontWeight.w700,
-      color: cs.onSurface.withValues(alpha: 0.78),
+      color: isGlass
+          ? Colors.white.withOpacity(0.82)
+          : cs.onSurface.withValues(alpha: 0.78),
     );
 
     final TextStyle valueStyle = TextStyle(
       fontSize: Dimensions.text12,
       fontWeight: FontWeight.w900,
-      color: cs.onSurface.withValues(alpha: 0.92),
+      color: isGlass
+          ? Colors.white.withOpacity(0.92)
+          : cs.onSurface.withValues(alpha: 0.92),
     );
 
-    final Color cardBg = cs.surface;
-    final Color border =
-        cs.outlineVariant.withValues(alpha: dark ? 0.35 : 0.55);
+    final Color border = isGlass
+        ? Colors.white.withOpacity(0.18)
+        : cs.outlineVariant.withValues(alpha: dark ? 0.35 : 0.55);
 
     Widget chip(String label, String value) {
+      if (isGlass) {
+        return GlassContainer(
+          blur: Dimensions.size20,
+          borderRadius: Dimensions.size15,
+          opacity: 0.10,
+          borderOpacity: 0.18,
+          padding: EdgeInsets.symmetric(
+            horizontal: Dimensions.size10,
+            vertical: Dimensions.size10,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label, style: labelStyle),
+              SizedBox(width: Dimensions.size5),
+              Text(value, style: valueStyle),
+            ],
+          ),
+        );
+      }
+
       final Color chipBg = cs.surfaceContainerHighest.withValues(alpha: 0.55);
 
       return Container(
@@ -414,7 +622,9 @@ class Insight extends StatelessWidget {
     Widget rowItem(String name, num v) {
       final double frac = total <= 0 ? 0 : (v / total).toDouble().clamp(0, 1);
 
-      final Color track = cs.onSurface.withValues(alpha: dark ? 0.10 : 0.08);
+      final Color track = isGlass
+          ? Colors.white.withOpacity(0.12)
+          : cs.onSurface.withValues(alpha: dark ? 0.10 : 0.08);
       final Color fill = const Color(0xFFB9A7FF).withValues(alpha: 0.95);
 
       return Padding(
@@ -450,20 +660,7 @@ class Insight extends StatelessWidget {
       );
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(Dimensions.size15),
-        border: Border.all(color: border),
-        boxShadow: [
-          if (!dark)
-            BoxShadow(
-              blurRadius: Dimensions.size25,
-              offset: Offset(0, Dimensions.size10),
-              color: Colors.black.withValues(alpha: 0.06),
-            ),
-        ],
-      ),
+    final Widget inner = Padding(
       padding: EdgeInsets.fromLTRB(
         Dimensions.size20,
         Dimensions.size15,
@@ -496,6 +693,34 @@ class Insight extends StatelessWidget {
           ...compositionByCategory.map((e) => rowItem(e.key, e.value)),
         ],
       ),
+    );
+
+    if (isGlass) {
+      return GlassContainer(
+        blur: Dimensions.size20,
+        borderRadius: Dimensions.size20,
+        opacity: 0.10,
+        borderOpacity: 0.18,
+        padding: EdgeInsets.zero,
+        child: inner,
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(Dimensions.size15),
+        border: Border.all(color: border),
+        boxShadow: [
+          if (!dark)
+            BoxShadow(
+              blurRadius: Dimensions.size25,
+              offset: Offset(0, Dimensions.size10),
+              color: Colors.black.withValues(alpha: 0.06),
+            ),
+        ],
+      ),
+      child: inner,
     );
   }
 }
@@ -629,11 +854,13 @@ class ChartCard extends StatefulWidget {
   final Chart chart;
   final Jiffy begin;
   final Jiffy until;
+  final bool isGlass;
 
   const ChartCard({
     required this.chart,
     required this.begin,
     required this.until,
+    required this.isGlass,
     super.key,
   });
 
@@ -980,7 +1207,7 @@ class ChartCardState extends State<ChartCard> {
           setState(() => loading = false);
         }
       },
-      child: loading ? const LoadingCard() : content(),
+      child: loading ? LoadingCard(isGlass: widget.isGlass) : content(),
     );
   }
 
@@ -1023,14 +1250,12 @@ class ChartCardState extends State<ChartCard> {
     final List<String> variables =
         hasData ? allVariableSorted(raw!) : <String>[];
 
-    final Color cardBg = cs.surface;
-    final Color border =
-        cs.outlineVariant.withValues(alpha: dark ? 0.35 : 0.55);
-
     final TextStyle titleStyle = TextStyle(
       fontSize: Dimensions.text13,
       fontWeight: FontWeight.w800,
-      color: cs.onSurface.withValues(alpha: 0.92),
+      color: widget.isGlass
+          ? Colors.white.withOpacity(0.95)
+          : cs.onSurface.withValues(alpha: 0.92),
     );
 
     final List<PieSlice> pieSlices = hasData
@@ -1039,20 +1264,7 @@ class ChartCardState extends State<ChartCard> {
 
     final List<String> pieCats = pieSlices.map((e) => e.label).toList();
 
-    final Widget chartCard = Container(
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(Dimensions.size15),
-        border: Border.all(color: border),
-        boxShadow: [
-          if (!dark)
-            BoxShadow(
-              blurRadius: Dimensions.size25,
-              offset: Offset(0, Dimensions.size15),
-              color: Colors.black.withValues(alpha: 0.06),
-            ),
-        ],
-      ),
+    final Widget innerChartCard = Padding(
       padding: EdgeInsets.fromLTRB(
         Dimensions.size20,
         Dimensions.size15,
@@ -1074,6 +1286,7 @@ class ChartCardState extends State<ChartCard> {
               ),
               SizedBox(width: Dimensions.size10),
               ChartModelPill(
+                isGlass: widget.isGlass,
                 model: model,
                 onTap: selectModel,
               ),
@@ -1082,11 +1295,13 @@ class ChartCardState extends State<ChartCard> {
           SizedBox(height: Dimensions.size10),
           if (model == ChartModel.pie && pieCats.isNotEmpty)
             ScroolLegend(
+              isGlass: widget.isGlass,
               variables: pieCats,
               colorForIndex: colorIndex,
             )
           else if (model != ChartModel.pie && variables.isNotEmpty)
             ScroolLegend(
+              isGlass: widget.isGlass,
               variables: variables,
               colorForIndex: colorIndex,
             ),
@@ -1101,11 +1316,40 @@ class ChartCardState extends State<ChartCard> {
       ),
     );
 
+    final Widget chartCard = widget.isGlass
+        ? GlassContainer(
+            blur: Dimensions.size20,
+            borderRadius: Dimensions.size20,
+            opacity: 0.10,
+            borderOpacity: 0.18,
+            padding: EdgeInsets.zero,
+            child: innerChartCard,
+          )
+        : Container(
+            decoration: BoxDecoration(
+              color: cs.surface,
+              borderRadius: BorderRadius.circular(Dimensions.size15),
+              border: Border.all(
+                color: cs.outlineVariant.withValues(alpha: dark ? 0.35 : 0.55),
+              ),
+              boxShadow: [
+                if (!dark)
+                  BoxShadow(
+                    blurRadius: Dimensions.size25,
+                    offset: Offset(0, Dimensions.size15),
+                    color: Colors.black.withValues(alpha: 0.06),
+                  ),
+              ],
+            ),
+            child: innerChartCard,
+          );
+
     final Widget insightCard = hasData
         ? Builder(
             builder: (_) {
               final InsightWidget ins = buildInsight(raw!);
               return Insight(
+                isGlass: widget.isGlass,
                 total: ins.total,
                 rows: ins.rows,
                 rangeLabel: rangeLabel(),
@@ -1133,7 +1377,9 @@ class ChartCardState extends State<ChartCard> {
         style: TextStyle(
           fontSize: Dimensions.text13,
           fontWeight: FontWeight.w800,
-          color: cs.onSurfaceVariant.withValues(alpha: 0.85),
+          color: widget.isGlass
+              ? Colors.white.withOpacity(0.80)
+              : cs.onSurfaceVariant.withValues(alpha: 0.85),
         ),
       ),
     );
@@ -1213,8 +1459,9 @@ class ChartCardState extends State<ChartCard> {
       return p >= 10 ? "${p.toStringAsFixed(0)}%" : "${p.toStringAsFixed(1)}%";
     }
 
-    final Color border =
-        cs.outlineVariant.withValues(alpha: dark ? 0.35 : 0.55);
+    final Color border = widget.isGlass
+        ? Colors.white.withOpacity(0.18)
+        : cs.outlineVariant.withValues(alpha: dark ? 0.35 : 0.55);
 
     return SfCircularChart(
       backgroundColor: Colors.transparent,
@@ -1257,7 +1504,9 @@ class ChartCardState extends State<ChartCard> {
                 style: TextStyle(
                   fontSize: Dimensions.text11,
                   fontWeight: FontWeight.w800,
-                  color: cs.onSurface.withValues(alpha: 0.88),
+                  color: widget.isGlass
+                      ? Colors.white.withOpacity(0.88)
+                      : cs.onSurface.withValues(alpha: 0.88),
                 ),
               );
             },
@@ -1294,9 +1543,17 @@ class ChartCardState extends State<ChartCard> {
     final double maxAxis = maxY <= 0 ? 0 : (maxY * 1.10).ceilToDouble();
     final double interval = maxAxis <= 0 ? 1 : (maxAxis / 4).ceilToDouble();
 
-    final Color grid = cs.onSurface.withValues(alpha: dark ? 0.10 : 0.08);
-    final Color axisTextX = cs.onSurfaceVariant.withValues(alpha: 0.90);
-    final Color axisTextY = cs.onSurfaceVariant.withValues(alpha: 0.80);
+    final Color grid = widget.isGlass
+        ? Colors.white.withOpacity(0.10)
+        : cs.onSurface.withValues(alpha: dark ? 0.10 : 0.08);
+
+    final Color axisTextX = widget.isGlass
+        ? Colors.white.withOpacity(0.85)
+        : cs.onSurfaceVariant.withValues(alpha: 0.90);
+
+    final Color axisTextY = widget.isGlass
+        ? Colors.white.withOpacity(0.80)
+        : cs.onSurfaceVariant.withValues(alpha: 0.80);
 
     return SfCartesianChart(
       backgroundColor: Colors.transparent,
@@ -1436,17 +1693,12 @@ class ChartCardState extends State<ChartCard> {
 
   TooltipBehavior toolTip(List<CatPoint> points) {
     final ColorScheme cs = Theme.of(context).colorScheme;
-    final bool dark = Theme.of(context).brightness == Brightness.dark;
-
-    final Color bg =
-        dark ? cs.surfaceContainerHighest : cs.surfaceContainerHighest;
-    final Color text = cs.onSurface;
 
     return TooltipBehavior(
       enable: true,
       header: "",
-      color: bg,
-      textStyle: TextStyle(color: text),
+      color: cs.surfaceContainerHighest,
+      textStyle: TextStyle(color: cs.onSurface),
       builder: (
         dynamic value,
         dynamic point,
@@ -1477,7 +1729,7 @@ class ChartCardState extends State<ChartCard> {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontWeight: FontWeight.w900,
-                  color: text,
+                  color: cs.onSurface,
                 ),
               ),
               SizedBox(height: Dimensions.size10),
@@ -1500,14 +1752,14 @@ class ChartCardState extends State<ChartCard> {
                         child: Text(
                           e.key,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: text),
+                          style: TextStyle(color: cs.onSurface),
                         ),
                       ),
                       SizedBox(width: Dimensions.size10),
                       Text(
                         "${e.value}",
                         style: TextStyle(
-                          color: text,
+                          color: cs.onSurface,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -1593,10 +1845,12 @@ class CatPoint {
 class ScroolLegend extends StatelessWidget {
   final List<String> variables;
   final Color Function(int index) colorForIndex;
+  final bool isGlass;
 
   const ScroolLegend({
     required this.variables,
     required this.colorForIndex,
+    required this.isGlass,
     super.key,
   });
 
@@ -1613,6 +1867,7 @@ class ScroolLegend extends StatelessWidget {
               padding:
                   EdgeInsets.only(right: i == variables.length - 1 ? 0 : 14),
               child: DotLegend(
+                isGlass: isGlass,
                 label: v,
                 color: colorForIndex(i),
               ),
@@ -1627,10 +1882,12 @@ class ScroolLegend extends StatelessWidget {
 class ChartModelPill extends StatelessWidget {
   final ChartModel model;
   final VoidCallback onTap;
+  final bool isGlass;
 
   const ChartModelPill({
     required this.model,
     required this.onTap,
+    required this.isGlass,
     super.key,
   });
 
@@ -1638,6 +1895,48 @@ class ChartModelPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final bool dark = Theme.of(context).brightness == Brightness.dark;
+
+    if (isGlass) {
+      return InkWell(
+        borderRadius: BorderRadius.circular(Dimensions.size15),
+        onTap: onTap,
+        child: GlassContainer(
+          blur: Dimensions.size20,
+          borderRadius: Dimensions.size15,
+          opacity: 0.10,
+          borderOpacity: 0.18,
+          padding: EdgeInsets.symmetric(horizontal: Dimensions.size10),
+          child: SizedBox(
+            height: Dimensions.size30,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  model.icon(),
+                  size: Dimensions.size15,
+                  color: Colors.white.withOpacity(0.92),
+                ),
+                SizedBox(width: Dimensions.size5),
+                Text(
+                  model.label(),
+                  style: TextStyle(
+                    fontSize: Dimensions.text12,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white.withOpacity(0.92),
+                  ),
+                ),
+                SizedBox(width: Dimensions.size5),
+                Icon(
+                  Icons.expand_more_rounded,
+                  size: Dimensions.size20,
+                  color: Colors.white.withOpacity(0.90),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     final Color bg = cs.surfaceContainerHighest.withValues(alpha: 0.55);
     final Color border =
@@ -1684,10 +1983,12 @@ class ChartModelPill extends StatelessWidget {
 class DotLegend extends StatelessWidget {
   final String label;
   final Color color;
+  final bool isGlass;
 
   const DotLegend({
     required this.label,
     required this.color,
+    required this.isGlass,
     super.key,
   });
 
@@ -1704,8 +2005,11 @@ class DotLegend extends StatelessWidget {
           decoration: BoxDecoration(
             color: color,
             borderRadius: BorderRadius.circular(Dimensions.size3),
-            border:
-                Border.all(color: cs.outlineVariant.withValues(alpha: 0.55)),
+            border: Border.all(
+              color: isGlass
+                  ? Colors.white.withOpacity(0.25)
+                  : cs.outlineVariant.withValues(alpha: 0.55),
+            ),
           ),
         ),
         SizedBox(width: Dimensions.size10),
@@ -1717,7 +2021,9 @@ class DotLegend extends StatelessWidget {
             style: TextStyle(
               fontSize: Dimensions.text12,
               fontWeight: FontWeight.w700,
-              color: cs.onSurface.withValues(alpha: 0.88),
+              color: isGlass
+                  ? Colors.white.withOpacity(0.88)
+                  : cs.onSurface.withValues(alpha: 0.88),
             ),
           ),
         ),
@@ -1727,35 +2033,52 @@ class DotLegend extends StatelessWidget {
 }
 
 class LoadingCard extends StatelessWidget {
-  const LoadingCard({super.key});
+  final bool isGlass;
+
+  const LoadingCard({required this.isGlass, super.key});
 
   @override
   Widget build(BuildContext context) {
     final bool dark = Theme.of(context).brightness == Brightness.dark;
     final ColorScheme cs = Theme.of(context).colorScheme;
 
-    final Color base = dark
-        ? cs.onSurface.withValues(alpha: 0.10)
-        : cs.onSurface.withValues(alpha: 0.06);
+    final Color base = isGlass
+        ? Colors.white.withOpacity(0.10)
+        : (dark
+            ? cs.onSurface.withValues(alpha: 0.10)
+            : cs.onSurface.withValues(alpha: 0.06));
 
-    final Color hi = dark
-        ? cs.onSurface.withValues(alpha: 0.06)
-        : cs.onSurface.withValues(alpha: 0.02);
+    final Color hi = isGlass
+        ? Colors.white.withOpacity(0.06)
+        : (dark
+            ? cs.onSurface.withValues(alpha: 0.06)
+            : cs.onSurface.withValues(alpha: 0.02));
+
+    final Widget inner = Shimmer.fromColors(
+      baseColor: base,
+      highlightColor: hi,
+      child: Container(
+        height: 380,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(isGlass ? 0.06 : 1),
+          borderRadius: BorderRadius.circular(Dimensions.size15),
+        ),
+      ),
+    );
 
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 640),
-        child: Shimmer.fromColors(
-          baseColor: base,
-          highlightColor: hi,
-          child: Container(
-            height: 380,
-            decoration: BoxDecoration(
-              color: cs.surface,
-              borderRadius: BorderRadius.circular(Dimensions.size15),
-            ),
-          ),
-        ),
+        child: isGlass
+            ? GlassContainer(
+                blur: Dimensions.size20,
+                borderRadius: Dimensions.size20,
+                opacity: 0.10,
+                borderOpacity: 0.18,
+                padding: EdgeInsets.zero,
+                child: inner,
+              )
+            : inner,
       ),
     );
   }

@@ -1,8 +1,12 @@
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+
+import "dart:io";
 
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
+import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
+import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dart";
@@ -10,6 +14,7 @@ import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_event.da
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_state.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_detail_list.dart";
+import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
@@ -48,6 +53,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
   GlobalKey<FormState> globalKey = GlobalKey<FormState>();
 
   bool loading = true;
+  bool _prefsReady = false;
 
   static const double gapCard = 12;
 
@@ -58,6 +64,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
+    _initPrefs();
 
     if (widget.headerForm != null) {
       headerForm = widget.headerForm;
@@ -74,9 +81,74 @@ class DynamicFormPageState extends State<DynamicFormPage>
     }
   }
 
+  Future<void> _initPrefs() async {
+    try {
+      await Preferences.getInstance().init();
+    } catch (_) {
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _prefsReady = true;
+    });
+  }
+
+  bool get isGlass {
+    if (!_prefsReady) {
+      return false;
+    }
+
+    final int t = Preferences.getInstance()
+            .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
+        1;
+    return t == 2;
+  }
+
+  Widget _glassBackground() {
+    final String p = (Preferences.getInstance()
+                .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
+            "")
+        .trim();
+
+    if (p.isEmpty) {
+      return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
+    }
+    if (p.startsWith("assets/")) {
+      return Image.asset(p, fit: BoxFit.cover);
+    }
+
+    final File f = File(p);
+    if (f.existsSync()) {
+      return Image.file(f, fit: BoxFit.cover);
+    }
+
+    return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
+  }
+
+  Widget _glassOverlay() {
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[
+            Color.fromRGBO(0, 0, 0, 0.55),
+            Color.fromRGBO(0, 0, 0, 0.22),
+            Color.fromRGBO(0, 0, 0, 0.40),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
+    final bool glass = isGlass;
 
     return BlocListener<DynamicFormBloc, DynamicFormState>(
       listener: (context, state) async {
@@ -152,34 +224,42 @@ class DynamicFormPageState extends State<DynamicFormPage>
         } else if (state is DynamicFormRefreshFinished) {}
       },
       child: Scaffold(
-        backgroundColor: backgroundColor(context),
-        body: SafeArea(
-          top: true,
-          bottom: false,
-          child: Stack(
-            children: [
-              Column(
+        backgroundColor: glass ? Colors.transparent : backgroundColor(context),
+        body: Stack(
+          children: [
+            if (glass) ...[
+              Positioned.fill(child: _glassBackground()),
+              Positioned.fill(child: _glassOverlay()),
+            ],
+            SafeArea(
+              top: true,
+              bottom: false,
+              child: Stack(
                 children: [
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      Dimensions.size15,
-                      Dimensions.size10,
-                      Dimensions.size15,
-                      Dimensions.size10,
-                    ),
-                    child: appBar(),
+                  Column(
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          Dimensions.size15,
+                          Dimensions.size10,
+                          Dimensions.size15,
+                          Dimensions.size10,
+                        ),
+                        child: appBar(),
+                      ),
+                      Expanded(child: bodyHost()),
+                      SizedBox(height: safe.bottom),
+                    ],
                   ),
-                  Expanded(child: bodyHost()),
-                  SizedBox(height: safe.bottom),
+                  Positioned(
+                    right: Dimensions.size15,
+                    bottom: safe.bottom + Dimensions.size10,
+                    child: bottomActionFloatingBar(),
+                  ),
                 ],
               ),
-              Positioned(
-                right: Dimensions.size15,
-                bottom: safe.bottom + Dimensions.size10,
-                child: bottomActionFloatingBar(),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -411,6 +491,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
   }
 
   Widget header({required String title}) {
+    final bool glass = isGlass;
     final Color primary = Theme.of(context).colorScheme.primary;
 
     return Row(
@@ -436,7 +517,9 @@ class DynamicFormPageState extends State<DynamicFormPage>
           child: Text(
             title.toUpperCase(),
             style: TextStyle(
-              color: AppColors.onSurface(),
+              color: glass
+                  ? Colors.white.withOpacity(0.92)
+                  : AppColors.onSurface(),
               fontSize: Dimensions.text14,
               fontWeight: FontWeight.w900,
               letterSpacing: 0.2,
@@ -454,6 +537,90 @@ class DynamicFormPageState extends State<DynamicFormPage>
 
     final String subtitle = label();
 
+    final bool glass = isGlass;
+    final Color titleColor =
+        glass ? Colors.white.withOpacity(0.95) : AppColors.onSurface();
+    final Color subColor = glass
+        ? Colors.white.withOpacity(0.70)
+        : AppColors.onSurface().withValues(alpha: 0.65);
+
+    final Widget content = Row(
+      children: [
+        iconPill(
+          icon: Icons.turn_left_rounded,
+          onTap: () {
+            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+              Navigators.pop();
+            } else {
+              context.pop();
+            }
+          },
+        ),
+        SizedBox(width: Dimensions.size10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: Dimensions.text16,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.2,
+                  color: titleColor,
+                ),
+              ),
+              SizedBox(height: Dimensions.size2),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: Dimensions.text12,
+                  fontWeight: FontWeight.w700,
+                  color: subColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(width: Dimensions.size10),
+        iconPill(
+          icon: Icons.cloud_sync,
+          onTap: () {
+            if (headerForm == null) {
+              refresh();
+              return;
+            }
+
+            context.read<DynamicFormBloc>().add(
+                  DynamicFormRefresh(
+                    formId: headerForm!.template.id,
+                    customerId: widget.customerId,
+                    headerForm: headerForm!,
+                  ),
+                );
+          },
+        ),
+      ],
+    );
+
+    if (glass) {
+      return GlassContainer(
+        blur: Dimensions.size20,
+        borderRadius: Dimensions.size20,
+        opacity: 0.12,
+        borderOpacity: 0.22,
+        padding: EdgeInsets.symmetric(
+          horizontal: Dimensions.size15,
+          vertical: Dimensions.size10,
+        ),
+        child: content,
+      );
+    }
+
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: Dimensions.size15,
@@ -469,68 +636,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
           ),
         ),
       ),
-      child: Row(
-        children: [
-          iconPill(
-            icon: Icons.turn_left_rounded,
-            onTap: () {
-              if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                Navigators.pop();
-              } else {
-                context.pop();
-              }
-            },
-          ),
-          SizedBox(width: Dimensions.size10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: Dimensions.text16,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.2,
-                    color: AppColors.onSurface(),
-                  ),
-                ),
-                SizedBox(height: Dimensions.size2),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: Dimensions.text12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface().withValues(alpha: 0.65),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: Dimensions.size10),
-          iconPill(
-            icon: Icons.cloud_sync,
-            onTap: () {
-              if (headerForm == null) {
-                refresh();
-                return;
-              }
-
-              context.read<DynamicFormBloc>().add(
-                    DynamicFormRefresh(
-                      formId: headerForm!.template.id,
-                      customerId: widget.customerId,
-                      headerForm: headerForm!,
-                    ),
-                  );
-            },
-          ),
-        ],
-      ),
+      child: content,
     );
   }
 
@@ -538,6 +644,10 @@ class DynamicFormPageState extends State<DynamicFormPage>
     required IconData icon,
     required VoidCallback onTap,
   }) {
+    final bool glass = isGlass;
+    final Color iconColor =
+        glass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -546,26 +656,43 @@ class DynamicFormPageState extends State<DynamicFormPage>
           borderRadius: BorderRadius.circular(Dimensions.size15),
           smoothness: Dimensions.size1,
         ),
-        child: Ink(
-          width: Dimensions.size40,
-          height: Dimensions.size40,
-          decoration: ShapeDecoration(
-            color: softColor(context),
-            shape: SmoothRectangleBorder(
-              borderRadius: BorderRadius.circular(Dimensions.size15),
-              smoothness: Dimensions.size1,
-              side: BorderSide(
-                color:
-                    AppColors.outline().withValues(alpha: isDark ? 0.26 : 0.18),
+        child: glass
+            ? GlassContainer(
+                blur: Dimensions.size15,
+                borderRadius: Dimensions.size15,
+                opacity: 0.10,
+                borderOpacity: 0.18,
+                padding: EdgeInsets.zero,
+                child: SizedBox(
+                  width: Dimensions.size40,
+                  height: Dimensions.size40,
+                  child: Icon(
+                    icon,
+                    color: iconColor,
+                    size: Dimensions.size25,
+                  ),
+                ),
+              )
+            : Ink(
+                width: Dimensions.size40,
+                height: Dimensions.size40,
+                decoration: ShapeDecoration(
+                  color: softColor(context),
+                  shape: SmoothRectangleBorder(
+                    borderRadius: BorderRadius.circular(Dimensions.size15),
+                    smoothness: Dimensions.size1,
+                    side: BorderSide(
+                      color: AppColors.outline()
+                          .withValues(alpha: isDark ? 0.26 : 0.18),
+                    ),
+                  ),
+                ),
+                child: Icon(
+                  icon,
+                  color: AppColors.onSurface(),
+                  size: Dimensions.size25,
+                ),
               ),
-            ),
-          ),
-          child: Icon(
-            icon,
-            color: AppColors.onSurface(),
-            size: Dimensions.size25,
-          ),
-        ),
       ),
     );
   }
@@ -576,62 +703,112 @@ class DynamicFormPageState extends State<DynamicFormPage>
     }
 
     if (headerForm == null) {
+      final bool glass = isGlass;
+      final Widget errorCard = glass
+          ? GlassContainer(
+              blur: Dimensions.size20,
+              borderRadius: Dimensions.size20,
+              opacity: 0.12,
+              borderOpacity: 0.22,
+              padding: EdgeInsets.all(Dimensions.size20),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: Dimensions.size45,
+                    color: Colors.white.withOpacity(0.80),
+                  ),
+                  SizedBox(height: Dimensions.size10),
+                  Text(
+                    "common_something_wrong".tr(),
+                    style: TextStyle(
+                      fontSize: Dimensions.text16,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white.withOpacity(0.92),
+                    ),
+                  ),
+                  SizedBox(height: Dimensions.size5),
+                  Text(
+                    "pull_to_refresh_or_try_again".tr(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.75),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: Dimensions.size15),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => refresh(),
+                          icon: const Icon(Icons.refresh),
+                          label: Text("refresh".tr()),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            )
+          : Container(
+              padding: EdgeInsets.all(Dimensions.size20),
+              decoration: ShapeDecoration(
+                color: AppColors.surface(),
+                shape: SmoothRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.size20),
+                  smoothness: Dimensions.size1,
+                  side: BorderSide(
+                    color: AppColors.outline()
+                        .withValues(alpha: isDark ? 0.28 : 0.22),
+                  ),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: Dimensions.size45,
+                    color: AppColors.onSurface().withValues(alpha: 0.65),
+                  ),
+                  SizedBox(height: Dimensions.size10),
+                  Text(
+                    "common_something_wrong".tr(),
+                    style: TextStyle(
+                      fontSize: Dimensions.text16,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.onSurface(),
+                    ),
+                  ),
+                  SizedBox(height: Dimensions.size5),
+                  Text(
+                    "pull_to_refresh_or_try_again".tr(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.onSurface().withValues(alpha: 0.70),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: Dimensions.size15),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => refresh(),
+                          icon: const Icon(Icons.refresh),
+                          label: Text("refresh".tr()),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+
       return ListView(
         padding: EdgeInsets.all(Dimensions.size15),
         children: [
-          Container(
-            padding: EdgeInsets.all(Dimensions.size20),
-            decoration: ShapeDecoration(
-              color: AppColors.surface(),
-              shape: SmoothRectangleBorder(
-                borderRadius: BorderRadius.circular(Dimensions.size20),
-                smoothness: Dimensions.size1,
-                side: BorderSide(
-                  color: AppColors.outline()
-                      .withValues(alpha: isDark ? 0.28 : 0.22),
-                ),
-              ),
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  size: Dimensions.size45,
-                  color: AppColors.onSurface().withValues(alpha: 0.65),
-                ),
-                SizedBox(height: Dimensions.size10),
-                Text(
-                  "common_something_wrong".tr(),
-                  style: TextStyle(
-                    fontSize: Dimensions.text16,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.onSurface(),
-                  ),
-                ),
-                SizedBox(height: Dimensions.size5),
-                Text(
-                  "pull_to_refresh_or_try_again".tr(),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppColors.onSurface().withValues(alpha: 0.70),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: Dimensions.size15),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => refresh(),
-                        icon: const Icon(Icons.refresh),
-                        label: Text("refresh".tr()),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          errorCard,
         ],
       );
     }
@@ -674,8 +851,79 @@ class DynamicFormPageState extends State<DynamicFormPage>
       return const SizedBox.shrink();
     }
 
+    final bool glass = isGlass;
     final Color primary = Theme.of(context).colorScheme.primary;
     final Color onPrimary = Theme.of(context).colorScheme.onPrimary;
+
+    if (glass) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: saveHandler,
+          borderRadius: BorderRadius.circular(Dimensions.size30),
+          child: GlassContainer(
+            blur: Dimensions.size25,
+            borderRadius: Dimensions.size30,
+            opacity: 0.18,
+            borderOpacity: 0.30,
+            padding: EdgeInsets.zero,
+            child: Container(
+              height: Dimensions.size55,
+              padding: EdgeInsets.symmetric(horizontal: Dimensions.size20),
+              decoration: ShapeDecoration(
+                color: primary.withOpacity(0.25),
+                shadows: [
+                  BoxShadow(
+                    blurRadius: Dimensions.size20,
+                    offset: Offset(0, Dimensions.size10),
+                    color: Colors.black.withValues(alpha: 0.18),
+                  ),
+                ],
+                shape: SmoothRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.size30),
+                  smoothness: Dimensions.size1,
+                  side: BorderSide(
+                    color: primary.withOpacity(0.30),
+                  ),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: Dimensions.size35,
+                    height: Dimensions.size35,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.18),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.28),
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.save,
+                      color: Colors.white.withOpacity(0.95),
+                      size: Dimensions.size20,
+                    ),
+                  ),
+                  SizedBox(width: Dimensions.size10),
+                  Text(
+                    "save".tr(),
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.95),
+                      fontSize: Dimensions.text14,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  SizedBox(width: Dimensions.size2),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Material(
       color: Colors.transparent,

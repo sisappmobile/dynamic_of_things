@@ -1,8 +1,13 @@
+// ignore_for_file: deprecated_member_use
+
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
+import "package:dynamic_of_things/enumeration/constant.dart";
+import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_field.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_location_field.dart";
+import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:flutter/material.dart";
 
 class CustomDynamicForm extends StatefulWidget {
@@ -31,6 +36,16 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
   static const double _gapFields = 12;
 
   bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+  bool get _isGlass {
+    try {
+      return (Preferences.getInstance()
+                  .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
+              1) ==
+          2;
+    } catch (_) {
+      return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,24 +113,43 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
   }
 
   Color _soft(BuildContext context) {
+    if (_isGlass) {
+      return Colors.white.withOpacity(0.10);
+    }
     return _isDark
         ? AppColors.surfaceContainerLow()
         : AppColors.surfaceContainerLowest();
   }
 
   Color _soft2(BuildContext context) {
+    if (_isGlass) {
+      return Colors.white.withOpacity(0.08);
+    }
     return _isDark
         ? AppColors.surfaceContainer()
         : AppColors.surfaceContainerLow();
   }
 
-  Color _fg(BuildContext context) => AppColors.onSurface();
-  Color _outline(BuildContext context) => AppColors.outline();
+  Color _fg(BuildContext context) =>
+      _isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
+  Color _outline(BuildContext context) =>
+      _isGlass ? Colors.white.withOpacity(0.18) : AppColors.outline();
 
   Widget _sectionCard({
     required BuildContext context,
     required Widget child,
   }) {
+    if (_isGlass) {
+      return GlassContainer(
+        blur: Dimensions.size20,
+        borderRadius: Dimensions.size20,
+        opacity: 0.12,
+        borderOpacity: 0.22,
+        padding: EdgeInsets.all(Dimensions.size15),
+        child: child,
+      );
+    }
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(Dimensions.size15),
@@ -217,6 +251,25 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
     }
 
     if (hasLocationField) {
+      final Widget content = CustomDynamicFormLocationField(
+        readOnly: widget.readOnly,
+        customerId: widget.customerId,
+        headerForm: widget.headerForm,
+        template: widget.template,
+        data: widget.data,
+      );
+
+      if (_isGlass) {
+        return GlassContainer(
+          blur: Dimensions.size15,
+          borderRadius: Dimensions.size15,
+          opacity: 0.10,
+          borderOpacity: 0.18,
+          padding: EdgeInsets.all(Dimensions.size10),
+          child: content,
+        );
+      }
+
       return Container(
         width: double.infinity,
         padding: EdgeInsets.all(Dimensions.size10),
@@ -227,13 +280,7 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
             color: _outline(context).withValues(alpha: _isDark ? 0.28 : 0.14),
           ),
         ),
-        child: CustomDynamicFormLocationField(
-          readOnly: widget.readOnly,
-          customerId: widget.customerId,
-          headerForm: widget.headerForm,
-          template: widget.template,
-          data: widget.data,
-        ),
+        child: content,
       );
     }
 

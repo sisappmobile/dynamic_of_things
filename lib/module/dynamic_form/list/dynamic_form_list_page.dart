@@ -1,10 +1,14 @@
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+
+import "dart:io";
 
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:collection/collection.dart";
+import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/offlines.dart";
+import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/model/dynamic_form_list_response.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_page.dart";
@@ -12,6 +16,7 @@ import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_blo
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_event.dart";
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_state.dart";
 import "package:dynamic_of_things/widget/barcode_scanner_page.dart";
+import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:dynamic_of_things/widget/map_page.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/foundation.dart";
@@ -46,6 +51,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
   ListResponse? listResponse;
 
   bool loading = true;
+  bool _prefsReady = false;
 
   TextEditingController tecSearch = TextEditingController();
 
@@ -60,13 +66,79 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
+    _initPrefs();
 
     refresh();
+  }
+
+  Future<void> _initPrefs() async {
+    try {
+      await Preferences.getInstance().init();
+    } catch (_) {
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _prefsReady = true;
+    });
+  }
+
+  bool get isGlass {
+    if (!_prefsReady) {
+      return false;
+    }
+
+    final int t = Preferences.getInstance()
+            .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
+        1;
+    return t == 2;
+  }
+
+  Widget _glassBackground() {
+    final String p = (Preferences.getInstance()
+                .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
+            "")
+        .trim();
+
+    if (p.isEmpty) {
+      return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
+    }
+    if (p.startsWith("assets/")) {
+      return Image.asset(p, fit: BoxFit.cover);
+    }
+
+    final File f = File(p);
+    if (f.existsSync()) {
+      return Image.file(f, fit: BoxFit.cover);
+    }
+
+    return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
+  }
+
+  Widget _glassOverlay() {
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[
+            Color.fromRGBO(0, 0, 0, 0.55),
+            Color.fromRGBO(0, 0, 0, 0.22),
+            Color.fromRGBO(0, 0, 0, 0.40),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
+    final bool glass = isGlass;
 
     return BlocListener<DynamicFormListBloc, DynamicFormListState>(
       listener: (context, state) async {
@@ -127,9 +199,14 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.surfaceContainerLowest(),
+        backgroundColor:
+            glass ? Colors.transparent : AppColors.surfaceContainerLowest(),
         body: Stack(
           children: [
+            if (glass) ...[
+              Positioned.fill(child: _glassBackground()),
+              Positioned.fill(child: _glassOverlay()),
+            ],
             Column(
               children: [
                 SizedBox(height: safe.top),
@@ -140,113 +217,194 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                     Dimensions.size15,
                     Dimensions.size10,
                   ),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: Dimensions.size15,
-                      vertical: Dimensions.size10,
-                    ),
-                    decoration: ShapeDecoration(
-                      color: AppColors.surface(),
-                      shadows: [
-                        BoxShadow(
-                          blurRadius: Dimensions.size20,
-                          offset: Offset(0, Dimensions.size10),
-                          color: Colors.black.withValues(alpha: 0.10),
-                        ),
-                      ],
-                      shape: SmoothRectangleBorder(
-                        borderRadius: BorderRadius.circular(Dimensions.size20),
-                        smoothness: Dimensions.size1,
-                        side: BorderSide(
-                          color: AppColors.outline().withValues(alpha: 0.35),
-                        ),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            iconPill(
-                              icon: Icons.turn_left_rounded,
-                              onTap: () {
-                                if (BaseSettings.navigatorType ==
-                                    BaseNavigatorType.legacy) {
-                                  Navigators.pop();
-                                } else {
-                                  context.pop();
-                                }
-                              },
-                            ),
-                            SizedBox(width: Dimensions.size10),
-                            Expanded(
-                              child: Text(
-                                widget.dynamicFormMenuItem.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: Dimensions.text16,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 0.2,
-                                  color: AppColors.onSurface(),
+                  child: Builder(
+                    builder: (context) {
+                      final Widget searchBar = glass
+                          ? GlassContainer(
+                              blur: Dimensions.size15,
+                              borderRadius: Dimensions.size15,
+                              opacity: 0.10,
+                              borderOpacity: 0.18,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: Dimensions.size15,
+                              ),
+                              child: SizedBox(
+                                height: Dimensions.size50,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.search,
+                                      color: Colors.white.withOpacity(0.75),
+                                    ),
+                                    SizedBox(width: Dimensions.size10),
+                                    Expanded(
+                                      child: TextField(
+                                        controller: tecSearch,
+                                        onChanged: (value) {
+                                          setState(() {});
+                                        },
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.92),
+                                        ),
+                                        decoration: InputDecoration(
+                                          hintText: "search".tr(),
+                                          hintStyle: TextStyle(
+                                            color:
+                                                Colors.white.withOpacity(0.60),
+                                          ),
+                                          border: InputBorder.none,
+                                          isDense: true,
+                                        ),
+                                      ),
+                                    ),
+                                    if (StringUtils.isNotNullOrEmpty(
+                                      tecSearch.text,
+                                    ))
+                                      icon(
+                                        icon: Icons.close,
+                                        onTap: () {
+                                          tecSearch.clear();
+                                          setState(() {});
+                                        },
+                                      ),
+                                  ],
                                 ),
                               ),
-                            ),
-                            SizedBox(width: Dimensions.size10),
-                            mapModeButton(),
-                          ],
-                        ),
-                        SizedBox(height: Dimensions.size10),
-                        Container(
-                          height: Dimensions.size50,
-                          decoration: ShapeDecoration(
-                            color: AppColors.surfaceContainerLowest(),
-                            shape: SmoothRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(Dimensions.size15),
-                              smoothness: Dimensions.size1,
-                              side: BorderSide(
-                                color:
-                                    AppColors.outline().withValues(alpha: 0.22),
-                              ),
-                            ),
-                          ),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: Dimensions.size15,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.search,
-                                color: AppColors.onSurface()
-                                    .withValues(alpha: 0.65),
-                              ),
-                              SizedBox(width: Dimensions.size10),
-                              Expanded(
-                                child: TextField(
-                                  controller: tecSearch,
-                                  onChanged: (value) {
-                                    setState(() {});
-                                  },
-                                  decoration: InputDecoration(
-                                    hintText: "search".tr(),
-                                    border: InputBorder.none,
-                                    isDense: true,
+                            )
+                          : Container(
+                              height: Dimensions.size50,
+                              decoration: ShapeDecoration(
+                                color: AppColors.surfaceContainerLowest(),
+                                shape: SmoothRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    Dimensions.size15,
+                                  ),
+                                  smoothness: Dimensions.size1,
+                                  side: BorderSide(
+                                    color: AppColors.outline()
+                                        .withValues(alpha: 0.22),
                                   ),
                                 ),
                               ),
-                              if (StringUtils.isNotNullOrEmpty(tecSearch.text))
-                                icon(
-                                  icon: Icons.close,
-                                  onTap: () {
-                                    tecSearch.clear();
-                                    setState(() {});
-                                  },
+                              padding: EdgeInsets.symmetric(
+                                horizontal: Dimensions.size15,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.search,
+                                    color: AppColors.onSurface()
+                                        .withValues(alpha: 0.65),
+                                  ),
+                                  SizedBox(width: Dimensions.size10),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: tecSearch,
+                                      onChanged: (value) {
+                                        setState(() {});
+                                      },
+                                      decoration: InputDecoration(
+                                        hintText: "search".tr(),
+                                        border: InputBorder.none,
+                                        isDense: true,
+                                      ),
+                                    ),
+                                  ),
+                                  if (StringUtils.isNotNullOrEmpty(
+                                    tecSearch.text,
+                                  ))
+                                    icon(
+                                      icon: Icons.close,
+                                      onTap: () {
+                                        tecSearch.clear();
+                                        setState(() {});
+                                      },
+                                    ),
+                                ],
+                              ),
+                            );
+
+                      final Widget headerContent = Column(
+                        children: [
+                          Row(
+                            children: [
+                              iconPill(
+                                icon: Icons.turn_left_rounded,
+                                onTap: () {
+                                  if (BaseSettings.navigatorType ==
+                                      BaseNavigatorType.legacy) {
+                                    Navigators.pop();
+                                  } else {
+                                    context.pop();
+                                  }
+                                },
+                              ),
+                              SizedBox(width: Dimensions.size10),
+                              Expanded(
+                                child: Text(
+                                  widget.dynamicFormMenuItem.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: Dimensions.text16,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.2,
+                                    color: glass
+                                        ? Colors.white.withOpacity(0.95)
+                                        : AppColors.onSurface(),
+                                  ),
                                 ),
+                              ),
+                              SizedBox(width: Dimensions.size10),
+                              mapModeButton(),
                             ],
                           ),
+                          SizedBox(height: Dimensions.size10),
+                          searchBar,
+                        ],
+                      );
+
+                      if (glass) {
+                        return GlassContainer(
+                          blur: Dimensions.size20,
+                          borderRadius: Dimensions.size20,
+                          opacity: 0.12,
+                          borderOpacity: 0.22,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: Dimensions.size15,
+                            vertical: Dimensions.size10,
+                          ),
+                          child: headerContent,
+                        );
+                      }
+
+                      return Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: Dimensions.size15,
+                          vertical: Dimensions.size10,
                         ),
-                      ],
-                    ),
+                        decoration: ShapeDecoration(
+                          color: AppColors.surface(),
+                          shadows: [
+                            BoxShadow(
+                              blurRadius: Dimensions.size20,
+                              offset: Offset(0, Dimensions.size10),
+                              color: Colors.black.withValues(alpha: 0.10),
+                            ),
+                          ],
+                          shape: SmoothRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(Dimensions.size20),
+                            smoothness: Dimensions.size1,
+                            side: BorderSide(
+                              color:
+                                  AppColors.outline().withValues(alpha: 0.35),
+                            ),
+                          ),
+                        ),
+                        child: headerContent,
+                      );
+                    },
                   ),
                 ),
                 Expanded(child: bodyHost()),
@@ -392,6 +550,8 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
   }
 
   Widget body() {
+    final bool glass = isGlass;
+
     List<Field> fields =
         listResponse!.fields.where((element) => !element.primaryKey).toList();
 
@@ -486,6 +646,19 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
               }
             }
           }
+
+          final Widget cardContent = Stack(
+            children: [
+              pendingWidget(),
+              Padding(
+                padding: EdgeInsets.all(Dimensions.size15),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: widgets,
+                ),
+              ),
+            ],
+          );
 
           return Material(
             color: Colors.transparent,
@@ -683,37 +856,36 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                 borderRadius: BorderRadius.circular(Dimensions.size20),
                 smoothness: Dimensions.size1,
               ),
-              child: Ink(
-                decoration: ShapeDecoration(
-                  color: AppColors.surface(),
-                  shadows: [
-                    BoxShadow(
-                      blurRadius: Dimensions.size20,
-                      offset: Offset(0, Dimensions.size10),
-                      color: Colors.black.withValues(alpha: 0.10),
-                    ),
-                  ],
-                  shape: SmoothRectangleBorder(
-                    borderRadius: BorderRadius.circular(Dimensions.size20),
-                    smoothness: Dimensions.size1,
-                    side: BorderSide(
-                      color: AppColors.outline().withValues(alpha: 0.35),
-                    ),
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    pendingWidget(),
-                    Padding(
-                      padding: EdgeInsets.all(Dimensions.size15),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: widgets,
+              child: glass
+                  ? GlassContainer(
+                      blur: Dimensions.size20,
+                      borderRadius: Dimensions.size20,
+                      opacity: 0.12,
+                      borderOpacity: 0.22,
+                      padding: EdgeInsets.zero,
+                      child: cardContent,
+                    )
+                  : Ink(
+                      decoration: ShapeDecoration(
+                        color: AppColors.surface(),
+                        shadows: [
+                          BoxShadow(
+                            blurRadius: Dimensions.size20,
+                            offset: Offset(0, Dimensions.size10),
+                            color: Colors.black.withValues(alpha: 0.10),
+                          ),
+                        ],
+                        shape: SmoothRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(Dimensions.size20),
+                          smoothness: Dimensions.size1,
+                          side: BorderSide(
+                            color: AppColors.outline().withValues(alpha: 0.35),
+                          ),
+                        ),
                       ),
+                      child: cardContent,
                     ),
-                  ],
-                ),
-              ),
             ),
           );
         },
@@ -796,53 +968,72 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     required String value,
     required bool left,
   }) {
-    return Expanded(
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: tilePaddingX,
-          vertical: tilePaddingY,
-        ),
-        decoration: ShapeDecoration(
-          color: AppColors.surfaceContainerLowest(),
-          shape: SmoothRectangleBorder(
-            borderRadius: BorderRadius.circular(Dimensions.size15),
-            smoothness: Dimensions.size1,
-            side: BorderSide(
-              color: AppColors.outline().withValues(alpha: 0.20),
-            ),
+    final bool glass = isGlass;
+
+    final Widget content = Column(
+      crossAxisAlignment:
+          left ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+      children: [
+        Text(
+          description,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: left ? TextAlign.start : TextAlign.end,
+          style: TextStyle(
+            fontSize: Dimensions.text12,
+            fontWeight: FontWeight.w700,
+            color: glass
+                ? Colors.white.withOpacity(0.70)
+                : AppColors.onSurface().withValues(alpha: 0.65),
           ),
         ),
-        child: Column(
-          crossAxisAlignment:
-              left ? CrossAxisAlignment.start : CrossAxisAlignment.end,
-          children: [
-            Text(
-              description,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: left ? TextAlign.start : TextAlign.end,
-              style: TextStyle(
-                fontSize: Dimensions.text12,
-                fontWeight: FontWeight.w700,
-                color: AppColors.onSurface().withValues(alpha: 0.65),
-              ),
-            ),
-            SizedBox(height: Dimensions.size4),
-            Text(
-              StringUtils.isNotNullOrEmpty(value) ? value : "-",
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: left ? TextAlign.start : TextAlign.end,
-              style: TextStyle(
-                fontSize: Dimensions.text14,
-                fontWeight: FontWeight.w900,
-                height: 1.15,
-                color: AppColors.onSurface(),
-              ),
-            ),
-          ],
+        SizedBox(height: Dimensions.size4),
+        Text(
+          StringUtils.isNotNullOrEmpty(value) ? value : "-",
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          textAlign: left ? TextAlign.start : TextAlign.end,
+          style: TextStyle(
+            fontSize: Dimensions.text14,
+            fontWeight: FontWeight.w900,
+            height: 1.15,
+            color:
+                glass ? Colors.white.withOpacity(0.95) : AppColors.onSurface(),
+          ),
         ),
-      ),
+      ],
+    );
+
+    return Expanded(
+      child: glass
+          ? GlassContainer(
+              blur: Dimensions.size15,
+              borderRadius: Dimensions.size15,
+              opacity: 0.10,
+              borderOpacity: 0.18,
+              padding: EdgeInsets.symmetric(
+                horizontal: tilePaddingX,
+                vertical: tilePaddingY,
+              ),
+              child: content,
+            )
+          : Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: tilePaddingX,
+                vertical: tilePaddingY,
+              ),
+              decoration: ShapeDecoration(
+                color: AppColors.surfaceContainerLowest(),
+                shape: SmoothRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.size15),
+                  smoothness: Dimensions.size1,
+                  side: BorderSide(
+                    color: AppColors.outline().withValues(alpha: 0.20),
+                  ),
+                ),
+              ),
+              child: content,
+            ),
     );
   }
 
@@ -865,8 +1056,84 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
             }
           }
 
+          final bool glass = isGlass;
+
           final Color primary = Theme.of(context).colorScheme.primary;
           final Color onPrimary = Theme.of(context).colorScheme.onPrimary;
+
+          final Color pastelGreen = const Color(0xFF7EF0C6);
+          final Color pastelGreenDeep = const Color(0xFF2ACB9A);
+
+          if (glass) {
+            return Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: handleCreate,
+                borderRadius: BorderRadius.circular(Dimensions.size30),
+                child: GlassContainer(
+                  blur: Dimensions.size25,
+                  borderRadius: Dimensions.size30,
+                  opacity: 0.18,
+                  borderOpacity: 0.30,
+                  padding: EdgeInsets.zero,
+                  child: Container(
+                    height: Dimensions.size55,
+                    padding:
+                        EdgeInsets.symmetric(horizontal: Dimensions.size20),
+                    decoration: ShapeDecoration(
+                      color: pastelGreen.withOpacity(0.22),
+                      shadows: [
+                        BoxShadow(
+                          blurRadius: 22,
+                          offset: const Offset(0, 12),
+                          color: Colors.black.withValues(alpha: 0.18),
+                        ),
+                      ],
+                      shape: SmoothRectangleBorder(
+                        borderRadius: BorderRadius.circular(Dimensions.size30),
+                        smoothness: Dimensions.size1,
+                        side: BorderSide(
+                          color: pastelGreenDeep.withOpacity(0.30),
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: Dimensions.size35,
+                          height: Dimensions.size35,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.18),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.28),
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.add,
+                            color: Colors.white.withOpacity(0.95),
+                            size: Dimensions.size20,
+                          ),
+                        ),
+                        SizedBox(width: Dimensions.size10),
+                        Text(
+                          "Create",
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.95),
+                            fontSize: Dimensions.text14,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        SizedBox(width: Dimensions.size2),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
 
           return Material(
             color: Colors.transparent,
@@ -982,6 +1249,8 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     required IconData icon,
     required VoidCallback onTap,
   }) {
+    final bool glass = isGlass;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -992,7 +1261,9 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
           child: Icon(
             icon,
             size: Dimensions.size20,
-            color: AppColors.onSurface().withValues(alpha: 0.75),
+            color: glass
+                ? Colors.white.withOpacity(0.85)
+                : AppColors.onSurface().withValues(alpha: 0.75),
           ),
         ),
       ),
@@ -1003,6 +1274,10 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     required IconData icon,
     required VoidCallback onTap,
   }) {
+    final bool glass = isGlass;
+    final Color iconColor =
+        glass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1011,129 +1286,225 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
           borderRadius: BorderRadius.circular(Dimensions.size15),
           smoothness: Dimensions.size1,
         ),
-        child: Ink(
-          width: Dimensions.size40,
-          height: Dimensions.size40,
-          decoration: ShapeDecoration(
-            color: AppColors.surfaceContainerLowest(),
-            shape: SmoothRectangleBorder(
-              borderRadius: BorderRadius.circular(Dimensions.size15),
-              smoothness: Dimensions.size1,
-              side: BorderSide(
-                color: AppColors.outline().withValues(alpha: 0.25),
+        child: glass
+            ? GlassContainer(
+                blur: Dimensions.size15,
+                borderRadius: Dimensions.size15,
+                opacity: 0.10,
+                borderOpacity: 0.18,
+                padding: EdgeInsets.zero,
+                child: SizedBox(
+                  width: Dimensions.size40,
+                  height: Dimensions.size40,
+                  child: Icon(
+                    icon,
+                    color: iconColor,
+                    size: Dimensions.size25,
+                  ),
+                ),
+              )
+            : Ink(
+                width: Dimensions.size40,
+                height: Dimensions.size40,
+                decoration: ShapeDecoration(
+                  color: AppColors.surfaceContainerLowest(),
+                  shape: SmoothRectangleBorder(
+                    borderRadius: BorderRadius.circular(Dimensions.size15),
+                    smoothness: Dimensions.size1,
+                    side: BorderSide(
+                      color: AppColors.outline().withValues(alpha: 0.25),
+                    ),
+                  ),
+                ),
+                child: Icon(
+                  icon,
+                  color: AppColors.onSurface(),
+                  size: Dimensions.size25,
+                ),
               ),
-            ),
-          ),
-          child: Icon(
-            icon,
-            color: AppColors.onSurface(),
-            size: Dimensions.size25,
-          ),
-        ),
       ),
     );
   }
 
   Widget bodyHost() {
+    final bool glass = isGlass;
+
     if (loading) {
       return BaseWidgets.shimmer();
     }
 
     if (listResponse == null) {
+      final Widget emptyCard = glass
+          ? GlassContainer(
+              blur: Dimensions.size20,
+              borderRadius: Dimensions.size20,
+              opacity: 0.12,
+              borderOpacity: 0.22,
+              padding: EdgeInsets.all(Dimensions.size20),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: Dimensions.size45,
+                    color: Colors.white.withOpacity(0.80),
+                  ),
+                  SizedBox(height: Dimensions.size10),
+                  Text(
+                    "common_something_wrong".tr(),
+                    style: TextStyle(
+                      fontSize: Dimensions.text16,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white.withOpacity(0.92),
+                    ),
+                  ),
+                  SizedBox(height: Dimensions.size15),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => refresh(),
+                          icon: const Icon(Icons.refresh),
+                          label: Text("refresh".tr()),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            )
+          : Container(
+              padding: EdgeInsets.all(Dimensions.size20),
+              decoration: ShapeDecoration(
+                color: AppColors.surface(),
+                shape: SmoothRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.size20),
+                  smoothness: Dimensions.size1,
+                  side: BorderSide(
+                    color: AppColors.outline().withValues(alpha: 0.35),
+                  ),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: Dimensions.size45,
+                    color: AppColors.onSurface().withValues(alpha: 0.65),
+                  ),
+                  SizedBox(height: Dimensions.size10),
+                  Text(
+                    "common_something_wrong".tr(),
+                    style: TextStyle(
+                      fontSize: Dimensions.text16,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.onSurface(),
+                    ),
+                  ),
+                  SizedBox(height: Dimensions.size15),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => refresh(),
+                          icon: const Icon(Icons.refresh),
+                          label: Text("refresh".tr()),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+
       return ListView(
         padding: EdgeInsets.all(Dimensions.size15),
         children: [
-          Container(
-            padding: EdgeInsets.all(Dimensions.size20),
-            decoration: ShapeDecoration(
-              color: AppColors.surface(),
-              shape: SmoothRectangleBorder(
-                borderRadius: BorderRadius.circular(Dimensions.size20),
-                smoothness: Dimensions.size1,
-                side: BorderSide(
-                  color: AppColors.outline().withValues(alpha: 0.35),
-                ),
-              ),
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  size: Dimensions.size45,
-                  color: AppColors.onSurface().withValues(alpha: 0.65),
-                ),
-                SizedBox(height: Dimensions.size10),
-                Text(
-                  "common_something_wrong".tr(),
-                  style: TextStyle(
-                    fontSize: Dimensions.text16,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.onSurface(),
-                  ),
-                ),
-                SizedBox(height: Dimensions.size15),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => refresh(),
-                        icon: const Icon(Icons.refresh),
-                        label: Text("refresh".tr()),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          emptyCard,
         ],
       );
     }
 
     if (filteredDatas().isEmpty) {
+      final Widget emptyCard = glass
+          ? GlassContainer(
+              blur: Dimensions.size20,
+              borderRadius: Dimensions.size20,
+              opacity: 0.12,
+              borderOpacity: 0.22,
+              padding: EdgeInsets.all(Dimensions.size20),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.inbox_outlined,
+                    size: Dimensions.size45,
+                    color: Colors.white.withOpacity(0.80),
+                  ),
+                  SizedBox(height: Dimensions.size10),
+                  Text(
+                    "no_data".tr(),
+                    style: TextStyle(
+                      fontSize: Dimensions.text16,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white.withOpacity(0.92),
+                    ),
+                  ),
+                  SizedBox(height: Dimensions.size5),
+                  Text(
+                    "try_adjust_filter_or_pull_to_refresh".tr(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.75),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : Container(
+              padding: EdgeInsets.all(Dimensions.size20),
+              decoration: ShapeDecoration(
+                color: AppColors.surface(),
+                shape: SmoothRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.size20),
+                  smoothness: Dimensions.size1,
+                  side: BorderSide(
+                    color: AppColors.outline().withValues(alpha: 0.35),
+                  ),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.inbox_outlined,
+                    size: Dimensions.size45,
+                    color: AppColors.onSurface().withValues(alpha: 0.65),
+                  ),
+                  SizedBox(height: Dimensions.size10),
+                  Text(
+                    "no_data".tr(),
+                    style: TextStyle(
+                      fontSize: Dimensions.text16,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.onSurface(),
+                    ),
+                  ),
+                  SizedBox(height: Dimensions.size5),
+                  Text(
+                    "try_adjust_filter_or_pull_to_refresh".tr(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.onSurface().withValues(alpha: 0.70),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            );
+
       return ListView(
         padding: EdgeInsets.all(Dimensions.size15),
         children: [
-          Container(
-            padding: EdgeInsets.all(Dimensions.size20),
-            decoration: ShapeDecoration(
-              color: AppColors.surface(),
-              shape: SmoothRectangleBorder(
-                borderRadius: BorderRadius.circular(Dimensions.size20),
-                smoothness: Dimensions.size1,
-                side: BorderSide(
-                  color: AppColors.outline().withValues(alpha: 0.35),
-                ),
-              ),
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.inbox_outlined,
-                  size: Dimensions.size45,
-                  color: AppColors.onSurface().withValues(alpha: 0.65),
-                ),
-                SizedBox(height: Dimensions.size10),
-                Text(
-                  "no_data".tr(),
-                  style: TextStyle(
-                    fontSize: Dimensions.text16,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.onSurface(),
-                  ),
-                ),
-                SizedBox(height: Dimensions.size5),
-                Text(
-                  "try_adjust_filter_or_pull_to_refresh".tr(),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppColors.onSurface().withValues(alpha: 0.70),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          emptyCard,
         ],
       );
     }
@@ -1163,14 +1534,16 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.35),
       builder: (ctx) {
-        final Color card = AppColors.surface();
-        ctx;
-        final Color soft = AppColors.surfaceContainerLowest();
-        ctx;
-        final Color fg = AppColors.onSurface();
-        ctx;
-        final Color outline = AppColors.outline();
-        ctx;
+        final bool glass = isGlass;
+        final Color card =
+            glass ? Colors.white.withOpacity(0.12) : AppColors.surface();
+        final Color soft = glass
+            ? Colors.white.withOpacity(0.08)
+            : AppColors.surfaceContainerLowest();
+        final Color fg =
+            glass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
+        final Color outline =
+            glass ? Colors.white.withOpacity(0.20) : AppColors.outline();
         final Color primary = Theme.of(ctx).colorScheme.primary;
 
         Color tint(Color c, double a) => c.withValues(alpha: a);
@@ -1197,251 +1570,271 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
               Dimensions.size15,
               Dimensions.size15,
             ),
-            child: Container(
-              padding: EdgeInsets.fromLTRB(
-                Dimensions.size15,
-                Dimensions.size10,
-                Dimensions.size15,
-                Dimensions.size15,
-              ),
-              decoration: ShapeDecoration(
-                color: card,
-                shadows: [
-                  BoxShadow(
-                    blurRadius: Dimensions.size30,
-                    offset: Offset(0, Dimensions.size20),
-                    color: Colors.black.withValues(alpha: 0.16),
-                  ),
-                ],
-                shape: SmoothRectangleBorder(
-                  borderRadius: BorderRadius.circular(Dimensions.size30),
-                  smoothness: Dimensions.size1,
-                  side: BorderSide(color: outline.withValues(alpha: 0.16)),
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: Dimensions.size45,
-                    height: Dimensions.size5,
-                    decoration: BoxDecoration(
-                      color: fg.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(Dimensions.size15),
+            child: Builder(
+              builder: (context) {
+                final EdgeInsets sheetPadding = EdgeInsets.fromLTRB(
+                  Dimensions.size15,
+                  Dimensions.size10,
+                  Dimensions.size15,
+                  Dimensions.size15,
+                );
+
+                final Widget sheetContent = Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: Dimensions.size45,
+                      height: Dimensions.size5,
+                      decoration: BoxDecoration(
+                        color: fg.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(Dimensions.size15),
+                      ),
                     ),
-                  ),
-                  SizedBox(height: Dimensions.size15),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          "Aksi",
-                          style: TextStyle(
-                            fontSize: Dimensions.text14,
-                            fontWeight: FontWeight.w900,
-                            color: fg,
-                            letterSpacing: 0.2,
+                    SizedBox(height: Dimensions.size15),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            "Aksi",
+                            style: TextStyle(
+                              fontSize: Dimensions.text14,
+                              fontWeight: FontWeight.w900,
+                              color: fg,
+                              letterSpacing: 0.2,
+                            ),
                           ),
                         ),
-                      ),
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => Navigator.pop(ctx),
-                          customBorder: const CircleBorder(),
-                          child: Ink(
-                            width: Dimensions.size40,
-                            height: Dimensions.size40,
-                            decoration: BoxDecoration(
-                              color: soft,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: outline.withValues(alpha: 0.18),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () => Navigator.pop(ctx),
+                            customBorder: const CircleBorder(),
+                            child: Ink(
+                              width: Dimensions.size40,
+                              height: Dimensions.size40,
+                              decoration: BoxDecoration(
+                                color: soft,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: outline.withValues(alpha: 0.18),
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.close_rounded,
+                                size: Dimensions.size20,
+                                color: fg,
                               ),
                             ),
-                            child: Icon(
-                              Icons.close_rounded,
-                              size: Dimensions.size20,
-                              color: fg,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (noViewEdit) ...[
+                      SizedBox(height: Dimensions.size10),
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: Dimensions.size15,
+                          vertical: Dimensions.size10,
+                        ),
+                        decoration: ShapeDecoration(
+                          color: soft,
+                          shape: SmoothRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(Dimensions.size20),
+                            smoothness: Dimensions.size1,
+                            side: BorderSide(
+                              color: outline.withValues(alpha: 0.16),
                             ),
                           ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: Dimensions.size30,
+                              height: Dimensions.size30,
+                              decoration: BoxDecoration(
+                                color: tint(primary, 0.10),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: tint(primary, 0.25)),
+                              ),
+                              child: Icon(
+                                Icons.lock_outline_rounded,
+                                size: Dimensions.size20,
+                                color: primary,
+                              ),
+                            ),
+                            SizedBox(width: Dimensions.size10),
+                            Expanded(
+                              child: Text(
+                                "Tidak ada akses untuk melihat atau mengubah data",
+                                style: TextStyle(
+                                  fontSize: Dimensions.text12,
+                                  fontWeight: FontWeight.w700,
+                                  color: fg.withValues(alpha: 0.70),
+                                  height: 1.2,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
-                  ),
-                  if (noViewEdit) ...[
-                    SizedBox(height: Dimensions.size10),
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: Dimensions.size15,
-                        vertical: Dimensions.size10,
+                    SizedBox(height: Dimensions.size15),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: menuItems.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 2.35,
                       ),
-                      decoration: ShapeDecoration(
-                        color: soft,
-                        shape: SmoothRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(Dimensions.size20),
-                          smoothness: Dimensions.size1,
-                          side: BorderSide(
-                            color: outline.withValues(alpha: 0.16),
-                          ),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: Dimensions.size30,
-                            height: Dimensions.size30,
-                            decoration: BoxDecoration(
-                              color: tint(primary, 0.10),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: tint(primary, 0.25)),
-                            ),
-                            child: Icon(
-                              Icons.lock_outline_rounded,
-                              size: Dimensions.size20,
-                              color: primary,
-                            ),
-                          ),
-                          SizedBox(width: Dimensions.size10),
-                          Expanded(
-                            child: Text(
-                              "Tidak ada akses untuk melihat atau mengubah data",
-                              style: TextStyle(
-                                fontSize: Dimensions.text12,
-                                fontWeight: FontWeight.w700,
-                                color: fg.withValues(alpha: 0.70),
-                                height: 1.2,
+                      itemBuilder: (_, i) {
+                        final MenuItem item = menuItems[i];
+                        final bool enabled = item.onTap != null;
+                        final IconData icon =
+                            item.iconData ?? Icons.bolt_rounded;
+
+                        final bool isFirst = i == 0;
+
+                        final Color tileBg = enabled
+                            ? (isFirst ? tint(primary, 0.10) : soft)
+                            : soft.withValues(alpha: 0.55);
+
+                        final Color tileBorder = enabled
+                            ? (isFirst
+                                ? tint(primary, 0.28)
+                                : tint(outline, 0.18))
+                            : tint(outline, 0.12);
+
+                        final Color iconBg = enabled
+                            ? (isFirst ? tint(primary, 0.16) : tint(fg, 0.06))
+                            : tint(fg, 0.04);
+
+                        final Color iconColor = enabled
+                            ? (isFirst ? primary : fg)
+                            : fg.withValues(alpha: 0.35);
+
+                        final Color textColor =
+                            enabled ? fg : fg.withValues(alpha: 0.35);
+
+                        return Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: enabled ? item.onTap : null,
+                            borderRadius:
+                                BorderRadius.circular(Dimensions.size20),
+                            child: Ink(
+                              decoration: ShapeDecoration(
+                                color: tileBg,
+                                shadows: enabled
+                                    ? [
+                                        BoxShadow(
+                                          blurRadius: 14,
+                                          offset: const Offset(0, 8),
+                                          color: Colors.black
+                                              .withValues(alpha: 0.07),
+                                        ),
+                                      ]
+                                    : const [],
+                                shape: SmoothRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(Dimensions.size20),
+                                  smoothness: Dimensions.size1,
+                                  side: BorderSide(color: tileBorder),
+                                ),
+                              ),
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: Dimensions.size10,
+                                  vertical: Dimensions.size10,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: Dimensions.size35,
+                                      height: Dimensions.size35,
+                                      decoration: BoxDecoration(
+                                        color: iconBg,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: isFirst
+                                              ? tint(primary, 0.30)
+                                              : outline.withValues(alpha: 0.16),
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        icon,
+                                        size: Dimensions.size20,
+                                        color: iconColor,
+                                      ),
+                                    ),
+                                    SizedBox(width: Dimensions.size10),
+                                    Expanded(
+                                      child: Text(
+                                        item.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: Dimensions.text12,
+                                          fontWeight: FontWeight.w900,
+                                          color: textColor,
+                                          letterSpacing: 0.1,
+                                        ),
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.chevron_right_rounded,
+                                      size: Dimensions.size20,
+                                      color: enabled
+                                          ? fg.withValues(alpha: 0.40)
+                                          : fg.withValues(alpha: 0.18),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                   ],
-                  SizedBox(height: Dimensions.size15),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: menuItems.length,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 2.35,
+                );
+
+                if (glass) {
+                  return GlassContainer(
+                    blur: Dimensions.size25,
+                    borderRadius: Dimensions.size30,
+                    opacity: 0.14,
+                    borderOpacity: 0.22,
+                    padding: sheetPadding,
+                    child: sheetContent,
+                  );
+                }
+
+                return Container(
+                  padding: sheetPadding,
+                  decoration: ShapeDecoration(
+                    color: card,
+                    shadows: [
+                      BoxShadow(
+                        blurRadius: Dimensions.size30,
+                        offset: Offset(0, Dimensions.size20),
+                        color: Colors.black.withValues(alpha: 0.16),
+                      ),
+                    ],
+                    shape: SmoothRectangleBorder(
+                      borderRadius: BorderRadius.circular(Dimensions.size30),
+                      smoothness: Dimensions.size1,
+                      side: BorderSide(color: outline.withValues(alpha: 0.16)),
                     ),
-                    itemBuilder: (_, i) {
-                      final MenuItem item = menuItems[i];
-                      final bool enabled = item.onTap != null;
-                      final IconData icon = item.iconData ?? Icons.bolt_rounded;
-
-                      final bool isFirst = i == 0;
-
-                      final Color tileBg = enabled
-                          ? (isFirst ? tint(primary, 0.10) : soft)
-                          : soft.withValues(alpha: 0.55);
-
-                      final Color tileBorder = enabled
-                          ? (isFirst
-                              ? tint(primary, 0.28)
-                              : tint(outline, 0.18))
-                          : tint(outline, 0.12);
-
-                      final Color iconBg = enabled
-                          ? (isFirst ? tint(primary, 0.16) : tint(fg, 0.06))
-                          : tint(fg, 0.04);
-
-                      final Color iconColor = enabled
-                          ? (isFirst ? primary : fg)
-                          : fg.withValues(alpha: 0.35);
-
-                      final Color textColor =
-                          enabled ? fg : fg.withValues(alpha: 0.35);
-
-                      return Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: enabled ? item.onTap : null,
-                          borderRadius:
-                              BorderRadius.circular(Dimensions.size20),
-                          child: Ink(
-                            decoration: ShapeDecoration(
-                              color: tileBg,
-                              shadows: enabled
-                                  ? [
-                                      BoxShadow(
-                                        blurRadius: 14,
-                                        offset: const Offset(0, 8),
-                                        color: Colors.black
-                                            .withValues(alpha: 0.07),
-                                      ),
-                                    ]
-                                  : const [],
-                              shape: SmoothRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(Dimensions.size20),
-                                smoothness: Dimensions.size1,
-                                side: BorderSide(color: tileBorder),
-                              ),
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: Dimensions.size10,
-                                vertical: Dimensions.size10,
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: Dimensions.size35,
-                                    height: Dimensions.size35,
-                                    decoration: BoxDecoration(
-                                      color: iconBg,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: isFirst
-                                            ? tint(primary, 0.30)
-                                            : outline.withValues(alpha: 0.16),
-                                      ),
-                                    ),
-                                    child: Icon(
-                                      icon,
-                                      size: Dimensions.size20,
-                                      color: iconColor,
-                                    ),
-                                  ),
-                                  SizedBox(width: Dimensions.size10),
-                                  Expanded(
-                                    child: Text(
-                                      item.title,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: Dimensions.text12,
-                                        fontWeight: FontWeight.w900,
-                                        color: textColor,
-                                        letterSpacing: 0.1,
-                                      ),
-                                    ),
-                                  ),
-                                  Icon(
-                                    Icons.chevron_right_rounded,
-                                    size: Dimensions.size20,
-                                    color: enabled
-                                        ? fg.withValues(alpha: 0.40)
-                                        : fg.withValues(alpha: 0.18),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
                   ),
-                ],
-              ),
+                  child: sheetContent,
+                );
+              },
             ),
           ),
         );

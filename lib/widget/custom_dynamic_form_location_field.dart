@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import "dart:async";
 import "dart:io";
 import "dart:ui";
@@ -5,8 +7,11 @@ import "dart:ui";
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:connectivity_plus/connectivity_plus.dart";
+import "package:dynamic_of_things/enumeration/constant.dart";
+import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/local_disk_tile_provider.dart";
 import "package:dynamic_of_things/model/header_form.dart";
+import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:flutter_map/flutter_map.dart";
@@ -121,11 +126,29 @@ class CustomDynamicFormLocationFieldState
     super.dispose();
   }
 
-  Color _bg(BuildContext context) => AppColors.surfaceContainerLowest();
-  Color _card(BuildContext context) => AppColors.surface();
-  Color _soft(BuildContext context) => AppColors.surfaceContainerLowest();
-  Color _fg(BuildContext context) => AppColors.onSurface();
-  Color _outline(BuildContext context) => AppColors.outline();
+  bool get _isGlass {
+    try {
+      return (Preferences.getInstance()
+                  .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
+              1) ==
+          2;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Color _bg(BuildContext context) => _isGlass
+      ? Colors.white.withOpacity(0.06)
+      : AppColors.surfaceContainerLowest();
+  Color _card(BuildContext context) =>
+      _isGlass ? Colors.white.withOpacity(0.10) : AppColors.surface();
+  Color _soft(BuildContext context) => _isGlass
+      ? Colors.white.withOpacity(0.08)
+      : AppColors.surfaceContainerLowest();
+  Color _fg(BuildContext context) =>
+      _isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
+  Color _outline(BuildContext context) =>
+      _isGlass ? Colors.white.withOpacity(0.18) : AppColors.outline();
   Color _primary(BuildContext context) => Theme.of(context).colorScheme.primary;
   Color _onPrimary(BuildContext context) =>
       Theme.of(context).colorScheme.onPrimary;
@@ -135,6 +158,17 @@ class CustomDynamicFormLocationFieldState
     required Widget child,
     EdgeInsets? padding,
   }) {
+    if (_isGlass) {
+      return GlassContainer(
+        blur: Dimensions.size20,
+        borderRadius: Dimensions.size20,
+        opacity: 0.12,
+        borderOpacity: 0.22,
+        padding: padding ?? EdgeInsets.all(Dimensions.size15),
+        child: child,
+      );
+    }
+
     return Container(
       decoration: ShapeDecoration(
         color: _card(context),

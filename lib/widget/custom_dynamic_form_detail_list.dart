@@ -1,10 +1,15 @@
+// ignore_for_file: deprecated_member_use
+
 import "package:base/base.dart";
 import "package:collection/collection.dart";
+import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/bottom_sheets.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
+import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_bulk_detail_form.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_detail_form.dart";
+import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:go_router/go_router.dart";
@@ -40,10 +45,26 @@ class CustomDynamicFormDetailListState
   static const double _tilePadX = 10;
   static const double _tilePadY = 10;
 
-  Color _card(BuildContext context) => AppColors.surface();
-  Color _soft(BuildContext context) => AppColors.surfaceContainerLowest();
-  Color _fg(BuildContext context) => AppColors.onSurface();
-  Color _outline(BuildContext context) => AppColors.outline();
+  bool get _isGlass {
+    try {
+      return (Preferences.getInstance()
+                  .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
+              1) ==
+          2;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Color _card(BuildContext context) =>
+      _isGlass ? Colors.white.withOpacity(0.10) : AppColors.surface();
+  Color _soft(BuildContext context) => _isGlass
+      ? Colors.white.withOpacity(0.08)
+      : AppColors.surfaceContainerLowest();
+  Color _fg(BuildContext context) =>
+      _isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
+  Color _outline(BuildContext context) =>
+      _isGlass ? Colors.white.withOpacity(0.18) : AppColors.outline();
   Color _primary(BuildContext context) => Theme.of(context).colorScheme.primary;
 
   @override
@@ -70,82 +91,100 @@ class CustomDynamicFormDetailListState
                   Dimensions.size15,
                   Dimensions.size10,
                 ),
-                child: Container(
-                  padding: EdgeInsets.all(Dimensions.size15),
-                  decoration: ShapeDecoration(
-                    color: _card(context),
-                    shadows: [
-                      BoxShadow(
-                        blurRadius: Dimensions.size20,
-                        offset: Offset(0, Dimensions.size10),
-                        color: Colors.black.withValues(alpha: 0.08),
-                      ),
-                    ],
-                    shape: SmoothRectangleBorder(
-                      borderRadius: BorderRadius.circular(Dimensions.size20),
-                      smoothness: Dimensions.size1,
-                      side: BorderSide(
-                        color: _outline(context).withValues(alpha: 0.18),
-                      ),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: Dimensions.size10,
-                                    vertical: Dimensions.size5,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _primary(context)
-                                        .withValues(alpha: 0.10),
-                                    borderRadius: BorderRadius.circular(
-                                      Dimensions.size100,
+                child: Builder(
+                  builder: (context) {
+                    final Widget headerContent = Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: Dimensions.size10,
+                                      vertical: Dimensions.size5,
                                     ),
-                                    border: Border.all(
+                                    decoration: BoxDecoration(
                                       color: _primary(context)
-                                          .withValues(alpha: 0.22),
+                                          .withValues(alpha: 0.10),
+                                      borderRadius: BorderRadius.circular(
+                                        Dimensions.size100,
+                                      ),
+                                      border: Border.all(
+                                        color: _primary(context)
+                                            .withValues(alpha: 0.22),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.list_alt_rounded,
+                                          size: Dimensions.size15,
+                                          color: _primary(context),
+                                        ),
+                                        SizedBox(width: Dimensions.size5),
+                                        Text(
+                                          widget.detailForm.template.title,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: _primary(context),
+                                            fontSize: Dimensions.text13,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 0.2,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.list_alt_rounded,
-                                        size: Dimensions.size15,
-                                        color: _primary(context),
-                                      ),
-                                      SizedBox(width: Dimensions.size5),
-                                      Text(
-                                        widget.detailForm.template.title,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: _primary(context),
-                                          fontSize: Dimensions.text13,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 0.2,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
+                            bulkEditButton(),
+                          ],
+                        ),
+                        SizedBox(height: Dimensions.size10),
+                        addButton(),
+                      ],
+                    );
+
+                    if (_isGlass) {
+                      return GlassContainer(
+                        blur: Dimensions.size20,
+                        borderRadius: Dimensions.size20,
+                        opacity: 0.12,
+                        borderOpacity: 0.22,
+                        padding: EdgeInsets.all(Dimensions.size15),
+                        child: headerContent,
+                      );
+                    }
+
+                    return Container(
+                      padding: EdgeInsets.all(Dimensions.size15),
+                      decoration: ShapeDecoration(
+                        color: _card(context),
+                        shadows: [
+                          BoxShadow(
+                            blurRadius: Dimensions.size20,
+                            offset: Offset(0, Dimensions.size10),
+                            color: Colors.black.withValues(alpha: 0.08),
                           ),
-                          bulkEditButton(),
                         ],
+                        shape: SmoothRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(Dimensions.size20),
+                          smoothness: Dimensions.size1,
+                          side: BorderSide(
+                            color: _outline(context).withValues(alpha: 0.18),
+                          ),
+                        ),
                       ),
-                      SizedBox(height: Dimensions.size10),
-                      addButton(),
-                    ],
-                  ),
+                      child: headerContent,
+                    );
+                  },
                 ),
               ),
               ListView.separated(
@@ -353,68 +392,89 @@ class CustomDynamicFormDetailListState
                         borderRadius: BorderRadius.circular(Dimensions.size20),
                         smoothness: Dimensions.size1,
                       ),
-                      child: Ink(
-                        width: MediaQuery.of(context).size.width,
-                        padding: EdgeInsets.all(Dimensions.size15),
-                        decoration: ShapeDecoration(
-                          color: _card(context),
-                          shadows: [
-                            BoxShadow(
-                              blurRadius: Dimensions.size20,
-                              offset: Offset(0, Dimensions.size10),
-                              color: Colors.black.withValues(alpha: 0.08),
-                            ),
-                          ],
-                          shape: SmoothRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(Dimensions.size20),
-                            smoothness: Dimensions.size1,
-                            side: BorderSide(
-                              color: _outline(context).withValues(alpha: 0.18),
-                            ),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: Dimensions.size10,
-                                    vertical: Dimensions.size5,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _soft(context),
-                                    borderRadius: BorderRadius.circular(
-                                      Dimensions.size100,
+                      child: Builder(
+                        builder: (context) {
+                          final Widget content = Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: Dimensions.size10,
+                                      vertical: Dimensions.size5,
                                     ),
-                                    border: Border.all(
-                                      color: _outline(context)
-                                          .withValues(alpha: 0.18),
+                                    decoration: BoxDecoration(
+                                      color: _soft(context),
+                                      borderRadius: BorderRadius.circular(
+                                        Dimensions.size100,
+                                      ),
+                                      border: Border.all(
+                                        color: _outline(context)
+                                            .withValues(alpha: 0.18),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      "#${index + 1}",
+                                      style: TextStyle(
+                                        fontSize: Dimensions.text12,
+                                        fontWeight: FontWeight.w900,
+                                        color: _fg(context),
+                                        letterSpacing: 0.2,
+                                      ),
                                     ),
                                   ),
-                                  child: Text(
-                                    "#${index + 1}",
-                                    style: TextStyle(
-                                      fontSize: Dimensions.text12,
-                                      fontWeight: FontWeight.w900,
-                                      color: _fg(context),
-                                      letterSpacing: 0.2,
-                                    ),
+                                  const Spacer(),
+                                  Icon(
+                                    Icons.more_horiz_rounded,
+                                    color: _fg(context).withValues(alpha: 0.45),
                                   ),
-                                ),
-                                const Spacer(),
-                                Icon(
-                                  Icons.more_horiz_rounded,
-                                  color: _fg(context).withValues(alpha: 0.45),
+                                ],
+                              ),
+                              SizedBox(height: Dimensions.size15),
+                              ...widgets,
+                            ],
+                          );
+
+                          if (_isGlass) {
+                            return GlassContainer(
+                              blur: Dimensions.size20,
+                              borderRadius: Dimensions.size20,
+                              opacity: 0.12,
+                              borderOpacity: 0.22,
+                              padding: EdgeInsets.all(Dimensions.size15),
+                              child: SizedBox(
+                                width: MediaQuery.of(context).size.width,
+                                child: content,
+                              ),
+                            );
+                          }
+
+                          return Ink(
+                            width: MediaQuery.of(context).size.width,
+                            padding: EdgeInsets.all(Dimensions.size15),
+                            decoration: ShapeDecoration(
+                              color: _card(context),
+                              shadows: [
+                                BoxShadow(
+                                  blurRadius: Dimensions.size20,
+                                  offset: Offset(0, Dimensions.size10),
+                                  color: Colors.black.withValues(alpha: 0.08),
                                 ),
                               ],
+                              shape: SmoothRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(Dimensions.size20),
+                                smoothness: Dimensions.size1,
+                                side: BorderSide(
+                                  color:
+                                      _outline(context).withValues(alpha: 0.18),
+                                ),
+                              ),
                             ),
-                            SizedBox(height: Dimensions.size15),
-                            ...widgets,
-                          ],
-                        ),
+                            child: content,
+                          );
+                        },
                       ),
                     ),
                   );
@@ -530,47 +590,67 @@ class CustomDynamicFormDetailListState
               }
             },
             borderRadius: BorderRadius.circular(Dimensions.size20),
-            child: Ink(
-              decoration: ShapeDecoration(
-                color: _soft(context),
-                shape: SmoothRectangleBorder(
-                  borderRadius: BorderRadius.circular(Dimensions.size20),
-                  smoothness: Dimensions.size1,
-                  side: BorderSide(
-                    color: _outline(context).withValues(alpha: 0.18),
-                  ),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: Dimensions.size30,
-                    height: Dimensions.size30,
-                    decoration: BoxDecoration(
-                      color: _primary(context).withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: _primary(context).withValues(alpha: 0.22),
+            child: Builder(
+              builder: (context) {
+                final Widget content = Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: Dimensions.size30,
+                      height: Dimensions.size30,
+                      decoration: BoxDecoration(
+                        color: _primary(context).withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: _primary(context).withValues(alpha: 0.22),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.add_rounded,
+                        color: _primary(context),
+                        size: Dimensions.size20,
                       ),
                     ),
-                    child: Icon(
-                      Icons.add_rounded,
-                      color: _primary(context),
-                      size: Dimensions.size20,
+                    SizedBox(width: Dimensions.size10),
+                    Text(
+                      "add".tr(),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.2,
+                        color: _fg(context),
+                      ),
+                    ),
+                  ],
+                );
+
+                if (_isGlass) {
+                  return GlassContainer(
+                    blur: Dimensions.size15,
+                    borderRadius: Dimensions.size20,
+                    opacity: 0.10,
+                    borderOpacity: 0.18,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: Dimensions.size15,
+                      vertical: Dimensions.size10,
+                    ),
+                    child: content,
+                  );
+                }
+
+                return Ink(
+                  decoration: ShapeDecoration(
+                    color: _soft(context),
+                    shape: SmoothRectangleBorder(
+                      borderRadius: BorderRadius.circular(Dimensions.size20),
+                      smoothness: Dimensions.size1,
+                      side: BorderSide(
+                        color: _outline(context).withValues(alpha: 0.18),
+                      ),
                     ),
                   ),
-                  SizedBox(width: Dimensions.size10),
-                  Text(
-                    "add".tr(),
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.2,
-                      color: _fg(context),
-                    ),
-                  ),
-                ],
-              ),
+                  child: content,
+                );
+              },
             ),
           ),
         ),
@@ -636,24 +716,49 @@ class CustomDynamicFormDetailListState
               }
             },
             borderRadius: BorderRadius.circular(Dimensions.size15),
-            child: Ink(
-              width: Dimensions.size40,
-              height: Dimensions.size40,
-              decoration: ShapeDecoration(
-                color: _soft(context),
-                shape: SmoothRectangleBorder(
-                  borderRadius: BorderRadius.circular(Dimensions.size15),
-                  smoothness: Dimensions.size1,
-                  side: BorderSide(
-                    color: _outline(context).withValues(alpha: 0.20),
+            child: Builder(
+              builder: (context) {
+                final Widget icon = SizedBox(
+                  width: Dimensions.size40,
+                  height: Dimensions.size40,
+                  child: Icon(
+                    Icons.dynamic_form_outlined,
+                    color: _fg(context),
+                    size: Dimensions.size20,
                   ),
-                ),
-              ),
-              child: Icon(
-                Icons.dynamic_form_outlined,
-                color: _fg(context),
-                size: Dimensions.size20,
-              ),
+                );
+
+                if (_isGlass) {
+                  return GlassContainer(
+                    blur: Dimensions.size15,
+                    borderRadius: Dimensions.size15,
+                    opacity: 0.10,
+                    borderOpacity: 0.18,
+                    padding: EdgeInsets.zero,
+                    child: icon,
+                  );
+                }
+
+                return Ink(
+                  width: Dimensions.size40,
+                  height: Dimensions.size40,
+                  decoration: ShapeDecoration(
+                    color: _soft(context),
+                    shape: SmoothRectangleBorder(
+                      borderRadius: BorderRadius.circular(Dimensions.size15),
+                      smoothness: Dimensions.size1,
+                      side: BorderSide(
+                        color: _outline(context).withValues(alpha: 0.20),
+                      ),
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.dynamic_form_outlined,
+                    color: _fg(context),
+                    size: Dimensions.size20,
+                  ),
+                );
+              },
             ),
           ),
         ),

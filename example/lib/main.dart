@@ -8,11 +8,13 @@ import "package:base/base.dart";
 import "package:crypto/crypto.dart" as crypto;
 import "package:dio/dio.dart";
 import "package:dio/io.dart";
+import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
 import "package:dynamic_of_things/helper/dot_routes.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/helper/offlines.dart";
+import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/helper/realms.dart";
 import "package:dynamic_of_things/helper/sqlites.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_bloc.dart";
@@ -22,6 +24,7 @@ import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_blo
 import "package:dynamic_of_things/module/dynamic_report/dynamic_report_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_schedule/dynamic_schedule_bloc.dart";
 import "package:dynamic_of_things/realm/version_dao.dart";
+import "package:dynamic_of_things_example/glass_background_setting_page.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
@@ -47,6 +50,12 @@ final GoRouter goRouter = GoRouter(
       path: "/",
       builder: (context, state) {
         return HomePage();
+      },
+    ),
+    GoRoute(
+      path: "/glass-background",
+      builder: (context, state) {
+        return const GlassBackgroundSettingPage();
       },
     ),
     GoRoute(
@@ -369,8 +378,9 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
       GlobalKey<FormState>(debugLabel: "formState");
 
   bool obscurePassword = true;
-
-  String deviceId = "b29d6a48d10ed383";
+  String deviceId = "05cb85e2354dc0eb";
+//apple reviewer
+  // String deviceId = "b29d6a48d10ed383";
   // String deviceId = "2c49b31455f471db";
   // String deviceId = "0000000000000000";
   // String deviceId = "d4db82b1a0b16901";
@@ -568,11 +578,55 @@ class HomePage extends StatefulWidget {
 }
 
 class HomePageState extends State<HomePage> with WidgetsBindingObserver {
+  bool _prefsReady = false;
+  bool _glassMode = false;
+
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
+    _initPrefs();
+  }
+
+  Future<void> _initPrefs() async {
+    try {
+      await Preferences.getInstance().init();
+    } catch (_) {
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    final int t = Preferences.getInstance()
+            .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
+        1;
+
+    setState(() {
+      _prefsReady = true;
+      _glassMode = t == 2;
+    });
+  }
+
+  Future<void> _setGlassMode(bool value) async {
+    if (!_prefsReady) {
+      await _initPrefs();
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _glassMode = value;
+    });
+
+    await Preferences.getInstance().setInt(
+      SharedPreferenceKey.DASHBOARD_UI_TYPE,
+      value ? 2 : 1,
+    );
   }
 
   @override
@@ -606,6 +660,78 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   Widget body() {
+    Widget modeSwitch() {
+      final ColorScheme cs = Theme.of(context).colorScheme;
+      final bool dark = Theme.of(context).brightness == Brightness.dark;
+      final Color bg = cs.surfaceContainerHighest.withValues(
+        alpha: dark ? 0.35 : 0.55,
+      );
+      final Color border = cs.outlineVariant.withValues(
+        alpha: dark ? 0.35 : 0.55,
+      );
+
+      return Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(Dimensions.size15),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(Dimensions.size15),
+          border: Border.all(color: border),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Mode UI",
+                        style: TextStyle(
+                          fontSize: Dimensions.text12,
+                          fontWeight: FontWeight.w900,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                      SizedBox(height: Dimensions.size5),
+                      Text(
+                        _glassMode ? "Glass" : "Modern",
+                        style: TextStyle(
+                          fontSize: Dimensions.text11,
+                          fontWeight: FontWeight.w700,
+                          color: cs.onSurfaceVariant.withValues(alpha: 0.85),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value: _glassMode,
+                  onChanged: _prefsReady ? _setGlassMode : null,
+                ),
+              ],
+            ),
+
+            // tombol setting wallpaper (hanya ketika Glass aktif)
+            if (_glassMode) ...[
+              SizedBox(height: Dimensions.size10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    await context.push("/glass-background");
+                  },
+                  icon: const Icon(Icons.wallpaper),
+                  label: const Text("Glass background"),
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
     Widget item({
       required Color backgroundColor,
       required Color fontColor,
@@ -672,48 +798,54 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
         Dimensions.size15,
         0,
       ),
-      child: Wrap(
-        direction: Axis.horizontal,
-        spacing: Dimensions.size10,
-        runSpacing: Dimensions.size10,
+      child: Column(
         children: [
-          item(
-            backgroundColor: AppColors.surfaceContainerLowest(),
-            fontColor: AppColors.onSurface(),
-            iconData: Icons.dynamic_form,
-            title: "Dynamic Form & Report",
-            onTap: () async {
-              await context.push("/dynamic-forms/menus");
-            },
-          ),
-          item(
-            backgroundColor: AppColors.surfaceContainerLowest(),
-            fontColor: AppColors.onSurface(),
-            iconData: Icons.dashboard_outlined,
-            title: "Dynamic Chart",
-            onTap: () async {
-              await context.push("/dynamic-charts");
-            },
-          ),
-          item(
-            backgroundColor: AppColors.errorContainer(),
-            fontColor: AppColors.onErrorContainer(),
-            iconData: Icons.logout,
-            title: "Sign Out",
-            onTap: () async {
-              await BaseDialogs.confirmation(
-                title: "Are you sure want to proceed?",
-                positiveCallback: () async {
-                  await BasePreferences.getInstance().clear();
-
-                  Sqlites.delete();
-
-                  Realms.clear();
-
-                  context.go("/");
+          modeSwitch(),
+          SizedBox(height: Dimensions.size10),
+          Wrap(
+            direction: Axis.horizontal,
+            spacing: Dimensions.size10,
+            runSpacing: Dimensions.size10,
+            children: [
+              item(
+                backgroundColor: AppColors.surfaceContainerLowest(),
+                fontColor: AppColors.onSurface(),
+                iconData: Icons.dynamic_form,
+                title: "Dynamic Form & Report",
+                onTap: () async {
+                  await context.push("/dynamic-forms/menus");
                 },
-              );
-            },
+              ),
+              item(
+                backgroundColor: AppColors.surfaceContainerLowest(),
+                fontColor: AppColors.onSurface(),
+                iconData: Icons.dashboard_outlined,
+                title: "Dynamic Chart",
+                onTap: () async {
+                  await context.push("/dynamic-charts");
+                },
+              ),
+              item(
+                backgroundColor: AppColors.errorContainer(),
+                fontColor: AppColors.onErrorContainer(),
+                iconData: Icons.logout,
+                title: "Sign Out",
+                onTap: () async {
+                  await BaseDialogs.confirmation(
+                    title: "Are you sure want to proceed?",
+                    positiveCallback: () async {
+                      await BasePreferences.getInstance().clear();
+
+                      Sqlites.delete();
+
+                      Realms.clear();
+
+                      context.go("/");
+                    },
+                  );
+                },
+              ),
+            ],
           ),
         ],
       ),

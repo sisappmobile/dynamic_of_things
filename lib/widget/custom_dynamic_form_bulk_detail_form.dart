@@ -1,11 +1,17 @@
+// ignore_for_file: deprecated_member_use
+
+import "dart:io";
 import "dart:ui";
 
 import "package:base/base.dart";
+import "package:dynamic_of_things/enumeration/constant.dart";
+import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_event.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_sub_detail_list.dart";
+import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
@@ -40,18 +46,118 @@ class CustomDynamicFormBulkDetailFormState
   late List<Map<String, dynamic>> rows;
 
   int index = 0;
+  bool _prefsReady = false;
 
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
+    _initPrefs();
 
     rows = widget.rows;
   }
 
+  Future<void> _initPrefs() async {
+    try {
+      await Preferences.getInstance().init();
+    } catch (_) {
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _prefsReady = true;
+    });
+  }
+
+  bool get isGlass {
+    if (!_prefsReady) {
+      return false;
+    }
+
+    final int t = Preferences.getInstance()
+            .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
+        1;
+    return t == 2;
+  }
+
+  Widget _glassBackground() {
+    final String p = (Preferences.getInstance()
+                .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
+            "")
+        .trim();
+
+    if (p.isEmpty) {
+      return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
+    }
+    if (p.startsWith("assets/")) {
+      return Image.asset(p, fit: BoxFit.cover);
+    }
+
+    final File f = File(p);
+    if (f.existsSync()) {
+      return Image.file(f, fit: BoxFit.cover);
+    }
+
+    return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
+  }
+
+  Widget _glassOverlay() {
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[
+            Color.fromRGBO(0, 0, 0, 0.55),
+            Color.fromRGBO(0, 0, 0, 0.22),
+            Color.fromRGBO(0, 0, 0, 0.40),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool glass = isGlass;
+
+    if (glass) {
+      final EdgeInsets safe = MediaQuery.of(context).padding;
+
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        extendBody: true,
+        body: Stack(
+          children: [
+            Positioned.fill(child: _glassBackground()),
+            Positioned.fill(child: _glassOverlay()),
+            Column(
+              children: [
+                SizedBox(height: safe.top),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    Dimensions.size15,
+                    Dimensions.size10,
+                    Dimensions.size15,
+                    Dimensions.size10,
+                  ),
+                  child: _appBarGlass(context),
+                ),
+                Expanded(child: body()),
+                SizedBox(height: safe.bottom),
+              ],
+            ),
+          ],
+        ),
+        bottomNavigationBar: bottomBar(),
+      );
+    }
+
     return BaseScaffold(
       context: context,
       appBar: BaseAppBar(
@@ -77,11 +183,102 @@ class CustomDynamicFormBulkDetailFormState
     setState(() {});
   }
 
+  Color _fg(BuildContext context) =>
+      isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
+  Color _outline(BuildContext context) =>
+      isGlass ? Colors.white.withOpacity(0.18) : AppColors.outline();
+
+  Widget _iconPill({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size15),
+          smoothness: Dimensions.size1,
+        ),
+        child: GlassContainer(
+          blur: Dimensions.size15,
+          borderRadius: Dimensions.size15,
+          opacity: 0.10,
+          borderOpacity: 0.18,
+          padding: EdgeInsets.zero,
+          child: SizedBox(
+            width: Dimensions.size40,
+            height: Dimensions.size40,
+            child: Icon(
+              icon,
+              color: Colors.white.withOpacity(0.92),
+              size: Dimensions.size25,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _appBarGlass(BuildContext context) {
+    final Widget content = Row(
+      children: [
+        _iconPill(
+          icon: Icons.turn_left_rounded,
+          onTap: () {
+            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+              Navigators.pop();
+            } else {
+              context.pop();
+            }
+          },
+        ),
+        SizedBox(width: Dimensions.size10),
+        Expanded(
+          child: Text(
+            widget.detailForm.template.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: Dimensions.text16,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.2,
+              color: Colors.white.withOpacity(0.95),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    return GlassContainer(
+      blur: Dimensions.size20,
+      borderRadius: Dimensions.size20,
+      opacity: 0.12,
+      borderOpacity: 0.22,
+      padding: EdgeInsets.symmetric(
+        horizontal: Dimensions.size15,
+        vertical: Dimensions.size10,
+      ),
+      child: content,
+    );
+  }
+
   Widget sectionCard({
     required BuildContext context,
     required Widget child,
     EdgeInsets? padding,
   }) {
+    if (isGlass) {
+      return GlassContainer(
+        blur: Dimensions.size20,
+        borderRadius: Dimensions.size20,
+        opacity: 0.12,
+        borderOpacity: 0.22,
+        padding: padding ?? EdgeInsets.all(Dimensions.size15),
+        child: child,
+      );
+    }
+
     return Container(
       padding: padding ?? EdgeInsets.all(Dimensions.size15),
       decoration: ShapeDecoration(
@@ -106,8 +303,8 @@ class CustomDynamicFormBulkDetailFormState
   }
 
   Widget progressHeader(BuildContext context) {
-    final Color fg = AppColors.onSurface();
-    final Color outline = AppColors.outline();
+    final Color fg = _fg(context);
+    final Color outline = _outline(context);
     final Color primary = Theme.of(context).colorScheme.primary;
 
     final int current = index + 1;
@@ -194,7 +391,9 @@ class CustomDynamicFormBulkDetailFormState
   }
 
   Widget body() {
-    final Color bg = AppColors.surfaceContainerLowest();
+    final bool glass = isGlass;
+    final Color bg =
+        glass ? Colors.transparent : AppColors.surfaceContainerLowest();
 
     return Container(
       color: bg,
@@ -270,6 +469,11 @@ class CustomDynamicFormBulkDetailFormState
   }
 
   Widget bottomBar() {
+    final bool glass = isGlass;
+    final Color fg = _fg(context);
+    final Color sub =
+        glass ? Colors.white.withOpacity(0.70) : AppColors.secondary();
+
     Widget previousButton() {
       if (index > 0) {
         return pillIconButton(
@@ -296,7 +500,7 @@ class CustomDynamicFormBulkDetailFormState
             TextSpan(
               text: (index + 1).toString(),
               style: TextStyle(
-                color: AppColors.onSurface(),
+                color: fg,
                 fontSize: Dimensions.text14,
                 fontWeight: FontWeight.w900,
               ),
@@ -304,7 +508,7 @@ class CustomDynamicFormBulkDetailFormState
             TextSpan(
               text: " ${"of".tr().toLowerCase()} ${rows.length}",
               style: TextStyle(
-                color: AppColors.secondary(),
+                color: sub,
                 fontSize: Dimensions.text14,
                 fontWeight: FontWeight.w600,
               ),
@@ -370,13 +574,17 @@ class CustomDynamicFormBulkDetailFormState
                   vertical: Dimensions.size10,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.surface().withValues(alpha: 0.92),
+                  color: glass
+                      ? Colors.white.withOpacity(0.12)
+                      : AppColors.surface().withValues(alpha: 0.92),
                   borderRadius: BorderRadius.circular(Dimensions.size25),
                   border: Border.all(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: 0.18),
+                    color: glass
+                        ? Colors.white.withOpacity(0.22)
+                        : Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.18),
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -409,28 +617,49 @@ class CustomDynamicFormBulkDetailFormState
     required IconData icon,
     required VoidCallback onTap,
   }) {
+    final bool glass = isGlass;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         customBorder: const CircleBorder(),
-        child: Ink(
-          width: Dimensions.size45,
-          height: Dimensions.size45,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest(),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color:
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.18),
-            ),
-          ),
-          child: Icon(
-            icon,
-            color: Theme.of(context).colorScheme.primary,
-            size: Dimensions.size20,
-          ),
-        ),
+        child: glass
+            ? GlassContainer(
+                blur: Dimensions.size15,
+                borderRadius: Dimensions.size50,
+                opacity: 0.10,
+                borderOpacity: 0.18,
+                padding: EdgeInsets.zero,
+                child: SizedBox(
+                  width: Dimensions.size45,
+                  height: Dimensions.size45,
+                  child: Icon(
+                    icon,
+                    color: Colors.white.withOpacity(0.92),
+                    size: Dimensions.size20,
+                  ),
+                ),
+              )
+            : Ink(
+                width: Dimensions.size45,
+                height: Dimensions.size45,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLowest(),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.18),
+                  ),
+                ),
+                child: Icon(
+                  icon,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: Dimensions.size20,
+                ),
+              ),
       ),
     );
   }
@@ -440,8 +669,78 @@ class CustomDynamicFormBulkDetailFormState
     required String label,
     required VoidCallback onTap,
   }) {
+    final bool glass = isGlass;
     final Color primary = Theme.of(context).colorScheme.primary;
     final Color onPrimary = Theme.of(context).colorScheme.onPrimary;
+
+    if (glass) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(Dimensions.size30),
+          child: GlassContainer(
+            blur: Dimensions.size20,
+            borderRadius: Dimensions.size30,
+            opacity: 0.18,
+            borderOpacity: 0.30,
+            padding: EdgeInsets.zero,
+            child: Container(
+              height: Dimensions.size45,
+              padding: EdgeInsets.symmetric(horizontal: Dimensions.size15),
+              decoration: ShapeDecoration(
+                color: primary.withOpacity(0.25),
+                shadows: [
+                  BoxShadow(
+                    blurRadius: Dimensions.size20,
+                    offset: Offset(0, Dimensions.size10),
+                    color: Colors.black.withValues(alpha: 0.18),
+                  ),
+                ],
+                shape: SmoothRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.size30),
+                  smoothness: Dimensions.size1,
+                  side: BorderSide(
+                    color: primary.withOpacity(0.30),
+                  ),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: Dimensions.size30,
+                    height: Dimensions.size30,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.18),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.28),
+                      ),
+                    ),
+                    child: Icon(
+                      icon,
+                      size: Dimensions.size15,
+                      color: Colors.white.withOpacity(0.95),
+                    ),
+                  ),
+                  SizedBox(width: Dimensions.size10),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.95),
+                      fontSize: Dimensions.text13,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Material(
       color: Colors.transparent,

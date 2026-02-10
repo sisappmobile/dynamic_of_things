@@ -4,6 +4,7 @@ import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:camera/camera.dart";
 import "package:collection/collection.dart";
+import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/enumeration/dynamic_form_field_type.dart";
 import "package:dynamic_of_things/enumeration/dynamic_form_validation_type.dart";
 import "package:dynamic_of_things/helper/bottom_sheets.dart";
@@ -14,12 +15,14 @@ import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/helper/images.dart";
 import "package:dynamic_of_things/helper/offlines.dart";
+import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/model/attachment.dart";
 import "package:dynamic_of_things/model/dynamic_form_resource_response.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_event.dart";
 import "package:dynamic_of_things/widget/barcode_scanner_page.dart";
+import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:dynamic_of_things/widget/signature_page.dart";
 import "package:dynamic_of_things/widget/spinner_page.dart";
 import "package:easy_localization/easy_localization.dart";
@@ -69,23 +72,42 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   static const double _r = 14;
 
   bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+  bool get _isGlass {
+    try {
+      return (Preferences.getInstance()
+                  .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
+              1) ==
+          2;
+    } catch (_) {
+      return false;
+    }
+  }
 
-  Color _card(BuildContext c) => AppColors.surface();
+  Color _card(BuildContext c) =>
+      _isGlass ? Colors.white.withOpacity(0.10) : AppColors.surface();
 
   Color _soft(BuildContext c) {
+    if (_isGlass) {
+      return Colors.white.withOpacity(0.08);
+    }
     return _isDark
         ? AppColors.surfaceContainer()
         : AppColors.surfaceContainerLowest();
   }
 
   Color _pillBg(BuildContext c) {
+    if (_isGlass) {
+      return Colors.white.withOpacity(0.10);
+    }
     return _isDark
         ? AppColors.surfaceContainerLow()
         : AppColors.surfaceContainerLowest();
   }
 
-  Color _fg(BuildContext c) => AppColors.onSurface();
-  Color _outline(BuildContext c) => AppColors.outline();
+  Color _fg(BuildContext c) =>
+      _isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
+  Color _outline(BuildContext c) =>
+      _isGlass ? Colors.white.withOpacity(0.18) : AppColors.outline();
   Color _primary(BuildContext c) => Theme.of(c).colorScheme.primary;
 
   @override
@@ -122,6 +144,17 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     required Widget child,
     EdgeInsets? padding,
   }) {
+    if (_isGlass) {
+      return GlassContainer(
+        blur: Dimensions.size20,
+        borderRadius: Dimensions.size20,
+        opacity: 0.12,
+        borderOpacity: 0.22,
+        padding: padding ?? EdgeInsets.all(Dimensions.size10),
+        child: child,
+      );
+    }
+
     return Container(
       width: double.infinity,
       padding: padding ?? EdgeInsets.all(Dimensions.size10),
@@ -2162,9 +2195,11 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
               ? Container(
                   margin: EdgeInsets.only(right: Dimensions.size5),
                   decoration: BoxDecoration(
-                    color: _isDark
-                        ? AppColors.surfaceContainerHigh()
-                        : _card(context),
+                    color: _isGlass
+                        ? Colors.white.withOpacity(0.16)
+                        : _isDark
+                            ? AppColors.surfaceContainerHigh()
+                            : _card(context),
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: _outline(context)
@@ -2223,9 +2258,11 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 width: Dimensions.size30,
                 height: Dimensions.size30,
                 decoration: BoxDecoration(
-                  color: _isDark
-                      ? AppColors.surfaceContainerHigh()
-                      : _card(context),
+                  color: _isGlass
+                      ? Colors.white.withOpacity(0.16)
+                      : _isDark
+                          ? AppColors.surfaceContainerHigh()
+                          : _card(context),
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: _outline(context)
@@ -2247,7 +2284,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
   Color borderColor(FormFieldState field) {
     if (isReadOnly()) {
-      return AppColors.surfaceDim();
+      return _isGlass ? Colors.white.withOpacity(0.25) : AppColors.surfaceDim();
     } else {
       if (field.hasError) {
         return AppColors.error();

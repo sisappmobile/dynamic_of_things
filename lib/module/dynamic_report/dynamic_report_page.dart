@@ -1,12 +1,14 @@
-// ignore_for_file: constant_identifier_names, depend_on_referenced_packages, use_build_context_synchronously
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously, constant_identifier_names, depend_on_referenced_packages
 
 import "dart:io";
 import "dart:typed_data";
 
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
+import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
 import "package:dynamic_of_things/helper/formats.dart";
+import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
 import "package:dynamic_of_things/model/dynamic_report_data.dart";
 import "package:dynamic_of_things/model/dynamic_report_template.dart";
@@ -14,6 +16,7 @@ import "package:dynamic_of_things/module/dynamic_report/dynamic_report_bloc.dart
 import "package:dynamic_of_things/module/dynamic_report/dynamic_report_event.dart";
 import "package:dynamic_of_things/module/dynamic_report/dynamic_report_state.dart";
 import "package:dynamic_of_things/widget/custom_pagination.dart";
+import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:file_picker/file_picker.dart";
 import "package:flutter/material.dart";
@@ -47,6 +50,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
   DataResponse? dataResponse;
 
   bool loading = true;
+  bool _prefsReady = false;
 
   String? sortField;
   SortDirection? sortDirection;
@@ -65,10 +69,75 @@ class DynamicReportPageState extends State<DynamicReportPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _initPrefs();
 
     context.read<DynamicReportBloc>().add(
           DynamicReportTemplate(id: widget.dynamicFormMenuItem.id),
         );
+  }
+
+  Future<void> _initPrefs() async {
+    try {
+      await Preferences.getInstance().init();
+    } catch (_) {
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _prefsReady = true;
+    });
+  }
+
+  bool get isGlass {
+    if (!_prefsReady) {
+      return false;
+    }
+
+    final int t = Preferences.getInstance()
+            .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
+        1;
+    return t == 2;
+  }
+
+  Widget _glassBackground() {
+    final String p = (Preferences.getInstance()
+                .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
+            "")
+        .trim();
+
+    if (p.isEmpty) {
+      return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
+    }
+    if (p.startsWith("assets/")) {
+      return Image.asset(p, fit: BoxFit.cover);
+    }
+
+    final File f = File(p);
+    if (f.existsSync()) {
+      return Image.file(f, fit: BoxFit.cover);
+    }
+
+    return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
+  }
+
+  Widget _glassOverlay() {
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[
+            Color.fromRGBO(0, 0, 0, 0.55),
+            Color.fromRGBO(0, 0, 0, 0.22),
+            Color.fromRGBO(0, 0, 0, 0.40),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -86,6 +155,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
   @override
   Widget build(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
+    final bool glass = isGlass;
 
     return BlocListener<DynamicReportBloc, DynamicReportState>(
       listener: (context, state) async {
@@ -127,9 +197,14 @@ class DynamicReportPageState extends State<DynamicReportPage>
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.surfaceContainerLowest(),
+        backgroundColor:
+            glass ? Colors.transparent : AppColors.surfaceContainerLowest(),
         body: Stack(
           children: [
+            if (glass) ...[
+              Positioned.fill(child: _glassBackground()),
+              Positioned.fill(child: _glassOverlay()),
+            ],
             Column(
               children: [
                 SizedBox(height: safe.top),
@@ -232,6 +307,103 @@ class DynamicReportPageState extends State<DynamicReportPage>
         ? template!.title
         : widget.dynamicFormMenuItem.name;
 
+    final bool glass = isGlass;
+    final Color titleColor =
+        glass ? Colors.white.withOpacity(0.95) : AppColors.onSurface();
+    final Color subColor = glass
+        ? Colors.white.withOpacity(0.75)
+        : AppColors.onSurface().withValues(alpha: 0.65);
+
+    final Widget content = Row(
+      children: [
+        iconPill(
+          icon: Icons.turn_left_rounded,
+          onTap: () {
+            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+              Navigators.pop();
+            } else {
+              context.pop();
+            }
+          },
+        ),
+        SizedBox(width: Dimensions.size10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: Dimensions.text16,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.2,
+                  color: titleColor,
+                ),
+              ),
+              SizedBox(height: Dimensions.size2),
+              Text(
+                widget.dynamicFormCategoryItem.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: Dimensions.text12,
+                  fontWeight: FontWeight.w600,
+                  color: subColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(width: Dimensions.size10),
+        iconPill(
+          icon: Icons.tune,
+          onTap: () async => openFilter(),
+        ),
+        SizedBox(width: Dimensions.size10),
+        iconPill(
+          icon: Icons.file_download_outlined,
+          onTap: () async {
+            if (template == null) {
+              return;
+            }
+
+            context.read<DynamicReportBloc>().add(
+                  DynamicReportExport(
+                    id: widget.dynamicFormMenuItem.id,
+                    dataRequest: DataRequest(
+                      size: pageSize,
+                      index: pageIndex - 1,
+                      sortField: sortField,
+                      sortDirection: sortDirection?.name,
+                      filters: Map.fromEntries(
+                        template!.filters
+                            .where((element) => element.value != null)
+                            .map((e) => MapEntry(e.id, e.value)),
+                      ),
+                    ),
+                  ),
+                );
+          },
+        ),
+      ],
+    );
+
+    if (glass) {
+      return GlassContainer(
+        blur: Dimensions.size20,
+        borderRadius: Dimensions.size20,
+        opacity: 0.12,
+        borderOpacity: 0.22,
+        padding: EdgeInsets.symmetric(
+          horizontal: Dimensions.size15,
+          vertical: Dimensions.size10,
+        ),
+        child: content,
+      );
+    }
+
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: Dimensions.size15,
@@ -254,81 +426,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
           ),
         ),
       ),
-      child: Row(
-        children: [
-          iconPill(
-            icon: Icons.turn_left_rounded,
-            onTap: () {
-              if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                Navigators.pop();
-              } else {
-                context.pop();
-              }
-            },
-          ),
-          SizedBox(width: Dimensions.size10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: Dimensions.text16,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.2,
-                    color: AppColors.onSurface(),
-                  ),
-                ),
-                SizedBox(height: Dimensions.size2),
-                Text(
-                  widget.dynamicFormCategoryItem.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: Dimensions.text12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurface().withValues(alpha: 0.65),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: Dimensions.size10),
-          iconPill(
-            icon: Icons.tune,
-            onTap: () async => openFilter(),
-          ),
-          SizedBox(width: Dimensions.size10),
-          iconPill(
-            icon: Icons.file_download_outlined,
-            onTap: () async {
-              if (template == null) {
-                return;
-              }
-
-              context.read<DynamicReportBloc>().add(
-                    DynamicReportExport(
-                      id: widget.dynamicFormMenuItem.id,
-                      dataRequest: DataRequest(
-                        size: pageSize,
-                        index: pageIndex - 1,
-                        sortField: sortField,
-                        sortDirection: sortDirection?.name,
-                        filters: Map.fromEntries(
-                          template!.filters
-                              .where((element) => element.value != null)
-                              .map((e) => MapEntry(e.id, e.value)),
-                        ),
-                      ),
-                    ),
-                  );
-            },
-          ),
-        ],
-      ),
+      child: content,
     );
   }
 
@@ -336,6 +434,10 @@ class DynamicReportPageState extends State<DynamicReportPage>
     required IconData icon,
     required VoidCallback onTap,
   }) {
+    final bool glass = isGlass;
+    final Color iconColor =
+        glass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -344,30 +446,49 @@ class DynamicReportPageState extends State<DynamicReportPage>
           borderRadius: BorderRadius.circular(Dimensions.size15),
           smoothness: Dimensions.size1,
         ),
-        child: Ink(
-          width: Dimensions.size40,
-          height: Dimensions.size40,
-          decoration: ShapeDecoration(
-            color: AppColors.surfaceContainerLowest(),
-            shape: SmoothRectangleBorder(
-              borderRadius: BorderRadius.circular(Dimensions.size15),
-              smoothness: Dimensions.size1,
-              side: BorderSide(
-                color: AppColors.outline().withValues(alpha: 0.25),
+        child: glass
+            ? GlassContainer(
+                blur: Dimensions.size15,
+                borderRadius: Dimensions.size15,
+                opacity: 0.10,
+                borderOpacity: 0.18,
+                padding: EdgeInsets.zero,
+                child: SizedBox(
+                  width: Dimensions.size40,
+                  height: Dimensions.size40,
+                  child: Icon(
+                    icon,
+                    color: iconColor,
+                    size: Dimensions.size25,
+                  ),
+                ),
+              )
+            : Ink(
+                width: Dimensions.size40,
+                height: Dimensions.size40,
+                decoration: ShapeDecoration(
+                  color: AppColors.surfaceContainerLowest(),
+                  shape: SmoothRectangleBorder(
+                    borderRadius: BorderRadius.circular(Dimensions.size15),
+                    smoothness: Dimensions.size1,
+                    side: BorderSide(
+                      color: AppColors.outline().withValues(alpha: 0.25),
+                    ),
+                  ),
+                ),
+                child: Icon(
+                  icon,
+                  color: AppColors.onSurface(),
+                  size: Dimensions.size25,
+                ),
               ),
-            ),
-          ),
-          child: Icon(
-            icon,
-            color: AppColors.onSurface(),
-            size: Dimensions.size25,
-          ),
-        ),
       ),
     );
   }
 
   Widget body() {
+    final bool glass = isGlass;
+
     if (template == null) {
       return BaseWidgets.shimmer();
     }
@@ -383,7 +504,9 @@ class DynamicReportPageState extends State<DynamicReportPage>
           child: Text(
             "common_something_wrong".tr(),
             style: TextStyle(
-              color: AppColors.onSurface().withValues(alpha: 0.7),
+              color: glass
+                  ? Colors.white.withOpacity(0.80)
+                  : AppColors.onSurface().withValues(alpha: 0.7),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -392,49 +515,86 @@ class DynamicReportPageState extends State<DynamicReportPage>
     }
 
     if (dataResponse!.rows.isEmpty) {
+      final Widget emptyCard = glass
+          ? GlassContainer(
+              blur: Dimensions.size20,
+              borderRadius: Dimensions.size20,
+              opacity: 0.12,
+              borderOpacity: 0.22,
+              padding: EdgeInsets.all(Dimensions.size20),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.inbox_outlined,
+                    size: Dimensions.size45,
+                    color: Colors.white.withOpacity(0.80),
+                  ),
+                  SizedBox(height: Dimensions.size10),
+                  Text(
+                    "no_data".tr(),
+                    style: TextStyle(
+                      fontSize: Dimensions.text16,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white.withOpacity(0.95),
+                    ),
+                  ),
+                  SizedBox(height: Dimensions.size5),
+                  Text(
+                    "try_adjust_filter_or_pull_to_refresh".tr(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.75),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : Container(
+              padding: EdgeInsets.all(Dimensions.size20),
+              decoration: ShapeDecoration(
+                color: AppColors.surface(),
+                shape: SmoothRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.size20),
+                  smoothness: Dimensions.size1,
+                  side: BorderSide(
+                    color: AppColors.outline().withValues(alpha: 0.35),
+                  ),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.inbox_outlined,
+                    size: Dimensions.size45,
+                    color: AppColors.onSurface().withValues(alpha: 0.65),
+                  ),
+                  SizedBox(height: Dimensions.size10),
+                  Text(
+                    "no_data".tr(),
+                    style: TextStyle(
+                      fontSize: Dimensions.text16,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.onSurface(),
+                    ),
+                  ),
+                  SizedBox(height: Dimensions.size5),
+                  Text(
+                    "try_adjust_filter_or_pull_to_refresh".tr(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.onSurface().withValues(alpha: 0.70),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            );
+
       return ListView(
         padding: EdgeInsets.all(Dimensions.size15),
         children: [
-          Container(
-            padding: EdgeInsets.all(Dimensions.size20),
-            decoration: ShapeDecoration(
-              color: AppColors.surface(),
-              shape: SmoothRectangleBorder(
-                borderRadius: BorderRadius.circular(Dimensions.size20),
-                smoothness: Dimensions.size1,
-                side: BorderSide(
-                  color: AppColors.outline().withValues(alpha: 0.35),
-                ),
-              ),
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.inbox_outlined,
-                  size: Dimensions.size45,
-                  color: AppColors.onSurface().withValues(alpha: 0.65),
-                ),
-                SizedBox(height: Dimensions.size10),
-                Text(
-                  "no_data".tr(),
-                  style: TextStyle(
-                    fontSize: Dimensions.text16,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.onSurface(),
-                  ),
-                ),
-                SizedBox(height: Dimensions.size5),
-                Text(
-                  "try_adjust_filter_or_pull_to_refresh".tr(),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppColors.onSurface().withValues(alpha: 0.70),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          emptyCard,
         ],
       );
     }
@@ -471,6 +631,8 @@ class DynamicReportPageState extends State<DynamicReportPage>
     required int index,
     required Map<String, dynamic> row,
   }) {
+    final bool glass = isGlass;
+
     String valueOf(String fieldName) {
       final dynamic v = row[fieldName];
       if (v == null) {
@@ -510,6 +672,172 @@ class DynamicReportPageState extends State<DynamicReportPage>
       fields.removeWhere((f) => f.name == itemDescField.name);
     }
 
+    final Widget content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            chipQuantity("#$index"),
+            SizedBox(width: Dimensions.size10),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: Dimensions.text16,
+                  fontWeight: FontWeight.w900,
+                  height: 1.15,
+                  color: glass
+                      ? Colors.white.withOpacity(0.92)
+                      : AppColors.onSurface(),
+                ),
+              ),
+            ),
+            if (showQty) ...[
+              SizedBox(width: Dimensions.size10),
+              chipCompatQuantity(label: "Qty", value: qtyValue),
+            ],
+          ],
+        ),
+        SizedBox(height: Dimensions.size10),
+        Divider(
+          height: 0,
+          color: glass
+              ? Colors.white.withOpacity(0.18)
+              : AppColors.outline().withValues(alpha: 0.30),
+        ),
+        SizedBox(height: Dimensions.size10),
+        LayoutBuilder(
+          builder: (context, c) {
+            final double rowW = c.maxWidth;
+
+            final bool can3 = rowW >= 340;
+            final int colsDefault = can3 ? 3 : 2;
+
+            final double gap = _gapInner;
+
+            double colW(int cols) => (rowW - gap * (cols - 1)) / cols;
+
+            final List<Widget> blocks = [];
+            final List<Widget> bucket = [];
+
+            void flushBucket({required int cols}) {
+              if (bucket.isEmpty) {
+                return;
+              }
+
+              final double w = colW(cols);
+
+              blocks.add(
+                Wrap(
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: bucket
+                      .map((child) => SizedBox(width: w, child: child))
+                      .toList(),
+                ),
+              );
+
+              bucket.clear();
+            }
+
+            final List<Field> ordered = [...fields]..sort((a, b) {
+                final aa = isTricMetric(a) ? 0 : 1;
+                final bb = isTricMetric(b) ? 0 : 1;
+                return aa.compareTo(bb);
+              });
+
+            bool metricMode = false;
+
+            for (final Field f in ordered) {
+              if (qtyField != null && f.name == qtyField.name) {
+                continue;
+              }
+
+              final String val = valueOf(f.name);
+              final bool empty = empthyValue(val);
+              final bool isMetric = isTricMetric(f);
+
+              if (isMetric) {
+                if (!metricMode) {
+                  flushBucket(cols: colsDefault);
+                  metricMode = true;
+                }
+
+                bucket.add(
+                  kvSmart(f.caption, empty ? "-" : val, compact: true),
+                );
+
+                if (bucket.length == 3) {
+                  flushBucket(cols: can3 ? 3 : 2);
+                  metricMode = false;
+                }
+                continue;
+              }
+
+              if (metricMode) {
+                flushBucket(cols: can3 ? 3 : 2);
+                metricMode = false;
+              }
+
+              final bool full = forceFullWidth(f, val);
+
+              if (full) {
+                flushBucket(cols: colsDefault);
+
+                blocks.add(
+                  SizedBox(
+                    width: rowW,
+                    child: kvSmart(
+                      f.caption,
+                      empty ? "-" : val,
+                      compact: false,
+                    ),
+                  ),
+                );
+              } else {
+                bucket.add(
+                  kvSmart(f.caption, empty ? "-" : val, compact: true),
+                );
+
+                if (bucket.length == colsDefault) {
+                  flushBucket(cols: colsDefault);
+                }
+              }
+            }
+
+            if (metricMode) {
+              flushBucket(cols: can3 ? 3 : 2);
+            } else {
+              flushBucket(cols: colsDefault);
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (int i = 0; i < blocks.length; i++) ...[
+                  if (i > 0) SizedBox(height: gap),
+                  blocks[i],
+                ],
+              ],
+            );
+          },
+        ),
+      ],
+    );
+
+    if (glass) {
+      return GlassContainer(
+        blur: Dimensions.size20,
+        borderRadius: Dimensions.size20,
+        opacity: 0.12,
+        borderOpacity: 0.22,
+        padding: EdgeInsets.all(Dimensions.size15),
+        child: content,
+      );
+    }
+
     return Container(
       padding: EdgeInsets.all(Dimensions.size15),
       decoration: ShapeDecoration(
@@ -529,156 +857,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
           ),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              chipQuantity("#$index"),
-              SizedBox(width: Dimensions.size10),
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: Dimensions.text16,
-                    fontWeight: FontWeight.w900,
-                    height: 1.15,
-                    color: AppColors.onSurface(),
-                  ),
-                ),
-              ),
-              if (showQty) ...[
-                SizedBox(width: Dimensions.size10),
-                chipCompatQuantity(label: "Qty", value: qtyValue),
-              ],
-            ],
-          ),
-          SizedBox(height: Dimensions.size10),
-          Divider(
-            height: 0,
-            color: AppColors.outline().withValues(alpha: 0.30),
-          ),
-          SizedBox(height: Dimensions.size10),
-          LayoutBuilder(
-            builder: (context, c) {
-              final double rowW = c.maxWidth;
-
-              final bool can3 = rowW >= 340;
-              final int colsDefault = can3 ? 3 : 2;
-
-              final double gap = _gapInner;
-
-              double colW(int cols) => (rowW - gap * (cols - 1)) / cols;
-
-              final List<Widget> blocks = [];
-              final List<Widget> bucket = [];
-
-              void flushBucket({required int cols}) {
-                if (bucket.isEmpty) {
-                  return;
-                }
-
-                final double w = colW(cols);
-
-                blocks.add(
-                  Wrap(
-                    spacing: gap,
-                    runSpacing: gap,
-                    children: bucket
-                        .map((child) => SizedBox(width: w, child: child))
-                        .toList(),
-                  ),
-                );
-
-                bucket.clear();
-              }
-
-              final List<Field> ordered = [...fields]..sort((a, b) {
-                  final aa = isTricMetric(a) ? 0 : 1;
-                  final bb = isTricMetric(b) ? 0 : 1;
-                  return aa.compareTo(bb);
-                });
-
-              bool metricMode = false;
-
-              for (final Field f in ordered) {
-                if (qtyField != null && f.name == qtyField.name) {
-                  continue;
-                }
-
-                final String val = valueOf(f.name);
-                final bool empty = empthyValue(val);
-                final bool isMetric = isTricMetric(f);
-
-                if (isMetric) {
-                  if (!metricMode) {
-                    flushBucket(cols: colsDefault);
-                    metricMode = true;
-                  }
-
-                  bucket.add(
-                    kvSmart(f.caption, empty ? "-" : val, compact: true),
-                  );
-
-                  if (bucket.length == 3) {
-                    flushBucket(cols: can3 ? 3 : 2);
-                    metricMode = false;
-                  }
-                  continue;
-                }
-
-                if (metricMode) {
-                  flushBucket(cols: can3 ? 3 : 2);
-                  metricMode = false;
-                }
-
-                final bool full = forceFullWidth(f, val);
-
-                if (full) {
-                  flushBucket(cols: colsDefault);
-
-                  blocks.add(
-                    SizedBox(
-                      width: rowW,
-                      child: kvSmart(
-                        f.caption,
-                        empty ? "-" : val,
-                        compact: false,
-                      ),
-                    ),
-                  );
-                } else {
-                  bucket.add(
-                    kvSmart(f.caption, empty ? "-" : val, compact: true),
-                  );
-
-                  if (bucket.length == colsDefault) {
-                    flushBucket(cols: colsDefault);
-                  }
-                }
-              }
-
-              if (metricMode) {
-                flushBucket(cols: can3 ? 3 : 2);
-              } else {
-                flushBucket(cols: colsDefault);
-              }
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (int i = 0; i < blocks.length; i++) ...[
-                    if (i > 0) SizedBox(height: gap),
-                    blocks[i],
-                  ],
-                ],
-              );
-            },
-          ),
-        ],
-      ),
+      child: content,
     );
   }
 
@@ -687,7 +866,54 @@ class DynamicReportPageState extends State<DynamicReportPage>
     String v, {
     required bool compact,
   }) {
+    final bool glass = isGlass;
     final bool empty = empthyValue(v);
+
+    final Widget content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          k,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: Dimensions.text12,
+            fontWeight: FontWeight.w700,
+            color: glass
+                ? Colors.white.withOpacity(0.70)
+                : AppColors.onSurface().withValues(alpha: 0.65),
+          ),
+        ),
+        SizedBox(height: Dimensions.size4),
+        Text(
+          empty ? "-" : v,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: Dimensions.text14,
+            fontWeight: FontWeight.w900,
+            height: 1.15,
+            color: glass
+                ? Colors.white.withOpacity(empty ? 0.45 : 0.95)
+                : AppColors.onSurface().withValues(alpha: empty ? 0.35 : 1),
+          ),
+        ),
+      ],
+    );
+
+    if (glass) {
+      return GlassContainer(
+        blur: Dimensions.size15,
+        borderRadius: Dimensions.size15,
+        opacity: 0.10,
+        borderOpacity: 0.18,
+        padding: EdgeInsets.symmetric(
+          horizontal: _tilePadX,
+          vertical: _tilePadY,
+        ),
+        child: content,
+      );
+    }
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -704,37 +930,34 @@ class DynamicReportPageState extends State<DynamicReportPage>
           ),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            k,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: Dimensions.text12,
-              fontWeight: FontWeight.w700,
-              color: AppColors.onSurface().withValues(alpha: 0.65),
-            ),
-          ),
-          SizedBox(height: Dimensions.size4),
-          Text(
-            empty ? "-" : v,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: Dimensions.text14,
-              fontWeight: FontWeight.w900,
-              height: 1.15,
-              color: AppColors.onSurface().withValues(alpha: empty ? 0.35 : 1),
-            ),
-          ),
-        ],
-      ),
+      child: content,
     );
   }
 
   Widget chipQuantity(String text) {
+    final bool glass = isGlass;
+
+    if (glass) {
+      return GlassContainer(
+        blur: Dimensions.size10,
+        borderRadius: Dimensions.size50,
+        opacity: 0.12,
+        borderOpacity: 0.22,
+        padding: EdgeInsets.symmetric(
+          horizontal: Dimensions.size10,
+          vertical: Dimensions.size5,
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: Dimensions.text12,
+            fontWeight: FontWeight.w800,
+            color: Colors.white.withOpacity(0.92),
+          ),
+        ),
+      );
+    }
+
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: Dimensions.size10,
@@ -765,7 +988,49 @@ class DynamicReportPageState extends State<DynamicReportPage>
     required String label,
     required String value,
   }) {
+    final bool glass = isGlass;
     final bool empty = empthyValue(value);
+
+    final Widget content = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          "$label:",
+          style: TextStyle(
+            fontSize: Dimensions.text12,
+            fontWeight: FontWeight.w800,
+            color: glass
+                ? Colors.white.withOpacity(0.70)
+                : AppColors.onSurface().withValues(alpha: 0.70),
+          ),
+        ),
+        SizedBox(width: Dimensions.size5),
+        Text(
+          empty ? "-" : value,
+          style: TextStyle(
+            fontSize: Dimensions.text12,
+            fontWeight: FontWeight.w900,
+            color: glass
+                ? Colors.white.withOpacity(empty ? 0.45 : 0.92)
+                : AppColors.onSurface().withValues(alpha: empty ? 0.40 : 0.90),
+          ),
+        ),
+      ],
+    );
+
+    if (glass) {
+      return GlassContainer(
+        blur: Dimensions.size10,
+        borderRadius: Dimensions.size50,
+        opacity: 0.12,
+        borderOpacity: 0.22,
+        padding: EdgeInsets.symmetric(
+          horizontal: Dimensions.size10,
+          vertical: Dimensions.size5,
+        ),
+        child: content,
+      );
+    }
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -782,113 +1047,110 @@ class DynamicReportPageState extends State<DynamicReportPage>
           ),
         ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            "$label:",
-            style: TextStyle(
-              fontSize: Dimensions.text12,
-              fontWeight: FontWeight.w800,
-              color: AppColors.onSurface().withValues(alpha: 0.70),
-            ),
-          ),
-          SizedBox(width: Dimensions.size5),
-          Text(
-            empty ? "-" : value,
-            style: TextStyle(
-              fontSize: Dimensions.text12,
-              fontWeight: FontWeight.w900,
-              color:
-                  AppColors.onSurface().withValues(alpha: empty ? 0.40 : 0.90),
-            ),
-          ),
-        ],
-      ),
+      child: content,
     );
   }
 
   Widget floatingactionbar() {
+    final bool glass = isGlass;
     final String info = dataInfo(
       pageIndex: pageIndex,
       pageSize: pageSize,
       dataSize: dataResponse?.size,
     );
 
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: Dimensions.size15,
-        vertical: Dimensions.size10,
-      ),
-      decoration: ShapeDecoration(
-        color: AppColors.surface(),
-        shadows: [
-          BoxShadow(
-            blurRadius: Dimensions.size25,
-            offset: Offset(0, Dimensions.size15),
-            color: Colors.black.withValues(alpha: 0.14),
-          ),
-        ],
-        shape: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimensions.size20),
-          smoothness: Dimensions.size1,
-          side: BorderSide(
-            color: AppColors.outline().withValues(alpha: 0.35),
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: Dimensions.size10,
-                vertical: Dimensions.size10,
+    final Widget infoChip = glass
+        ? GlassContainer(
+            blur: Dimensions.size15,
+            borderRadius: Dimensions.size15,
+            opacity: 0.10,
+            borderOpacity: 0.18,
+            padding: EdgeInsets.symmetric(
+              horizontal: Dimensions.size10,
+              vertical: Dimensions.size10,
+            ),
+            child: Text(
+              info,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: Dimensions.text12,
+                fontWeight: FontWeight.w800,
+                color: Colors.white.withOpacity(0.88),
               ),
-              decoration: ShapeDecoration(
-                color: AppColors.surfaceContainerLowest(),
-                shape: SmoothRectangleBorder(
+            ),
+          )
+        : Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: Dimensions.size10,
+              vertical: Dimensions.size10,
+            ),
+            decoration: ShapeDecoration(
+              color: AppColors.surfaceContainerLowest(),
+              shape: SmoothRectangleBorder(
+                borderRadius: BorderRadius.circular(Dimensions.size15),
+                smoothness: Dimensions.size1,
+                side: BorderSide(
+                  color: AppColors.outline().withValues(alpha: 0.22),
+                ),
+              ),
+            ),
+            child: Text(
+              info,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: Dimensions.text12,
+                fontWeight: FontWeight.w800,
+                color: AppColors.onSurface().withValues(alpha: 0.85),
+              ),
+            ),
+          );
+
+    final Widget pageSizeDrop = glass
+        ? GlassContainer(
+            blur: Dimensions.size15,
+            borderRadius: Dimensions.size15,
+            opacity: 0.10,
+            borderOpacity: 0.18,
+            padding: EdgeInsets.symmetric(horizontal: Dimensions.size10),
+            child: SizedBox(
+              height: Dimensions.size40,
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: pageSize,
                   borderRadius: BorderRadius.circular(Dimensions.size15),
-                  smoothness: Dimensions.size1,
-                  side: BorderSide(
-                    color: AppColors.outline().withValues(alpha: 0.22),
+                  icon: Icon(
+                    Icons.expand_more,
+                    size: Dimensions.size20,
+                    color: Colors.white.withOpacity(0.90),
                   ),
-                ),
-              ),
-              child: Text(
-                info,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: Dimensions.text12,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.onSurface().withValues(alpha: 0.85),
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.92),
+                    fontWeight: FontWeight.w800,
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 20, child: Text("20")),
+                    DropdownMenuItem(value: 50, child: Text("50")),
+                    DropdownMenuItem(value: 100, child: Text("100")),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
+
+                    setState(() {
+                      pageSize = value;
+                      pageIndex = 1;
+                    });
+
+                    refresh();
+                  },
                 ),
               ),
             ),
-          ),
-          SizedBox(width: Dimensions.size10),
-          Expanded(
-            flex: 4,
-            child: CustomPagination(
-              onPageChanged: (int pageNumber) {
-                setState(() {
-                  pageIndex = pageNumber;
-                });
-                refresh();
-              },
-              pageTotal: (size / pageSize).ceil(),
-              pageInit: pageIndex,
-              colorPrimary: AppColors.onSurface(),
-              colorSub: AppColors.surfaceContainerLowest(),
-              buttonRadius: Dimensions.size50,
-              buttonElevation: 0,
-              threshold: 1,
-            ),
-          ),
-          SizedBox(width: Dimensions.size10),
-          Container(
+          )
+        : Container(
             height: Dimensions.size40,
             padding: EdgeInsets.symmetric(horizontal: Dimensions.size10),
             decoration: ShapeDecoration(
@@ -925,9 +1187,75 @@ class DynamicReportPageState extends State<DynamicReportPage>
                 },
               ),
             ),
+          );
+
+    final Widget barContent = Row(
+      children: [
+        Expanded(flex: 2, child: infoChip),
+        SizedBox(width: Dimensions.size10),
+        Expanded(
+          flex: 4,
+          child: CustomPagination(
+            onPageChanged: (int pageNumber) {
+              setState(() {
+                pageIndex = pageNumber;
+              });
+              refresh();
+            },
+            pageTotal: (size / pageSize).ceil(),
+            pageInit: pageIndex,
+            colorPrimary:
+                glass ? Colors.white.withOpacity(0.95) : AppColors.onSurface(),
+            colorSub: glass
+                ? Colors.white.withOpacity(0.12)
+                : AppColors.surfaceContainerLowest(),
+            buttonRadius: Dimensions.size50,
+            buttonElevation: 0,
+            threshold: 1,
+          ),
+        ),
+        SizedBox(width: Dimensions.size10),
+        pageSizeDrop,
+      ],
+    );
+
+    if (glass) {
+      return GlassContainer(
+        blur: Dimensions.size20,
+        borderRadius: Dimensions.size20,
+        opacity: 0.14,
+        borderOpacity: 0.22,
+        padding: EdgeInsets.symmetric(
+          horizontal: Dimensions.size15,
+          vertical: Dimensions.size10,
+        ),
+        child: barContent,
+      );
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: Dimensions.size15,
+        vertical: Dimensions.size10,
+      ),
+      decoration: ShapeDecoration(
+        color: AppColors.surface(),
+        shadows: [
+          BoxShadow(
+            blurRadius: Dimensions.size25,
+            offset: Offset(0, Dimensions.size15),
+            color: Colors.black.withValues(alpha: 0.14),
           ),
         ],
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size20),
+          smoothness: Dimensions.size1,
+          side: BorderSide(
+            color: AppColors.outline().withValues(alpha: 0.35),
+          ),
+        ),
       ),
+      child: barContent,
     );
   }
 
@@ -984,6 +1312,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
             final bool compact = count <= 3;
             final double maxH =
                 MediaQuery.of(context).size.height * (compact ? 0.62 : 0.90);
+            final bool glass = isGlass;
 
             return Padding(
               padding: EdgeInsets.only(bottom: insets.bottom),
@@ -993,212 +1322,238 @@ class DynamicReportPageState extends State<DynamicReportPage>
                   alignment: Alignment.bottomCenter,
                   child: ConstrainedBox(
                     constraints: BoxConstraints(maxHeight: maxH),
-                    child: Container(
-                      margin: EdgeInsets.all(Dimensions.size15),
-                      decoration: ShapeDecoration(
-                        color: AppColors.surface(),
-                        shape: SmoothRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(Dimensions.size25),
-                          smoothness: Dimensions.size1,
-                          side: BorderSide(
-                            color: AppColors.outline().withValues(alpha: 0.35),
-                          ),
-                        ),
-                        shadows: [
-                          BoxShadow(
-                            blurRadius: Dimensions.size30,
-                            offset: const Offset(0, 16),
-                            color: Colors.black.withValues(alpha: 0.18),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.fromLTRB(
-                              Dimensions.size15,
-                              Dimensions.size15,
-                              Dimensions.size15,
-                              Dimensions.size10,
-                            ),
-                            child: Row(
-                              children: [
-                                iconPill(
-                                  icon: Icons.close,
-                                  onTap: () {
-                                    if (BaseSettings.navigatorType ==
-                                        BaseNavigatorType.legacy) {
-                                      Navigators.pop();
-                                    } else {
-                                      context.pop();
-                                    }
-                                  },
-                                ),
-                                SizedBox(width: Dimensions.size10),
-                                Expanded(
-                                  child: Text(
-                                    "filter".tr(),
-                                    style: TextStyle(
-                                      fontSize: Dimensions.text18,
-                                      fontWeight: FontWeight.w900,
-                                      color: AppColors.onSurface(),
+                    child: Builder(
+                      builder: (context) {
+                        final Widget sheetContent = Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                Dimensions.size15,
+                                Dimensions.size15,
+                                Dimensions.size15,
+                                Dimensions.size10,
+                              ),
+                              child: Row(
+                                children: [
+                                  iconPill(
+                                    icon: Icons.close,
+                                    onTap: () {
+                                      if (BaseSettings.navigatorType ==
+                                          BaseNavigatorType.legacy) {
+                                        Navigators.pop();
+                                      } else {
+                                        context.pop();
+                                      }
+                                    },
+                                  ),
+                                  SizedBox(width: Dimensions.size10),
+                                  Expanded(
+                                    child: Text(
+                                      "filter".tr(),
+                                      style: TextStyle(
+                                        fontSize: Dimensions.text18,
+                                        fontWeight: FontWeight.w900,
+                                        color: glass
+                                            ? Colors.white.withOpacity(0.95)
+                                            : AppColors.onSurface(),
+                                      ),
                                     ),
                                   ),
-                                ),
-                                if (hasActiveFilter)
-                                  TextButton.icon(
-                                    onPressed: () {
-                                      BaseDialogs.confirmation(
-                                        title:
-                                            "are_you_sure_want_to_proceed".tr(),
-                                        positiveCallback: () {
-                                          for (Filter filter
-                                              in template!.filters) {
-                                            filter
-                                              ..value = null
-                                              ..controller = null;
-                                          }
-                                          setStateSheet(() {});
-                                        },
-                                      );
-                                    },
-                                    icon: const Icon(Icons.clear_all),
-                                    label: Text("clear".tr()),
-                                  ),
-                              ],
+                                  if (hasActiveFilter)
+                                    TextButton.icon(
+                                      onPressed: () {
+                                        BaseDialogs.confirmation(
+                                          title: "are_you_sure_want_to_proceed"
+                                              .tr(),
+                                          positiveCallback: () {
+                                            for (Filter filter
+                                                in template!.filters) {
+                                              filter
+                                                ..value = null
+                                                ..controller = null;
+                                            }
+                                            setStateSheet(() {});
+                                          },
+                                        );
+                                      },
+                                      icon: const Icon(Icons.clear_all),
+                                      label: Text("clear".tr()),
+                                    ),
+                                ],
+                              ),
                             ),
-                          ),
-                          Divider(
-                            height: 0,
-                            color: AppColors.outline().withValues(alpha: 0.35),
-                          ),
-                          Flexible(
-                            fit: FlexFit.loose,
-                            child: Padding(
-                              padding: EdgeInsets.all(Dimensions.size15),
-                              child: Form(
-                                key: formState,
-                                autovalidateMode: AutovalidateMode.always,
-                                child: ListView.separated(
-                                  shrinkWrap: compact,
-                                  physics: compact
-                                      ? const NeverScrollableScrollPhysics()
-                                      : const BouncingScrollPhysics(),
-                                  padding: EdgeInsets.only(
-                                    bottom: Dimensions.size15,
-                                  ),
-                                  itemCount: template!.filters.length,
-                                  separatorBuilder: (context, index) =>
-                                      SizedBox(height: Dimensions.size15),
-                                  itemBuilder: (context, index) {
-                                    final Filter filter =
-                                        template!.filters[index];
+                            Divider(
+                              height: 0,
+                              color: glass
+                                  ? Colors.white.withOpacity(0.20)
+                                  : AppColors.outline().withValues(alpha: 0.35),
+                            ),
+                            Flexible(
+                              fit: FlexFit.loose,
+                              child: Padding(
+                                padding: EdgeInsets.all(Dimensions.size15),
+                                child: Form(
+                                  key: formState,
+                                  autovalidateMode: AutovalidateMode.always,
+                                  child: ListView.separated(
+                                    shrinkWrap: compact,
+                                    physics: compact
+                                        ? const NeverScrollableScrollPhysics()
+                                        : const BouncingScrollPhysics(),
+                                    padding: EdgeInsets.only(
+                                      bottom: Dimensions.size15,
+                                    ),
+                                    itemCount: template!.filters.length,
+                                    separatorBuilder: (context, index) =>
+                                        SizedBox(height: Dimensions.size15),
+                                    itemBuilder: (context, index) {
+                                      final Filter filter =
+                                          template!.filters[index];
 
-                                    if (filter.controller == null) {
-                                      filter.controller =
-                                          TextEditingController();
+                                      if (filter.controller == null) {
+                                        filter.controller =
+                                            TextEditingController();
 
-                                      if (filter.value != null) {
-                                        if (filter.type == "DATE") {
-                                          filter.controller!.text =
-                                              Formats.dateTime(filter.value);
-                                        } else if (filter.type == "NUMERIC") {
-                                          filter.controller!.text =
-                                              Formats.tryParseNumber(
-                                            filter.value,
-                                          ).currency();
-                                        } else if (filter.type == "STRING") {
-                                          filter.controller!.text =
-                                              filter.value;
-                                        } else if (StringUtils.inList(
-                                          filter.type,
-                                          ["DATA", "COMBOBOX"],
-                                        )) {
-                                          filter.controller!.text =
-                                              filter.value;
+                                        if (filter.value != null) {
+                                          if (filter.type == "DATE") {
+                                            filter.controller!.text =
+                                                Formats.dateTime(filter.value);
+                                          } else if (filter.type == "NUMERIC") {
+                                            filter.controller!.text =
+                                                Formats.tryParseNumber(
+                                              filter.value,
+                                            ).currency();
+                                          } else if (filter.type == "STRING") {
+                                            filter.controller!.text =
+                                                filter.value;
+                                          } else if (StringUtils.inList(
+                                            filter.type,
+                                            ["DATA", "COMBOBOX"],
+                                          )) {
+                                            filter.controller!.text =
+                                                filter.value;
+                                          }
                                         }
                                       }
-                                    }
 
-                                    return filterCard(
-                                      title: filter.caption,
-                                      canClear: filter.value != null ||
-                                          StringUtils.isNotNullOrEmpty(
-                                            filter.controller!.text,
-                                          ),
-                                      onClear: () {
-                                        filter
-                                          ..value = null
-                                          ..controller = null;
-                                        setStateSheet(() {});
-                                      },
-                                      child: filterInput(
-                                        filter: filter,
-                                        setStateSheet: setStateSheet,
-                                        onChanged: () => setStateSheet(() {}),
-                                      ),
-                                    );
-                                  },
+                                      return filterCard(
+                                        title: filter.caption,
+                                        canClear: filter.value != null ||
+                                            StringUtils.isNotNullOrEmpty(
+                                              filter.controller!.text,
+                                            ),
+                                        onClear: () {
+                                          filter
+                                            ..value = null
+                                            ..controller = null;
+                                          setStateSheet(() {});
+                                        },
+                                        child: filterInput(
+                                          filter: filter,
+                                          setStateSheet: setStateSheet,
+                                          onChanged: () => setStateSheet(() {}),
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.fromLTRB(
-                              Dimensions.size15,
-                              Dimensions.size5,
-                              Dimensions.size15,
-                              Dimensions.size15 + safe.bottom * 0.0,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: () {
-                                      if (BaseSettings.navigatorType ==
-                                          BaseNavigatorType.legacy) {
-                                        Navigators.pop();
-                                      } else {
-                                        context.pop();
-                                      }
-                                    },
-                                    icon: const Icon(Icons.close),
-                                    label: Text("close".tr()),
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                Dimensions.size15,
+                                Dimensions.size5,
+                                Dimensions.size15,
+                                Dimensions.size15 + safe.bottom * 0.0,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: () {
+                                        if (BaseSettings.navigatorType ==
+                                            BaseNavigatorType.legacy) {
+                                          Navigators.pop();
+                                        } else {
+                                          context.pop();
+                                        }
+                                      },
+                                      icon: const Icon(Icons.close),
+                                      label: Text("close".tr()),
+                                    ),
                                   ),
-                                ),
-                                SizedBox(width: Dimensions.size10),
-                                Expanded(
-                                  child: FilledButton.icon(
-                                    onPressed: () async {
-                                      if (formState.currentState != null &&
-                                          formState.currentState!.validate()) {
-                                        formState.currentState!.save();
+                                  SizedBox(width: Dimensions.size10),
+                                  Expanded(
+                                    child: FilledButton.icon(
+                                      onPressed: () async {
+                                        if (formState.currentState != null &&
+                                            formState.currentState!
+                                                .validate()) {
+                                          formState.currentState!.save();
 
-                                        setState(() {
-                                          pageIndex = 1;
-                                        });
+                                          setState(() {
+                                            pageIndex = 1;
+                                          });
 
-                                        refresh();
-                                      }
+                                          refresh();
+                                        }
 
-                                      if (BaseSettings.navigatorType ==
-                                          BaseNavigatorType.legacy) {
-                                        Navigators.pop();
-                                      } else {
-                                        context.pop();
-                                      }
-                                    },
-                                    icon: const Icon(Icons.search),
-                                    label: Text("search".tr()),
+                                        if (BaseSettings.navigatorType ==
+                                            BaseNavigatorType.legacy) {
+                                          Navigators.pop();
+                                        } else {
+                                          context.pop();
+                                        }
+                                      },
+                                      icon: const Icon(Icons.search),
+                                      label: Text("search".tr()),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
+                          ],
+                        );
+
+                        if (glass) {
+                          return Container(
+                            margin: EdgeInsets.all(Dimensions.size15),
+                            child: GlassContainer(
+                              blur: Dimensions.size25,
+                              borderRadius: Dimensions.size25,
+                              opacity: 0.14,
+                              borderOpacity: 0.22,
+                              padding: EdgeInsets.zero,
+                              child: sheetContent,
+                            ),
+                          );
+                        }
+
+                        return Container(
+                          margin: EdgeInsets.all(Dimensions.size15),
+                          decoration: ShapeDecoration(
+                            color: AppColors.surface(),
+                            shape: SmoothRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(Dimensions.size25),
+                              smoothness: Dimensions.size1,
+                              side: BorderSide(
+                                color:
+                                    AppColors.outline().withValues(alpha: 0.35),
+                              ),
+                            ),
+                            shadows: [
+                              BoxShadow(
+                                blurRadius: Dimensions.size30,
+                                offset: const Offset(0, 16),
+                                color: Colors.black.withValues(alpha: 0.18),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                          child: sheetContent,
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -1216,6 +1571,48 @@ class DynamicReportPageState extends State<DynamicReportPage>
     required bool canClear,
     required VoidCallback onClear,
   }) {
+    final bool glass = isGlass;
+
+    final Widget content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: Dimensions.text14,
+                  fontWeight: FontWeight.w900,
+                  color: glass
+                      ? Colors.white.withOpacity(0.92)
+                      : AppColors.onSurface(),
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: canClear ? onClear : null,
+              icon: const Icon(Icons.backspace),
+              color: glass ? Colors.white.withOpacity(0.75) : null,
+            ),
+          ],
+        ),
+        SizedBox(height: Dimensions.size10),
+        child,
+      ],
+    );
+
+    if (glass) {
+      return GlassContainer(
+        blur: Dimensions.size15,
+        borderRadius: Dimensions.size20,
+        opacity: 0.10,
+        borderOpacity: 0.18,
+        padding: EdgeInsets.all(Dimensions.size15),
+        child: content,
+      );
+    }
+
     return Container(
       padding: EdgeInsets.all(Dimensions.size15),
       decoration: ShapeDecoration(
@@ -1228,31 +1625,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
           ),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: Dimensions.text14,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.onSurface(),
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: canClear ? onClear : null,
-                icon: const Icon(Icons.backspace),
-              ),
-            ],
-          ),
-          SizedBox(height: Dimensions.size10),
-          child,
-        ],
-      ),
+      child: content,
     );
   }
 
@@ -1262,6 +1635,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     required VoidCallback onChanged,
   }) {
     Widget widget = const SizedBox.shrink();
+    final bool glass = isGlass;
 
     if (filter.type == "STRING") {
       widget = TextFormField(
@@ -1392,44 +1766,77 @@ class DynamicReportPageState extends State<DynamicReportPage>
             borderRadius: BorderRadius.circular(Dimensions.size15),
             smoothness: Dimensions.size1,
           ),
-          child: Ink(
-            width: double.infinity,
-            height: Dimensions.size55,
-            decoration: ShapeDecoration(
-              color: AppColors.surface(),
-              shape: SmoothRectangleBorder(
-                borderRadius: BorderRadius.circular(Dimensions.size15),
-                smoothness: Dimensions.size1,
-                side: BorderSide(
-                  color: AppColors.outline().withValues(alpha: 0.35),
-                ),
-              ),
-            ),
-            padding: EdgeInsets.symmetric(horizontal: Dimensions.size15),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    StringUtils.isNotNullOrEmpty(filter.controller!.text)
-                        ? filter.controller!.text
-                        : "choose".tr(),
-                    style: TextStyle(
-                      fontSize: Dimensions.text16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.onSurface().withValues(
-                        alpha: StringUtils.isNotNullOrEmpty(
-                          filter.controller!.text,
-                        )
-                            ? 1
-                            : 0.65,
+          child: Builder(
+            builder: (context) {
+              final Widget content = Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      StringUtils.isNotNullOrEmpty(filter.controller!.text)
+                          ? filter.controller!.text
+                          : "choose".tr(),
+                      style: TextStyle(
+                        fontSize: Dimensions.text16,
+                        fontWeight: FontWeight.w700,
+                        color: glass
+                            ? Colors.white.withOpacity(
+                                StringUtils.isNotNullOrEmpty(
+                                  filter.controller!.text,
+                                )
+                                    ? 0.95
+                                    : 0.70,
+                              )
+                            : AppColors.onSurface().withValues(
+                                alpha: StringUtils.isNotNullOrEmpty(
+                                  filter.controller!.text,
+                                )
+                                    ? 1
+                                    : 0.65,
+                              ),
                       ),
                     ),
                   ),
+                  SizedBox(width: Dimensions.size10),
+                  Icon(
+                    Icons.unfold_more,
+                    size: Dimensions.size25,
+                    color: glass ? Colors.white.withOpacity(0.85) : null,
+                  ),
+                ],
+              );
+
+              if (glass) {
+                return GlassContainer(
+                  blur: Dimensions.size15,
+                  borderRadius: Dimensions.size15,
+                  opacity: 0.10,
+                  borderOpacity: 0.18,
+                  padding: EdgeInsets.symmetric(horizontal: Dimensions.size15),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: Dimensions.size55,
+                    child: content,
+                  ),
+                );
+              }
+
+              return Ink(
+                width: double.infinity,
+                height: Dimensions.size55,
+                decoration: ShapeDecoration(
+                  color: AppColors.surface(),
+                  shape: SmoothRectangleBorder(
+                    borderRadius: BorderRadius.circular(Dimensions.size15),
+                    smoothness: Dimensions.size1,
+                    side: BorderSide(
+                      color: AppColors.outline().withValues(alpha: 0.35),
+                    ),
+                  ),
                 ),
-                SizedBox(width: Dimensions.size10),
-                Icon(Icons.unfold_more, size: Dimensions.size25),
-              ],
-            ),
+                padding: EdgeInsets.symmetric(horizontal: Dimensions.size15),
+                child: content,
+              );
+            },
           ),
         ),
       );
@@ -1442,10 +1849,13 @@ class DynamicReportPageState extends State<DynamicReportPage>
     required String hint,
     Widget? suffixIcon,
   }) {
+    final bool glass = isGlass;
     final OutlineInputBorder outline = OutlineInputBorder(
       borderRadius: BorderRadius.circular(Dimensions.size20),
       borderSide: BorderSide(
-        color: AppColors.outline().withValues(alpha: 0.45),
+        color: glass
+            ? Colors.white.withOpacity(0.35)
+            : AppColors.outline().withValues(alpha: 0.45),
         width: 1,
       ),
     );
@@ -1453,7 +1863,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     return InputDecoration(
       hintText: hint,
       filled: true,
-      fillColor: AppColors.surface(),
+      fillColor: glass ? Colors.white.withOpacity(0.12) : AppColors.surface(),
       contentPadding: EdgeInsets.symmetric(
         horizontal: Dimensions.size15,
         vertical: Dimensions.size15,
@@ -1461,7 +1871,9 @@ class DynamicReportPageState extends State<DynamicReportPage>
       enabledBorder: outline,
       focusedBorder: outline.copyWith(
         borderSide: BorderSide(
-          color: AppColors.onSurface().withValues(alpha: 0.60),
+          color: glass
+              ? Colors.white.withOpacity(0.60)
+              : AppColors.onSurface().withValues(alpha: 0.60),
           width: 1.2,
         ),
       ),

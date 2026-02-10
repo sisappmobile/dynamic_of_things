@@ -1,3 +1,7 @@
+// ignore_for_file: deprecated_member_use
+
+import "dart:math" as math;
+
 import "package:base/base.dart";
 import "package:flutter/material.dart";
 import "package:smooth_corner/smooth_corner.dart";
@@ -22,56 +26,41 @@ class CustomPagination extends StatefulWidget {
     this.groupSpacing = 10.0,
   });
 
-  ///Trigger when page changed
   final Function(int) onPageChanged;
 
-  ///End of numbers.
   final int pageTotal;
 
-  ///Page number to be displayed first, default is 1.
   final int pageInit;
 
-  ///Numbers to show at once. default is 10.
   final int threshold;
 
-  ///Color of numbers. default is black.
   final Color colorPrimary;
 
-  ///Color of background. default is white.
   final Color colorSub;
 
-  ///to First, to Previous, to next, to Last Button UI.
   final Widget? controlButton;
 
-  ///The icon of button to previous.
   final Widget iconPrevious;
 
-  ///The icon of button to next.
   final Widget iconNext;
 
-  ///The size of numbers. default is 15.
   final double fontSize;
 
-  ///The fontFamily of numbers.
   final String? fontFamily;
 
-  ///The elevation of the buttons.
   final double buttonElevation;
 
-  ///The Radius of the buttons.
   final double buttonRadius;
 
-  // Spacing between buttons, default is 4.0
   final double buttonSpacing;
 
-  // Spacing between button groups, default is 10.0
   final double groupSpacing;
 
   @override
-  _NumberPaginationState createState() => _NumberPaginationState();
+  NumberPaginationState createState() => NumberPaginationState();
 }
 
-class _NumberPaginationState extends State<CustomPagination> {
+class NumberPaginationState extends State<CustomPagination> {
   late int currentPage;
 
   @override
@@ -80,8 +69,8 @@ class _NumberPaginationState extends State<CustomPagination> {
     super.initState();
   }
 
-  void _changePage(int targetPage) {
-    int newPage = targetPage.clamp(1, widget.pageTotal);
+  void changePage(int targetPage) {
+    final int newPage = targetPage.clamp(1, widget.pageTotal);
 
     if (currentPage != newPage) {
       setState(() {
@@ -91,62 +80,155 @@ class _NumberPaginationState extends State<CustomPagination> {
     }
   }
 
-  Widget _buildPageNumbers(int rangeStart, int rangeEnd) {
+  int channelToLinear(int c) {
+    final double v = c / 255.0;
+    if (v <= 0.03928) {
+      return (v / 12.92 * 1000000).round();
+    }
+    return (math.pow((v + 0.055) / 1.055, 2.4) * 1000000).round();
+  }
+
+  double relativeLuminance(Color color) {
+    final int r = channelToLinear(color.red);
+    final int g = channelToLinear(color.green);
+    final int b = channelToLinear(color.blue);
+
+    final double rf = r / 1000000.0;
+    final double gf = g / 1000000.0;
+    final double bf = b / 1000000.0;
+    return 0.2126 * rf + 0.7152 * gf + 0.0722 * bf;
+  }
+
+  double contrastRatio(Color a, Color b) {
+    final double l1 = relativeLuminance(a);
+    final double l2 = relativeLuminance(b);
+    final double hi = math.max(l1, l2);
+    final double lo = math.min(l1, l2);
+    return (hi + 0.05) / (lo + 0.05);
+  }
+
+  bool isNearWhite(Color c) => relativeLuminance(c) > 0.92;
+
+  bool isLowContrast(Color fg, Color bg) => contrastRatio(fg, bg) < 3.0;
+
+  Color safeTextOn(Color desiredText, Color bg, {Color? fallback}) {
+    if (!isLowContrast(desiredText, bg)) {
+      return desiredText;
+    }
+
+    final Color fb = fallback ?? AppColors.onSurface();
+    if (!isLowContrast(fb, bg)) {
+      return fb;
+    }
+
+    final Color alt = relativeLuminance(bg) > 0.6 ? Colors.black : Colors.white;
+    return alt;
+  }
+
+  Color safeFill(Color desiredBg, Color fgHint) {
+    if (isNearWhite(desiredBg) && isNearWhite(fgHint)) {
+      return desiredBg.withOpacity(0.20);
+    }
+
+    if (isLowContrast(fgHint, desiredBg)) {
+      return desiredBg.withOpacity(0.35);
+    }
+    return desiredBg;
+  }
+
+  BorderSide safeBorder(Color bg) {
+    final Color base = AppColors.outline();
+    if (isNearWhite(bg)) {
+      return BorderSide(color: base.withOpacity(0.85));
+    }
+    return BorderSide(color: base);
+  }
+
+  Widget pageNumbers(int rangeStart, int rangeEnd) {
+    final int count = rangeEnd <= widget.pageTotal
+        ? widget.threshold
+        : widget.pageTotal % widget.threshold;
+
     return Flexible(
       fit: FlexFit.loose,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: List.generate(
-          rangeEnd <= widget.pageTotal ? widget.threshold : widget.pageTotal % widget.threshold,
-          (index) => Flexible(
-            child: Padding(
-              padding: const EdgeInsets.all(1.5),
-              child: OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  surfaceTintColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(widget.buttonRadius),
-                    side: BorderSide(color: AppColors.outline()),
+          count,
+          (index) {
+            final bool isSelected =
+                (currentPage - 1) % widget.threshold == index;
+
+            final Color desiredBg =
+                isSelected ? widget.colorPrimary : widget.colorSub;
+            final Color desiredFg =
+                isSelected ? widget.colorSub : widget.colorPrimary;
+
+            final Color safeBg = safeFill(desiredBg, desiredFg);
+
+            final Color desiredText = isSelected ? Colors.black : desiredFg;
+            final Color safeText = safeTextOn(
+              desiredText,
+              safeBg,
+              fallback: isSelected ? widget.colorSub : AppColors.onSurface(),
+            );
+
+            final Color safeFgForButton =
+                safeTextOn(desiredFg, safeBg, fallback: AppColors.onSurface());
+
+            return Flexible(
+              child: Padding(
+                padding: const EdgeInsets.all(1.5),
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    surfaceTintColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(widget.buttonRadius),
+                      side: safeBorder(safeBg),
+                    ),
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size(Dimensions.size50, Dimensions.size50),
+                    foregroundColor: safeFgForButton,
+                    backgroundColor: safeBg,
                   ),
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(48, 48),
-                  foregroundColor: (currentPage - 1) % widget.threshold == index ? widget.colorSub : widget.colorPrimary,
-                  backgroundColor: (currentPage - 1) % widget.threshold == index ? widget.colorPrimary : widget.colorSub,
-                ),
-                onPressed: () => _changePage(index + 1 + rangeStart),
-                child: Text(
-                  "${index + 1 + rangeStart}",
-                  style: TextStyle(
-                    fontSize: widget.fontSize,
-                    fontFamily: widget.fontFamily,
-                    color: (currentPage - 1) % widget.threshold == index ? widget.colorSub : widget.colorPrimary,
+                  onPressed: () => changePage(index + 1 + rangeStart),
+                  child: Text(
+                    "${index + 1 + rangeStart}",
+                    style: TextStyle(
+                      fontSize: widget.fontSize,
+                      fontFamily: widget.fontFamily,
+                      color: safeText,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildControlButton(Widget icon, bool enabled, VoidCallback onTap) {
+  Widget controlButton(Widget icon, bool enabled, VoidCallback onTap) {
+    final Color bg = safeFill(widget.colorSub, widget.colorPrimary);
+    final Color fgEnabled =
+        safeTextOn(widget.colorPrimary, bg, fallback: AppColors.onSurface());
+    final Color fgDisabled = safeTextOn(Colors.grey, bg, fallback: Colors.grey);
+
     return OutlinedButton(
       style: OutlinedButton.styleFrom(
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size10),
-          smoothness: 1,
-          side: BorderSide(
-            color: AppColors.outline(),
-          ),
+          smoothness: Dimensions.size1,
+          side: safeBorder(bg),
         ),
         surfaceTintColor: Colors.transparent,
         padding: EdgeInsets.zero,
-        minimumSize: const Size(48, 48),
-        foregroundColor: enabled ? widget.colorPrimary : Colors.grey,
-        backgroundColor: widget.colorSub,
-        disabledForegroundColor: widget.colorPrimary,
-        disabledBackgroundColor: widget.colorSub,
+        minimumSize: Size(Dimensions.size50, Dimensions.size50),
+        foregroundColor: enabled ? fgEnabled : fgDisabled,
+        backgroundColor: bg,
+        disabledForegroundColor: fgDisabled,
+        disabledBackgroundColor: bg,
       ),
       onPressed: enabled ? onTap : null,
       child: icon,
@@ -155,25 +237,27 @@ class _NumberPaginationState extends State<CustomPagination> {
 
   @override
   Widget build(BuildContext context) {
-    final rangeStart = currentPage % widget.threshold == 0 ? currentPage - widget.threshold : (currentPage ~/ widget.threshold) * widget.threshold;
+    final int rangeStart = currentPage % widget.threshold == 0
+        ? currentPage - widget.threshold
+        : (currentPage ~/ widget.threshold) * widget.threshold;
 
-    final rangeEnd = rangeStart + widget.threshold;
+    final int rangeEnd = rangeStart + widget.threshold;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _buildControlButton(
+        controlButton(
           widget.iconPrevious,
           currentPage != 1,
-          () => _changePage(currentPage - 1),
+          () => changePage(currentPage - 1),
         ),
         SizedBox(width: widget.groupSpacing),
-        _buildPageNumbers(rangeStart, rangeEnd),
+        pageNumbers(rangeStart, rangeEnd),
         SizedBox(width: widget.groupSpacing),
-        _buildControlButton(
+        controlButton(
           widget.iconNext,
           currentPage != widget.pageTotal,
-          () => _changePage(currentPage + 1),
+          () => changePage(currentPage + 1),
         ),
       ],
     );

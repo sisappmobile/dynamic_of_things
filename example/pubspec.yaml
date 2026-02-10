@@ -82,6 +82,7 @@ flutter:
     - assets/font/
     - assets/i18n/
     - assets/lottie/
+    - assets/image/
   fonts:
     - family: Manrope
       fonts:

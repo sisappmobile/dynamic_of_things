@@ -1,8 +1,13 @@
+// ignore_for_file: deprecated_member_use
+
 import "package:base/base.dart";
+import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/bottom_sheets.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
+import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_sub_detail_form.dart";
+import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:go_router/go_router.dart";
@@ -81,13 +86,90 @@ class CustomDynamicFormSubDetailListState
   @override
   bool get wantKeepAlive => true;
 
-  Color _card(BuildContext context) => AppColors.surface();
-  Color _soft(BuildContext context) => AppColors.surfaceContainerLowest();
-  Color _fg(BuildContext context) => AppColors.onSurface();
-  Color _outline(BuildContext context) => AppColors.outline();
+  bool get _isGlass {
+    try {
+      return (Preferences.getInstance()
+                  .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
+              1) ==
+          2;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Color _card(BuildContext context) =>
+      _isGlass ? Colors.white.withOpacity(0.10) : AppColors.surface();
+  Color _soft(BuildContext context) => _isGlass
+      ? Colors.white.withOpacity(0.08)
+      : AppColors.surfaceContainerLowest();
+  Color _fg(BuildContext context) =>
+      _isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
+  Color _outline(BuildContext context) =>
+      _isGlass ? Colors.white.withOpacity(0.18) : AppColors.outline();
 
   Widget _headerCard(BuildContext context) {
     final Color primary = Theme.of(context).colorScheme.primary;
+
+    final Widget headerContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: Dimensions.size10,
+                vertical: Dimensions.size5,
+              ),
+              decoration: BoxDecoration(
+                color: primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(Dimensions.size100),
+                border: Border.all(
+                  color: primary.withValues(alpha: 0.22),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.layers_rounded,
+                    size: Dimensions.size15,
+                    color: primary,
+                  ),
+                  SizedBox(width: Dimensions.size5),
+                  Text(
+                    widget.subDetailForm.template.title.toUpperCase(),
+                    style: TextStyle(
+                      color: primary,
+                      fontSize: Dimensions.text12,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Spacer(),
+            if (!isReadOnly() && hasAddAccess())
+              _miniAddButton(context: context),
+          ],
+        ),
+        if (!isReadOnly() && hasAddAccess()) ...[
+          SizedBox(height: Dimensions.size10),
+          ...addButton(),
+        ],
+      ],
+    );
+
+    if (_isGlass) {
+      return GlassContainer(
+        blur: Dimensions.size20,
+        borderRadius: Dimensions.size20,
+        opacity: 0.12,
+        borderOpacity: 0.22,
+        padding: EdgeInsets.all(Dimensions.size15),
+        child: headerContent,
+      );
+    }
 
     return Container(
       padding: EdgeInsets.all(Dimensions.size15),
@@ -108,55 +190,7 @@ class CustomDynamicFormSubDetailListState
           ),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: Dimensions.size10,
-                  vertical: Dimensions.size5,
-                ),
-                decoration: BoxDecoration(
-                  color: primary.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(Dimensions.size100),
-                  border: Border.all(
-                    color: primary.withValues(alpha: 0.22),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.layers_rounded,
-                      size: Dimensions.size15,
-                      color: primary,
-                    ),
-                    SizedBox(width: Dimensions.size5),
-                    Text(
-                      widget.subDetailForm.template.title.toUpperCase(),
-                      style: TextStyle(
-                        color: primary,
-                        fontSize: Dimensions.text12,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              if (!isReadOnly() && hasAddAccess())
-                _miniAddButton(context: context),
-            ],
-          ),
-          if (!isReadOnly() && hasAddAccess()) ...[
-            SizedBox(height: Dimensions.size10),
-            ...addButton(),
-          ],
-        ],
-      ),
+      child: headerContent,
     );
   }
 
@@ -264,18 +298,18 @@ class CustomDynamicFormSubDetailListState
             if (i + 1 < columns.length) {
               ListColumn lcRight = columns[i + 1];
 
-              children..add(const SizedBox(width: _gapInner))
-
-              ..add(
-                childrenWidget(
-                  description: lcRight.description,
-                  value: DynamicForms.spell(
-                    type: lcRight.type,
-                    value: map[lcRight.name],
+              children
+                ..add(const SizedBox(width: _gapInner))
+                ..add(
+                  childrenWidget(
+                    description: lcRight.description,
+                    value: DynamicForms.spell(
+                      type: lcRight.type,
+                      value: map[lcRight.name],
+                    ),
+                    left: false,
                   ),
-                  left: false,
-                ),
-              );
+                );
             }
 
             widgets.add(
@@ -422,31 +456,48 @@ class CustomDynamicFormSubDetailListState
               borderRadius: BorderRadius.circular(Dimensions.size20),
               smoothness: Dimensions.size1,
             ),
-            child: Ink(
-              decoration: ShapeDecoration(
-                color: _card(context),
-                shadows: [
-                  BoxShadow(
-                    blurRadius: Dimensions.size20,
-                    offset: Offset(0, Dimensions.size10),
-                    color: Colors.black.withValues(alpha: 0.10),
+            child: Builder(
+              builder: (context) {
+                final Widget content = Padding(
+                  padding: EdgeInsets.all(Dimensions.size15),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: widgets,
                   ),
-                ],
-                shape: SmoothRectangleBorder(
-                  borderRadius: BorderRadius.circular(Dimensions.size20),
-                  smoothness: Dimensions.size1,
-                  side: BorderSide(
-                    color: _outline(context).withValues(alpha: 0.35),
+                );
+
+                if (_isGlass) {
+                  return GlassContainer(
+                    blur: Dimensions.size20,
+                    borderRadius: Dimensions.size20,
+                    opacity: 0.12,
+                    borderOpacity: 0.22,
+                    padding: EdgeInsets.zero,
+                    child: content,
+                  );
+                }
+
+                return Ink(
+                  decoration: ShapeDecoration(
+                    color: _card(context),
+                    shadows: [
+                      BoxShadow(
+                        blurRadius: Dimensions.size20,
+                        offset: Offset(0, Dimensions.size10),
+                        color: Colors.black.withValues(alpha: 0.10),
+                      ),
+                    ],
+                    shape: SmoothRectangleBorder(
+                      borderRadius: BorderRadius.circular(Dimensions.size20),
+                      smoothness: Dimensions.size1,
+                      side: BorderSide(
+                        color: _outline(context).withValues(alpha: 0.35),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              child: Padding(
-                padding: EdgeInsets.all(Dimensions.size15),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: widgets,
-                ),
-              ),
+                  child: content,
+                );
+              },
             ),
           ),
         );
@@ -511,57 +562,94 @@ class CustomDynamicFormSubDetailListState
 
   List<Widget> addButton() {
     if (!isReadOnly() && hasAddAccess()) {
+      Future<void> handleAdd() async {
+        Map<String, dynamic>? result;
+
+        if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+          result = await Navigators.push(
+            CustomDynamicFormSubDetailForm(
+              customerId: widget.customerId,
+              readOnly: false,
+              headerForm: widget.headerForm,
+              detailForm: widget.detailForm,
+              subDetailForm: widget.subDetailForm,
+              data: {},
+            ),
+          );
+        } else {
+          result = await context.push(
+            "/dynamic-form-sub-details",
+            extra: {
+              "customerId": widget.customerId,
+              "readOnly": false,
+              "headerForm": widget.headerForm,
+              "detailForm": widget.detailForm,
+              "subDetailForm": widget.subDetailForm,
+            },
+          );
+        }
+
+        if (result != null) {
+          widget.subDetailForm.addRow(detailData, result);
+
+          if (widget.subDetailForm.hasOnChangeEvent) {
+            if (widget.onRefresh != null) {
+              widget.onRefresh!();
+            }
+          }
+        }
+      }
+
       return [
         SizedBox(height: Dimensions.size10),
         SizedBox(
           height: Dimensions.size50,
-          child: OutlinedButton(
-            onPressed: () async {
-              Map<String, dynamic>? result;
-
-              if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                result = await Navigators.push(
-                  CustomDynamicFormSubDetailForm(
-                    customerId: widget.customerId,
-                    readOnly: false,
-                    headerForm: widget.headerForm,
-                    detailForm: widget.detailForm,
-                    subDetailForm: widget.subDetailForm,
-                    data: {},
+          child: _isGlass
+              ? Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: handleAdd,
+                    borderRadius: BorderRadius.circular(Dimensions.size15),
+                    child: GlassContainer(
+                      blur: Dimensions.size15,
+                      borderRadius: Dimensions.size15,
+                      opacity: 0.10,
+                      borderOpacity: 0.18,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: Dimensions.size15,
+                        vertical: Dimensions.size10,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.add,
+                            color: _fg(context),
+                          ),
+                          SizedBox(width: Dimensions.size5),
+                          Text(
+                            "add".tr(),
+                            style: TextStyle(
+                              color: _fg(context),
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                );
-              } else {
-                result = await context.push(
-                  "/dynamic-form-sub-details",
-                  extra: {
-                    "customerId": widget.customerId,
-                    "readOnly": false,
-                    "headerForm": widget.headerForm,
-                    "detailForm": widget.detailForm,
-                    "subDetailForm": widget.subDetailForm,
-                  },
-                );
-              }
-
-              if (result != null) {
-                widget.subDetailForm.addRow(detailData, result);
-
-                if (widget.subDetailForm.hasOnChangeEvent) {
-                  if (widget.onRefresh != null) {
-                    widget.onRefresh!();
-                  }
-                }
-              }
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.add),
-                SizedBox(width: Dimensions.size5),
-                Text("add".tr()),
-              ],
-            ),
-          ),
+                )
+              : OutlinedButton(
+                  onPressed: handleAdd,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.add),
+                      SizedBox(width: Dimensions.size5),
+                      Text("add".tr()),
+                    ],
+                  ),
+                ),
         ),
       ];
     }
