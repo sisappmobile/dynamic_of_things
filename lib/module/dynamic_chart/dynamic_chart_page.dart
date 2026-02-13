@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use
-
 import "dart:io";
 import "dart:math" as math;
 
@@ -223,40 +221,51 @@ class DynamicChartPageState extends State<DynamicChartPage>
           context.loaderOverlay.hide();
         }
       },
-      child: Scaffold(
-        backgroundColor: glass
-            ? Colors.transparent
-            : Theme.of(context).scaffoldBackgroundColor,
-        body: Stack(
-          children: [
-            if (glass) ...[
-              Positioned.fill(child: _glassBackground()),
-              Positioned.fill(child: _glassOverlay()),
-            ],
-            SafeArea(
-              bottom: false,
-              child: Column(
-                children: [
-                  AppBarDynamicChart(
-                    isGlass: glass,
-                    title: "dynamic_chart".tr(),
-                    rangeLabel: rangeLabel(),
-                    onPickRange: pickRangeDate,
-                    onBack: () {
-                      if (BaseSettings.navigatorType ==
-                          BaseNavigatorType.legacy) {
-                        Navigators.pop();
-                      } else {
-                        context.pop();
-                      }
-                    },
-                  ),
-                  Expanded(child: body(glass: glass)),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isMobile = Dimensions.isMobile();
+
+          final bool drawWallpaper = glass && isMobile;
+
+          final bool glassAppBar = glass && isMobile;
+
+          return Scaffold(
+            backgroundColor: glass
+                ? Colors.transparent
+                : Theme.of(context).scaffoldBackgroundColor,
+            body: Stack(
+              children: [
+                if (drawWallpaper) ...[
+                  Positioned.fill(child: _glassBackground()),
+                  Positioned.fill(child: _glassOverlay()),
                 ],
-              ),
+                SafeArea(
+                  top: !glassAppBar,
+                  bottom: false,
+                  child: Column(
+                    children: [
+                      AppBarDynamicChart(
+                        isGlass: glassAppBar,
+                        title: "dynamic_chart".tr(),
+                        rangeLabel: rangeLabel(),
+                        onPickRange: pickRangeDate,
+                        onBack: () {
+                          if (BaseSettings.navigatorType ==
+                              BaseNavigatorType.legacy) {
+                            Navigators.pop();
+                          } else {
+                            context.pop();
+                          }
+                        },
+                      ),
+                      Expanded(child: body(glass: glass)),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
