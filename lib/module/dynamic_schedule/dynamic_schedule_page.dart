@@ -39,7 +39,7 @@ class DynamicSchedulePage extends StatefulWidget {
 class DynamicSchedulePageState extends State<DynamicSchedulePage>
     with WidgetsBindingObserver {
   Template? template;
-  bool _prefsReady = false;
+  bool prefsReady = false;
 
   List<Item> items = <Item>[];
   ItemDataSource dataSource = ItemDataSource(<Item>[]);
@@ -61,7 +61,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
-    _initPrefs();
+    initPrefs();
 
     selectedDate = DateTime(today.year, today.month, today.day);
     calendarController.view = CalendarView.month;
@@ -74,7 +74,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
         );
   }
 
-  Future<void> _initPrefs() async {
+  Future<void> initPrefs() async {
     try {
       await Preferences.getInstance().init();
     } catch (_) {
@@ -86,12 +86,12 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     }
 
     setState(() {
-      _prefsReady = true;
+      prefsReady = true;
     });
   }
 
   bool get isGlass {
-    if (!_prefsReady) {
+    if (!prefsReady) {
       return false;
     }
 
@@ -101,7 +101,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     return t == 2;
   }
 
-  Widget _glassBackground() {
+  Widget glassBackground() {
     final String p = (Preferences.getInstance()
                 .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
             "")
@@ -122,22 +122,6 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
   }
 
-  Widget _glassOverlay() {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            Color.fromRGBO(0, 0, 0, 0.55),
-            Color.fromRGBO(0, 0, 0, 0.22),
-            Color.fromRGBO(0, 0, 0, 0.40),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -153,9 +137,6 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
 
   @override
   Widget build(BuildContext context) {
-    final EdgeInsets safe = MediaQuery.of(context).padding;
-    final bool glass = isGlass;
-
     return BlocListener<DynamicScheduleBloc, DynamicScheduleState>(
       listener: (context, state) async {
         if (state is DynamicScheduleTemplateLoading) {
@@ -194,16 +175,30 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
       },
       child: Scaffold(
         backgroundColor:
-            glass ? Colors.transparent : AppColors.surfaceContainerLowest(),
+            isGlass ? Colors.transparent : AppColors.surfaceContainerLowest(),
         body: Stack(
           children: [
-            if (glass) ...[
-              Positioned.fill(child: _glassBackground()),
-              Positioned.fill(child: _glassOverlay()),
+            if (isGlass) ...[
+              Positioned.fill(child: glassBackground()),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: <Color>[
+                        Color.fromRGBO(0, 0, 0, 0.55),
+                        Color.fromRGBO(0, 0, 0, 0.22),
+                        Color.fromRGBO(0, 0, 0, 0.40),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
             Column(
               children: [
-                SizedBox(height: safe.top),
+                SizedBox(height: MediaQuery.of(context).padding.top),
                 Padding(
                   padding: EdgeInsets.fromLTRB(
                     Dimensions.size15,
@@ -234,7 +229,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                     child: separatedCard(),
                   ),
                 ),
-                SizedBox(height: safe.bottom),
+                SizedBox(height: MediaQuery.of(context).padding.bottom),
               ],
             ),
           ],
@@ -336,9 +331,9 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
       children: [
         Padding(
           padding: EdgeInsets.fromLTRB(
+            Dimensions.size10,
             Dimensions.size15,
-            Dimensions.size15,
-            Dimensions.size15,
+            Dimensions.size10,
             Dimensions.size10,
           ),
           child: monthSwitcher(),
@@ -387,31 +382,9 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                   d.month == selectedDate.month &&
                   d.day == selectedDate.day;
 
-              final Color fg = glass
-                  ? Colors.white.withOpacity(0.90)
-                  : AppColors.onSurface();
-              final Color muted = glass
-                  ? Colors.white.withOpacity(0.50)
-                  : fg.withValues(alpha: 0.45);
-
               final DateTime display = calendarController.displayDate ?? d;
               final bool inSameMonth =
                   d.month == display.month && d.year == display.year;
-
-              final Color textColor = inSameMonth ? fg : muted;
-
-              final Color selectedBg = glass
-                  ? Colors.white.withOpacity(0.16)
-                  : AppColors.primaryContainer().withValues(alpha: 0.45);
-              final Color selectedBorder = glass
-                  ? Colors.white.withOpacity(0.30)
-                  : AppColors.onPrimaryContainer().withValues(alpha: 0.18);
-              final Color todayBg = glass
-                  ? Colors.white.withOpacity(0.22)
-                  : AppColors.primaryContainer();
-              final Color todayText = glass
-                  ? Colors.white.withOpacity(0.95)
-                  : AppColors.onPrimaryContainer();
 
               return InkWell(
                 onTap: () {
@@ -423,13 +396,22 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                   padding: EdgeInsets.all(Dimensions.size5),
                   child: Container(
                     decoration: ShapeDecoration(
-                      color: isSelected ? selectedBg : Colors.transparent,
+                      color: isSelected
+                          ? glass
+                              ? Colors.white.withOpacity(0.16)
+                              : AppColors.primaryContainer()
+                                  .withValues(alpha: 0.45)
+                          : Colors.transparent,
                       shape: SmoothRectangleBorder(
                         borderRadius: BorderRadius.circular(Dimensions.size15),
                         smoothness: Dimensions.size1,
                         side: BorderSide(
-                          color:
-                              isSelected ? selectedBorder : Colors.transparent,
+                          color: isSelected
+                              ? glass
+                                  ? Colors.white.withOpacity(0.30)
+                                  : AppColors.onPrimaryContainer()
+                                      .withValues(alpha: 0.18)
+                              : Colors.transparent,
                         ),
                       ),
                     ),
@@ -445,7 +427,11 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                                 vertical: Dimensions.size5,
                               ),
                               decoration: ShapeDecoration(
-                                color: isToday ? todayBg : Colors.transparent,
+                                color: isToday
+                                    ? glass
+                                        ? Colors.white.withOpacity(0.22)
+                                        : AppColors.primaryContainer()
+                                    : Colors.transparent,
                                 shape: SmoothRectangleBorder(
                                   borderRadius: BorderRadius.circular(
                                     Dimensions.size15,
@@ -458,7 +444,21 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                                 style: TextStyle(
                                   fontWeight: FontWeight.w900,
                                   fontSize: Dimensions.text12,
-                                  color: isToday ? todayText : textColor,
+                                  color: isToday
+                                      ? glass
+                                          ? Colors.white.withOpacity(0.95)
+                                          : AppColors.onPrimaryContainer()
+                                      : inSameMonth
+                                          ? glass
+                                              ? Colors.white.withOpacity(0.90)
+                                              : AppColors.onSurface()
+                                          : glass
+                                              ? Colors.white.withOpacity(0.50)
+                                              : glass
+                                                  ? Colors.white
+                                                      .withOpacity(0.90)
+                                                  : AppColors.onSurface()
+                                                      .withValues(alpha: 0.45),
                                 ),
                               ),
                             ),
@@ -528,7 +528,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
               shadows: [
                 BoxShadow(
                   blurRadius: Dimensions.size25,
-                  offset: const Offset(0, 12),
+                  offset: Offset(0, Dimensions.size10),
                   color: Colors.black.withValues(alpha: 0.10),
                 ),
               ],
@@ -602,7 +602,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
               ],
               shape: SmoothRectangleBorder(
                 borderRadius: BorderRadius.circular(Dimensions.size25),
-                smoothness: 1,
+                smoothness: Dimensions.size1,
                 side: BorderSide(
                   color: AppColors.outline().withValues(alpha: 0.30),
                 ),
@@ -626,8 +626,6 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
 
   Widget monthSwitcher() {
     final DateTime display = calendarController.displayDate ?? selectedDate;
-    final DateTime prev = DateTime(display.year, display.month - 1, 1);
-    final DateTime next = DateTime(display.year, display.month + 1, 1);
 
     return Row(
       children: [
@@ -635,8 +633,9 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
           child: Align(
             alignment: Alignment.centerLeft,
             child: monthSide(
-              label: monthName(prev),
-              onTap: () => jumptToMonth(prev),
+              label: monthName(DateTime(display.year, display.month - 1, 1)),
+              onTap: () =>
+                  jumptToMonth(DateTime(display.year, display.month - 1, 1)),
               alignLeft: true,
             ),
           ),
@@ -646,8 +645,9 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
           child: Align(
             alignment: Alignment.centerRight,
             child: monthSide(
-              label: monthName(next),
-              onTap: () => jumptToMonth(next),
+              label: monthName(DateTime(display.year, display.month + 1, 1)),
+              onTap: () =>
+                  jumptToMonth(DateTime(display.year, display.month + 1, 1)),
               alignLeft: false,
             ),
           ),
@@ -657,8 +657,6 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
   }
 
   Widget monthCenter(DateTime display) {
-    final bool glass = isGlass;
-
     final Widget content = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -667,14 +665,15 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
           style: TextStyle(
             fontWeight: FontWeight.w900,
             fontSize: Dimensions.text14,
-            color:
-                glass ? Colors.white.withOpacity(0.92) : AppColors.onSurface(),
+            color: isGlass
+                ? Colors.white.withOpacity(0.92)
+                : AppColors.onSurface(),
           ),
         ),
       ],
     );
 
-    if (glass) {
+    if (isGlass) {
       return GlassContainer(
         blur: Dimensions.size15,
         borderRadius: Dimensions.size100,
@@ -710,14 +709,6 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     required VoidCallback onTap,
     required bool alignLeft,
   }) {
-    final bool glass = isGlass;
-    final Color iconColor = glass
-        ? Colors.white.withOpacity(0.75)
-        : AppColors.onSurface().withValues(alpha: 0.55);
-    final Color textColor = glass
-        ? Colors.white.withOpacity(0.82)
-        : AppColors.onSurface().withValues(alpha: 0.65);
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -735,14 +726,18 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                     Icon(
                       Icons.chevron_left_rounded,
                       size: Dimensions.size20,
-                      color: iconColor,
+                      color: isGlass
+                          ? Colors.white.withOpacity(0.75)
+                          : AppColors.onSurface().withValues(alpha: 0.55),
                     ),
                     SizedBox(width: Dimensions.size2),
                     Text(
                       label,
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
-                        color: textColor,
+                        color: isGlass
+                            ? Colors.white.withOpacity(0.82)
+                            : AppColors.onSurface().withValues(alpha: 0.65),
                       ),
                     ),
                   ]
@@ -751,14 +746,18 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                       label,
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
-                        color: textColor,
+                        color: isGlass
+                            ? Colors.white.withOpacity(0.82)
+                            : AppColors.onSurface().withValues(alpha: 0.65),
                       ),
                     ),
                     SizedBox(width: Dimensions.size2),
                     Icon(
                       Icons.chevron_right_rounded,
                       size: Dimensions.size20,
-                      color: iconColor,
+                      color: isGlass
+                          ? Colors.white.withOpacity(0.75)
+                          : AppColors.onSurface().withValues(alpha: 0.55),
                     ),
                   ],
           ),
@@ -768,19 +767,16 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
   }
 
   void jumptToMonth(DateTime month) {
-    final DateTime d = DateTime(month.year, month.month, 1);
-
     setState(() {
-      selectedDate = d;
+      selectedDate = DateTime(month.year, month.month, 1);
     });
 
-    calendarController.displayDate = d;
+    calendarController.displayDate = DateTime(month.year, month.month, 1);
 
     refresh();
   }
 
   Widget agendaList() {
-    final bool glass = isGlass;
     final List<Item> dayItems = itemForDay(selectedDate);
 
     if (dayItems.isEmpty) {
@@ -788,7 +784,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
         children: [
           Icon(
             Icons.event_busy,
-            color: glass
+            color: isGlass
                 ? Colors.white.withOpacity(0.70)
                 : AppColors.onSurface().withValues(alpha: 0.55),
           ),
@@ -798,7 +794,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
               trSafe("no_data", "no_data".tr()),
               style: TextStyle(
                 fontWeight: FontWeight.w800,
-                color: glass
+                color: isGlass
                     ? Colors.white.withOpacity(0.85)
                     : AppColors.onSurface().withValues(alpha: 0.75),
               ),
@@ -814,7 +810,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
           Dimensions.size15,
           Dimensions.size15,
         ),
-        child: glass
+        child: isGlass
             ? GlassContainer(
                 blur: Dimensions.size15,
                 borderRadius: Dimensions.size20,
@@ -857,17 +853,14 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
   }
 
   Widget agenda(Item it) {
-    final bool glass = isGlass;
-    final DateTime begin = it.begin.dateTime;
-    final DateTime until = it.until.dateTime;
-
-    final bool isAllDay = allDay(begin, until);
+    final bool isAllDay = allDay(it.begin.dateTime, it.until.dateTime);
     final String title = it.title;
     final String desc = it.description.trim();
 
-    final String dow = weekdayById(begin).toUpperCase();
-    final String day = "${begin.day}";
-    final String time = isAllDay ? "Seharian" : timeRange(begin, until);
+    final String dow = weekdayById(it.begin.dateTime).toUpperCase();
+    final String day = "${it.begin.dateTime.day}";
+    final String time =
+        isAllDay ? "Seharian" : timeRange(it.begin.dateTime, it.until.dateTime);
 
     return Material(
       color: Colors.transparent,
@@ -875,9 +868,9 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
         onTap: () => openItemMenu(it),
         customBorder: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size20),
-          smoothness: 1,
+          smoothness: Dimensions.size1,
         ),
-        child: glass
+        child: isGlass
             ? GlassContainer(
                 blur: Dimensions.size15,
                 borderRadius: Dimensions.size20,
@@ -1253,9 +1246,6 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
   }
 
   Widget dateBadgeRed({required String dow, required String day}) {
-    final Color bg = Theme.of(context).colorScheme.error;
-    final Color fg = Theme.of(context).colorScheme.onError;
-
     return Container(
       width: Dimensions.size55,
       padding: EdgeInsets.symmetric(
@@ -1263,12 +1253,12 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
         horizontal: Dimensions.size10,
       ),
       decoration: ShapeDecoration(
-        color: bg,
+        color: Theme.of(context).colorScheme.error,
         shadows: [
           BoxShadow(
             blurRadius: Dimensions.size15,
             offset: Offset(0, Dimensions.size10),
-            color: bg.withValues(alpha: 0.30),
+            color: Theme.of(context).colorScheme.error.withValues(alpha: 0.30),
           ),
         ],
         shape: SmoothRectangleBorder(
@@ -1285,7 +1275,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
               fontWeight: FontWeight.w900,
               fontSize: Dimensions.text11,
               letterSpacing: 0.6,
-              color: fg,
+              color: Theme.of(context).colorScheme.onError,
             ),
           ),
           SizedBox(height: Dimensions.size2),
@@ -1295,7 +1285,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
               fontWeight: FontWeight.w900,
               fontSize: Dimensions.text18,
               height: 1.0,
-              color: fg,
+              color: Theme.of(context).colorScheme.onError,
             ),
           ),
         ],
@@ -1310,22 +1300,6 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     required VoidCallback? onTap,
     String? subtitle,
   }) {
-    final bool glass = isGlass;
-
-    final Color fg = glass
-        ? Colors.white.withOpacity(enabled ? 0.92 : 0.45)
-        : enabled
-            ? AppColors.onSurface()
-            : AppColors.onSurface().withValues(alpha: 0.35);
-
-    final Color iconBg = glass
-        ? Colors.white.withOpacity(0.10)
-        : AppColors.surfaceContainerLowest();
-
-    final Color iconBorder = glass
-        ? Colors.white.withOpacity(0.18)
-        : AppColors.outline().withValues(alpha: 0.18);
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1343,14 +1317,28 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                 width: Dimensions.size40,
                 height: Dimensions.size40,
                 decoration: ShapeDecoration(
-                  color: iconBg,
+                  color: isGlass
+                      ? Colors.white.withOpacity(0.10)
+                      : AppColors.surfaceContainerLowest(),
                   shape: SmoothRectangleBorder(
                     borderRadius: BorderRadius.circular(Dimensions.size15),
                     smoothness: Dimensions.size1,
-                    side: BorderSide(color: iconBorder),
+                    side: BorderSide(
+                      color: isGlass
+                          ? Colors.white.withOpacity(0.18)
+                          : AppColors.outline().withValues(alpha: 0.18),
+                    ),
                   ),
                 ),
-                child: Icon(icon, color: fg, size: Dimensions.size20),
+                child: Icon(
+                  icon,
+                  color: isGlass
+                      ? Colors.white.withOpacity(enabled ? 0.92 : 0.45)
+                      : enabled
+                          ? AppColors.onSurface()
+                          : AppColors.onSurface().withValues(alpha: 0.35),
+                  size: Dimensions.size20,
+                ),
               ),
               SizedBox(width: Dimensions.size10),
               Expanded(
@@ -1361,7 +1349,11 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                       title,
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
-                        color: fg,
+                        color: isGlass
+                            ? Colors.white.withOpacity(enabled ? 0.92 : 0.45)
+                            : enabled
+                                ? AppColors.onSurface()
+                                : AppColors.onSurface().withValues(alpha: 0.35),
                       ),
                     ),
                     if (subtitle != null && subtitle.trim().isNotEmpty) ...[
@@ -1373,9 +1365,18 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: Dimensions.text12,
-                          color: glass
+                          color: isGlass
                               ? Colors.white.withOpacity(enabled ? 0.70 : 0.55)
-                              : fg.withValues(alpha: enabled ? 0.70 : 0.60),
+                              : isGlass
+                                  ? Colors.white
+                                      .withOpacity(enabled ? 0.92 : 0.45)
+                                  : enabled
+                                      ? AppColors.onSurface()
+                                      : AppColors.onSurface()
+                                          .withValues(alpha: 0.35)
+                                          .withValues(
+                                            alpha: enabled ? 0.70 : 0.60,
+                                          ),
                         ),
                       ),
                     ],
@@ -1384,9 +1385,15 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
               ),
               Icon(
                 Icons.chevron_right_rounded,
-                color: glass
+                color: isGlass
                     ? Colors.white.withOpacity(0.70)
-                    : fg.withValues(alpha: 0.65),
+                    : isGlass
+                        ? Colors.white.withOpacity(enabled ? 0.92 : 0.45)
+                        : enabled
+                            ? AppColors.onSurface()
+                            : AppColors.onSurface()
+                                .withValues(alpha: 0.35)
+                                .withValues(alpha: 0.65),
               ),
             ],
           ),
@@ -1431,13 +1438,6 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
         ? trSafe("all", "Semua")
         : (template?.forms[formId] ?? "");
 
-    final bool glass = isGlass;
-    final Color titleColor =
-        glass ? Colors.white.withOpacity(0.95) : AppColors.onSurface();
-    final Color subColor = glass
-        ? Colors.white.withOpacity(0.72)
-        : AppColors.onSurface().withValues(alpha: 0.65);
-
     final Widget content = Row(
       children: [
         iconPill(
@@ -1463,7 +1463,9 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                   fontSize: Dimensions.text16,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 0.2,
-                  color: titleColor,
+                  color: isGlass
+                      ? Colors.white.withOpacity(0.95)
+                      : AppColors.onSurface(),
                 ),
               ),
               SizedBox(height: Dimensions.size2),
@@ -1474,7 +1476,9 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                 style: TextStyle(
                   fontSize: Dimensions.text12,
                   fontWeight: FontWeight.w700,
-                  color: subColor,
+                  color: isGlass
+                      ? Colors.white.withOpacity(0.72)
+                      : AppColors.onSurface().withValues(alpha: 0.65),
                 ),
               ),
             ],
@@ -1516,7 +1520,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
       ],
     );
 
-    if (glass) {
+    if (isGlass) {
       return GlassContainer(
         blur: Dimensions.size20,
         borderRadius: Dimensions.size25,
@@ -1596,23 +1600,6 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     required bool selected,
     required VoidCallback onTap,
   }) {
-    final bool glass = isGlass;
-    final Color fg = glass
-        ? Colors.white.withOpacity(selected ? 0.95 : 0.85)
-        : selected
-            ? AppColors.onPrimaryContainer()
-            : AppColors.onSurface();
-    final Color bg = glass
-        ? Colors.white.withOpacity(selected ? 0.18 : 0.10)
-        : selected
-            ? AppColors.primaryContainer()
-            : AppColors.surface();
-    final Color bd = glass
-        ? Colors.white.withOpacity(selected ? 0.30 : 0.18)
-        : selected
-            ? AppColors.onPrimaryContainer().withValues(alpha: 0.20)
-            : AppColors.outline().withValues(alpha: 0.30);
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1621,7 +1608,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
           borderRadius: BorderRadius.circular(Dimensions.size50),
           smoothness: Dimensions.size1,
         ),
-        child: glass
+        child: isGlass
             ? GlassContainer(
                 blur: Dimensions.size15,
                 borderRadius: Dimensions.size50,
@@ -1638,7 +1625,11 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontWeight: FontWeight.w900,
-                      color: fg,
+                      color: isGlass
+                          ? Colors.white.withOpacity(selected ? 0.95 : 0.85)
+                          : selected
+                              ? AppColors.onPrimaryContainer()
+                              : AppColors.onSurface(),
                     ),
                   ),
                 ),
@@ -1649,7 +1640,11 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                   vertical: Dimensions.size10,
                 ),
                 decoration: ShapeDecoration(
-                  color: bg,
+                  color: isGlass
+                      ? Colors.white.withOpacity(selected ? 0.18 : 0.10)
+                      : selected
+                          ? AppColors.primaryContainer()
+                          : AppColors.surface(),
                   shadows: selected
                       ? [
                           BoxShadow(
@@ -1662,7 +1657,13 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                   shape: SmoothRectangleBorder(
                     borderRadius: BorderRadius.circular(Dimensions.size50),
                     smoothness: Dimensions.size1,
-                    side: BorderSide(color: bd),
+                    side: BorderSide(
+                        color: isGlass
+                            ? Colors.white.withOpacity(selected ? 0.30 : 0.18)
+                            : selected
+                                ? AppColors.onPrimaryContainer()
+                                    .withValues(alpha: 0.20)
+                                : AppColors.outline().withValues(alpha: 0.30)),
                   ),
                 ),
                 child: Center(
@@ -1672,7 +1673,11 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontWeight: FontWeight.w900,
-                      color: fg,
+                      color: isGlass
+                          ? Colors.white.withOpacity(selected ? 0.95 : 0.85)
+                          : selected
+                              ? AppColors.onPrimaryContainer()
+                              : AppColors.onSurface(),
                     ),
                   ),
                 ),
@@ -1682,9 +1687,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
   }
 
   Widget centerCard({required Widget child}) {
-    final bool glass = isGlass;
-
-    if (glass) {
+    if (isGlass) {
       return GlassContainer(
         blur: Dimensions.size20,
         borderRadius: Dimensions.size25,
@@ -1712,10 +1715,6 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
   }
 
   Widget iconPill({required IconData icon, required VoidCallback onTap}) {
-    final bool glass = isGlass;
-    final Color iconColor =
-        glass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1724,7 +1723,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
           borderRadius: BorderRadius.circular(Dimensions.size15),
           smoothness: Dimensions.size1,
         ),
-        child: glass
+        child: isGlass
             ? GlassContainer(
                 blur: Dimensions.size15,
                 borderRadius: Dimensions.size15,
@@ -1734,7 +1733,11 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                 child: SizedBox(
                   width: Dimensions.size40,
                   height: Dimensions.size40,
-                  child: Icon(icon, color: iconColor, size: Dimensions.size25),
+                  child: Icon(icon,
+                      color: isGlass
+                          ? Colors.white.withOpacity(0.92)
+                          : AppColors.onSurface(),
+                      size: Dimensions.size25),
                 ),
               )
             : Ink(
@@ -1765,10 +1768,6 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     required String label,
     required VoidCallback onTap,
   }) {
-    final bool glass = isGlass;
-    final Color fg =
-        glass ? Colors.white.withOpacity(0.95) : AppColors.onPrimaryContainer();
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1777,7 +1776,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
           borderRadius: BorderRadius.circular(Dimensions.size50),
           smoothness: Dimensions.size1,
         ),
-        child: glass
+        child: isGlass
             ? GlassContainer(
                 blur: Dimensions.size15,
                 borderRadius: Dimensions.size50,
@@ -1790,13 +1789,19 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(icon, size: Dimensions.size20, color: fg),
+                    Icon(icon,
+                        size: Dimensions.size20,
+                        color: isGlass
+                            ? Colors.white.withOpacity(0.95)
+                            : AppColors.onPrimaryContainer()),
                     SizedBox(width: Dimensions.size5),
                     Text(
                       label,
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
-                        color: fg,
+                        color: isGlass
+                            ? Colors.white.withOpacity(0.95)
+                            : AppColors.onPrimaryContainer(),
                       ),
                     ),
                   ],
@@ -1845,10 +1850,6 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    final bool glass = isGlass;
-    final Color iconColor =
-        glass ? Colors.white.withOpacity(0.90) : AppColors.onSurface();
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1857,7 +1858,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
           borderRadius: BorderRadius.circular(Dimensions.size15),
           smoothness: 1,
         ),
-        child: glass
+        child: isGlass
             ? GlassContainer(
                 blur: Dimensions.size15,
                 borderRadius: Dimensions.size15,
@@ -1867,7 +1868,11 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                 child: SizedBox(
                   width: Dimensions.size35,
                   height: Dimensions.size35,
-                  child: Icon(icon, color: iconColor, size: Dimensions.size20),
+                  child: Icon(icon,
+                      color: isGlass
+                          ? Colors.white.withOpacity(0.90)
+                          : AppColors.onSurface(),
+                      size: Dimensions.size20),
                 ),
               )
             : Ink(
@@ -1894,20 +1899,16 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
   }
 
   Widget dotIndicator(int count) {
-    final int n = count.clamp(1, 4);
-    final Color dot =
-        Theme.of(context).colorScheme.error.withValues(alpha: 0.90);
-
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: List.generate(n, (i) {
+      children: List.generate(count.clamp(1, 4), (i) {
         return Container(
           width: Dimensions.size5,
           height: Dimensions.size5,
           margin: EdgeInsets.symmetric(horizontal: Dimensions.size2),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: dot,
+            color: Theme.of(context).colorScheme.error.withValues(alpha: 0.90),
           ),
         );
       }),
@@ -1915,9 +1916,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
   }
 
   Widget badge(String text) {
-    final bool glass = isGlass;
-
-    if (glass) {
+    if (isGlass) {
       return GlassContainer(
         blur: Dimensions.size15,
         borderRadius: Dimensions.size50,

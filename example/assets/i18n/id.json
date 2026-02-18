@@ -35,6 +35,7 @@
   "days": "Hari",
   "summary": "Ringkasan",
   "other":"Lainnya",
+  "tap_to_view":"Ketuk untuk melihat",
   "type_composition":"Jenis Komposisi",
   "category_composition":"Kategori Komposisi",
   "summary_description": "Periode mengikuti filter tanggal. Persentase = kontribusi terhadap total nilai pada chart ini.",

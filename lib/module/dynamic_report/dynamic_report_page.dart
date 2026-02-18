@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously, constant_identifier_names, depend_on_referenced_packages
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use, constant_identifier_names
 
 import "dart:io";
 import "dart:typed_data";
@@ -60,8 +60,8 @@ class DynamicReportPageState extends State<DynamicReportPage>
   int pageIndex = 1;
 
   static const double _gapCard = 10;
-  static const double _gapInner = 5;
 
+  static const double _gapInner = 8;
   static const double _tilePadX = 10;
   static const double _tilePadY = 10;
 
@@ -215,7 +215,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
                     Dimensions.size15,
                     Dimensions.size10,
                   ),
-                  child: appbar(),
+                  child: headerCard(),
                 ),
                 Expanded(child: body()),
                 SizedBox(height: safe.bottom + Dimensions.size75),
@@ -302,90 +302,76 @@ class DynamicReportPageState extends State<DynamicReportPage>
     }
   }
 
-  Widget appbar() {
+  Widget headerCard() {
+    final bool glass = isGlass;
+
     final String title = (template?.title.isNotEmpty ?? false)
         ? template!.title
         : widget.dynamicFormMenuItem.name;
 
-    final bool glass = isGlass;
     final Color titleColor =
         glass ? Colors.white.withOpacity(0.95) : AppColors.onSurface();
-    final Color subColor = glass
-        ? Colors.white.withOpacity(0.75)
-        : AppColors.onSurface().withValues(alpha: 0.65);
 
-    final Widget content = Row(
+    final Widget headerContent = Column(
       children: [
-        iconPill(
-          icon: Icons.turn_left_rounded,
-          onTap: () {
-            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-              Navigators.pop();
-            } else {
-              context.pop();
-            }
-          },
-        ),
-        SizedBox(width: Dimensions.size10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
+        Row(
+          children: [
+            iconPill(
+              icon: Icons.turn_left_rounded,
+              onTap: () {
+                if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                  Navigators.pop();
+                } else {
+                  context.pop();
+                }
+              },
+            ),
+            SizedBox(width: Dimensions.size10),
+            Expanded(
+              child: Text(
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: Dimensions.text16,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w900,
                   letterSpacing: 0.2,
                   color: titleColor,
                 ),
               ),
-              SizedBox(height: Dimensions.size2),
-              Text(
-                widget.dynamicFormCategoryItem.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: Dimensions.text12,
-                  fontWeight: FontWeight.w600,
-                  color: subColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(width: Dimensions.size10),
-        iconPill(
-          icon: Icons.tune,
-          onTap: () async => openFilter(),
-        ),
-        SizedBox(width: Dimensions.size10),
-        iconPill(
-          icon: Icons.file_download_outlined,
-          onTap: () async {
-            if (template == null) {
-              return;
-            }
+            ),
+            SizedBox(width: Dimensions.size10),
+            iconPill(
+              icon: Icons.tune,
+              onTap: () async => openFilter(),
+            ),
+            SizedBox(width: Dimensions.size10),
+            iconPill(
+              icon: Icons.file_download_outlined,
+              onTap: () async {
+                if (template == null) {
+                  return;
+                }
 
-            context.read<DynamicReportBloc>().add(
-                  DynamicReportExport(
-                    id: widget.dynamicFormMenuItem.id,
-                    dataRequest: DataRequest(
-                      size: pageSize,
-                      index: pageIndex - 1,
-                      sortField: sortField,
-                      sortDirection: sortDirection?.name,
-                      filters: Map.fromEntries(
-                        template!.filters
-                            .where((element) => element.value != null)
-                            .map((e) => MapEntry(e.id, e.value)),
+                context.read<DynamicReportBloc>().add(
+                      DynamicReportExport(
+                        id: widget.dynamicFormMenuItem.id,
+                        dataRequest: DataRequest(
+                          size: pageSize,
+                          index: pageIndex - 1,
+                          sortField: sortField,
+                          sortDirection: sortDirection?.name,
+                          filters: Map.fromEntries(
+                            template!.filters
+                                .where((element) => element.value != null)
+                                .map((e) => MapEntry(e.id, e.value)),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                );
-          },
+                    );
+              },
+            ),
+          ],
         ),
       ],
     );
@@ -400,7 +386,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
           horizontal: Dimensions.size15,
           vertical: Dimensions.size10,
         ),
-        child: content,
+        child: headerContent,
       );
     }
 
@@ -426,7 +412,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
           ),
         ),
       ),
-      child: content,
+      child: headerContent,
     );
   }
 
@@ -498,19 +484,91 @@ class DynamicReportPageState extends State<DynamicReportPage>
     }
 
     if (dataResponse == null) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.all(Dimensions.size20),
-          child: Text(
-            "common_something_wrong".tr(),
-            style: TextStyle(
-              color: glass
-                  ? Colors.white.withOpacity(0.80)
-                  : AppColors.onSurface().withValues(alpha: 0.7),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
+      final Widget emptyCard = glass
+          ? GlassContainer(
+              blur: Dimensions.size20,
+              borderRadius: Dimensions.size20,
+              opacity: 0.12,
+              borderOpacity: 0.22,
+              padding: EdgeInsets.all(Dimensions.size20),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: Dimensions.size45,
+                    color: Colors.white.withOpacity(0.80),
+                  ),
+                  SizedBox(height: Dimensions.size10),
+                  Text(
+                    "common_something_wrong".tr(),
+                    style: TextStyle(
+                      fontSize: Dimensions.text16,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white.withOpacity(0.92),
+                    ),
+                  ),
+                  SizedBox(height: Dimensions.size15),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => refresh(),
+                          icon: const Icon(Icons.refresh),
+                          label: Text("refresh".tr()),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            )
+          : Container(
+              padding: EdgeInsets.all(Dimensions.size20),
+              decoration: ShapeDecoration(
+                color: AppColors.surface(),
+                shape: SmoothRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.size20),
+                  smoothness: Dimensions.size1,
+                  side: BorderSide(
+                    color: AppColors.outline().withValues(alpha: 0.35),
+                  ),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: Dimensions.size45,
+                    color: AppColors.onSurface().withValues(alpha: 0.65),
+                  ),
+                  SizedBox(height: Dimensions.size10),
+                  Text(
+                    "common_something_wrong".tr(),
+                    style: TextStyle(
+                      fontSize: Dimensions.text16,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.onSurface(),
+                    ),
+                  ),
+                  SizedBox(height: Dimensions.size15),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => refresh(),
+                          icon: const Icon(Icons.refresh),
+                          label: Text("refresh".tr()),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+
+      return ListView(
+        padding: EdgeInsets.all(Dimensions.size15),
+        children: [emptyCard],
       );
     }
 
@@ -593,9 +651,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
 
       return ListView(
         padding: EdgeInsets.all(Dimensions.size15),
-        children: [
-          emptyCard,
-        ],
+        children: [emptyCard],
       );
     }
 
@@ -640,7 +696,6 @@ class DynamicReportPageState extends State<DynamicReportPage>
       }
 
       String s = v.toString();
-
       s = s.replaceAll(RegExp(r"\s+"), " ").trim();
 
       return StringUtils.isNotNullOrEmpty(s) ? s : "-";
@@ -664,13 +719,21 @@ class DynamicReportPageState extends State<DynamicReportPage>
         .firstWhere((e) => e != null, orElse: () => null);
 
     final String? qtyValue = qtyField != null ? valueOf(qtyField.name) : null;
-
     final bool showQty = qtyValue != null && !empthyValue(qtyValue);
 
-    final List<Field> fields = template!.fields.toList();
+    final List<Field> all = template!.fields.toList();
+
     if (itemDescField != null) {
-      fields.removeWhere((f) => f.name == itemDescField.name);
+      all.removeWhere((f) => f.name == itemDescField.name);
     }
+    if (qtyField != null) {
+      all.removeWhere((f) => f.name == qtyField.name);
+    }
+
+    final List<Field> metrics = all.where(isTricMetric).toList();
+    final List<Field> normals = all.where((f) => !isTricMetric(f)).toList();
+
+    final List<Field> fields = [...metrics, ...normals];
 
     final Widget content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -708,121 +771,9 @@ class DynamicReportPageState extends State<DynamicReportPage>
               : AppColors.outline().withValues(alpha: 0.30),
         ),
         SizedBox(height: Dimensions.size10),
-        LayoutBuilder(
-          builder: (context, c) {
-            final double rowW = c.maxWidth;
-
-            final bool can3 = rowW >= 340;
-            final int colsDefault = can3 ? 3 : 2;
-
-            final double gap = _gapInner;
-
-            double colW(int cols) => (rowW - gap * (cols - 1)) / cols;
-
-            final List<Widget> blocks = [];
-            final List<Widget> bucket = [];
-
-            void flushBucket({required int cols}) {
-              if (bucket.isEmpty) {
-                return;
-              }
-
-              final double w = colW(cols);
-
-              blocks.add(
-                Wrap(
-                  spacing: gap,
-                  runSpacing: gap,
-                  children: bucket
-                      .map((child) => SizedBox(width: w, child: child))
-                      .toList(),
-                ),
-              );
-
-              bucket.clear();
-            }
-
-            final List<Field> ordered = [...fields]..sort((a, b) {
-                final aa = isTricMetric(a) ? 0 : 1;
-                final bb = isTricMetric(b) ? 0 : 1;
-                return aa.compareTo(bb);
-              });
-
-            bool metricMode = false;
-
-            for (final Field f in ordered) {
-              if (qtyField != null && f.name == qtyField.name) {
-                continue;
-              }
-
-              final String val = valueOf(f.name);
-              final bool empty = empthyValue(val);
-              final bool isMetric = isTricMetric(f);
-
-              if (isMetric) {
-                if (!metricMode) {
-                  flushBucket(cols: colsDefault);
-                  metricMode = true;
-                }
-
-                bucket.add(
-                  kvSmart(f.caption, empty ? "-" : val, compact: true),
-                );
-
-                if (bucket.length == 3) {
-                  flushBucket(cols: can3 ? 3 : 2);
-                  metricMode = false;
-                }
-                continue;
-              }
-
-              if (metricMode) {
-                flushBucket(cols: can3 ? 3 : 2);
-                metricMode = false;
-              }
-
-              final bool full = forceFullWidth(f, val);
-
-              if (full) {
-                flushBucket(cols: colsDefault);
-
-                blocks.add(
-                  SizedBox(
-                    width: rowW,
-                    child: kvSmart(
-                      f.caption,
-                      empty ? "-" : val,
-                      compact: false,
-                    ),
-                  ),
-                );
-              } else {
-                bucket.add(
-                  kvSmart(f.caption, empty ? "-" : val, compact: true),
-                );
-
-                if (bucket.length == colsDefault) {
-                  flushBucket(cols: colsDefault);
-                }
-              }
-            }
-
-            if (metricMode) {
-              flushBucket(cols: can3 ? 3 : 2);
-            } else {
-              flushBucket(cols: colsDefault);
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (int i = 0; i < blocks.length; i++) ...[
-                  if (i > 0) SizedBox(height: gap),
-                  blocks[i],
-                ],
-              ],
-            );
-          },
+        ..._buildTwoColumnTiles(
+          fields: fields,
+          valueOf: valueOf,
         ),
       ],
     );
@@ -861,76 +812,184 @@ class DynamicReportPageState extends State<DynamicReportPage>
     );
   }
 
-  Widget kvSmart(
-    String k,
-    String v, {
-    required bool compact,
+  List<Widget> _buildTwoColumnTiles({
+    required List<Field> fields,
+    required String Function(String fieldName) valueOf,
   }) {
-    final bool glass = isGlass;
-    final bool empty = empthyValue(v);
+    final List<Widget> widgets = [];
 
-    final Widget content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          k,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: Dimensions.text12,
-            fontWeight: FontWeight.w700,
-            color: glass
-                ? Colors.white.withOpacity(0.70)
-                : AppColors.onSurface().withValues(alpha: 0.65),
-          ),
-        ),
-        SizedBox(height: Dimensions.size4),
-        Text(
-          empty ? "-" : v,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: Dimensions.text14,
-            fontWeight: FontWeight.w900,
-            height: 1.15,
-            color: glass
-                ? Colors.white.withOpacity(empty ? 0.45 : 0.95)
-                : AppColors.onSurface().withValues(alpha: empty ? 0.35 : 1),
-          ),
-        ),
-      ],
-    );
+    for (int i = 0; i < fields.length; i += 2) {
+      final Field leftField = fields[i];
+      final String leftVal = valueOf(leftField.name);
 
-    if (glass) {
-      return GlassContainer(
-        blur: Dimensions.size15,
-        borderRadius: Dimensions.size15,
-        opacity: 0.10,
-        borderOpacity: 0.18,
-        padding: EdgeInsets.symmetric(
-          horizontal: _tilePadX,
-          vertical: _tilePadY,
+      final bool hasRight = i + 1 < fields.length;
+      final Field? rightField = hasRight ? fields[i + 1] : null;
+      final String rightVal = hasRight ? valueOf(rightField!.name) : "-";
+
+      widgets.add(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: reportTile(
+                title: leftField.caption,
+                value: leftVal,
+                left: true,
+              ),
+            ),
+            SizedBox(width: _gapInner),
+            Expanded(
+              child: hasRight
+                  ? reportTile(
+                      title: rightField!.caption,
+                      value: rightVal,
+                      left: false,
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
         ),
-        child: content,
       );
+
+      if (i + 2 < fields.length) {
+        widgets.add(SizedBox(height: _gapInner));
+      }
     }
 
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: _tilePadX,
-        vertical: _tilePadY,
-      ),
-      decoration: ShapeDecoration(
-        color: AppColors.surfaceContainerLowest(),
-        shape: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimensions.size15),
-          smoothness: Dimensions.size1,
-          side: BorderSide(
-            color: AppColors.outline().withValues(alpha: 0.20),
+    return widgets;
+  }
+
+  Widget reportTile({
+    required String title,
+    required String value,
+    required bool left,
+  }) {
+    final bool glass = isGlass;
+    final bool empty = empthyValue(value);
+
+    final TextStyle keyStyle = TextStyle(
+      fontSize: Dimensions.text12,
+      fontWeight: FontWeight.w700,
+      color: glass
+          ? Colors.white.withOpacity(0.70)
+          : AppColors.onSurface().withValues(alpha: 0.65),
+    );
+
+    final TextStyle valStyle = TextStyle(
+      fontSize: Dimensions.text14,
+      fontWeight: FontWeight.w900,
+      height: 1.15,
+      color: glass
+          ? Colors.white.withOpacity(empty ? 0.45 : 0.95)
+          : AppColors.onSurface().withValues(alpha: empty ? 0.35 : 1),
+    );
+
+    return LayoutBuilder(
+      builder: (context, c) {
+        final String shownValue = empty ? "-" : value;
+
+        final bool overflow = _textOverflow(
+          text: shownValue,
+          style: valStyle,
+          maxLines: 2,
+          maxWidth: c.maxWidth - (_tilePadX * 2),
+        );
+
+        final Widget content = Column(
+          crossAxisAlignment:
+              left ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+          children: [
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: left ? TextAlign.start : TextAlign.end,
+              style: keyStyle,
+            ),
+            SizedBox(height: Dimensions.size4),
+            Text(
+              shownValue,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: left ? TextAlign.start : TextAlign.end,
+              style: valStyle,
+            ),
+            if (overflow) ...[
+              SizedBox(height: Dimensions.size4),
+              Align(
+                alignment: left ? Alignment.centerLeft : Alignment.centerRight,
+                child: Text(
+                  "tap_to_view".tr(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: Dimensions.text12,
+                    fontWeight: FontWeight.w700,
+                    color: glass
+                        ? Colors.white.withOpacity(0.55)
+                        : AppColors.onSurface().withValues(alpha: 0.50),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        );
+
+        Widget tile;
+        if (glass) {
+          tile = GlassContainer(
+            blur: Dimensions.size15,
+            borderRadius: Dimensions.size15,
+            opacity: 0.10,
+            borderOpacity: 0.18,
+            padding: EdgeInsets.symmetric(
+              horizontal: _tilePadX,
+              vertical: _tilePadY,
+            ),
+            child: content,
+          );
+        } else {
+          tile = Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: _tilePadX,
+              vertical: _tilePadY,
+            ),
+            decoration: ShapeDecoration(
+              color: AppColors.surfaceContainerLowest(),
+              shape: SmoothRectangleBorder(
+                borderRadius: BorderRadius.circular(Dimensions.size15),
+                smoothness: Dimensions.size1,
+                side: BorderSide(
+                  color: AppColors.outline().withValues(alpha: 0.20),
+                ),
+              ),
+            ),
+            child: content,
+          );
+        }
+
+        if (!overflow) {
+          return tile;
+        }
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () async {
+              await _showFullTextDialog(
+                context: context,
+                title: title,
+                value: shownValue,
+              );
+            },
+            customBorder: SmoothRectangleBorder(
+              borderRadius: BorderRadius.circular(Dimensions.size15),
+              smoothness: Dimensions.size1,
+            ),
+            child: tile,
           ),
-        ),
-      ),
-      child: content,
+        );
+      },
     );
   }
 
@@ -1256,6 +1315,124 @@ class DynamicReportPageState extends State<DynamicReportPage>
         ),
       ),
       child: barContent,
+    );
+  }
+
+  bool _textOverflow({
+    required String text,
+    required TextStyle style,
+    required int maxLines,
+    required double maxWidth,
+  }) {
+    final TextPainter tp = TextPainter(
+      text: TextSpan(text: text, style: style),
+      maxLines: maxLines,
+      textDirection: Directionality.of(context),
+      ellipsis: "…",
+    )..layout(maxWidth: maxWidth);
+
+    return tp.didExceedMaxLines;
+  }
+
+  Future<void> _showFullTextDialog({
+    required BuildContext context,
+    required String title,
+    required String value,
+  }) async {
+    final bool glass = isGlass;
+
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (ctx) {
+        final Color titleColor =
+            glass ? Colors.white.withOpacity(0.95) : AppColors.onSurface();
+        final Color bodyColor =
+            glass ? Colors.white.withOpacity(0.88) : AppColors.onSurface();
+
+        final Widget dialogContent = Padding(
+          padding: EdgeInsets.all(Dimensions.size15),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: Dimensions.text16,
+                        fontWeight: FontWeight.w900,
+                        color: titleColor,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    icon: const Icon(Icons.close),
+                    color: glass ? Colors.white.withOpacity(0.85) : null,
+                  ),
+                ],
+              ),
+              Divider(
+                height: 0,
+                color: glass
+                    ? Colors.white.withOpacity(0.18)
+                    : AppColors.outline().withValues(alpha: 0.30),
+              ),
+              SizedBox(height: Dimensions.size10),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(ctx).size.height * 0.45,
+                ),
+                child: SingleChildScrollView(
+                  child: SelectableText(
+                    value,
+                    style: TextStyle(
+                      fontSize: Dimensions.text14,
+                      fontWeight: FontWeight.w700,
+                      height: 1.3,
+                      color: bodyColor,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: Dimensions.size10),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text("close".tr()),
+                ),
+              ),
+            ],
+          ),
+        );
+
+        if (glass) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: EdgeInsets.all(Dimensions.size15),
+            child: GlassContainer(
+              blur: Dimensions.size25,
+              borderRadius: Dimensions.size20,
+              opacity: 0.14,
+              borderOpacity: 0.22,
+              padding: EdgeInsets.zero,
+              child: dialogContent,
+            ),
+          );
+        }
+
+        return Dialog(
+          insetPadding: EdgeInsets.all(Dimensions.size15),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Dimensions.size20),
+          ),
+          child: dialogContent,
+        );
+      },
     );
   }
 
@@ -1906,26 +2083,5 @@ class DynamicReportPageState extends State<DynamicReportPage>
         hit("booked_total") ||
         hit("booked total") ||
         hit("booked");
-  }
-
-  bool forceFullWidth(Field f, String v) {
-    final k = f.name.toLowerCase();
-
-    if (k.contains("booking")) {
-      return true;
-    }
-
-    if (k == "itemdesc" || k == "item_desc") {
-      return false;
-    }
-
-    if (k.contains("remark") || k.contains("note")) {
-      return true;
-    }
-    if (v.length > 30) {
-      return true;
-    }
-
-    return false;
   }
 }

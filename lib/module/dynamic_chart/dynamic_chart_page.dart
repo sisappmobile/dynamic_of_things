@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import "dart:io";
 import "dart:math" as math;
 
@@ -30,7 +32,7 @@ class DynamicChartPage extends StatefulWidget {
 class DynamicChartPageState extends State<DynamicChartPage>
     with WidgetsBindingObserver {
   ListResponse? listResponse;
-  bool _prefsReady = false;
+  bool prefsReady = false;
 
   final RangePreset preset = RangePreset.last7;
   DateTimeRange? customRange;
@@ -39,7 +41,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initPrefs();
+    initPrefs();
     refresh();
   }
 
@@ -59,7 +61,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
     context.read<DynamicChartBloc>().add(DynamicChartLoad());
   }
 
-  Future<void> _initPrefs() async {
+  Future<void> initPrefs() async {
     try {
       await Preferences.getInstance().init();
     } catch (_) {
@@ -71,12 +73,12 @@ class DynamicChartPageState extends State<DynamicChartPage>
     }
 
     setState(() {
-      _prefsReady = true;
+      prefsReady = true;
     });
   }
 
   bool get isGlass {
-    if (!_prefsReady) {
+    if (!prefsReady) {
       return false;
     }
 
@@ -86,7 +88,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
     return t == 2;
   }
 
-  Widget _glassBackground() {
+  Widget glassBackground() {
     final String p = (Preferences.getInstance()
                 .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
             "")
@@ -105,22 +107,6 @@ class DynamicChartPageState extends State<DynamicChartPage>
     }
 
     return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
-  }
-
-  Widget _glassOverlay() {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            Color.fromRGBO(0, 0, 0, 0.55),
-            Color.fromRGBO(0, 0, 0, 0.22),
-            Color.fromRGBO(0, 0, 0, 0.40),
-          ],
-        ),
-      ),
-    );
   }
 
   Jiffy begin() {
@@ -207,8 +193,6 @@ class DynamicChartPageState extends State<DynamicChartPage>
 
   @override
   Widget build(BuildContext context) {
-    final bool glass = isGlass;
-
     return BlocListener<DynamicChartBloc, DynamicChartState>(
       listener: (context, state) async {
         if (state is DynamicChartLoadLoading) {
@@ -225,41 +209,65 @@ class DynamicChartPageState extends State<DynamicChartPage>
         builder: (context, constraints) {
           final bool isMobile = Dimensions.isMobile();
 
-          final bool drawWallpaper = glass && isMobile;
-
-          final bool glassAppBar = glass && isMobile;
-
           return Scaffold(
-            backgroundColor: glass
+            backgroundColor: isGlass
                 ? Colors.transparent
                 : Theme.of(context).scaffoldBackgroundColor,
             body: Stack(
               children: [
-                if (drawWallpaper) ...[
-                  Positioned.fill(child: _glassBackground()),
-                  Positioned.fill(child: _glassOverlay()),
-                ],
-                SafeArea(
-                  top: !glassAppBar,
-                  bottom: false,
-                  child: Column(
-                    children: [
-                      AppBarDynamicChart(
-                        isGlass: glassAppBar,
-                        title: "dynamic_chart".tr(),
-                        rangeLabel: rangeLabel(),
-                        onPickRange: pickRangeDate,
-                        onBack: () {
-                          if (BaseSettings.navigatorType ==
-                              BaseNavigatorType.legacy) {
-                            Navigators.pop();
-                          } else {
-                            context.pop();
-                          }
-                        },
+                if (isGlass && isMobile) ...[
+                  Positioned.fill(child: glassBackground()),
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: <Color>[
+                            Color.fromRGBO(0, 0, 0, 0.55),
+                            Color.fromRGBO(0, 0, 0, 0.22),
+                            Color.fromRGBO(0, 0, 0, 0.40),
+                          ],
+                        ),
                       ),
-                      Expanded(child: body(glass: glass)),
-                    ],
+                    ),
+                  ),
+                ],
+                Padding(
+                  padding: EdgeInsets.only(top: Dimensions.size20),
+                  child: SafeArea(
+                    top: !isGlass && isMobile,
+                    bottom: false,
+                    child: Column(
+                      children: [
+                        AppBarDynamicChart(
+                          isGlass: isGlass && isMobile,
+                          title: "dynamic_chart".tr(),
+                          rangeLabel: rangeLabel(),
+                          onPickRange: pickRangeDate,
+                          onBack: () {
+                            if (BaseSettings.navigatorType ==
+                                BaseNavigatorType.legacy) {
+                              Navigators.pop();
+                              return;
+                            }
+
+                            final GoRouter r = GoRouter.of(context);
+                            if (r.canPop()) {
+                              r.pop();
+                              return;
+                            }
+
+                            final NavigatorState nav = Navigator.of(context);
+                            if (nav.canPop()) {
+                              nav.pop();
+                              return;
+                            }
+                          },
+                        ),
+                        Expanded(child: body(glass: isGlass)),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -341,9 +349,6 @@ class AppBarDynamicChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final bool dark = Theme.of(context).brightness == Brightness.dark;
-
     if (isGlass) {
       return Container(
         height: Dimensions.size60,
@@ -433,12 +438,6 @@ class AppBarDynamicChart extends StatelessWidget {
       );
     }
 
-    final Color iconColor = cs.onSurface.withValues(alpha: 0.90);
-    final Color pillBg = cs.surfaceContainerHighest.withValues(alpha: 0.55);
-    final Color pillBorder =
-        cs.outlineVariant.withValues(alpha: dark ? 0.35 : 0.55);
-    final Color pillText = cs.onSurface.withValues(alpha: 0.88);
-
     return Container(
       height: Dimensions.size55,
       padding: EdgeInsets.symmetric(horizontal: Dimensions.size15),
@@ -452,7 +451,10 @@ class AppBarDynamicChart extends StatelessWidget {
               child: Icon(
                 Icons.turn_left_rounded,
                 size: Dimensions.size20,
-                color: iconColor,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.90),
               ),
             ),
           ),
@@ -463,7 +465,7 @@ class AppBarDynamicChart extends StatelessWidget {
               style: TextStyle(
                 fontSize: Dimensions.text14,
                 fontWeight: FontWeight.w900,
-                color: cs.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -477,9 +479,21 @@ class AppBarDynamicChart extends StatelessWidget {
               height: Dimensions.size35,
               padding: EdgeInsets.symmetric(horizontal: Dimensions.size10),
               decoration: BoxDecoration(
-                color: pillBg,
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withValues(alpha: 0.55),
                 borderRadius: BorderRadius.circular(Dimensions.size10),
-                border: Border.all(color: pillBorder),
+                border: Border.all(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .outlineVariant
+                      .withValues(
+                        alpha: Theme.of(context).brightness == Brightness.dark
+                            ? 0.35
+                            : 0.55,
+                      ),
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -487,7 +501,10 @@ class AppBarDynamicChart extends StatelessWidget {
                   Icon(
                     Icons.date_range_rounded,
                     size: Dimensions.size15,
-                    color: pillText,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.88),
                   ),
                   SizedBox(width: Dimensions.size5),
                   ConstrainedBox(
@@ -499,7 +516,10 @@ class AppBarDynamicChart extends StatelessWidget {
                       style: TextStyle(
                         fontSize: Dimensions.text12,
                         fontWeight: FontWeight.w800,
-                        color: pillText,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.88),
                       ),
                     ),
                   ),
@@ -544,15 +564,12 @@ class Insight extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final bool dark = Theme.of(context).brightness == Brightness.dark;
-
     final TextStyle titleStyle = TextStyle(
       fontSize: Dimensions.text12,
       fontWeight: FontWeight.w900,
       color: isGlass
           ? Colors.white.withOpacity(0.92)
-          : cs.onSurface.withValues(alpha: 0.88),
+          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.88),
     );
 
     final TextStyle subStyle = TextStyle(
@@ -560,7 +577,10 @@ class Insight extends StatelessWidget {
       fontWeight: FontWeight.w700,
       color: isGlass
           ? Colors.white.withOpacity(0.78)
-          : cs.onSurfaceVariant.withValues(alpha: 0.85),
+          : Theme.of(context)
+              .colorScheme
+              .onSurfaceVariant
+              .withValues(alpha: 0.85),
     );
 
     final TextStyle labelStyle = TextStyle(
@@ -568,7 +588,7 @@ class Insight extends StatelessWidget {
       fontWeight: FontWeight.w700,
       color: isGlass
           ? Colors.white.withOpacity(0.82)
-          : cs.onSurface.withValues(alpha: 0.78),
+          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.78),
     );
 
     final TextStyle valueStyle = TextStyle(
@@ -576,12 +596,8 @@ class Insight extends StatelessWidget {
       fontWeight: FontWeight.w900,
       color: isGlass
           ? Colors.white.withOpacity(0.92)
-          : cs.onSurface.withValues(alpha: 0.92),
+          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.92),
     );
-
-    final Color border = isGlass
-        ? Colors.white.withOpacity(0.18)
-        : cs.outlineVariant.withValues(alpha: dark ? 0.35 : 0.55);
 
     Widget chip(String label, String value) {
       if (isGlass) {
@@ -605,7 +621,10 @@ class Insight extends StatelessWidget {
         );
       }
 
-      final Color chipBg = cs.surfaceContainerHighest.withValues(alpha: 0.55);
+      final Color chipBg = Theme.of(context)
+          .colorScheme
+          .surfaceContainerHighest
+          .withValues(alpha: 0.55);
 
       return Container(
         padding: EdgeInsets.symmetric(
@@ -615,7 +634,15 @@ class Insight extends StatelessWidget {
         decoration: BoxDecoration(
           color: chipBg,
           borderRadius: BorderRadius.circular(Dimensions.size10),
-          border: Border.all(color: border),
+          border: Border.all(
+            color: isGlass
+                ? Colors.white.withOpacity(0.18)
+                : Theme.of(context).colorScheme.outlineVariant.withValues(
+                      alpha: Theme.of(context).brightness == Brightness.dark
+                          ? 0.35
+                          : 0.55,
+                    ),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -629,13 +656,6 @@ class Insight extends StatelessWidget {
     }
 
     Widget rowItem(String name, num v) {
-      final double frac = total <= 0 ? 0 : (v / total).toDouble().clamp(0, 1);
-
-      final Color track = isGlass
-          ? Colors.white.withOpacity(0.12)
-          : cs.onSurface.withValues(alpha: dark ? 0.10 : 0.08);
-      final Color fill = const Color(0xFFB9A7FF).withValues(alpha: 0.95);
-
       return Padding(
         padding: EdgeInsets.only(bottom: Dimensions.size10),
         child: Column(
@@ -658,10 +678,18 @@ class Insight extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(Dimensions.size100),
               child: LinearProgressIndicator(
-                value: frac,
+                value: total <= 0 ? 0 : (v / total).toDouble().clamp(0, 1),
                 minHeight: Dimensions.size5,
-                backgroundColor: track,
-                valueColor: AlwaysStoppedAnimation<Color>(fill),
+                backgroundColor: isGlass
+                    ? Colors.white.withOpacity(0.12)
+                    : Theme.of(context).colorScheme.onSurface.withValues(
+                          alpha: Theme.of(context).brightness == Brightness.dark
+                              ? 0.10
+                              : 0.08,
+                        ),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  const Color(0xFFB9A7FF).withValues(alpha: 0.95),
+                ),
               ),
             ),
           ],
@@ -717,11 +745,19 @@ class Insight extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: cs.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(Dimensions.size15),
-        border: Border.all(color: border),
+        border: Border.all(
+          color: isGlass
+              ? Colors.white.withOpacity(0.18)
+              : Theme.of(context).colorScheme.outlineVariant.withValues(
+                    alpha: Theme.of(context).brightness == Brightness.dark
+                        ? 0.35
+                        : 0.55,
+                  ),
+        ),
         boxShadow: [
-          if (!dark)
+          if (Theme.of(context).brightness == Brightness.dark)
             BoxShadow(
               blurRadius: Dimensions.size25,
               offset: Offset(0, Dimensions.size10),
@@ -932,22 +968,22 @@ class ChartCardState extends State<ChartCard> {
   }
 
   Future<void> selectModel() async {
-    final ColorScheme csRoot = Theme.of(context).colorScheme;
-    final bool darkRoot = Theme.of(context).brightness == Brightness.dark;
-
     final ChartModel? selected = await showModalBottomSheet<ChartModel>(
       context: context,
       useSafeArea: false,
       isScrollControlled: false,
       showDragHandle: true,
-      backgroundColor: csRoot.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(Dimensions.size20),
         ),
         side: BorderSide(
-          color:
-              csRoot.outlineVariant.withValues(alpha: darkRoot ? 0.35 : 0.55),
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(
+                alpha: Theme.of(context).brightness == Brightness.dark
+                    ? 0.35
+                    : 0.55,
+              ),
         ),
       ),
       clipBehavior: Clip.antiAlias,
