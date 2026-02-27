@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use, constant_identifier_names
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use, constant_identifier_names, depend_on_referenced_packages
 
 import "dart:io";
 import "dart:typed_data";
@@ -50,7 +50,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
   DataResponse? dataResponse;
 
   bool loading = true;
-  bool _prefsReady = false;
+  bool prefsReady = false;
 
   String? sortField;
   SortDirection? sortDirection;
@@ -59,24 +59,24 @@ class DynamicReportPageState extends State<DynamicReportPage>
   int pageSize = 20;
   int pageIndex = 1;
 
-  static const double _gapCard = 10;
+  static const double gapCard = 10;
 
-  static const double _gapInner = 8;
-  static const double _tilePadX = 10;
-  static const double _tilePadY = 10;
+  static const double gapInner = 8;
+  static const double tilePadX = 10;
+  static const double tilePadY = 10;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initPrefs();
+    initPrefs();
 
     context.read<DynamicReportBloc>().add(
           DynamicReportTemplate(id: widget.dynamicFormMenuItem.id),
         );
   }
 
-  Future<void> _initPrefs() async {
+  Future<void> initPrefs() async {
     try {
       await Preferences.getInstance().init();
     } catch (_) {
@@ -88,12 +88,12 @@ class DynamicReportPageState extends State<DynamicReportPage>
     }
 
     setState(() {
-      _prefsReady = true;
+      prefsReady = true;
     });
   }
 
   bool get isGlass {
-    if (!_prefsReady) {
+    if (!prefsReady) {
       return false;
     }
 
@@ -103,7 +103,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     return t == 2;
   }
 
-  Widget _glassBackground() {
+  Widget glassBackground() {
     final String p = (Preferences.getInstance()
                 .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
             "")
@@ -122,22 +122,6 @@ class DynamicReportPageState extends State<DynamicReportPage>
     }
 
     return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
-  }
-
-  Widget _glassOverlay() {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            Color.fromRGBO(0, 0, 0, 0.55),
-            Color.fromRGBO(0, 0, 0, 0.22),
-            Color.fromRGBO(0, 0, 0, 0.40),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
@@ -202,8 +186,22 @@ class DynamicReportPageState extends State<DynamicReportPage>
         body: Stack(
           children: [
             if (glass) ...[
-              Positioned.fill(child: _glassBackground()),
-              Positioned.fill(child: _glassOverlay()),
+              Positioned.fill(child: glassBackground()),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: <Color>[
+                        Color.fromRGBO(0, 0, 0, 0.55),
+                        Color.fromRGBO(0, 0, 0, 0.22),
+                        Color.fromRGBO(0, 0, 0, 0.40),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
             Column(
               children: [
@@ -309,9 +307,6 @@ class DynamicReportPageState extends State<DynamicReportPage>
         ? template!.title
         : widget.dynamicFormMenuItem.name;
 
-    final Color titleColor =
-        glass ? Colors.white.withOpacity(0.95) : AppColors.onSurface();
-
     final Widget headerContent = Column(
       children: [
         Row(
@@ -336,7 +331,9 @@ class DynamicReportPageState extends State<DynamicReportPage>
                   fontSize: Dimensions.text16,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 0.2,
-                  color: titleColor,
+                  color: glass
+                      ? Colors.white.withOpacity(0.95)
+                      : AppColors.onSurface(),
                 ),
               ),
             ),
@@ -421,8 +418,6 @@ class DynamicReportPageState extends State<DynamicReportPage>
     required VoidCallback onTap,
   }) {
     final bool glass = isGlass;
-    final Color iconColor =
-        glass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
 
     return Material(
       color: Colors.transparent,
@@ -444,7 +439,9 @@ class DynamicReportPageState extends State<DynamicReportPage>
                   height: Dimensions.size40,
                   child: Icon(
                     icon,
-                    color: iconColor,
+                    color: glass
+                        ? Colors.white.withOpacity(0.92)
+                        : AppColors.onSurface(),
                     size: Dimensions.size25,
                   ),
                 ),
@@ -666,7 +663,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
           Dimensions.size10,
         ),
         itemCount: dataResponse!.rows.length,
-        separatorBuilder: (_, __) => const SizedBox(height: _gapCard),
+        separatorBuilder: (_, __) => const SizedBox(height: gapCard),
         itemBuilder: (context, index) {
           final Map<String, dynamic> map = dataResponse!.rows[index];
           return cardDynamic(
@@ -771,7 +768,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
               : AppColors.outline().withValues(alpha: 0.30),
         ),
         SizedBox(height: Dimensions.size10),
-        ..._buildTwoColumnTiles(
+        ...buildTwoColumnTiles(
           fields: fields,
           valueOf: valueOf,
         ),
@@ -812,7 +809,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     );
   }
 
-  List<Widget> _buildTwoColumnTiles({
+  List<Widget> buildTwoColumnTiles({
     required List<Field> fields,
     required String Function(String fieldName) valueOf,
   }) {
@@ -837,7 +834,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
                 left: true,
               ),
             ),
-            SizedBox(width: _gapInner),
+            SizedBox(width: gapInner),
             Expanded(
               child: hasRight
                   ? reportTile(
@@ -852,7 +849,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
       );
 
       if (i + 2 < fields.length) {
-        widgets.add(SizedBox(height: _gapInner));
+        widgets.add(SizedBox(height: gapInner));
       }
     }
 
@@ -888,11 +885,11 @@ class DynamicReportPageState extends State<DynamicReportPage>
       builder: (context, c) {
         final String shownValue = empty ? "-" : value;
 
-        final bool overflow = _textOverflow(
+        final bool overflow = textOverflow(
           text: shownValue,
           style: valStyle,
           maxLines: 2,
-          maxWidth: c.maxWidth - (_tilePadX * 2),
+          maxWidth: c.maxWidth - (tilePadX * 2),
         );
 
         final Widget content = Column(
@@ -943,16 +940,16 @@ class DynamicReportPageState extends State<DynamicReportPage>
             opacity: 0.10,
             borderOpacity: 0.18,
             padding: EdgeInsets.symmetric(
-              horizontal: _tilePadX,
-              vertical: _tilePadY,
+              horizontal: tilePadX,
+              vertical: tilePadY,
             ),
             child: content,
           );
         } else {
           tile = Container(
             padding: EdgeInsets.symmetric(
-              horizontal: _tilePadX,
-              vertical: _tilePadY,
+              horizontal: tilePadX,
+              vertical: tilePadY,
             ),
             decoration: ShapeDecoration(
               color: AppColors.surfaceContainerLowest(),
@@ -976,7 +973,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
           color: Colors.transparent,
           child: InkWell(
             onTap: () async {
-              await _showFullTextDialog(
+              await showFullTextDialog(
                 context: context,
                 title: title,
                 value: shownValue,
@@ -1318,7 +1315,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     );
   }
 
-  bool _textOverflow({
+  bool textOverflow({
     required String text,
     required TextStyle style,
     required int maxLines,
@@ -1334,7 +1331,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     return tp.didExceedMaxLines;
   }
 
-  Future<void> _showFullTextDialog({
+  Future<void> showFullTextDialog({
     required BuildContext context,
     required String title,
     required String value,
@@ -1345,11 +1342,6 @@ class DynamicReportPageState extends State<DynamicReportPage>
       context: context,
       barrierColor: Colors.black54,
       builder: (ctx) {
-        final Color titleColor =
-            glass ? Colors.white.withOpacity(0.95) : AppColors.onSurface();
-        final Color bodyColor =
-            glass ? Colors.white.withOpacity(0.88) : AppColors.onSurface();
-
         final Widget dialogContent = Padding(
           padding: EdgeInsets.all(Dimensions.size15),
           child: Column(
@@ -1364,7 +1356,9 @@ class DynamicReportPageState extends State<DynamicReportPage>
                       style: TextStyle(
                         fontSize: Dimensions.text16,
                         fontWeight: FontWeight.w900,
-                        color: titleColor,
+                        color: glass
+                            ? Colors.white.withOpacity(0.95)
+                            : AppColors.onSurface(),
                       ),
                     ),
                   ),
@@ -1393,7 +1387,9 @@ class DynamicReportPageState extends State<DynamicReportPage>
                       fontSize: Dimensions.text14,
                       fontWeight: FontWeight.w700,
                       height: 1.3,
-                      color: bodyColor,
+                      color: glass
+                          ? Colors.white.withOpacity(0.88)
+                          : AppColors.onSurface(),
                     ),
                   ),
                 ),
@@ -1796,7 +1792,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
         color: AppColors.surfaceContainerLowest(),
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size20),
-          smoothness: 1,
+          smoothness: Dimensions.size1,
           side: BorderSide(
             color: AppColors.outline().withValues(alpha: 0.20),
           ),
@@ -2033,7 +2029,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
         color: glass
             ? Colors.white.withOpacity(0.35)
             : AppColors.outline().withValues(alpha: 0.45),
-        width: 1,
+        width: Dimensions.size1,
       ),
     );
 

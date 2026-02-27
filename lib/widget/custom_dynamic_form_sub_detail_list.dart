@@ -43,11 +43,11 @@ class CustomDynamicFormSubDetailListState
     with AutomaticKeepAliveClientMixin {
   late Map<String, dynamic> detailData;
 
-  static const double _gapCard = 10;
-  static const double _gapInner = 8;
+  static const double gapCard = 10;
+  static const double gapInner = 8;
 
-  static const double _tilePadX = 10;
-  static const double _tilePadY = 10;
+  static const double tilePadX = 10;
+  static const double tilePadY = 10;
 
   @override
   void initState() {
@@ -73,9 +73,9 @@ class CustomDynamicFormSubDetailListState
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _headerCard(context),
+              headerCard(context),
               SizedBox(height: Dimensions.size10),
-              _listHost(context, columns),
+              listHost(context, columns),
             ],
           );
         }
@@ -86,7 +86,7 @@ class CustomDynamicFormSubDetailListState
   @override
   bool get wantKeepAlive => true;
 
-  bool get _isGlass {
+  bool get isGlass {
     try {
       return (Preferences.getInstance()
                   .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
@@ -97,17 +97,7 @@ class CustomDynamicFormSubDetailListState
     }
   }
 
-  Color _card(BuildContext context) =>
-      _isGlass ? Colors.white.withOpacity(0.10) : AppColors.surface();
-  Color _soft(BuildContext context) => _isGlass
-      ? Colors.white.withOpacity(0.08)
-      : AppColors.surfaceContainerLowest();
-  Color _fg(BuildContext context) =>
-      _isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
-  Color _outline(BuildContext context) =>
-      _isGlass ? Colors.white.withOpacity(0.18) : AppColors.outline();
-
-  Widget _headerCard(BuildContext context) {
+  Widget headerCard(BuildContext context) {
     final Color primary = Theme.of(context).colorScheme.primary;
 
     final Widget headerContent = Column(
@@ -150,7 +140,7 @@ class CustomDynamicFormSubDetailListState
             ),
             const Spacer(),
             if (!isReadOnly() && hasAddAccess())
-              _miniAddButton(context: context),
+              miniAddButton(context: context),
           ],
         ),
         if (!isReadOnly() && hasAddAccess()) ...[
@@ -160,7 +150,7 @@ class CustomDynamicFormSubDetailListState
       ],
     );
 
-    if (_isGlass) {
+    if (isGlass) {
       return GlassContainer(
         blur: Dimensions.size20,
         borderRadius: Dimensions.size20,
@@ -174,7 +164,7 @@ class CustomDynamicFormSubDetailListState
     return Container(
       padding: EdgeInsets.all(Dimensions.size15),
       decoration: ShapeDecoration(
-        color: _card(context),
+        color: isGlass ? Colors.white.withOpacity(0.10) : AppColors.surface(),
         shadows: [
           BoxShadow(
             blurRadius: Dimensions.size20,
@@ -186,7 +176,9 @@ class CustomDynamicFormSubDetailListState
           borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.35),
+            color: isGlass
+                ? Colors.white.withOpacity(0.18)
+                : AppColors.outline().withValues(alpha: 0.35),
           ),
         ),
       ),
@@ -194,7 +186,7 @@ class CustomDynamicFormSubDetailListState
     );
   }
 
-  Widget _miniAddButton({required BuildContext context}) {
+  Widget miniAddButton({required BuildContext context}) {
     final Color primary = Theme.of(context).colorScheme.primary;
     final Color onPrimary = Theme.of(context).colorScheme.onPrimary;
 
@@ -263,7 +255,7 @@ class CustomDynamicFormSubDetailListState
     );
   }
 
-  Widget _listHost(BuildContext context, List<ListColumn> columns) {
+  Widget listHost(BuildContext context, List<ListColumn> columns) {
     final int count = widget.subDetailForm.getRows(detailData).length;
 
     return ListView.separated(
@@ -271,7 +263,7 @@ class CustomDynamicFormSubDetailListState
       physics: const NeverScrollableScrollPhysics(),
       itemCount: count,
       separatorBuilder: (BuildContext context, int index) =>
-          const SizedBox(height: _gapCard),
+          const SizedBox(height: gapCard),
       itemBuilder: (BuildContext context, int index) {
         Map<String, dynamic> map =
             widget.subDetailForm.getRow(detailData, index);
@@ -299,7 +291,7 @@ class CustomDynamicFormSubDetailListState
               ListColumn lcRight = columns[i + 1];
 
               children
-                ..add(const SizedBox(width: _gapInner))
+                ..add(const SizedBox(width: gapInner))
                 ..add(
                   childrenWidget(
                     description: lcRight.description,
@@ -320,7 +312,7 @@ class CustomDynamicFormSubDetailListState
             );
 
             if (i + 2 < columns.length) {
-              widgets.add(const SizedBox(height: _gapInner));
+              widgets.add(const SizedBox(height: gapInner));
             }
           }
         }
@@ -466,7 +458,7 @@ class CustomDynamicFormSubDetailListState
                   ),
                 );
 
-                if (_isGlass) {
+                if (isGlass) {
                   return GlassContainer(
                     blur: Dimensions.size20,
                     borderRadius: Dimensions.size20,
@@ -479,7 +471,9 @@ class CustomDynamicFormSubDetailListState
 
                 return Ink(
                   decoration: ShapeDecoration(
-                    color: _card(context),
+                    color: isGlass
+                        ? Colors.white.withOpacity(0.10)
+                        : AppColors.surface(),
                     shadows: [
                       BoxShadow(
                         blurRadius: Dimensions.size20,
@@ -491,7 +485,9 @@ class CustomDynamicFormSubDetailListState
                       borderRadius: BorderRadius.circular(Dimensions.size20),
                       smoothness: Dimensions.size1,
                       side: BorderSide(
-                        color: _outline(context).withValues(alpha: 0.35),
+                        color: isGlass
+                            ? Colors.white.withOpacity(0.18)
+                            : AppColors.outline().withValues(alpha: 0.35),
                       ),
                     ),
                   ),
@@ -513,16 +509,20 @@ class CustomDynamicFormSubDetailListState
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: _tilePadX,
-          vertical: _tilePadY,
+          horizontal: tilePadX,
+          vertical: tilePadY,
         ),
         decoration: ShapeDecoration(
-          color: _soft(context),
+          color: isGlass
+              ? Colors.white.withOpacity(0.08)
+              : AppColors.surfaceContainerLowest(),
           shape: SmoothRectangleBorder(
             borderRadius: BorderRadius.circular(Dimensions.size15),
             smoothness: Dimensions.size1,
             side: BorderSide(
-              color: _outline(context).withValues(alpha: 0.20),
+              color: isGlass
+                  ? Colors.white.withOpacity(0.18)
+                  : AppColors.outline().withValues(alpha: 0.20),
             ),
           ),
         ),
@@ -538,7 +538,9 @@ class CustomDynamicFormSubDetailListState
               style: TextStyle(
                 fontSize: Dimensions.text12,
                 fontWeight: FontWeight.w700,
-                color: _fg(context).withValues(alpha: 0.65),
+                color: isGlass
+                    ? Colors.white.withOpacity(0.92)
+                    : AppColors.onSurface().withValues(alpha: 0.65),
               ),
             ),
             SizedBox(height: Dimensions.size4),
@@ -551,7 +553,9 @@ class CustomDynamicFormSubDetailListState
                 fontSize: Dimensions.text14,
                 fontWeight: FontWeight.w900,
                 height: 1.15,
-                color: _fg(context),
+                color: isGlass
+                    ? Colors.white.withOpacity(0.92)
+                    : AppColors.onSurface(),
               ),
             ),
           ],
@@ -604,7 +608,7 @@ class CustomDynamicFormSubDetailListState
         SizedBox(height: Dimensions.size10),
         SizedBox(
           height: Dimensions.size50,
-          child: _isGlass
+          child: isGlass
               ? Material(
                   color: Colors.transparent,
                   child: InkWell(
@@ -624,13 +628,17 @@ class CustomDynamicFormSubDetailListState
                         children: [
                           Icon(
                             Icons.add,
-                            color: _fg(context),
+                            color: isGlass
+                                ? Colors.white.withOpacity(0.92)
+                                : AppColors.onSurface(),
                           ),
                           SizedBox(width: Dimensions.size5),
                           Text(
                             "add".tr(),
                             style: TextStyle(
-                              color: _fg(context),
+                              color: isGlass
+                                  ? Colors.white.withOpacity(0.92)
+                                  : AppColors.onSurface(),
                               fontWeight: FontWeight.w800,
                             ),
                           ),

@@ -51,7 +51,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
   ListResponse? listResponse;
 
   bool loading = true;
-  bool _prefsReady = false;
+  bool prefsReady = false;
 
   TextEditingController tecSearch = TextEditingController();
 
@@ -66,12 +66,12 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
-    _initPrefs();
+    initPrefs();
 
     refresh();
   }
 
-  Future<void> _initPrefs() async {
+  Future<void> initPrefs() async {
     try {
       await Preferences.getInstance().init();
     } catch (_) {
@@ -83,12 +83,12 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     }
 
     setState(() {
-      _prefsReady = true;
+      prefsReady = true;
     });
   }
 
   bool get isGlass {
-    if (!_prefsReady) {
+    if (!prefsReady) {
       return false;
     }
 
@@ -98,7 +98,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     return t == 2;
   }
 
-  Widget _glassBackground() {
+  Widget glassBackground() {
     final String p = (Preferences.getInstance()
                 .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
             "")
@@ -117,22 +117,6 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     }
 
     return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
-  }
-
-  Widget _glassOverlay() {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            Color.fromRGBO(0, 0, 0, 0.55),
-            Color.fromRGBO(0, 0, 0, 0.22),
-            Color.fromRGBO(0, 0, 0, 0.40),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
@@ -204,8 +188,22 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
         body: Stack(
           children: [
             if (glass) ...[
-              Positioned.fill(child: _glassBackground()),
-              Positioned.fill(child: _glassOverlay()),
+              Positioned.fill(child: glassBackground()),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: <Color>[
+                        Color.fromRGBO(0, 0, 0, 0.55),
+                        Color.fromRGBO(0, 0, 0, 0.22),
+                        Color.fromRGBO(0, 0, 0, 0.40),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
             Column(
               children: [
@@ -534,7 +532,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                     },
                     child: Icon(
                       Icons.location_on_outlined,
-                      size: 30,
+                      size: Dimensions.size30,
                       color: Colors.red,
                     ),
                   ),
@@ -1056,15 +1054,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
             }
           }
 
-          final bool glass = isGlass;
-
-          final Color primary = Theme.of(context).colorScheme.primary;
-          final Color onPrimary = Theme.of(context).colorScheme.onPrimary;
-
-          final Color pastelGreen = const Color(0xFF7EF0C6);
-          final Color pastelGreenDeep = const Color(0xFF2ACB9A);
-
-          if (glass) {
+          if (isGlass) {
             return Material(
               color: Colors.transparent,
               child: InkWell(
@@ -1081,11 +1071,11 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                     padding:
                         EdgeInsets.symmetric(horizontal: Dimensions.size20),
                     decoration: ShapeDecoration(
-                      color: pastelGreen.withOpacity(0.22),
+                      color: const Color(0xFF7EF0C6).withOpacity(0.22),
                       shadows: [
                         BoxShadow(
-                          blurRadius: 22,
-                          offset: const Offset(0, 12),
+                          blurRadius: Dimensions.size20,
+                          offset: Offset(0, Dimensions.size15),
                           color: Colors.black.withValues(alpha: 0.18),
                         ),
                       ],
@@ -1093,7 +1083,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                         borderRadius: BorderRadius.circular(Dimensions.size30),
                         smoothness: Dimensions.size1,
                         side: BorderSide(
-                          color: pastelGreenDeep.withOpacity(0.30),
+                          color: const Color(0xFF2ACB9A).withOpacity(0.30),
                         ),
                       ),
                     ),
@@ -1118,7 +1108,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                         ),
                         SizedBox(width: Dimensions.size10),
                         Text(
-                          "Create",
+                          "Create".tr(),
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.95),
                             fontSize: Dimensions.text14,
@@ -1146,7 +1136,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                   horizontal: Dimensions.size20,
                 ),
                 decoration: ShapeDecoration(
-                  color: primary,
+                  color: Theme.of(context).colorScheme.primary,
                   shape: SmoothRectangleBorder(
                     borderRadius: BorderRadius.circular(Dimensions.size30),
                     smoothness: Dimensions.size1,
@@ -1159,20 +1149,23 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                       width: Dimensions.size35,
                       height: Dimensions.size35,
                       decoration: BoxDecoration(
-                        color: onPrimary.withValues(alpha: 0.18),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onPrimary
+                            .withValues(alpha: 0.18),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         Icons.add,
-                        color: onPrimary,
+                        color: Theme.of(context).colorScheme.onPrimary,
                         size: Dimensions.size20,
                       ),
                     ),
                     SizedBox(width: Dimensions.size10),
                     Text(
-                      "Create",
+                      "Create".tr(),
                       style: TextStyle(
-                        color: onPrimary,
+                        color: Theme.of(context).colorScheme.onPrimary,
                         fontSize: Dimensions.text14,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.2,
@@ -1274,10 +1267,6 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    final bool glass = isGlass;
-    final Color iconColor =
-        glass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1286,7 +1275,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
           borderRadius: BorderRadius.circular(Dimensions.size15),
           smoothness: Dimensions.size1,
         ),
-        child: glass
+        child: isGlass
             ? GlassContainer(
                 blur: Dimensions.size15,
                 borderRadius: Dimensions.size15,
@@ -1298,7 +1287,9 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                   height: Dimensions.size40,
                   child: Icon(
                     icon,
-                    color: iconColor,
+                    color: isGlass
+                        ? Colors.white.withOpacity(0.92)
+                        : AppColors.onSurface(),
                     size: Dimensions.size25,
                   ),
                 ),
@@ -1535,13 +1526,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
       barrierColor: Colors.black.withValues(alpha: 0.35),
       builder: (ctx) {
         final bool glass = isGlass;
-        final Color card =
-            glass ? Colors.white.withOpacity(0.12) : AppColors.surface();
-        final Color soft = glass
-            ? Colors.white.withOpacity(0.08)
-            : AppColors.surfaceContainerLowest();
-        final Color fg =
-            glass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
+
         final Color outline =
             glass ? Colors.white.withOpacity(0.20) : AppColors.outline();
         final Color primary = Theme.of(ctx).colorScheme.primary;
@@ -1586,7 +1571,9 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                       width: Dimensions.size45,
                       height: Dimensions.size5,
                       decoration: BoxDecoration(
-                        color: fg.withValues(alpha: 0.18),
+                        color: glass
+                            ? Colors.white.withOpacity(0.92)
+                            : AppColors.onSurface().withValues(alpha: 0.18),
                         borderRadius: BorderRadius.circular(Dimensions.size15),
                       ),
                     ),
@@ -1599,7 +1586,9 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                             style: TextStyle(
                               fontSize: Dimensions.text14,
                               fontWeight: FontWeight.w900,
-                              color: fg,
+                              color: glass
+                                  ? Colors.white.withOpacity(0.92)
+                                  : AppColors.onSurface(),
                               letterSpacing: 0.2,
                             ),
                           ),
@@ -1613,7 +1602,9 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                               width: Dimensions.size40,
                               height: Dimensions.size40,
                               decoration: BoxDecoration(
-                                color: soft,
+                                color: glass
+                                    ? Colors.white.withOpacity(0.08)
+                                    : AppColors.surfaceContainerLowest(),
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                   color: outline.withValues(alpha: 0.18),
@@ -1622,7 +1613,9 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                               child: Icon(
                                 Icons.close_rounded,
                                 size: Dimensions.size20,
-                                color: fg,
+                                color: glass
+                                    ? Colors.white.withOpacity(0.92)
+                                    : AppColors.onSurface(),
                               ),
                             ),
                           ),
@@ -1638,7 +1631,9 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                           vertical: Dimensions.size10,
                         ),
                         decoration: ShapeDecoration(
-                          color: soft,
+                          color: glass
+                              ? Colors.white.withOpacity(0.08)
+                              : AppColors.surfaceContainerLowest(),
                           shape: SmoothRectangleBorder(
                             borderRadius:
                                 BorderRadius.circular(Dimensions.size20),
@@ -1671,7 +1666,10 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                                 style: TextStyle(
                                   fontSize: Dimensions.text12,
                                   fontWeight: FontWeight.w700,
-                                  color: fg.withValues(alpha: 0.70),
+                                  color: glass
+                                      ? Colors.white.withOpacity(0.92)
+                                      : AppColors.onSurface()
+                                          .withValues(alpha: 0.70),
                                   height: 1.2,
                                 ),
                               ),
@@ -1701,8 +1699,15 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                         final bool isFirst = i == 0;
 
                         final Color tileBg = enabled
-                            ? (isFirst ? tint(primary, 0.10) : soft)
-                            : soft.withValues(alpha: 0.55);
+                            ? (isFirst
+                                ? tint(primary, 0.10)
+                                : glass
+                                    ? Colors.white.withOpacity(0.08)
+                                    : AppColors.surfaceContainerLowest())
+                            : glass
+                                ? Colors.white.withOpacity(0.08)
+                                : AppColors.surfaceContainerLowest()
+                                    .withValues(alpha: 0.55);
 
                         final Color tileBorder = enabled
                             ? (isFirst
@@ -1711,15 +1716,38 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                             : tint(outline, 0.12);
 
                         final Color iconBg = enabled
-                            ? (isFirst ? tint(primary, 0.16) : tint(fg, 0.06))
-                            : tint(fg, 0.04);
+                            ? (isFirst
+                                ? tint(primary, 0.16)
+                                : tint(
+                                    glass
+                                        ? Colors.white.withOpacity(0.92)
+                                        : AppColors.onSurface(),
+                                    0.06,
+                                  ))
+                            : tint(
+                                glass
+                                    ? Colors.white.withOpacity(0.92)
+                                    : AppColors.onSurface(),
+                                0.04,
+                              );
 
                         final Color iconColor = enabled
-                            ? (isFirst ? primary : fg)
-                            : fg.withValues(alpha: 0.35);
+                            ? (isFirst
+                                ? primary
+                                : glass
+                                    ? Colors.white.withOpacity(0.92)
+                                    : AppColors.onSurface())
+                            : glass
+                                ? Colors.white.withOpacity(0.92)
+                                : AppColors.onSurface().withValues(alpha: 0.35);
 
-                        final Color textColor =
-                            enabled ? fg : fg.withValues(alpha: 0.35);
+                        final Color textColor = enabled
+                            ? glass
+                                ? Colors.white.withOpacity(0.92)
+                                : AppColors.onSurface()
+                            : glass
+                                ? Colors.white.withOpacity(0.92)
+                                : AppColors.onSurface().withValues(alpha: 0.35);
 
                         return Material(
                           color: Colors.transparent,
@@ -1733,7 +1761,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                                 shadows: enabled
                                     ? [
                                         BoxShadow(
-                                          blurRadius: 14,
+                                          blurRadius: Dimensions.size15,
                                           offset: const Offset(0, 8),
                                           color: Colors.black
                                               .withValues(alpha: 0.07),
@@ -1790,8 +1818,14 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                                       Icons.chevron_right_rounded,
                                       size: Dimensions.size20,
                                       color: enabled
-                                          ? fg.withValues(alpha: 0.40)
-                                          : fg.withValues(alpha: 0.18),
+                                          ? glass
+                                              ? Colors.white.withOpacity(0.92)
+                                              : AppColors.onSurface()
+                                                  .withValues(alpha: 0.40)
+                                          : glass
+                                              ? Colors.white.withOpacity(0.92)
+                                              : AppColors.onSurface()
+                                                  .withValues(alpha: 0.18),
                                     ),
                                   ],
                                 ),
@@ -1818,7 +1852,9 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                 return Container(
                   padding: sheetPadding,
                   decoration: ShapeDecoration(
-                    color: card,
+                    color: glass
+                        ? Colors.white.withOpacity(0.12)
+                        : AppColors.surface(),
                     shadows: [
                       BoxShadow(
                         blurRadius: Dimensions.size30,

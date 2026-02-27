@@ -39,13 +39,13 @@ class CustomDynamicFormDetailList extends StatefulWidget {
 class CustomDynamicFormDetailListState
     extends State<CustomDynamicFormDetailList>
     with AutomaticKeepAliveClientMixin {
-  static const double _gapCard = 10;
-  static const double _gapInner = 8;
+  static const double gapCard = 10;
+  static const double gapInner = 8;
 
-  static const double _tilePadX = 10;
-  static const double _tilePadY = 10;
+  static const double tilePadX = 10;
+  static const double tilePadY = 10;
 
-  bool get _isGlass {
+  bool get isGlass {
     try {
       return (Preferences.getInstance()
                   .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
@@ -55,17 +55,6 @@ class CustomDynamicFormDetailListState
       return false;
     }
   }
-
-  Color _card(BuildContext context) =>
-      _isGlass ? Colors.white.withOpacity(0.10) : AppColors.surface();
-  Color _soft(BuildContext context) => _isGlass
-      ? Colors.white.withOpacity(0.08)
-      : AppColors.surfaceContainerLowest();
-  Color _fg(BuildContext context) =>
-      _isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
-  Color _outline(BuildContext context) =>
-      _isGlass ? Colors.white.withOpacity(0.18) : AppColors.outline();
-  Color _primary(BuildContext context) => Theme.of(context).colorScheme.primary;
 
   @override
   Widget build(BuildContext context) {
@@ -107,13 +96,17 @@ class CustomDynamicFormDetailListState
                                       vertical: Dimensions.size5,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: _primary(context)
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary
                                           .withValues(alpha: 0.10),
                                       borderRadius: BorderRadius.circular(
                                         Dimensions.size100,
                                       ),
                                       border: Border.all(
-                                        color: _primary(context)
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary
                                             .withValues(alpha: 0.22),
                                       ),
                                     ),
@@ -123,7 +116,9 @@ class CustomDynamicFormDetailListState
                                         Icon(
                                           Icons.list_alt_rounded,
                                           size: Dimensions.size15,
-                                          color: _primary(context),
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
                                         ),
                                         SizedBox(width: Dimensions.size5),
                                         Text(
@@ -131,7 +126,9 @@ class CustomDynamicFormDetailListState
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
-                                            color: _primary(context),
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
                                             fontSize: Dimensions.text13,
                                             fontWeight: FontWeight.w900,
                                             letterSpacing: 0.2,
@@ -151,7 +148,7 @@ class CustomDynamicFormDetailListState
                       ],
                     );
 
-                    if (_isGlass) {
+                    if (isGlass) {
                       return GlassContainer(
                         blur: Dimensions.size20,
                         borderRadius: Dimensions.size20,
@@ -165,7 +162,9 @@ class CustomDynamicFormDetailListState
                     return Container(
                       padding: EdgeInsets.all(Dimensions.size15),
                       decoration: ShapeDecoration(
-                        color: _card(context),
+                        color: isGlass
+                            ? Colors.white.withOpacity(0.10)
+                            : AppColors.surface(),
                         shadows: [
                           BoxShadow(
                             blurRadius: Dimensions.size20,
@@ -178,7 +177,9 @@ class CustomDynamicFormDetailListState
                               BorderRadius.circular(Dimensions.size20),
                           smoothness: Dimensions.size1,
                           side: BorderSide(
-                            color: _outline(context).withValues(alpha: 0.18),
+                            color: isGlass
+                                ? Colors.white.withOpacity(0.18)
+                                : AppColors.outline().withValues(alpha: 0.18),
                           ),
                         ),
                       ),
@@ -198,7 +199,7 @@ class CustomDynamicFormDetailListState
                 ),
                 itemCount: widget.detailForm.getData(widget.headerForm).length,
                 separatorBuilder: (BuildContext context, int index) {
-                  return const SizedBox(height: _gapCard);
+                  return const SizedBox(height: gapCard);
                 },
                 itemBuilder: (BuildContext context, int index) {
                   Map<String, dynamic> map =
@@ -227,7 +228,7 @@ class CustomDynamicFormDetailListState
                         ListColumn lcRight = columns[i + 1];
 
                         children
-                          ..add(SizedBox(width: _gapInner))
+                          ..add(SizedBox(width: gapInner))
                           ..add(
                             childrenWidget(
                               description: lcRight.description,
@@ -248,7 +249,7 @@ class CustomDynamicFormDetailListState
                       );
 
                       if (i + 2 < columns.length) {
-                        widgets.add(SizedBox(height: _gapInner));
+                        widgets.add(SizedBox(height: gapInner));
                       }
                     }
                   }
@@ -405,13 +406,17 @@ class CustomDynamicFormDetailListState
                                       vertical: Dimensions.size5,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: _soft(context),
+                                      color: isGlass
+                                          ? Colors.white.withOpacity(0.08)
+                                          : AppColors.surfaceContainerLowest(),
                                       borderRadius: BorderRadius.circular(
                                         Dimensions.size100,
                                       ),
                                       border: Border.all(
-                                        color: _outline(context)
-                                            .withValues(alpha: 0.18),
+                                        color: isGlass
+                                            ? Colors.white.withOpacity(0.18)
+                                            : AppColors.outline()
+                                                .withValues(alpha: 0.18),
                                       ),
                                     ),
                                     child: Text(
@@ -419,7 +424,9 @@ class CustomDynamicFormDetailListState
                                       style: TextStyle(
                                         fontSize: Dimensions.text12,
                                         fontWeight: FontWeight.w900,
-                                        color: _fg(context),
+                                        color: isGlass
+                                            ? Colors.white.withOpacity(0.92)
+                                            : AppColors.onSurface(),
                                         letterSpacing: 0.2,
                                       ),
                                     ),
@@ -427,7 +434,10 @@ class CustomDynamicFormDetailListState
                                   const Spacer(),
                                   Icon(
                                     Icons.more_horiz_rounded,
-                                    color: _fg(context).withValues(alpha: 0.45),
+                                    color: isGlass
+                                        ? Colors.white.withOpacity(0.92)
+                                        : AppColors.onSurface()
+                                            .withValues(alpha: 0.45),
                                   ),
                                 ],
                               ),
@@ -436,7 +446,7 @@ class CustomDynamicFormDetailListState
                             ],
                           );
 
-                          if (_isGlass) {
+                          if (isGlass) {
                             return GlassContainer(
                               blur: Dimensions.size20,
                               borderRadius: Dimensions.size20,
@@ -454,7 +464,9 @@ class CustomDynamicFormDetailListState
                             width: MediaQuery.of(context).size.width,
                             padding: EdgeInsets.all(Dimensions.size15),
                             decoration: ShapeDecoration(
-                              color: _card(context),
+                              color: isGlass
+                                  ? Colors.white.withOpacity(0.10)
+                                  : AppColors.surface(),
                               shadows: [
                                 BoxShadow(
                                   blurRadius: Dimensions.size20,
@@ -467,8 +479,10 @@ class CustomDynamicFormDetailListState
                                     BorderRadius.circular(Dimensions.size20),
                                 smoothness: Dimensions.size1,
                                 side: BorderSide(
-                                  color:
-                                      _outline(context).withValues(alpha: 0.18),
+                                  color: isGlass
+                                      ? Colors.white.withOpacity(0.18)
+                                      : AppColors.outline()
+                                          .withValues(alpha: 0.18),
                                 ),
                               ),
                             ),
@@ -500,16 +514,20 @@ class CustomDynamicFormDetailListState
     return Expanded(
       child: Container(
         padding: EdgeInsets.symmetric(
-          horizontal: _tilePadX,
-          vertical: _tilePadY,
+          horizontal: tilePadX,
+          vertical: tilePadY,
         ),
         decoration: ShapeDecoration(
-          color: _soft(context),
+          color: isGlass
+              ? Colors.white.withOpacity(0.08)
+              : AppColors.surfaceContainerLowest(),
           shape: SmoothRectangleBorder(
             borderRadius: BorderRadius.circular(Dimensions.size15),
             smoothness: Dimensions.size1,
             side: BorderSide(
-              color: _outline(context).withValues(alpha: 0.16),
+              color: isGlass
+                  ? Colors.white.withOpacity(0.18)
+                  : AppColors.outline().withValues(alpha: 0.16),
             ),
           ),
         ),
@@ -523,7 +541,9 @@ class CustomDynamicFormDetailListState
               overflow: TextOverflow.ellipsis,
               textAlign: left ? TextAlign.start : TextAlign.end,
               style: TextStyle(
-                color: _fg(context).withValues(alpha: 0.65),
+                color: isGlass
+                    ? Colors.white.withOpacity(0.92)
+                    : AppColors.onSurface().withValues(alpha: 0.65),
                 fontSize: Dimensions.text12,
                 fontWeight: FontWeight.w800,
               ),
@@ -538,7 +558,9 @@ class CustomDynamicFormDetailListState
                 fontSize: Dimensions.text14,
                 fontWeight: FontWeight.w900,
                 height: 1.15,
-                color: _fg(context),
+                color: isGlass
+                    ? Colors.white.withOpacity(0.92)
+                    : AppColors.onSurface(),
               ),
             ),
           ],
@@ -599,15 +621,21 @@ class CustomDynamicFormDetailListState
                       width: Dimensions.size30,
                       height: Dimensions.size30,
                       decoration: BoxDecoration(
-                        color: _primary(context).withValues(alpha: 0.12),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: _primary(context).withValues(alpha: 0.22),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.22),
                         ),
                       ),
                       child: Icon(
                         Icons.add_rounded,
-                        color: _primary(context),
+                        color: Theme.of(context).colorScheme.primary,
                         size: Dimensions.size20,
                       ),
                     ),
@@ -617,13 +645,15 @@ class CustomDynamicFormDetailListState
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.2,
-                        color: _fg(context),
+                        color: isGlass
+                            ? Colors.white.withOpacity(0.92)
+                            : AppColors.onSurface(),
                       ),
                     ),
                   ],
                 );
 
-                if (_isGlass) {
+                if (isGlass) {
                   return GlassContainer(
                     blur: Dimensions.size15,
                     borderRadius: Dimensions.size20,
@@ -639,12 +669,16 @@ class CustomDynamicFormDetailListState
 
                 return Ink(
                   decoration: ShapeDecoration(
-                    color: _soft(context),
+                    color: isGlass
+                        ? Colors.white.withOpacity(0.08)
+                        : AppColors.surfaceContainerLowest(),
                     shape: SmoothRectangleBorder(
                       borderRadius: BorderRadius.circular(Dimensions.size20),
                       smoothness: Dimensions.size1,
                       side: BorderSide(
-                        color: _outline(context).withValues(alpha: 0.18),
+                        color: isGlass
+                            ? Colors.white.withOpacity(0.18)
+                            : AppColors.outline().withValues(alpha: 0.18),
                       ),
                     ),
                   ),
@@ -723,12 +757,14 @@ class CustomDynamicFormDetailListState
                   height: Dimensions.size40,
                   child: Icon(
                     Icons.dynamic_form_outlined,
-                    color: _fg(context),
+                    color: isGlass
+                        ? Colors.white.withOpacity(0.92)
+                        : AppColors.onSurface(),
                     size: Dimensions.size20,
                   ),
                 );
 
-                if (_isGlass) {
+                if (isGlass) {
                   return GlassContainer(
                     blur: Dimensions.size15,
                     borderRadius: Dimensions.size15,
@@ -743,18 +779,24 @@ class CustomDynamicFormDetailListState
                   width: Dimensions.size40,
                   height: Dimensions.size40,
                   decoration: ShapeDecoration(
-                    color: _soft(context),
+                    color: isGlass
+                        ? Colors.white.withOpacity(0.08)
+                        : AppColors.surfaceContainerLowest(),
                     shape: SmoothRectangleBorder(
                       borderRadius: BorderRadius.circular(Dimensions.size15),
                       smoothness: Dimensions.size1,
                       side: BorderSide(
-                        color: _outline(context).withValues(alpha: 0.20),
+                        color: isGlass
+                            ? Colors.white.withOpacity(0.18)
+                            : AppColors.outline().withValues(alpha: 0.20),
                       ),
                     ),
                   ),
                   child: Icon(
                     Icons.dynamic_form_outlined,
-                    color: _fg(context),
+                    color: isGlass
+                        ? Colors.white.withOpacity(0.92)
+                        : AppColors.onSurface(),
                     size: Dimensions.size20,
                   ),
                 );

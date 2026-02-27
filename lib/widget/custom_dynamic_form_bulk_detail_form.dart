@@ -46,19 +46,19 @@ class CustomDynamicFormBulkDetailFormState
   late List<Map<String, dynamic>> rows;
 
   int index = 0;
-  bool _prefsReady = false;
+  bool prefsReady = false;
 
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
-    _initPrefs();
+    initPrefs();
 
     rows = widget.rows;
   }
 
-  Future<void> _initPrefs() async {
+  Future<void> initPrefs() async {
     try {
       await Preferences.getInstance().init();
     } catch (_) {
@@ -70,12 +70,12 @@ class CustomDynamicFormBulkDetailFormState
     }
 
     setState(() {
-      _prefsReady = true;
+      prefsReady = true;
     });
   }
 
   bool get isGlass {
-    if (!_prefsReady) {
+    if (!prefsReady) {
       return false;
     }
 
@@ -85,7 +85,7 @@ class CustomDynamicFormBulkDetailFormState
     return t == 2;
   }
 
-  Widget _glassBackground() {
+  Widget glassBackground() {
     final String p = (Preferences.getInstance()
                 .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
             "")
@@ -106,22 +106,6 @@ class CustomDynamicFormBulkDetailFormState
     return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
   }
 
-  Widget _glassOverlay() {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            Color.fromRGBO(0, 0, 0, 0.55),
-            Color.fromRGBO(0, 0, 0, 0.22),
-            Color.fromRGBO(0, 0, 0, 0.40),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final bool glass = isGlass;
@@ -134,8 +118,22 @@ class CustomDynamicFormBulkDetailFormState
         extendBody: true,
         body: Stack(
           children: [
-            Positioned.fill(child: _glassBackground()),
-            Positioned.fill(child: _glassOverlay()),
+            Positioned.fill(child: glassBackground()),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      Color.fromRGBO(0, 0, 0, 0.55),
+                      Color.fromRGBO(0, 0, 0, 0.22),
+                      Color.fromRGBO(0, 0, 0, 0.40),
+                    ],
+                  ),
+                ),
+              ),
+            ),
             Column(
               children: [
                 SizedBox(height: safe.top),
@@ -146,7 +144,7 @@ class CustomDynamicFormBulkDetailFormState
                     Dimensions.size15,
                     Dimensions.size10,
                   ),
-                  child: _appBarGlass(context),
+                  child: appBarGlass(context),
                 ),
                 Expanded(child: body()),
                 SizedBox(height: safe.bottom),
@@ -183,12 +181,7 @@ class CustomDynamicFormBulkDetailFormState
     setState(() {});
   }
 
-  Color _fg(BuildContext context) =>
-      isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
-  Color _outline(BuildContext context) =>
-      isGlass ? Colors.white.withOpacity(0.18) : AppColors.outline();
-
-  Widget _iconPill({
+  Widget iconPill({
     required IconData icon,
     required VoidCallback onTap,
   }) {
@@ -220,10 +213,10 @@ class CustomDynamicFormBulkDetailFormState
     );
   }
 
-  Widget _appBarGlass(BuildContext context) {
+  Widget appBarGlass(BuildContext context) {
     final Widget content = Row(
       children: [
-        _iconPill(
+        iconPill(
           icon: Icons.turn_left_rounded,
           onTap: () {
             if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
@@ -303,8 +296,6 @@ class CustomDynamicFormBulkDetailFormState
   }
 
   Widget progressHeader(BuildContext context) {
-    final Color fg = _fg(context);
-    final Color outline = _outline(context);
     final Color primary = Theme.of(context).colorScheme.primary;
 
     final int current = index + 1;
@@ -366,7 +357,9 @@ class CustomDynamicFormBulkDetailFormState
                   style: TextStyle(
                     fontSize: Dimensions.text14,
                     fontWeight: FontWeight.w900,
-                    color: fg,
+                    color: isGlass
+                        ? Colors.white.withOpacity(0.92)
+                        : AppColors.onSurface(),
                     letterSpacing: 0.1,
                   ),
                 ),
@@ -379,7 +372,9 @@ class CustomDynamicFormBulkDetailFormState
             child: LinearProgressIndicator(
               minHeight: Dimensions.size5,
               value: progress,
-              backgroundColor: outline.withValues(alpha: 0.18),
+              backgroundColor: isGlass
+                  ? Colors.white.withOpacity(0.18)
+                  : AppColors.outline().withValues(alpha: 0.18),
               valueColor: AlwaysStoppedAnimation<Color>(
                 primary.withValues(alpha: 0.90),
               ),
@@ -392,11 +387,9 @@ class CustomDynamicFormBulkDetailFormState
 
   Widget body() {
     final bool glass = isGlass;
-    final Color bg =
-        glass ? Colors.transparent : AppColors.surfaceContainerLowest();
 
     return Container(
-      color: bg,
+      color: glass ? Colors.transparent : AppColors.surfaceContainerLowest(),
       child: Form(
         key: formState,
         child: SingleChildScrollView(
@@ -470,9 +463,6 @@ class CustomDynamicFormBulkDetailFormState
 
   Widget bottomBar() {
     final bool glass = isGlass;
-    final Color fg = _fg(context);
-    final Color sub =
-        glass ? Colors.white.withOpacity(0.70) : AppColors.secondary();
 
     Widget previousButton() {
       if (index > 0) {
@@ -500,7 +490,9 @@ class CustomDynamicFormBulkDetailFormState
             TextSpan(
               text: (index + 1).toString(),
               style: TextStyle(
-                color: fg,
+                color: isGlass
+                    ? Colors.white.withOpacity(0.92)
+                    : AppColors.onSurface(),
                 fontSize: Dimensions.text14,
                 fontWeight: FontWeight.w900,
               ),
@@ -508,7 +500,9 @@ class CustomDynamicFormBulkDetailFormState
             TextSpan(
               text: " ${"of".tr().toLowerCase()} ${rows.length}",
               style: TextStyle(
-                color: sub,
+                color: glass
+                    ? Colors.white.withOpacity(0.70)
+                    : AppColors.secondary(),
                 fontSize: Dimensions.text14,
                 fontWeight: FontWeight.w600,
               ),
@@ -567,7 +561,10 @@ class CustomDynamicFormBulkDetailFormState
           child: ClipRRect(
             borderRadius: BorderRadius.circular(Dimensions.size25),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+              filter: ImageFilter.blur(
+                sigmaX: Dimensions.size15,
+                sigmaY: Dimensions.size15,
+              ),
               child: Container(
                 padding: EdgeInsets.symmetric(
                   horizontal: Dimensions.size15,

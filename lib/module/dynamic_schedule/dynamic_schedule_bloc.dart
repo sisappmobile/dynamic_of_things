@@ -10,7 +10,8 @@ import "package:dynamic_of_things/module/dynamic_schedule/dynamic_schedule_state
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 
-class DynamicScheduleBloc extends Bloc<DynamicScheduleEvent, DynamicScheduleState> {
+class DynamicScheduleBloc
+    extends Bloc<DynamicScheduleEvent, DynamicScheduleState> {
   DynamicScheduleBloc() : super(DynamicScheduleInitial()) {
     on<DynamicScheduleTemplate>((event, emit) async {
       try {
@@ -22,7 +23,8 @@ class DynamicScheduleBloc extends Bloc<DynamicScheduleEvent, DynamicScheduleStat
         );
 
         if (response.statusCode == 200) {
-          emit(DynamicScheduleTemplateSuccess(Template.fromJson(response.data)));
+          emit(
+              DynamicScheduleTemplateSuccess(Template.fromJson(response.data)));
         }
       } catch (e) {
         BaseOverlays.error(message: "common_something_wrong".tr());
@@ -44,7 +46,9 @@ class DynamicScheduleBloc extends Bloc<DynamicScheduleEvent, DynamicScheduleStat
         );
 
         if (response.statusCode == 200) {
-          emit(DynamicScheduleDataSuccess(response.data != null ? List<Item>.from(response.data.map((e) => Item.fromJson(e))) : []));
+          emit(DynamicScheduleDataSuccess(response.data != null
+              ? List<Item>.from(response.data.map((e) => Item.fromJson(e)))
+              : []));
         }
       } catch (e) {
         BaseOverlays.error(message: "common_something_wrong".tr());

@@ -28,13 +28,7 @@ class SignaturePageState extends State<SignaturePage> {
     super.initState();
   }
 
-  Color _bg(BuildContext context) => AppColors.surfaceContainerLowest();
-  Color _card(BuildContext context) => AppColors.surface();
-  Color _soft(BuildContext context) => AppColors.surfaceContainerLowest();
-  Color _fg(BuildContext context) => AppColors.onSurface();
-  Color _outline(BuildContext context) => AppColors.outline();
-
-  Widget _sectionCard({
+  Widget sectionCard({
     required BuildContext context,
     required Widget child,
     EdgeInsets? padding,
@@ -42,7 +36,7 @@ class SignaturePageState extends State<SignaturePage> {
     return Container(
       padding: padding ?? EdgeInsets.all(Dimensions.size15),
       decoration: ShapeDecoration(
-        color: _card(context),
+        color: AppColors.surface(),
         shadows: [
           BoxShadow(
             blurRadius: Dimensions.size25,
@@ -52,9 +46,9 @@ class SignaturePageState extends State<SignaturePage> {
         ],
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size20),
-          smoothness: 1,
+          smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.20),
+            color: AppColors.outline().withValues(alpha: 0.20),
           ),
         ),
       ),
@@ -62,7 +56,7 @@ class SignaturePageState extends State<SignaturePage> {
     );
   }
 
-  Widget _iconPill({
+  Widget iconPill({
     required BuildContext context,
     required IconData icon,
     required VoidCallback onTap,
@@ -73,32 +67,32 @@ class SignaturePageState extends State<SignaturePage> {
         onTap: onTap,
         customBorder: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size15),
-          smoothness: 1,
+          smoothness: Dimensions.size1,
         ),
         child: Ink(
           width: Dimensions.size40,
           height: Dimensions.size40,
           decoration: ShapeDecoration(
-            color: _soft(context),
+            color: AppColors.surfaceContainerLowest(),
             shape: SmoothRectangleBorder(
               borderRadius: BorderRadius.circular(Dimensions.size15),
-              smoothness: 1,
+              smoothness: Dimensions.size1,
               side: BorderSide(
-                color: _outline(context).withValues(alpha: 0.22),
+                color: AppColors.outline().withValues(alpha: 0.22),
               ),
             ),
           ),
           child: Icon(
             icon,
             size: Dimensions.size25,
-            color: _fg(context),
+            color: AppColors.onSurface(),
           ),
         ),
       ),
     );
   }
 
-  Widget _glassTopBar(BuildContext context) {
+  Widget glassTopbar(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
 
     return SafeArea(
@@ -113,17 +107,20 @@ class SignaturePageState extends State<SignaturePage> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(Dimensions.size25),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            filter: ImageFilter.blur(
+              sigmaX: Dimensions.size15,
+              sigmaY: Dimensions.size15,
+            ),
             child: Container(
               padding: EdgeInsets.symmetric(
                 horizontal: Dimensions.size15,
                 vertical: Dimensions.size10,
               ),
               decoration: BoxDecoration(
-                color: _card(context).withValues(alpha: 0.92),
+                color: AppColors.surface().withValues(alpha: 0.92),
                 borderRadius: BorderRadius.circular(Dimensions.size25),
                 border: Border.all(
-                  color: _outline(context).withValues(alpha: 0.18),
+                  color: AppColors.outline().withValues(alpha: 0.18),
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -135,7 +132,7 @@ class SignaturePageState extends State<SignaturePage> {
               ),
               child: Row(
                 children: [
-                  _iconPill(
+                  iconPill(
                     context: context,
                     icon: Icons.turn_left_rounded,
                     onTap: () {
@@ -157,7 +154,7 @@ class SignaturePageState extends State<SignaturePage> {
                         fontSize: Dimensions.text16,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.2,
-                        color: _fg(context),
+                        color: AppColors.onSurface(),
                       ),
                     ),
                   ),
@@ -168,12 +165,12 @@ class SignaturePageState extends State<SignaturePage> {
                       vertical: Dimensions.size10,
                     ),
                     decoration: ShapeDecoration(
-                      color: _soft(context),
+                      color: AppColors.surfaceContainerLowest(),
                       shape: SmoothRectangleBorder(
                         borderRadius: BorderRadius.circular(Dimensions.size15),
-                        smoothness: 1,
+                        smoothness: Dimensions.size1,
                         side: BorderSide(
-                          color: _outline(context).withValues(alpha: 0.18),
+                          color: AppColors.outline().withValues(alpha: 0.18),
                         ),
                       ),
                     ),
@@ -182,7 +179,7 @@ class SignaturePageState extends State<SignaturePage> {
                       children: [
                         Icon(
                           Icons.edit_rounded,
-                          size: 16,
+                          size: Dimensions.size15,
                           color: Theme.of(context).colorScheme.primary,
                         ),
                         SizedBox(width: Dimensions.size10),
@@ -192,7 +189,7 @@ class SignaturePageState extends State<SignaturePage> {
                             fontSize: Dimensions.text12,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 0.2,
-                            color: _fg(context),
+                            color: AppColors.onSurface(),
                           ),
                         ),
                       ],
@@ -207,7 +204,7 @@ class SignaturePageState extends State<SignaturePage> {
     );
   }
 
-  Widget _bottomGlassSaveBar(BuildContext context) {
+  Widget bottomGlassSaveBar(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
     final Color primary = Theme.of(context).colorScheme.primary;
     final Color onPrimary = Theme.of(context).colorScheme.onPrimary;
@@ -224,14 +221,17 @@ class SignaturePageState extends State<SignaturePage> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(Dimensions.size25),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            filter: ImageFilter.blur(
+              sigmaX: Dimensions.size15,
+              sigmaY: Dimensions.size15,
+            ),
             child: Container(
               padding: EdgeInsets.all(Dimensions.size10),
               decoration: BoxDecoration(
-                color: _card(context).withValues(alpha: 0.92),
+                color: AppColors.surface().withValues(alpha: 0.92),
                 borderRadius: BorderRadius.circular(Dimensions.size25),
                 border: Border.all(
-                  color: _outline(context).withValues(alpha: 0.18),
+                  color: AppColors.outline().withValues(alpha: 0.18),
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -256,13 +256,13 @@ class SignaturePageState extends State<SignaturePage> {
                         shape: SmoothRectangleBorder(
                           borderRadius:
                               BorderRadius.circular(Dimensions.size20),
-                          smoothness: 1,
+                          smoothness: Dimensions.size1,
                         ),
                         side: BorderSide(
-                          color: _outline(context).withValues(alpha: 0.30),
+                          color: AppColors.outline().withValues(alpha: 0.30),
                         ),
-                        foregroundColor: _fg(context),
-                        backgroundColor: _soft(context),
+                        foregroundColor: AppColors.onSurface(),
+                        backgroundColor: AppColors.surfaceContainerLowest(),
                       ),
                     ),
                   ),
@@ -308,15 +308,15 @@ class SignaturePageState extends State<SignaturePage> {
                             color: primary,
                             shadows: [
                               BoxShadow(
-                                blurRadius: 18,
-                                offset: const Offset(0, 10),
+                                blurRadius: Dimensions.size20,
+                                offset: Offset(0, Dimensions.size10),
                                 color: Colors.black.withValues(alpha: 0.16),
                               ),
                             ],
                             shape: SmoothRectangleBorder(
                               borderRadius:
                                   BorderRadius.circular(Dimensions.size20),
-                              smoothness: 1,
+                              smoothness: Dimensions.size1,
                             ),
                           ),
                           child: Row(
@@ -360,10 +360,10 @@ class SignaturePageState extends State<SignaturePage> {
     );
   }
 
-  Widget _signatureCanvas(BuildContext context) {
+  Widget signatureCanvas(BuildContext context) {
     final double w = MediaQuery.sizeOf(context).width;
 
-    return _sectionCard(
+    return sectionCard(
       context: context,
       padding: EdgeInsets.all(Dimensions.size10),
       child: Container(
@@ -375,7 +375,7 @@ class SignaturePageState extends State<SignaturePage> {
         decoration: BoxDecoration(
           color: AppColors.surfaceContainerLowest(),
           border: Border.all(
-            color: _outline(context).withValues(alpha: 0.25),
+            color: AppColors.outline().withValues(alpha: 0.25),
           ),
           borderRadius: BorderRadius.circular(Dimensions.size15),
         ),
@@ -389,10 +389,10 @@ class SignaturePageState extends State<SignaturePage> {
     );
   }
 
-  Widget _hint(BuildContext context) {
+  Widget hint(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(bottom: Dimensions.size10),
-      child: _sectionCard(
+      child: sectionCard(
         context: context,
         padding: EdgeInsets.symmetric(
           horizontal: Dimensions.size15,
@@ -418,7 +418,7 @@ class SignaturePageState extends State<SignaturePage> {
               ),
               child: Icon(
                 Icons.gesture_rounded,
-                size: 18,
+                size: Dimensions.size20,
                 color: Theme.of(context).colorScheme.primary,
               ),
             ),
@@ -427,7 +427,7 @@ class SignaturePageState extends State<SignaturePage> {
               child: Text(
                 "Silakan tanda tangan pada area di bawah, lalu tekan SIMPAN.",
                 style: TextStyle(
-                  color: _fg(context).withValues(alpha: 0.75),
+                  color: AppColors.onSurface().withValues(alpha: 0.75),
                   fontWeight: FontWeight.w700,
                   height: 1.2,
                   fontSize: Dimensions.text12,
@@ -445,7 +445,7 @@ class SignaturePageState extends State<SignaturePage> {
     final EdgeInsets safe = MediaQuery.of(context).padding;
 
     return Scaffold(
-      backgroundColor: _bg(context),
+      backgroundColor: AppColors.surfaceContainerLowest(),
       body: Stack(
         children: [
           Positioned.fill(
@@ -458,8 +458,8 @@ class SignaturePageState extends State<SignaturePage> {
               ),
               child: Column(
                 children: [
-                  _hint(context),
-                  _signatureCanvas(context),
+                  hint(context),
+                  signatureCanvas(context),
                 ],
               ),
             ),
@@ -468,13 +468,13 @@ class SignaturePageState extends State<SignaturePage> {
             left: 0,
             right: 0,
             top: 0,
-            child: _glassTopBar(context),
+            child: glassTopbar(context),
           ),
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: _bottomGlassSaveBar(context),
+            child: bottomGlassSaveBar(context),
           ),
         ],
       ),

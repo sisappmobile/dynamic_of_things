@@ -1658,12 +1658,13 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                     borderRadius: BorderRadius.circular(Dimensions.size50),
                     smoothness: Dimensions.size1,
                     side: BorderSide(
-                        color: isGlass
-                            ? Colors.white.withOpacity(selected ? 0.30 : 0.18)
-                            : selected
-                                ? AppColors.onPrimaryContainer()
-                                    .withValues(alpha: 0.20)
-                                : AppColors.outline().withValues(alpha: 0.30)),
+                      color: isGlass
+                          ? Colors.white.withOpacity(selected ? 0.30 : 0.18)
+                          : selected
+                              ? AppColors.onPrimaryContainer()
+                                  .withValues(alpha: 0.20)
+                              : AppColors.outline().withValues(alpha: 0.30),
+                    ),
                   ),
                 ),
                 child: Center(
@@ -1733,11 +1734,13 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                 child: SizedBox(
                   width: Dimensions.size40,
                   height: Dimensions.size40,
-                  child: Icon(icon,
-                      color: isGlass
-                          ? Colors.white.withOpacity(0.92)
-                          : AppColors.onSurface(),
-                      size: Dimensions.size25),
+                  child: Icon(
+                    icon,
+                    color: isGlass
+                        ? Colors.white.withOpacity(0.92)
+                        : AppColors.onSurface(),
+                    size: Dimensions.size25,
+                  ),
                 ),
               )
             : Ink(
@@ -1789,11 +1792,13 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(icon,
-                        size: Dimensions.size20,
-                        color: isGlass
-                            ? Colors.white.withOpacity(0.95)
-                            : AppColors.onPrimaryContainer()),
+                    Icon(
+                      icon,
+                      size: Dimensions.size20,
+                      color: isGlass
+                          ? Colors.white.withOpacity(0.95)
+                          : AppColors.onPrimaryContainer(),
+                    ),
                     SizedBox(width: Dimensions.size5),
                     Text(
                       label,
@@ -1868,11 +1873,13 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                 child: SizedBox(
                   width: Dimensions.size35,
                   height: Dimensions.size35,
-                  child: Icon(icon,
-                      color: isGlass
-                          ? Colors.white.withOpacity(0.90)
-                          : AppColors.onSurface(),
-                      size: Dimensions.size20),
+                  child: Icon(
+                    icon,
+                    color: isGlass
+                        ? Colors.white.withOpacity(0.90)
+                        : AppColors.onSurface(),
+                    size: Dimensions.size20,
+                  ),
                 ),
               )
             : Ink(

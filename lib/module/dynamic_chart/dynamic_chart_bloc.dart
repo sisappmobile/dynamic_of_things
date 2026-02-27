@@ -19,7 +19,8 @@ class DynamicChartBloc extends Bloc<DynamicChartEvent, DynamicChartState> {
         Response response = await DotApis.getInstance().dynamicChartList();
 
         if (response.statusCode == 200) {
-          emit(DynamicChartLoadSuccess(listResponse: ListResponse.fromJson(response.data)));
+          emit(DynamicChartLoadSuccess(
+              listResponse: ListResponse.fromJson(response.data)));
         }
       } catch (e) {
         if (kDebugMode) {

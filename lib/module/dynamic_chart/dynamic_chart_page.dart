@@ -564,41 +564,6 @@ class Insight extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle titleStyle = TextStyle(
-      fontSize: Dimensions.text12,
-      fontWeight: FontWeight.w900,
-      color: isGlass
-          ? Colors.white.withOpacity(0.92)
-          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.88),
-    );
-
-    final TextStyle subStyle = TextStyle(
-      fontSize: Dimensions.text12,
-      fontWeight: FontWeight.w700,
-      color: isGlass
-          ? Colors.white.withOpacity(0.78)
-          : Theme.of(context)
-              .colorScheme
-              .onSurfaceVariant
-              .withValues(alpha: 0.85),
-    );
-
-    final TextStyle labelStyle = TextStyle(
-      fontSize: Dimensions.text12,
-      fontWeight: FontWeight.w700,
-      color: isGlass
-          ? Colors.white.withOpacity(0.82)
-          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.78),
-    );
-
-    final TextStyle valueStyle = TextStyle(
-      fontSize: Dimensions.text12,
-      fontWeight: FontWeight.w900,
-      color: isGlass
-          ? Colors.white.withOpacity(0.92)
-          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.92),
-    );
-
     Widget chip(String label, String value) {
       if (isGlass) {
         return GlassContainer(
@@ -613,18 +578,37 @@ class Insight extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(label, style: labelStyle),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: Dimensions.text12,
+                  fontWeight: FontWeight.w700,
+                  color: isGlass
+                      ? Colors.white.withOpacity(0.82)
+                      : Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.78),
+                ),
+              ),
               SizedBox(width: Dimensions.size5),
-              Text(value, style: valueStyle),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: Dimensions.text12,
+                  fontWeight: FontWeight.w900,
+                  color: isGlass
+                      ? Colors.white.withOpacity(0.92)
+                      : Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.92),
+                ),
+              ),
             ],
           ),
         );
       }
-
-      final Color chipBg = Theme.of(context)
-          .colorScheme
-          .surfaceContainerHighest
-          .withValues(alpha: 0.55);
 
       return Container(
         padding: EdgeInsets.symmetric(
@@ -632,7 +616,10 @@ class Insight extends StatelessWidget {
           vertical: Dimensions.size10,
         ),
         decoration: BoxDecoration(
-          color: chipBg,
+          color: Theme.of(context)
+              .colorScheme
+              .surfaceContainerHighest
+              .withValues(alpha: 0.55),
           borderRadius: BorderRadius.circular(Dimensions.size10),
           border: Border.all(
             color: isGlass
@@ -647,9 +634,33 @@ class Insight extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label, style: labelStyle),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: Dimensions.text12,
+                fontWeight: FontWeight.w700,
+                color: isGlass
+                    ? Colors.white.withOpacity(0.82)
+                    : Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.78),
+              ),
+            ),
             SizedBox(width: Dimensions.size5),
-            Text(value, style: valueStyle),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: Dimensions.text12,
+                fontWeight: FontWeight.w900,
+                color: isGlass
+                    ? Colors.white.withOpacity(0.92)
+                    : Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.92),
+              ),
+            ),
           ],
         ),
       );
@@ -667,11 +678,32 @@ class Insight extends StatelessWidget {
                     name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: labelStyle,
+                    style: TextStyle(
+                      fontSize: Dimensions.text12,
+                      fontWeight: FontWeight.w700,
+                      color: isGlass
+                          ? Colors.white.withOpacity(0.82)
+                          : Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.78),
+                    ),
                   ),
                 ),
                 SizedBox(width: Dimensions.size10),
-                Text("${v.toString()}  (${persentText(v)})", style: valueStyle),
+                Text(
+                  "${v.toString()}  (${persentText(v)})",
+                  style: TextStyle(
+                    fontSize: Dimensions.text12,
+                    fontWeight: FontWeight.w900,
+                    color: isGlass
+                        ? Colors.white.withOpacity(0.92)
+                        : Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.92),
+                  ),
+                ),
               ],
             ),
             SizedBox(height: Dimensions.size5),
@@ -707,9 +739,33 @@ class Insight extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("summary".tr(), style: titleStyle),
+          Text(
+            "summary".tr(),
+            style: TextStyle(
+              fontSize: Dimensions.text12,
+              fontWeight: FontWeight.w900,
+              color: isGlass
+                  ? Colors.white.withOpacity(0.92)
+                  : Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.88),
+            ),
+          ),
           SizedBox(height: Dimensions.size5),
-          Text("summary_description".tr(), style: subStyle),
+          Text(
+            "summary_description".tr(),
+            style: TextStyle(
+              fontSize: Dimensions.text12,
+              fontWeight: FontWeight.w700,
+              color: isGlass
+                  ? Colors.white.withOpacity(0.78)
+                  : Theme.of(context)
+                      .colorScheme
+                      .onSurfaceVariant
+                      .withValues(alpha: 0.85),
+            ),
+          ),
           SizedBox(height: Dimensions.size10),
           Wrap(
             spacing: Dimensions.size10,
@@ -721,11 +777,35 @@ class Insight extends StatelessWidget {
             ],
           ),
           SizedBox(height: Dimensions.size15),
-          Text("type_composition".tr(), style: titleStyle),
+          Text(
+            "type_composition".tr(),
+            style: TextStyle(
+              fontSize: Dimensions.text12,
+              fontWeight: FontWeight.w900,
+              color: isGlass
+                  ? Colors.white.withOpacity(0.92)
+                  : Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.88),
+            ),
+          ),
           SizedBox(height: Dimensions.size15),
           ...compositionByVariable.map((e) => rowItem(e.key, e.value)),
           SizedBox(height: Dimensions.size5),
-          Text("category_composition".tr(), style: titleStyle),
+          Text(
+            "category_composition".tr(),
+            style: TextStyle(
+              fontSize: Dimensions.text12,
+              fontWeight: FontWeight.w900,
+              color: isGlass
+                  ? Colors.white.withOpacity(0.92)
+                  : Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.88),
+            ),
+          ),
           SizedBox(height: Dimensions.size10),
           ...compositionByCategory.map((e) => rowItem(e.key, e.value)),
         ],
@@ -989,7 +1069,6 @@ class ChartCardState extends State<ChartCard> {
       clipBehavior: Clip.antiAlias,
       builder: (context) {
         final ColorScheme cs = Theme.of(context).colorScheme;
-        final bool dark = Theme.of(context).brightness == Brightness.dark;
 
         final List<ChartModel> models = <ChartModel>[
           ChartModel.stackedColumn,
@@ -1043,19 +1122,7 @@ class ChartCardState extends State<ChartCard> {
         Widget gridItem(ChartModel m) {
           final bool active = m == model;
 
-          final Color border =
-              cs.outlineVariant.withValues(alpha: dark ? 0.35 : 0.55);
-          final Color text = cs.onSurface.withValues(alpha: 0.92);
-          final Color sub = cs.onSurfaceVariant.withValues(alpha: 0.85);
-
           final Color accent = modelColor(m);
-          final Color iconColor = active
-              ? accent.withValues(alpha: 1.0)
-              : accent.withValues(alpha: 0.85);
-
-          final Color bg = active
-              ? Color.alphaBlend(accent.withValues(alpha: 0.10), cs.surface)
-              : cs.surface;
 
           return InkWell(
             borderRadius: BorderRadius.circular(Dimensions.size15),
@@ -1064,23 +1131,34 @@ class ChartCardState extends State<ChartCard> {
               height: tileH,
               padding: EdgeInsets.all(Dimensions.size10),
               decoration: BoxDecoration(
-                color: bg,
+                color: active
+                    ? Color.alphaBlend(
+                        accent.withValues(alpha: 0.10),
+                        cs.surface,
+                      )
+                    : cs.surface,
                 borderRadius: BorderRadius.circular(Dimensions.size15),
                 border: Border.all(
                   color: active
-                      ? Color.alphaBlend(accent.withValues(alpha: 0.35), border)
-                      : border,
+                      ? Color.alphaBlend(
+                          accent.withValues(alpha: 0.35),
+                          cs.outlineVariant.withValues(
+                            alpha:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? 0.35
+                                    : 0.55,
+                          ),
+                        )
+                      : cs.outlineVariant.withValues(
+                          alpha: Theme.of(context).brightness == Brightness.dark
+                              ? 0.35
+                              : 0.55,
+                        ),
                 ),
               ),
               child: LayoutBuilder(
                 builder: (context, c) {
                   final bool compact = c.maxHeight < 84;
-
-                  final double iconSize = Dimensions.size20;
-                  final double titleSize =
-                      compact ? Dimensions.text11 : Dimensions.text12;
-                  final double subSize =
-                      compact ? Dimensions.text9 : Dimensions.text10;
 
                   return Column(
                     mainAxisSize: MainAxisSize.max,
@@ -1103,8 +1181,10 @@ class ChartCardState extends State<ChartCard> {
                         ),
                         child: Icon(
                           m.icon(),
-                          size: iconSize,
-                          color: iconColor,
+                          size: Dimensions.size20,
+                          color: active
+                              ? accent.withValues(alpha: 1.0)
+                              : accent.withValues(alpha: 0.85),
                         ),
                       ),
                       SizedBox(height: compact ? 6 : 10),
@@ -1116,16 +1196,18 @@ class ChartCardState extends State<ChartCard> {
                             maxLines: compact ? 2 : 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: titleSize,
+                              fontSize: compact
+                                  ? Dimensions.text11
+                                  : Dimensions.text12,
                               fontWeight: FontWeight.w900,
-                              color: text,
+                              color: cs.onSurface.withValues(alpha: 0.92),
                               height: 1.05,
                             ),
                           ),
                         ),
                       ),
                       if (!compact) ...[
-                        SizedBox(height: 2),
+                        SizedBox(height: Dimensions.size2),
                         Text(
                           m.isCircular()
                               ? "Circular"
@@ -1134,9 +1216,10 @@ class ChartCardState extends State<ChartCard> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: subSize,
+                            fontSize:
+                                compact ? Dimensions.text9 : Dimensions.text10,
                             fontWeight: FontWeight.w700,
-                            color: sub,
+                            color: cs.onSurfaceVariant.withValues(alpha: 0.85),
                             height: 1.05,
                           ),
                         ),
@@ -1149,13 +1232,20 @@ class ChartCardState extends State<ChartCard> {
                           shape: BoxShape.circle,
                           color: active ? accent : Colors.transparent,
                           border: Border.all(
-                            color:
-                                active ? accent : sub.withValues(alpha: 0.65),
+                            color: active
+                                ? accent
+                                : cs.onSurfaceVariant
+                                    .withValues(alpha: 0.85)
+                                    .withValues(alpha: 0.65),
                             width: 1.6,
                           ),
                         ),
                         child: active
-                            ? Icon(Icons.check, size: 12, color: cs.surface)
+                            ? Icon(
+                                Icons.check,
+                                size: Dimensions.size10,
+                                color: cs.surface,
+                              )
                             : null,
                       ),
                     ],
@@ -1287,21 +1377,10 @@ class ChartCardState extends State<ChartCard> {
   }
 
   Widget content() {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final bool dark = Theme.of(context).brightness == Brightness.dark;
-
     final bool hasData = raw != null && raw!.isNotEmpty;
 
     final List<String> variables =
         hasData ? allVariableSorted(raw!) : <String>[];
-
-    final TextStyle titleStyle = TextStyle(
-      fontSize: Dimensions.text13,
-      fontWeight: FontWeight.w800,
-      color: widget.isGlass
-          ? Colors.white.withOpacity(0.95)
-          : cs.onSurface.withValues(alpha: 0.92),
-    );
 
     final List<PieSlice> pieSlices = hasData
         ? pieChartSlices(raw!, maxSlices: 7, minPct: 2.5)
@@ -1324,7 +1403,16 @@ class ChartCardState extends State<ChartCard> {
               Expanded(
                 child: Text(
                   widget.chart.title,
-                  style: titleStyle,
+                  style: TextStyle(
+                    fontSize: Dimensions.text13,
+                    fontWeight: FontWeight.w800,
+                    color: widget.isGlass
+                        ? Colors.white.withOpacity(0.95)
+                        : Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.92),
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1372,13 +1460,17 @@ class ChartCardState extends State<ChartCard> {
           )
         : Container(
             decoration: BoxDecoration(
-              color: cs.surface,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(Dimensions.size15),
               border: Border.all(
-                color: cs.outlineVariant.withValues(alpha: dark ? 0.35 : 0.55),
+                color: Theme.of(context).colorScheme.outlineVariant.withValues(
+                      alpha: Theme.of(context).brightness == Brightness.dark
+                          ? 0.35
+                          : 0.55,
+                    ),
               ),
               boxShadow: [
-                if (!dark)
+                if (Theme.of(context).brightness == Brightness.dark)
                   BoxShadow(
                     blurRadius: Dimensions.size25,
                     offset: Offset(0, Dimensions.size15),
@@ -1415,7 +1507,6 @@ class ChartCardState extends State<ChartCard> {
   }
 
   Widget empthy() {
-    final ColorScheme cs = Theme.of(context).colorScheme;
     return Center(
       child: Text(
         raw == null ? "failed_to_load_data".tr() : "no_data".tr(),
@@ -1424,7 +1515,10 @@ class ChartCardState extends State<ChartCard> {
           fontWeight: FontWeight.w800,
           color: widget.isGlass
               ? Colors.white.withOpacity(0.80)
-              : cs.onSurfaceVariant.withValues(alpha: 0.85),
+              : Theme.of(context)
+                  .colorScheme
+                  .onSurfaceVariant
+                  .withValues(alpha: 0.85),
         ),
       ),
     );
@@ -1504,10 +1598,6 @@ class ChartCardState extends State<ChartCard> {
       return p >= 10 ? "${p.toStringAsFixed(0)}%" : "${p.toStringAsFixed(1)}%";
     }
 
-    final Color border = widget.isGlass
-        ? Colors.white.withOpacity(0.18)
-        : cs.outlineVariant.withValues(alpha: dark ? 0.35 : 0.55);
-
     return SfCircularChart(
       backgroundColor: Colors.transparent,
       margin: EdgeInsets.zero,
@@ -1533,7 +1623,9 @@ class ChartCardState extends State<ChartCard> {
             isVisible: true,
             labelPosition: ChartDataLabelPosition.outside,
             connectorLineSettings: ConnectorLineSettings(
-              color: border,
+              color: widget.isGlass
+                  ? Colors.white.withOpacity(0.18)
+                  : cs.outlineVariant.withValues(alpha: dark ? 0.35 : 0.55),
               length: "10%",
               width: 1,
             ),
@@ -1586,19 +1678,6 @@ class ChartCardState extends State<ChartCard> {
     final num maxY = model.isStacked() ? maxYForStacked() : maxYForNonStacked();
 
     final double maxAxis = maxY <= 0 ? 0 : (maxY * 1.10).ceilToDouble();
-    final double interval = maxAxis <= 0 ? 1 : (maxAxis / 4).ceilToDouble();
-
-    final Color grid = widget.isGlass
-        ? Colors.white.withOpacity(0.10)
-        : cs.onSurface.withValues(alpha: dark ? 0.10 : 0.08);
-
-    final Color axisTextX = widget.isGlass
-        ? Colors.white.withOpacity(0.85)
-        : cs.onSurfaceVariant.withValues(alpha: 0.90);
-
-    final Color axisTextY = widget.isGlass
-        ? Colors.white.withOpacity(0.80)
-        : cs.onSurfaceVariant.withValues(alpha: 0.80);
 
     return SfCartesianChart(
       backgroundColor: Colors.transparent,
@@ -1613,7 +1692,9 @@ class ChartCardState extends State<ChartCard> {
         labelStyle: TextStyle(
           fontSize: Dimensions.text11,
           fontWeight: FontWeight.w700,
-          color: axisTextX,
+          color: widget.isGlass
+              ? Colors.white.withOpacity(0.85)
+              : cs.onSurfaceVariant.withValues(alpha: 0.90),
         ),
         autoScrollingDelta: 7,
         autoScrollingMode: AutoScrollingMode.start,
@@ -1627,18 +1708,26 @@ class ChartCardState extends State<ChartCard> {
       primaryYAxis: NumericAxis(
         minimum: 0,
         maximum: maxAxis == 0 ? null : maxAxis,
-        interval: maxAxis == 0 ? null : interval,
+        interval: maxAxis == 0
+            ? null
+            : maxAxis <= 0
+                ? 1
+                : (maxAxis / 4).ceilToDouble(),
         rangePadding: ChartRangePadding.none,
         majorGridLines: MajorGridLines(
           width: 1,
-          color: grid,
+          color: widget.isGlass
+              ? Colors.white.withOpacity(0.10)
+              : cs.onSurface.withValues(alpha: dark ? 0.10 : 0.08),
         ),
         majorTickLines: const MajorTickLines(width: 0),
         axisLine: const AxisLine(width: 0),
         labelStyle: TextStyle(
           fontSize: Dimensions.text11,
           fontWeight: FontWeight.w700,
-          color: axisTextY,
+          color: widget.isGlass
+              ? Colors.white.withOpacity(0.80)
+              : cs.onSurfaceVariant.withValues(alpha: 0.80),
         ),
       ),
       legend: const Legend(isVisible: false),
@@ -1737,13 +1826,11 @@ class ChartCardState extends State<ChartCard> {
   }
 
   TooltipBehavior toolTip(List<CatPoint> points) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-
     return TooltipBehavior(
       enable: true,
       header: "",
-      color: cs.surfaceContainerHighest,
-      textStyle: TextStyle(color: cs.onSurface),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      textStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface),
       builder: (
         dynamic value,
         dynamic point,
@@ -1774,7 +1861,7 @@ class ChartCardState extends State<ChartCard> {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontWeight: FontWeight.w900,
-                  color: cs.onSurface,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               SizedBox(height: Dimensions.size10),
@@ -1797,14 +1884,16 @@ class ChartCardState extends State<ChartCard> {
                         child: Text(
                           e.key,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: cs.onSurface),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                         ),
                       ),
                       SizedBox(width: Dimensions.size10),
                       Text(
                         "${e.value}",
                         style: TextStyle(
-                          color: cs.onSurface,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -1938,9 +2027,6 @@ class ChartModelPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final bool dark = Theme.of(context).brightness == Brightness.dark;
-
     if (isGlass) {
       return InkWell(
         borderRadius: BorderRadius.circular(Dimensions.size15),
@@ -1983,11 +2069,6 @@ class ChartModelPill extends StatelessWidget {
       );
     }
 
-    final Color bg = cs.surfaceContainerHighest.withValues(alpha: 0.55);
-    final Color border =
-        cs.outlineVariant.withValues(alpha: dark ? 0.35 : 0.55);
-    final Color text = cs.onSurface.withValues(alpha: 0.88);
-
     return InkWell(
       borderRadius: BorderRadius.circular(Dimensions.size10),
       onTap: onTap,
@@ -1995,28 +2076,50 @@ class ChartModelPill extends StatelessWidget {
         height: Dimensions.size30,
         padding: EdgeInsets.symmetric(horizontal: Dimensions.size10),
         decoration: BoxDecoration(
-          color: bg,
+          color: Theme.of(context)
+              .colorScheme
+              .surfaceContainerHighest
+              .withValues(alpha: 0.55),
           borderRadius: BorderRadius.circular(Dimensions.size10),
-          border: Border.all(color: border),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(
+                  alpha: Theme.of(context).brightness == Brightness.dark
+                      ? 0.35
+                      : 0.55,
+                ),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(model.icon(), size: Dimensions.size15, color: text),
+            Icon(
+              model.icon(),
+              size: Dimensions.size15,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.88),
+            ),
             SizedBox(width: Dimensions.size5),
             Text(
               model.label(),
               style: TextStyle(
                 fontSize: Dimensions.text12,
                 fontWeight: FontWeight.w900,
-                color: text,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.88),
               ),
             ),
             SizedBox(width: Dimensions.size5),
             Icon(
               Icons.expand_more_rounded,
               size: Dimensions.size20,
-              color: text,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.88),
             ),
           ],
         ),
@@ -2039,8 +2142,6 @@ class DotLegend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -2053,7 +2154,10 @@ class DotLegend extends StatelessWidget {
             border: Border.all(
               color: isGlass
                   ? Colors.white.withOpacity(0.25)
-                  : cs.outlineVariant.withValues(alpha: 0.55),
+                  : Theme.of(context)
+                      .colorScheme
+                      .outlineVariant
+                      .withValues(alpha: 0.55),
             ),
           ),
         ),
@@ -2068,7 +2172,10 @@ class DotLegend extends StatelessWidget {
               fontWeight: FontWeight.w700,
               color: isGlass
                   ? Colors.white.withOpacity(0.88)
-                  : cs.onSurface.withValues(alpha: 0.88),
+                  : Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.88),
             ),
           ),
         ),
@@ -2084,24 +2191,23 @@ class LoadingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool dark = Theme.of(context).brightness == Brightness.dark;
-    final ColorScheme cs = Theme.of(context).colorScheme;
-
-    final Color base = isGlass
-        ? Colors.white.withOpacity(0.10)
-        : (dark
-            ? cs.onSurface.withValues(alpha: 0.10)
-            : cs.onSurface.withValues(alpha: 0.06));
-
-    final Color hi = isGlass
-        ? Colors.white.withOpacity(0.06)
-        : (dark
-            ? cs.onSurface.withValues(alpha: 0.06)
-            : cs.onSurface.withValues(alpha: 0.02));
-
     final Widget inner = Shimmer.fromColors(
-      baseColor: base,
-      highlightColor: hi,
+      baseColor: isGlass
+          ? Colors.white.withOpacity(0.10)
+          : (Theme.of(context).brightness == Brightness.dark
+              ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.10)
+              : Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.06)),
+      highlightColor: isGlass
+          ? Colors.white.withOpacity(0.06)
+          : (Theme.of(context).brightness == Brightness.dark
+              ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06)
+              : Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.02)),
       child: Container(
         height: 380,
         decoration: BoxDecoration(

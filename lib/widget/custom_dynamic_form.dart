@@ -32,11 +32,10 @@ class CustomDynamicForm extends StatefulWidget {
 
 class CustomDynamicFormState extends State<CustomDynamicForm>
     with AutomaticKeepAliveClientMixin {
-  static const double _gapSection = 14;
-  static const double _gapFields = 12;
+  static const double gapSection = 14;
+  static const double gapFields = 12;
 
-  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
-  bool get _isGlass {
+  bool get isGlass {
     try {
       return (Preferences.getInstance()
                   .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
@@ -56,7 +55,7 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
       physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.zero,
       itemCount: widget.template.sections.length,
-      separatorBuilder: (context, index) => SizedBox(height: _gapSection),
+      separatorBuilder: (context, index) => SizedBox(height: gapSection),
       itemBuilder: (BuildContext context, int sectionIndex) {
         Section section = widget.template.sections[sectionIndex];
 
@@ -73,7 +72,7 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
 
         final Widget loc = locationWidget();
 
-        return _sectionCard(
+        return sectionCard(
           context: context,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,15 +80,15 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
               titleWidget(section.title),
               if (loc is! SizedBox) ...[
                 loc,
-                SizedBox(height: _gapFields),
+                SizedBox(height: gapFields),
               ],
               ListView.separated(
                 separatorBuilder: (context, index) =>
-                    SizedBox(height: _gapFields),
+                    SizedBox(height: gapFields),
                 itemBuilder: (context, index) {
                   Field field = fields[index];
 
-                  return _fieldTile(
+                  return fieldTile(
                     context: context,
                     child: CustomDynamicFormField(
                       readOnly: widget.readOnly,
@@ -112,34 +111,29 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
     );
   }
 
-  Color _soft(BuildContext context) {
-    if (_isGlass) {
+  Color soft(BuildContext context) {
+    if (isGlass) {
       return Colors.white.withOpacity(0.10);
     }
-    return _isDark
+    return Theme.of(context).brightness == Brightness.dark
         ? AppColors.surfaceContainerLow()
         : AppColors.surfaceContainerLowest();
   }
 
-  Color _soft2(BuildContext context) {
-    if (_isGlass) {
+  Color soft2(BuildContext context) {
+    if (isGlass) {
       return Colors.white.withOpacity(0.08);
     }
-    return _isDark
+    return Theme.of(context).brightness == Brightness.dark
         ? AppColors.surfaceContainer()
         : AppColors.surfaceContainerLow();
   }
 
-  Color _fg(BuildContext context) =>
-      _isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
-  Color _outline(BuildContext context) =>
-      _isGlass ? Colors.white.withOpacity(0.18) : AppColors.outline();
-
-  Widget _sectionCard({
+  Widget sectionCard({
     required BuildContext context,
     required Widget child,
   }) {
-    if (_isGlass) {
+    if (isGlass) {
       return GlassContainer(
         blur: Dimensions.size20,
         borderRadius: Dimensions.size20,
@@ -154,16 +148,25 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
       width: double.infinity,
       padding: EdgeInsets.all(Dimensions.size15),
       decoration: BoxDecoration(
-        color: _soft(context),
+        color: soft(context),
         borderRadius: BorderRadius.circular(Dimensions.size20),
         border: Border.all(
-          color: _outline(context).withValues(alpha: _isDark ? 0.30 : 0.14),
+          color: isGlass
+              ? Colors.white.withOpacity(0.18)
+              : AppColors.outline().withValues(
+                  alpha: Theme.of(context).brightness == Brightness.dark
+                      ? 0.30
+                      : 0.14,
+                ),
         ),
         boxShadow: [
           BoxShadow(
             blurRadius: Dimensions.size20,
             offset: Offset(0, Dimensions.size10),
-            color: Colors.black.withValues(alpha: _isDark ? 0.22 : 0.06),
+            color: Colors.black.withValues(
+              alpha:
+                  Theme.of(context).brightness == Brightness.dark ? 0.22 : 0.06,
+            ),
           ),
         ],
       ),
@@ -171,7 +174,7 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
     );
   }
 
-  Widget _fieldTile({
+  Widget fieldTile({
     required BuildContext context,
     required Widget child,
   }) {
@@ -193,10 +196,18 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
               width: Dimensions.size30,
               height: Dimensions.size30,
               decoration: BoxDecoration(
-                color: primary.withValues(alpha: _isDark ? 0.14 : 0.10),
+                color: primary.withValues(
+                  alpha: Theme.of(context).brightness == Brightness.dark
+                      ? 0.14
+                      : 0.10,
+                ),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: primary.withValues(alpha: _isDark ? 0.28 : 0.18),
+                  color: primary.withValues(
+                    alpha: Theme.of(context).brightness == Brightness.dark
+                        ? 0.28
+                        : 0.18,
+                  ),
                 ),
               ),
               child: Icon(
@@ -210,7 +221,9 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
               child: Text(
                 title!.toUpperCase(),
                 style: TextStyle(
-                  color: _fg(context),
+                  color: isGlass
+                      ? Colors.white.withOpacity(0.92)
+                      : AppColors.onSurface(),
                   fontSize: Dimensions.text14,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 0.2,
@@ -259,7 +272,7 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
         data: widget.data,
       );
 
-      if (_isGlass) {
+      if (isGlass) {
         return GlassContainer(
           blur: Dimensions.size15,
           borderRadius: Dimensions.size15,
@@ -274,10 +287,16 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
         width: double.infinity,
         padding: EdgeInsets.all(Dimensions.size10),
         decoration: BoxDecoration(
-          color: _soft2(context),
+          color: soft2(context),
           borderRadius: BorderRadius.circular(Dimensions.size15),
           border: Border.all(
-            color: _outline(context).withValues(alpha: _isDark ? 0.28 : 0.14),
+            color: isGlass
+                ? Colors.white.withOpacity(0.18)
+                : AppColors.outline().withValues(
+                    alpha: Theme.of(context).brightness == Brightness.dark
+                        ? 0.28
+                        : 0.14,
+                  ),
           ),
         ),
         child: content,

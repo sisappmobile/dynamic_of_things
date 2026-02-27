@@ -41,19 +41,19 @@ class CustomDynamicFormSubDetailFormState
   GlobalKey<FormState> formState = GlobalKey<FormState>();
 
   late Map<String, dynamic> data;
-  bool _prefsReady = false;
+  bool prefsReady = false;
 
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
-    _initPrefs();
+    initPrefs();
 
     data = widget.data;
   }
 
-  Future<void> _initPrefs() async {
+  Future<void> initPrefs() async {
     try {
       await Preferences.getInstance().init();
     } catch (_) {
@@ -65,12 +65,12 @@ class CustomDynamicFormSubDetailFormState
     }
 
     setState(() {
-      _prefsReady = true;
+      prefsReady = true;
     });
   }
 
   bool get isGlass {
-    if (!_prefsReady) {
+    if (!prefsReady) {
       return false;
     }
 
@@ -80,7 +80,7 @@ class CustomDynamicFormSubDetailFormState
     return t == 2;
   }
 
-  Widget _glassBackground() {
+  Widget glassBackground() {
     final String p = (Preferences.getInstance()
                 .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
             "")
@@ -101,34 +101,36 @@ class CustomDynamicFormSubDetailFormState
     return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
   }
 
-  Widget _glassOverlay() {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            Color.fromRGBO(0, 0, 0, 0.55),
-            Color.fromRGBO(0, 0, 0, 0.22),
-            Color.fromRGBO(0, 0, 0, 0.40),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
     final bool glass = isGlass;
 
     return Scaffold(
-      backgroundColor: glass ? Colors.transparent : _bg(context),
+      backgroundColor: glass
+          ? Colors.transparent
+          : isGlass
+              ? Colors.white.withOpacity(0.06)
+              : AppColors.surfaceContainerLowest(),
       body: Stack(
         children: [
           if (glass) ...[
-            Positioned.fill(child: _glassBackground()),
-            Positioned.fill(child: _glassOverlay()),
+            Positioned.fill(child: glassBackground()),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      Color.fromRGBO(0, 0, 0, 0.55),
+                      Color.fromRGBO(0, 0, 0, 0.22),
+                      Color.fromRGBO(0, 0, 0, 0.40),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
           Column(
             children: [
@@ -140,7 +142,7 @@ class CustomDynamicFormSubDetailFormState
                   Dimensions.size15,
                   Dimensions.size10,
                 ),
-                child: _topBar(context),
+                child: topBar(context),
               ),
               Expanded(child: body()),
               SizedBox(height: safe.bottom),
@@ -149,7 +151,7 @@ class CustomDynamicFormSubDetailFormState
           Positioned(
             right: Dimensions.size15,
             bottom: safe.bottom + Dimensions.size10,
-            child: _floatingSaveFab(),
+            child: floatingSaveFab(),
           ),
         ],
       ),
@@ -170,25 +172,12 @@ class CustomDynamicFormSubDetailFormState
     setState(() {});
   }
 
-  Color _bg(BuildContext context) => isGlass
-      ? Colors.white.withOpacity(0.06)
-      : AppColors.surfaceContainerLowest();
-  Color _card(BuildContext context) =>
-      isGlass ? Colors.white.withOpacity(0.10) : AppColors.surface();
-  Color _soft(BuildContext context) => isGlass
-      ? Colors.white.withOpacity(0.08)
-      : AppColors.surfaceContainerLowest();
-  Color _fg(BuildContext context) =>
-      isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
-  Color _outline(BuildContext context) =>
-      isGlass ? Colors.white.withOpacity(0.18) : AppColors.outline();
-
-  Widget _topBar(BuildContext context) {
+  Widget topBar(BuildContext context) {
     final bool glass = isGlass;
 
     final Widget content = Row(
       children: [
-        _iconPill(
+        iconPill(
           icon: Icons.turn_left_rounded,
           onTap: () {
             if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
@@ -208,7 +197,9 @@ class CustomDynamicFormSubDetailFormState
               fontSize: Dimensions.text16,
               fontWeight: FontWeight.w900,
               letterSpacing: 0.2,
-              color: _fg(context),
+              color: isGlass
+                  ? Colors.white.withOpacity(0.92)
+                  : AppColors.onSurface(),
             ),
           ),
         ),
@@ -229,7 +220,9 @@ class CustomDynamicFormSubDetailFormState
                       Icon(
                         Icons.visibility_rounded,
                         size: Dimensions.size15,
-                        color: _fg(context).withValues(alpha: 0.75),
+                        color: isGlass
+                            ? Colors.white.withOpacity(0.92)
+                            : AppColors.onSurface().withValues(alpha: 0.75),
                       ),
                       SizedBox(width: Dimensions.size5),
                       Text(
@@ -237,7 +230,9 @@ class CustomDynamicFormSubDetailFormState
                         style: TextStyle(
                           fontSize: Dimensions.text11,
                           fontWeight: FontWeight.w900,
-                          color: _fg(context).withValues(alpha: 0.80),
+                          color: isGlass
+                              ? Colors.white.withOpacity(0.92)
+                              : AppColors.onSurface().withValues(alpha: 0.80),
                           letterSpacing: 0.1,
                         ),
                       ),
@@ -250,10 +245,14 @@ class CustomDynamicFormSubDetailFormState
                     vertical: Dimensions.size5,
                   ),
                   decoration: BoxDecoration(
-                    color: _soft(context),
+                    color: isGlass
+                        ? Colors.white.withOpacity(0.08)
+                        : AppColors.surfaceContainerLowest(),
                     borderRadius: BorderRadius.circular(Dimensions.size100),
                     border: Border.all(
-                      color: _outline(context).withValues(alpha: 0.18),
+                      color: isGlass
+                          ? Colors.white.withOpacity(0.18)
+                          : AppColors.outline().withValues(alpha: 0.18),
                     ),
                   ),
                   child: Row(
@@ -262,7 +261,9 @@ class CustomDynamicFormSubDetailFormState
                       Icon(
                         Icons.visibility_rounded,
                         size: Dimensions.size15,
-                        color: _fg(context).withValues(alpha: 0.75),
+                        color: isGlass
+                            ? Colors.white.withOpacity(0.92)
+                            : AppColors.onSurface().withValues(alpha: 0.75),
                       ),
                       SizedBox(width: Dimensions.size5),
                       Text(
@@ -270,7 +271,9 @@ class CustomDynamicFormSubDetailFormState
                         style: TextStyle(
                           fontSize: Dimensions.text11,
                           fontWeight: FontWeight.w900,
-                          color: _fg(context).withValues(alpha: 0.75),
+                          color: isGlass
+                              ? Colors.white.withOpacity(0.92)
+                              : AppColors.onSurface().withValues(alpha: 0.75),
                           letterSpacing: 0.1,
                         ),
                       ),
@@ -300,7 +303,7 @@ class CustomDynamicFormSubDetailFormState
         vertical: Dimensions.size10,
       ),
       decoration: ShapeDecoration(
-        color: _card(context),
+        color: isGlass ? Colors.white.withOpacity(0.10) : AppColors.surface(),
         shadows: [
           BoxShadow(
             blurRadius: Dimensions.size20,
@@ -312,7 +315,9 @@ class CustomDynamicFormSubDetailFormState
           borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.35),
+            color: isGlass
+                ? Colors.white.withOpacity(0.18)
+                : AppColors.outline().withValues(alpha: 0.35),
           ),
         ),
       ),
@@ -320,13 +325,16 @@ class CustomDynamicFormSubDetailFormState
     );
   }
 
-  Widget _iconPill({
+  Widget iconPill({
     required IconData icon,
     required VoidCallback onTap,
   }) {
     final bool glass = isGlass;
-    final Color iconColor =
-        glass ? Colors.white.withOpacity(0.92) : _fg(context);
+    final Color iconColor = glass
+        ? Colors.white.withOpacity(0.92)
+        : isGlass
+            ? Colors.white.withOpacity(0.92)
+            : AppColors.onSurface();
 
     return Material(
       color: Colors.transparent,
@@ -357,18 +365,24 @@ class CustomDynamicFormSubDetailFormState
                 width: Dimensions.size40,
                 height: Dimensions.size40,
                 decoration: ShapeDecoration(
-                  color: _soft(context),
+                  color: isGlass
+                      ? Colors.white.withOpacity(0.08)
+                      : AppColors.surfaceContainerLowest(),
                   shape: SmoothRectangleBorder(
                     borderRadius: BorderRadius.circular(Dimensions.size15),
                     smoothness: Dimensions.size1,
                     side: BorderSide(
-                      color: _outline(context).withValues(alpha: 0.25),
+                      color: isGlass
+                          ? Colors.white.withOpacity(0.18)
+                          : AppColors.outline().withValues(alpha: 0.25),
                     ),
                   ),
                 ),
                 child: Icon(
                   icon,
-                  color: _fg(context),
+                  color: isGlass
+                      ? Colors.white.withOpacity(0.92)
+                      : AppColors.onSurface(),
                   size: Dimensions.size25,
                 ),
               ),
@@ -376,7 +390,7 @@ class CustomDynamicFormSubDetailFormState
     );
   }
 
-  Widget _floatingSaveFab() {
+  Widget floatingSaveFab() {
     if (widget.readOnly) {
       return const SizedBox.shrink();
     }
@@ -557,7 +571,9 @@ class CustomDynamicFormSubDetailFormState
             return Container(
               padding: EdgeInsets.all(Dimensions.size10),
               decoration: ShapeDecoration(
-                color: _card(context),
+                color: isGlass
+                    ? Colors.white.withOpacity(0.10)
+                    : AppColors.surface(),
                 shadows: [
                   BoxShadow(
                     blurRadius: Dimensions.size20,
@@ -569,7 +585,9 @@ class CustomDynamicFormSubDetailFormState
                   borderRadius: BorderRadius.circular(Dimensions.size20),
                   smoothness: Dimensions.size1,
                   side: BorderSide(
-                    color: _outline(context).withValues(alpha: 0.35),
+                    color: isGlass
+                        ? Colors.white.withOpacity(0.18)
+                        : AppColors.outline().withValues(alpha: 0.35),
                   ),
                 ),
               ),

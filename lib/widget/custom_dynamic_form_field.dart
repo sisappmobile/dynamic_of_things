@@ -71,8 +71,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
   static const double _r = 14;
 
-  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
-  bool get _isGlass {
+  bool get isGlass {
     try {
       return (Preferences.getInstance()
                   .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
@@ -83,32 +82,25 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     }
   }
 
-  Color _card(BuildContext c) =>
-      _isGlass ? Colors.white.withOpacity(0.10) : AppColors.surface();
-
-  Color _soft(BuildContext c) {
-    if (_isGlass) {
+  Color soft(BuildContext c) {
+    if (isGlass) {
       return Colors.white.withOpacity(0.08);
     }
-    return _isDark
+    return Theme.of(context).brightness == Brightness.dark
         ? AppColors.surfaceContainer()
         : AppColors.surfaceContainerLowest();
   }
 
-  Color _pillBg(BuildContext c) {
-    if (_isGlass) {
+  Color pillBg(BuildContext c) {
+    if (isGlass) {
       return Colors.white.withOpacity(0.10);
     }
-    return _isDark
+    return Theme.of(context).brightness == Brightness.dark
         ? AppColors.surfaceContainerLow()
         : AppColors.surfaceContainerLowest();
   }
 
-  Color _fg(BuildContext c) =>
-      _isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
-  Color _outline(BuildContext c) =>
-      _isGlass ? Colors.white.withOpacity(0.18) : AppColors.outline();
-  Color _primary(BuildContext c) => Theme.of(c).colorScheme.primary;
+  Color primary(BuildContext c) => Theme.of(c).colorScheme.primary;
 
   @override
   void initState() {
@@ -140,11 +132,11 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     );
   }
 
-  Widget _wrapCard({
+  Widget wrapCard({
     required Widget child,
     EdgeInsets? padding,
   }) {
-    if (_isGlass) {
+    if (isGlass) {
       return GlassContainer(
         blur: Dimensions.size20,
         borderRadius: Dimensions.size20,
@@ -159,19 +151,28 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       width: double.infinity,
       padding: padding ?? EdgeInsets.all(Dimensions.size10),
       decoration: ShapeDecoration(
-        color: _card(context),
+        color: isGlass ? Colors.white.withOpacity(0.10) : AppColors.surface(),
         shadows: [
           BoxShadow(
             blurRadius: Dimensions.size20,
             offset: Offset(0, Dimensions.size10),
-            color: Colors.black.withValues(alpha: _isDark ? 0.22 : 0.06),
+            color: Colors.black.withValues(
+              alpha:
+                  Theme.of(context).brightness == Brightness.dark ? 0.22 : 0.06,
+            ),
           ),
         ],
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: _isDark ? 0.26 : 0.16),
+            color: isGlass
+                ? Colors.white.withOpacity(0.18)
+                : AppColors.outline().withValues(
+                    alpha: Theme.of(context).brightness == Brightness.dark
+                        ? 0.26
+                        : 0.16,
+                  ),
           ),
         ),
       ),
@@ -179,21 +180,28 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     );
   }
 
-  Widget _chip({
+  Widget chip({
     required String text,
     IconData? icon,
     Color? color,
   }) {
-    final Color c = color ?? _primary(context);
+    final Color c = color ?? primary(context);
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: Dimensions.size10,
         vertical: Dimensions.size5,
       ),
       decoration: BoxDecoration(
-        color: c.withValues(alpha: _isDark ? 0.16 : 0.10),
+        color: c.withValues(
+          alpha: Theme.of(context).brightness == Brightness.dark ? 0.16 : 0.10,
+        ),
         borderRadius: BorderRadius.circular(Dimensions.size100),
-        border: Border.all(color: c.withValues(alpha: _isDark ? 0.32 : 0.22)),
+        border: Border.all(
+          color: c.withValues(
+            alpha:
+                Theme.of(context).brightness == Brightness.dark ? 0.32 : 0.22,
+          ),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -384,24 +392,30 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                         vertical: Dimensions.size10,
                       ),
                       decoration: ShapeDecoration(
-                        color: _soft(context),
+                        color: soft(context),
                         shape: SmoothRectangleBorder(
                           borderRadius:
                               BorderRadius.circular(Dimensions.size15),
                           smoothness: Dimensions.size1,
                           side: BorderSide(
                             color: selected
-                                ? _primary(context).withValues(alpha: 0.30)
-                                : _outline(context)
-                                    .withValues(alpha: _isDark ? 0.28 : 0.18),
+                                ? primary(context).withValues(alpha: 0.30)
+                                : isGlass
+                                    ? Colors.white.withOpacity(0.18)
+                                    : AppColors.outline().withValues(
+                                        alpha: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? 0.28
+                                            : 0.18,
+                                      ),
                           ),
                         ),
                       ),
                       child: Row(
                         children: [
                           SizedBox(
-                            height: 24,
-                            width: 24,
+                            height: Dimensions.size25,
+                            width: Dimensions.size25,
                             child: Radio(
                               value: string,
                               groupValue: widget.field.getValue(widget.data),
@@ -417,15 +431,17 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                               style: TextStyle(
                                 fontSize: Dimensions.text14,
                                 fontWeight: FontWeight.w800,
-                                color: _fg(context),
+                                color: isGlass
+                                    ? Colors.white.withOpacity(0.92)
+                                    : AppColors.onSurface(),
                               ),
                             ),
                           ),
                           if (selected)
-                            _chip(
+                            chip(
                               text: "Selected",
                               icon: Icons.check_rounded,
-                              color: _primary(context),
+                              color: primary(context),
                             ),
                         ],
                       ),
@@ -450,7 +466,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
           return formField(
             field: field,
-            body: _wrapCard(
+            body: wrapCard(
               padding: EdgeInsets.fromLTRB(
                 Dimensions.size10,
                 Dimensions.size10,
@@ -466,7 +482,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
-                        color: _fg(context),
+                        color: isGlass
+                            ? Colors.white.withOpacity(0.92)
+                            : AppColors.onSurface(),
                       ),
                     ),
                   ),
@@ -1698,7 +1716,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
   List<Widget> fileWidgets() {
     Widget signatureButton() {
-      return _actionPill(
+      return actionPill(
         icon: Symbols.signature,
         text: "signature".tr().toUpperCase(),
         onTap: () async {
@@ -1721,7 +1739,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     if (!isReadOnly()) {
       if (widget.field.type == DynamicFormFieldType.VIDEO.name) {
         widgets.add(
-          _actionPill(
+          actionPill(
             icon: Icons.video_call,
             text: "record_video".tr().toUpperCase(),
             onTap: () => onPressed(),
@@ -1729,7 +1747,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         );
       } else if (widget.field.type == DynamicFormFieldType.FOTO.name) {
         widgets.add(
-          _actionPill(
+          actionPill(
             icon: Icons.camera_alt,
             text: "take_photo".tr().toUpperCase(),
             onTap: () => onPressed(),
@@ -1743,7 +1761,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             spacing: Dimensions.size10,
             runSpacing: Dimensions.size10,
             children: [
-              _actionPill(
+              actionPill(
                 icon: Icons.upload,
                 text: "choose_file".tr().toUpperCase(),
                 onTap: () => onPressed(),
@@ -1773,7 +1791,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           return Container(
             width: Dimensions.size100,
             height: Dimensions.size100,
-            color: _primary(context).withValues(alpha: 0.12),
+            color: primary(context).withValues(alpha: 0.12),
             child: Center(
               child: Text(
                 attachment.name ?? "",
@@ -1781,7 +1799,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: _fg(context),
+                  color: isGlass
+                      ? Colors.white.withOpacity(0.92)
+                      : AppColors.onSurface(),
                   fontSize: Dimensions.text12,
                   fontWeight: FontWeight.w800,
                 ),
@@ -1818,8 +1838,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                   ),
                 ),
                 Positioned(
-                  right: 8,
-                  bottom: 8,
+                  right: Dimensions.size10,
+                  bottom: Dimensions.size10,
                   child: Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: Dimensions.size10,
@@ -1860,7 +1880,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       );
 
       widgets.add(
-        _wrapCard(
+        wrapCard(
           padding: EdgeInsets.all(Dimensions.size10),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1881,7 +1901,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
-                        color: _fg(context),
+                        color: isGlass
+                            ? Colors.white.withOpacity(0.92)
+                            : AppColors.onSurface(),
                         fontSize: Dimensions.text13,
                       ),
                     ),
@@ -1892,13 +1914,15 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
-                        color: _fg(context).withValues(alpha: 0.65),
+                        color: isGlass
+                            ? Colors.white.withOpacity(0.92)
+                            : AppColors.onSurface().withValues(alpha: 0.65),
                         fontSize: Dimensions.text12,
                       ),
                     ),
                     if (!isReadOnly()) ...[
                       SizedBox(height: Dimensions.size10),
-                      _dangerPill(
+                      dangerPill(
                         icon: Icons.delete_rounded,
                         text: "delete".tr().toUpperCase(),
                         onTap: () {
@@ -1918,7 +1942,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     return widgets;
   }
 
-  Widget _actionPill({
+  Widget actionPill({
     required IconData icon,
     required String text,
     required VoidCallback onTap,
@@ -1934,13 +1958,18 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             vertical: Dimensions.size10,
           ),
           decoration: ShapeDecoration(
-            color: _pillBg(context),
+            color: pillBg(context),
             shape: SmoothRectangleBorder(
               borderRadius: BorderRadius.circular(Dimensions.size20),
               smoothness: Dimensions.size1,
               side: BorderSide(
-                color:
-                    _outline(context).withValues(alpha: _isDark ? 0.28 : 0.18),
+                color: isGlass
+                    ? Colors.white.withOpacity(0.18)
+                    : AppColors.outline().withValues(
+                        alpha: Theme.of(context).brightness == Brightness.dark
+                            ? 0.28
+                            : 0.18,
+                      ),
               ),
             ),
           ),
@@ -1951,18 +1980,24 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 width: Dimensions.size30,
                 height: Dimensions.size30,
                 decoration: BoxDecoration(
-                  color: _primary(context)
-                      .withValues(alpha: _isDark ? 0.16 : 0.12),
+                  color: primary(context).withValues(
+                    alpha: Theme.of(context).brightness == Brightness.dark
+                        ? 0.16
+                        : 0.12,
+                  ),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: _primary(context)
-                        .withValues(alpha: _isDark ? 0.30 : 0.22),
+                    color: primary(context).withValues(
+                      alpha: Theme.of(context).brightness == Brightness.dark
+                          ? 0.30
+                          : 0.22,
+                    ),
                   ),
                 ),
                 child: Icon(
                   icon,
                   size: Dimensions.size20,
-                  color: _primary(context),
+                  color: primary(context),
                 ),
               ),
               SizedBox(width: Dimensions.size10),
@@ -1971,7 +2006,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 style: TextStyle(
                   fontWeight: FontWeight.w900,
                   letterSpacing: 0.2,
-                  color: _fg(context),
+                  color: isGlass
+                      ? Colors.white.withOpacity(0.92)
+                      : AppColors.onSurface(),
                   fontSize: Dimensions.text12,
                 ),
               ),
@@ -1982,7 +2019,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     );
   }
 
-  Widget _dangerPill({
+  Widget dangerPill({
     required IconData icon,
     required String text,
     required VoidCallback onTap,
@@ -2078,7 +2115,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             style: TextStyle(
               fontSize: Dimensions.text11,
               fontWeight: FontWeight.w900,
-              color: _fg(context).withValues(alpha: 0.55),
+              color: isGlass
+                  ? Colors.white.withOpacity(0.92)
+                  : AppColors.onSurface().withValues(alpha: 0.55),
             ),
           ),
         );
@@ -2124,12 +2163,14 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             style: TextStyle(
               fontSize: Dimensions.text13,
               fontWeight: FontWeight.w900,
-              color: _fg(context),
+              color: isGlass
+                  ? Colors.white.withOpacity(0.92)
+                  : AppColors.onSurface(),
               letterSpacing: 0.1,
             ),
           ),
         ),
-        if (widget.field.required) _chip(text: "Required"),
+        if (widget.field.required) chip(text: "Required"),
       ],
     );
   }
@@ -2151,12 +2192,12 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       decoration: ShapeDecoration(
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(_r),
-          smoothness: 1,
+          smoothness: Dimensions.size1,
           side: BorderSide(
             color: borderColor(field),
           ),
         ),
-        color: _soft(context),
+        color: soft(context),
       ),
       alignment: Alignment.center,
       padding: EdgeInsets.symmetric(
@@ -2182,7 +2223,13 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         decoration: InputDecoration(
           hintText: readOnly ? null : widget.field.title,
           hintStyle: TextStyle(
-            color: _fg(context).withValues(alpha: _isDark ? 0.55 : 0.45),
+            color: isGlass
+                ? Colors.white.withOpacity(0.92)
+                : AppColors.onSurface().withValues(
+                    alpha: Theme.of(context).brightness == Brightness.dark
+                        ? 0.55
+                        : 0.45,
+                  ),
             fontWeight: FontWeight.w700,
           ),
           border: InputBorder.none,
@@ -2195,15 +2242,23 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
               ? Container(
                   margin: EdgeInsets.only(right: Dimensions.size5),
                   decoration: BoxDecoration(
-                    color: _isGlass
+                    color: isGlass
                         ? Colors.white.withOpacity(0.16)
-                        : _isDark
+                        : Theme.of(context).brightness == Brightness.dark
                             ? AppColors.surfaceContainerHigh()
-                            : _card(context),
+                            : isGlass
+                                ? Colors.white.withOpacity(0.10)
+                                : AppColors.surface(),
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: _outline(context)
-                          .withValues(alpha: _isDark ? 0.30 : 0.18),
+                      color: isGlass
+                          ? Colors.white.withOpacity(0.18)
+                          : AppColors.outline().withValues(
+                              alpha: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? 0.30
+                                  : 0.18,
+                            ),
                     ),
                   ),
                   child: suffixIcon(),
@@ -2223,7 +2278,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         onTap: !isReadOnly() ? onPressed : null,
         customBorder: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(_r),
-          smoothness: 1,
+          smoothness: Dimensions.size1,
         ),
         child: Ink(
           width: double.infinity,
@@ -2236,7 +2291,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 color: borderColor(field),
               ),
             ),
-            color: _soft(context),
+            color: soft(context),
           ),
           padding: EdgeInsets.symmetric(horizontal: Dimensions.size15),
           child: Row(
@@ -2249,7 +2304,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                   style: TextStyle(
                     fontSize: Dimensions.text14,
                     fontWeight: FontWeight.w900,
-                    color: _fg(context),
+                    color: isGlass
+                        ? Colors.white.withOpacity(0.92)
+                        : AppColors.onSurface(),
                   ),
                 ),
               ),
@@ -2258,21 +2315,35 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 width: Dimensions.size30,
                 height: Dimensions.size30,
                 decoration: BoxDecoration(
-                  color: _isGlass
+                  color: isGlass
                       ? Colors.white.withOpacity(0.16)
-                      : _isDark
+                      : Theme.of(context).brightness == Brightness.dark
                           ? AppColors.surfaceContainerHigh()
-                          : _card(context),
+                          : isGlass
+                              ? Colors.white.withOpacity(0.10)
+                              : AppColors.surface(),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: _outline(context)
-                        .withValues(alpha: _isDark ? 0.30 : 0.18),
+                    color: isGlass
+                        ? Colors.white.withOpacity(0.18)
+                        : AppColors.outline().withValues(
+                            alpha:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? 0.30
+                                    : 0.18,
+                          ),
                   ),
                 ),
                 child: Icon(
                   Icons.keyboard_arrow_down_rounded,
                   size: Dimensions.size20,
-                  color: _fg(context).withValues(alpha: _isDark ? 0.88 : 0.75),
+                  color: isGlass
+                      ? Colors.white.withOpacity(0.92)
+                      : AppColors.onSurface().withValues(
+                          alpha: Theme.of(context).brightness == Brightness.dark
+                              ? 0.88
+                              : 0.75,
+                        ),
                 ),
               ),
             ],
@@ -2284,12 +2355,18 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
   Color borderColor(FormFieldState field) {
     if (isReadOnly()) {
-      return _isGlass ? Colors.white.withOpacity(0.25) : AppColors.surfaceDim();
+      return isGlass ? Colors.white.withOpacity(0.25) : AppColors.surfaceDim();
     } else {
       if (field.hasError) {
         return AppColors.error();
       } else {
-        return _outline(context).withValues(alpha: _isDark ? 0.55 : 1.0);
+        return isGlass
+            ? Colors.white.withOpacity(0.18)
+            : AppColors.outline().withValues(
+                alpha: Theme.of(context).brightness == Brightness.dark
+                    ? 0.55
+                    : 1.0,
+              );
       }
     }
   }
@@ -2305,58 +2382,58 @@ class NetworkVideoPlayer extends StatefulWidget {
   const NetworkVideoPlayer({required this.url, super.key});
 
   @override
-  State<NetworkVideoPlayer> createState() => _NetworkVideoPlayerState();
+  State<NetworkVideoPlayer> createState() => NetworkVideoPlayerState();
 }
 
-class _NetworkVideoPlayerState extends State<NetworkVideoPlayer> {
-  late VideoPlayerController _controller;
-  bool _isInitialized = false;
+class NetworkVideoPlayerState extends State<NetworkVideoPlayer> {
+  late VideoPlayerController controller;
+  bool isInitialized = false;
 
   @override
   void initState() {
     super.initState();
 
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
+    controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
       ..initialize().then((_) {
-        _controller.play();
+        controller.play();
 
         setState(() {
-          _isInitialized = true;
+          isInitialized = true;
         });
       });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_isInitialized) {
+    if (!isInitialized) {
       return const Center(child: CircularProgressIndicator());
     }
 
     return AspectRatio(
-      aspectRatio: _controller.value.aspectRatio,
+      aspectRatio: controller.value.aspectRatio,
       child: Stack(
         alignment: Alignment.bottomCenter,
         children: [
-          VideoPlayer(_controller),
-          VideoProgressIndicator(_controller, allowScrubbing: true),
+          VideoPlayer(controller),
+          VideoProgressIndicator(controller, allowScrubbing: true),
           Center(
             child: IconButton(
               icon: Icon(
-                _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
                 size: 48,
                 color: Colors.white,
               ),
               onPressed: () {
                 setState(() {
-                  _controller.value.isPlaying
-                      ? _controller.pause()
-                      : _controller.play();
+                  controller.value.isPlaying
+                      ? controller.pause()
+                      : controller.play();
                 });
               },
             ),

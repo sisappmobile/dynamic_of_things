@@ -1,6 +1,7 @@
 analyzer:
   errors:
     avoid_function_literals_in_foreach_calls: ignore
+    deprecated_member_use: ignore
 include: package:flutter_lints/flutter.yaml
 
 linter:

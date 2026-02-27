@@ -11,7 +11,8 @@ import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_eve
 import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_state.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 
-class DynamicFormMenuBloc extends Bloc<DynamicFormMenuEvent, DynamicFormMenuState> {
+class DynamicFormMenuBloc
+    extends Bloc<DynamicFormMenuEvent, DynamicFormMenuState> {
   DynamicFormMenuBloc() : super(DynamicFormMenuInitial()) {
     on<DynamicFormMenuLoad>((event, emit) async {
       try {
@@ -20,12 +21,16 @@ class DynamicFormMenuBloc extends Bloc<DynamicFormMenuEvent, DynamicFormMenuStat
         DynamicFormMenuResponse? dynamicFormMenuResponse;
 
         if (DynamicForms.offline) {
-          List<HeaderForm> headerForms = Offlines.headerForms(StringUtils.isNotNullOrEmpty(event.customerId));
+          List<HeaderForm> headerForms = Offlines.headerForms(
+              StringUtils.isNotNullOrEmpty(event.customerId));
 
           dynamicFormMenuResponse = DynamicFormMenuResponse(categories: []);
 
           for (HeaderForm headerForm in headerForms) {
-            DynamicFormCategoryItem? dynamicFormCategoryItem = dynamicFormMenuResponse.categories.firstWhereOrNull((element) => StringUtils.equalsIgnoreCase(element.id, headerForm.category.id));
+            DynamicFormCategoryItem? dynamicFormCategoryItem =
+                dynamicFormMenuResponse.categories.firstWhereOrNull((element) =>
+                    StringUtils.equalsIgnoreCase(
+                        element.id, headerForm.category.id));
 
             if (dynamicFormCategoryItem == null) {
               dynamicFormCategoryItem = DynamicFormCategoryItem(
@@ -51,11 +56,13 @@ class DynamicFormMenuBloc extends Bloc<DynamicFormMenuEvent, DynamicFormMenuStat
             );
           }
         } else {
-          dynamicFormMenuResponse = await DotApis.getInstance().dynamicFormMenu(customerId: event.customerId);
+          dynamicFormMenuResponse = await DotApis.getInstance()
+              .dynamicFormMenu(customerId: event.customerId);
         }
 
         if (dynamicFormMenuResponse != null) {
-          emit(DynamicFormMenuLoadSuccess(dynamicFormMenuResponse: dynamicFormMenuResponse));
+          emit(DynamicFormMenuLoadSuccess(
+              dynamicFormMenuResponse: dynamicFormMenuResponse));
         }
       } catch (e) {
         print(e);

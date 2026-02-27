@@ -299,7 +299,7 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
                     },
                     customBorder: SmoothRectangleBorder(
                       borderRadius: BorderRadius.circular(Dimensions.size15),
-                      smoothness: 1,
+                      smoothness: Dimensions.size1,
                     ),
                     child: Ink(
                       width: double.infinity,
@@ -308,7 +308,7 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
                         shape: SmoothRectangleBorder(
                           borderRadius:
                               BorderRadius.circular(Dimensions.size15),
-                          smoothness: 1,
+                          smoothness: Dimensions.size1,
                           side: BorderSide(
                             color: AppColors.onPrimaryContainer(),
                           ),

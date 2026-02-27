@@ -72,7 +72,8 @@ class DynamicReportBloc extends Bloc<DynamicReportEvent, DynamicReportState> {
         );
 
         if (response.statusCode == 200) {
-          String fileName = response.headers["Content-Disposition"]![0].toString();
+          String fileName =
+              response.headers["Content-Disposition"]![0].toString();
 
           fileName = fileName.substring(fileName.lastIndexOf(";") + 1);
           fileName = fileName.trim();

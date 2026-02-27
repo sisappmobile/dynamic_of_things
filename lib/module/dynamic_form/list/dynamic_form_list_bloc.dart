@@ -12,7 +12,8 @@ import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_sta
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 
-class DynamicFormListBloc extends Bloc<DynamicFormListEvent, DynamicFormListState> {
+class DynamicFormListBloc
+    extends Bloc<DynamicFormListEvent, DynamicFormListState> {
   DynamicFormListBloc() : super(DynamicFormListInitial()) {
     on<DynamicFormListLoad>((event, emit) async {
       try {
@@ -38,8 +39,7 @@ class DynamicFormListBloc extends Bloc<DynamicFormListEvent, DynamicFormListStat
                     name: element.name,
                     type: element.type,
                     description: element.description,
-                    primaryKey: element.primaryKey
-                );
+                    primaryKey: element.primaryKey);
               }).toList(),
               data: await Offlines.list(
                 tableName: headerForm.template.tableName,

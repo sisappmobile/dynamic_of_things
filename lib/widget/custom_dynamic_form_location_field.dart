@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, unrelated_type_equality_checks
 
 import "dart:async";
 import "dart:io";
@@ -45,16 +45,16 @@ class CustomDynamicFormLocationFieldState
     extends State<CustomDynamicFormLocationField> {
   ll.LatLng? latLng;
 
-  bool _isOnline = true;
+  bool isOnline = true;
 
-  StreamSubscription? _connectivitySub;
+  StreamSubscription? connectivitySub;
 
   @override
   void initState() {
     super.initState();
 
     if (!widget.readOnly) {
-      _watchConnectivity();
+      watchConnectivity();
     }
 
     num? latitude;
@@ -78,12 +78,12 @@ class CustomDynamicFormLocationFieldState
     }
   }
 
-  void _watchConnectivity() {
+  void watchConnectivity() {
     final connectivity = Connectivity();
 
-    _connectivitySub = connectivity.onConnectivityChanged.listen((result) {
+    connectivitySub = connectivity.onConnectivityChanged.listen((result) {
       setState(() {
-        _isOnline = result != ConnectivityResult.none;
+        isOnline = result != ConnectivityResult.none;
       });
     });
 
@@ -93,20 +93,20 @@ class CustomDynamicFormLocationFieldState
       }
 
       setState(() {
-        _isOnline = result != ConnectivityResult.none;
+        isOnline = result != ConnectivityResult.none;
       });
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return _sectionCard(
+    return sectionCard(
       context: context,
       padding: EdgeInsets.all(Dimensions.size15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _headerRow(context),
+          headerRow(context),
           if (latLng != null) ...[
             SizedBox(height: Dimensions.size15),
             mapWidget(),
@@ -122,11 +122,11 @@ class CustomDynamicFormLocationFieldState
 
   @override
   void dispose() {
-    _connectivitySub?.cancel();
+    connectivitySub?.cancel();
     super.dispose();
   }
 
-  bool get _isGlass {
+  bool get isGlass {
     try {
       return (Preferences.getInstance()
                   .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
@@ -137,28 +137,12 @@ class CustomDynamicFormLocationFieldState
     }
   }
 
-  Color _bg(BuildContext context) => _isGlass
-      ? Colors.white.withOpacity(0.06)
-      : AppColors.surfaceContainerLowest();
-  Color _card(BuildContext context) =>
-      _isGlass ? Colors.white.withOpacity(0.10) : AppColors.surface();
-  Color _soft(BuildContext context) => _isGlass
-      ? Colors.white.withOpacity(0.08)
-      : AppColors.surfaceContainerLowest();
-  Color _fg(BuildContext context) =>
-      _isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
-  Color _outline(BuildContext context) =>
-      _isGlass ? Colors.white.withOpacity(0.18) : AppColors.outline();
-  Color _primary(BuildContext context) => Theme.of(context).colorScheme.primary;
-  Color _onPrimary(BuildContext context) =>
-      Theme.of(context).colorScheme.onPrimary;
-
-  Widget _sectionCard({
+  Widget sectionCard({
     required BuildContext context,
     required Widget child,
     EdgeInsets? padding,
   }) {
-    if (_isGlass) {
+    if (isGlass) {
       return GlassContainer(
         blur: Dimensions.size20,
         borderRadius: Dimensions.size20,
@@ -171,7 +155,7 @@ class CustomDynamicFormLocationFieldState
 
     return Container(
       decoration: ShapeDecoration(
-        color: _card(context),
+        color: isGlass ? Colors.white.withOpacity(0.10) : AppColors.surface(),
         shadows: [
           BoxShadow(
             blurRadius: Dimensions.size25,
@@ -183,7 +167,9 @@ class CustomDynamicFormLocationFieldState
           borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.18),
+            color: isGlass
+                ? Colors.white.withOpacity(0.18)
+                : AppColors.outline().withValues(alpha: 0.18),
           ),
         ),
       ),
@@ -194,9 +180,10 @@ class CustomDynamicFormLocationFieldState
     );
   }
 
-  Widget _headerRow(BuildContext context) {
-    final Color primary = _primary(context);
-    final Color fg = _fg(context);
+  Widget headerRow(BuildContext context) {
+    final Color primary = Theme.of(context).colorScheme.primary;
+    final Color fg =
+        isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
 
     return Row(
       children: [
@@ -228,19 +215,21 @@ class CustomDynamicFormLocationFieldState
             ),
           ),
         ),
-        _statusBadge(context),
+        statusBadge(context),
       ],
     );
   }
 
-  Widget _statusBadge(BuildContext context) {
-    final Color fg = _fg(context);
-    final Color outline = _outline(context);
+  Widget statusBadge(BuildContext context) {
+    final Color fg =
+        isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
+    final Color outline =
+        isGlass ? Colors.white.withOpacity(0.18) : AppColors.outline();
 
     final Color ok = Colors.green;
     final Color warn = Colors.orange;
 
-    final bool online = _isOnline;
+    final bool online = isOnline;
     final Color c = online ? ok : warn;
 
     return Container(
@@ -301,12 +290,16 @@ class CustomDynamicFormLocationFieldState
             return Container(
               height: 180,
               decoration: ShapeDecoration(
-                color: _soft(context),
+                color: isGlass
+                    ? Colors.white.withOpacity(0.08)
+                    : AppColors.surfaceContainerLowest(),
                 shape: SmoothRectangleBorder(
                   borderRadius: BorderRadius.circular(Dimensions.size15),
                   smoothness: Dimensions.size1,
                   side: BorderSide(
-                    color: _outline(context).withValues(alpha: 0.18),
+                    color: isGlass
+                        ? Colors.white.withOpacity(0.18)
+                        : AppColors.outline().withValues(alpha: 0.18),
                   ),
                 ),
               ),
@@ -319,10 +312,14 @@ class CustomDynamicFormLocationFieldState
             child: Container(
               height: 180,
               decoration: BoxDecoration(
-                color: _bg(context),
+                color: isGlass
+                    ? Colors.white.withOpacity(0.06)
+                    : AppColors.surfaceContainerLowest(),
                 borderRadius: BorderRadius.circular(Dimensions.size15),
                 border: Border.all(
-                  color: _outline(context).withValues(alpha: 0.18),
+                  color: isGlass
+                      ? Colors.white.withOpacity(0.18)
+                      : AppColors.outline().withValues(alpha: 0.18),
                 ),
               ),
               child: Stack(
@@ -333,7 +330,7 @@ class CustomDynamicFormLocationFieldState
                       initialZoom: 19,
                     ),
                     children: [
-                      _isOnline
+                      isOnline
                           ? TileLayer(
                               urlTemplate:
                                   "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -422,8 +419,8 @@ class CustomDynamicFormLocationFieldState
 
   Widget getLocationButton() {
     if (!widget.readOnly) {
-      final Color primary = _primary(context);
-      final Color onPrimary = _onPrimary(context);
+      final Color primary = Theme.of(context).colorScheme.primary;
+      final Color onPrimary = Theme.of(context).colorScheme.onPrimary;
 
       return Material(
         color: Colors.transparent,
@@ -527,75 +524,75 @@ class GetLocationPage extends StatefulWidget {
   });
 
   @override
-  State<GetLocationPage> createState() => _GetLocationPageState();
+  State<GetLocationPage> createState() => GetLocationPageState();
 }
 
-class _GetLocationPageState extends State<GetLocationPage> {
-  StreamSubscription<Position>? _subscription;
-  DateTime? _accuracyStartTime;
-  Position? _acceptedPosition;
+class GetLocationPageState extends State<GetLocationPage> {
+  StreamSubscription<Position>? subscription;
+  DateTime? accuracyStartTime;
+  Position? acceptedPosition;
 
-  String _status = "Waiting for location...";
+  String status = "Waiting for location...";
 
   @override
   void initState() {
     super.initState();
 
-    _startListening();
+    startListening();
   }
 
-  Future<void> _startListening() async {
+  Future<void> startListening() async {
     final permission = await Geolocator.requestPermission();
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
       setState(() {
-        _status = "Location permission denied";
+        status = "Location permission denied";
       });
       return;
     }
 
-    _subscription = Geolocator.getPositionStream(
+    subscription = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.best,
         distanceFilter: 0,
       ),
-    ).listen(_onLocationUpdate);
+    ).listen(onLocationUpdate);
   }
 
-  void _onLocationUpdate(Position position) {
+  void onLocationUpdate(Position position) {
     final accuracyThreshold = widget.locationAccuracyInMeters ?? 20;
     final requiredSeconds =
         widget.locationAccuracyEfectiveDurationInSeconds ?? 1;
     final accuracy = position.accuracy;
 
     if (accuracy <= accuracyThreshold) {
-      _accuracyStartTime ??= DateTime.now();
+      accuracyStartTime ??= DateTime.now();
 
-      final elapsed = DateTime.now().difference(_accuracyStartTime!).inSeconds;
+      final elapsed = DateTime.now().difference(accuracyStartTime!).inSeconds;
 
       if (elapsed >= requiredSeconds) {
-        _acceptedPosition = position;
-        _subscription?.cancel();
+        acceptedPosition = position;
+        subscription?.cancel();
 
-        if (_acceptedPosition != null) {
-          Navigators.pop(context: context, result: _acceptedPosition!);
+        if (acceptedPosition != null) {
+          Navigators.pop(context: context, result: acceptedPosition!);
         }
 
         setState(() {
-          _status = "✅ Location accepted!";
+          status = "✅ Location accepted!";
         });
         return;
       }
 
       setState(() {
-        _status = "Good accuracy (${accuracy.toStringAsFixed(2)} m)\n"
+        status = "Good accuracy (${accuracy.toStringAsFixed(2)} m)\n"
             "Holding for $elapsed / $requiredSeconds seconds...";
       });
     } else {
-      _accuracyStartTime = null;
+      accuracyStartTime = null;
 
       setState(() {
-        _status = "Accuracy too high: ${accuracy.toStringAsFixed(2)} m\n"
+        status = "Accuracy too high: ${accuracy.toStringAsFixed(2)} m\n"
             "Waiting for < $accuracyThreshold m";
       });
     }
@@ -614,7 +611,10 @@ class _GetLocationPageState extends State<GetLocationPage> {
       child: Stack(
         children: [
           BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            filter: ImageFilter.blur(
+              sigmaX: Dimensions.size10,
+              sigmaY: Dimensions.size10,
+            ),
             child: Container(color: Colors.black.withAlpha(30)),
           ),
           Center(
@@ -625,14 +625,14 @@ class _GetLocationPageState extends State<GetLocationPage> {
                 color: card,
                 shadows: [
                   BoxShadow(
-                    blurRadius: 30,
-                    offset: const Offset(0, 18),
+                    blurRadius: Dimensions.size30,
+                    offset: Offset(0, Dimensions.size20),
                     color: Colors.black.withValues(alpha: 0.18),
                   ),
                 ],
                 shape: SmoothRectangleBorder(
-                  smoothness: 1,
-                  borderRadius: BorderRadius.circular(24),
+                  smoothness: Dimensions.size1,
+                  borderRadius: BorderRadius.circular(Dimensions.size25),
                   side: BorderSide(color: outline.withValues(alpha: 0.18)),
                 ),
               ),
@@ -650,8 +650,8 @@ class _GetLocationPageState extends State<GetLocationPage> {
                     child: Row(
                       children: [
                         Container(
-                          width: 40,
-                          height: 40,
+                          width: Dimensions.size40,
+                          height: Dimensions.size40,
                           decoration: BoxDecoration(
                             color: primary.withValues(alpha: 0.12),
                             shape: BoxShape.circle,
@@ -685,8 +685,8 @@ class _GetLocationPageState extends State<GetLocationPage> {
                             },
                             customBorder: const CircleBorder(),
                             child: Ink(
-                              width: 40,
-                              height: 40,
+                              width: Dimensions.size40,
+                              height: Dimensions.size40,
                               decoration: BoxDecoration(
                                 color: soft,
                                 shape: BoxShape.circle,
@@ -710,8 +710,8 @@ class _GetLocationPageState extends State<GetLocationPage> {
                     child: Column(
                       children: [
                         Container(
-                          width: 70,
-                          height: 70,
+                          width: Dimensions.size70,
+                          height: Dimensions.size70,
                           decoration: BoxDecoration(
                             color: primary.withValues(alpha: 0.10),
                             shape: BoxShape.circle,
@@ -722,7 +722,7 @@ class _GetLocationPageState extends State<GetLocationPage> {
                         ),
                         SizedBox(height: Dimensions.size15),
                         Text(
-                          _status,
+                          status,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: Dimensions.text14,
@@ -747,6 +747,6 @@ class _GetLocationPageState extends State<GetLocationPage> {
   void dispose() {
     super.dispose();
 
-    _subscription?.cancel();
+    subscription?.cancel();
   }
 }

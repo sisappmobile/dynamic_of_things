@@ -10,14 +10,14 @@ class LocalDiskTileProvider extends TileProvider {
 
   @override
   ImageProvider getImage(TileCoordinates coordinates, TileLayer options) {
-    final path = "$basePath/${coordinates.z}/${coordinates.x}/${coordinates.y}.png";
+    final path =
+        "$basePath/${coordinates.z}/${coordinates.x}/${coordinates.y}.png";
     final file = File(path);
 
     if (file.existsSync()) {
       return FileImage(file);
     }
 
-    // Jika tidak ada, return image transparan atau placeholder
     return const NetworkImage("https://via.placeholder.com/256?text=Kosong");
   }
 }

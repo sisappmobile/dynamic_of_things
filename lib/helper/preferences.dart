@@ -5,19 +5,19 @@ import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 class Preferences {
-  static Preferences? _instance;
+  static Preferences? instance;
 
   Preferences._internal();
 
   static Preferences getInstance() {
-    _instance ??= Preferences._internal();
+    instance ??= Preferences._internal();
 
-    return _instance!;
+    return instance!;
   }
 
   late SharedPreferences sharedPreferences;
 
-  init() async {
+  Future<void> init() async {
     sharedPreferences = await SharedPreferences.getInstance();
 
     await migrate();
@@ -48,7 +48,7 @@ class Preferences {
   String? getStringDynamicForm(
     String key, [
     String? defValue,
-    ]) {
+  ]) {
     return sharedPreferences.getString(key) ?? defValue;
   }
 
@@ -56,28 +56,41 @@ class Preferences {
     SharedPreferenceKey sharedPreferenceKey, [
     List<String>? defValue,
   ]) {
-    return sharedPreferences.getStringList(sharedPreferenceKey.name) ?? defValue;
+    return sharedPreferences.getStringList(sharedPreferenceKey.name) ??
+        defValue;
   }
 
-  Future<void> setBool(SharedPreferenceKey sharedPreferenceKey, bool? value) async {
+  Future<void> setBool(
+    SharedPreferenceKey sharedPreferenceKey,
+    bool? value,
+  ) async {
     if (value != null) {
       await sharedPreferences.setBool(sharedPreferenceKey.name, value);
     }
   }
 
-  Future<void> setInt(SharedPreferenceKey sharedPreferenceKey, int? value) async {
+  Future<void> setInt(
+    SharedPreferenceKey sharedPreferenceKey,
+    int? value,
+  ) async {
     if (value != null) {
       await sharedPreferences.setInt(sharedPreferenceKey.name, value);
     }
   }
 
-  Future<void> setDouble(SharedPreferenceKey sharedPreferenceKey, double? value) async {
+  Future<void> setDouble(
+    SharedPreferenceKey sharedPreferenceKey,
+    double? value,
+  ) async {
     if (value != null) {
       await sharedPreferences.setDouble(sharedPreferenceKey.name, value);
     }
   }
 
-  Future<void> setString(SharedPreferenceKey sharedPreferenceKey, String? value) async {
+  Future<void> setString(
+    SharedPreferenceKey sharedPreferenceKey,
+    String? value,
+  ) async {
     if (value != null) {
       await sharedPreferences.setString(sharedPreferenceKey.name, value);
     }
@@ -133,7 +146,8 @@ class Preferences {
   }
 
   Future<void> migrate() async {
-    for (SharedPreferenceKey sharedPreferenceKey in SharedPreferenceKey.values) {
+    for (SharedPreferenceKey sharedPreferenceKey
+        in SharedPreferenceKey.values) {
       final String? legacyKey = sharedPreferenceKey.legacyKey;
       if (StringUtils.isNullOrEmpty(legacyKey)) {
         continue;
@@ -149,7 +163,10 @@ class Preferences {
           if (object is bool) {
             await sharedPreferences.setBool(sharedPreferenceKey.name, object);
           } else {
-            await sharedPreferences.setString(sharedPreferenceKey.name, object.toString());
+            await sharedPreferences.setString(
+              sharedPreferenceKey.name,
+              object.toString(),
+            );
           }
 
           await sharedPreferences.remove(legacyKey);

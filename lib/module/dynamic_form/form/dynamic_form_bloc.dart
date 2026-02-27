@@ -27,7 +27,8 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
           DynamicForm? dynamicForm = Offlines.findTemplate(event.formId);
 
           if (dynamicForm != null) {
-            headerForm = HeaderForm.fromJson(Map<String, dynamic>.from(jsonDecode(dynamicForm.json)));
+            headerForm = HeaderForm.fromJson(
+                Map<String, dynamic>.from(jsonDecode(dynamicForm.json)));
           }
         } else {
           headerForm = await DotApis.getInstance().dynamicFormCreate(
@@ -60,8 +61,12 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
           DynamicForm? dynamicForm = Offlines.findTemplate(event.formId);
 
           if (dynamicForm != null) {
-            headerForm = HeaderForm.fromJson(Map<String, dynamic>.from(jsonDecode(dynamicForm.json)));
-            headerForm.data = await Offlines.rowData(tableName: headerForm.template.tableName, id: event.dataId) ?? {};
+            headerForm = HeaderForm.fromJson(
+                Map<String, dynamic>.from(jsonDecode(dynamicForm.json)));
+            headerForm.data = await Offlines.rowData(
+                    tableName: headerForm.template.tableName,
+                    id: event.dataId) ??
+                {};
           }
         } else {
           headerForm = await DotApis.getInstance().dynamicFormView(
@@ -98,8 +103,12 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
           DynamicForm? dynamicForm = Offlines.findTemplate(event.formId);
 
           if (dynamicForm != null) {
-            headerForm = HeaderForm.fromJson(Map<String, dynamic>.from(jsonDecode(dynamicForm.json)));
-            headerForm.data = await Offlines.rowData(tableName: headerForm.template.tableName, id: event.dataId) ?? {};
+            headerForm = HeaderForm.fromJson(
+                Map<String, dynamic>.from(jsonDecode(dynamicForm.json)));
+            headerForm.data = await Offlines.rowData(
+                    tableName: headerForm.template.tableName,
+                    id: event.dataId) ??
+                {};
           }
         } else {
           headerForm = await DotApis.getInstance().dynamicFormEdit(
@@ -127,7 +136,8 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
       try {
         emit(DynamicFormSaveLoading());
 
-        Map<String, dynamic> output = await DynamicForms.encode(event.headerForm);
+        Map<String, dynamic> output =
+            await DynamicForms.encode(event.headerForm);
 
         if (DynamicForms.offline) {
           await Offlines.save(
@@ -172,9 +182,11 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
         try {
           emit(DynamicFormRefreshLoading());
 
-          Map<String, dynamic> output = await DynamicForms.encode(event.headerForm);
+          Map<String, dynamic> output =
+              await DynamicForms.encode(event.headerForm);
 
-          HeaderForm? headerForm = await DotApis.getInstance().dynamicFormRefresh(
+          HeaderForm? headerForm =
+              await DotApis.getInstance().dynamicFormRefresh(
             formId: event.formId,
             data: output,
             customerId: event.customerId,

@@ -53,18 +53,16 @@ class DynamicFormPageState extends State<DynamicFormPage>
   GlobalKey<FormState> globalKey = GlobalKey<FormState>();
 
   bool loading = true;
-  bool _prefsReady = false;
+  bool prefsReady = false;
 
   static const double gapCard = 12;
-
-  bool get isDark => Theme.of(context).brightness == Brightness.dark;
 
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
-    _initPrefs();
+    initPrefs();
 
     if (widget.headerForm != null) {
       headerForm = widget.headerForm;
@@ -81,7 +79,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
     }
   }
 
-  Future<void> _initPrefs() async {
+  Future<void> initPrefs() async {
     try {
       await Preferences.getInstance().init();
     } catch (_) {
@@ -93,12 +91,12 @@ class DynamicFormPageState extends State<DynamicFormPage>
     }
 
     setState(() {
-      _prefsReady = true;
+      prefsReady = true;
     });
   }
 
   bool get isGlass {
-    if (!_prefsReady) {
+    if (!prefsReady) {
       return false;
     }
 
@@ -108,7 +106,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
     return t == 2;
   }
 
-  Widget _glassBackground() {
+  Widget glassBackground() {
     final String p = (Preferences.getInstance()
                 .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
             "")
@@ -127,22 +125,6 @@ class DynamicFormPageState extends State<DynamicFormPage>
     }
 
     return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
-  }
-
-  Widget _glassOverlay() {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            Color.fromRGBO(0, 0, 0, 0.55),
-            Color.fromRGBO(0, 0, 0, 0.22),
-            Color.fromRGBO(0, 0, 0, 0.40),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
@@ -224,12 +206,30 @@ class DynamicFormPageState extends State<DynamicFormPage>
         } else if (state is DynamicFormRefreshFinished) {}
       },
       child: Scaffold(
-        backgroundColor: glass ? Colors.transparent : backgroundColor(context),
+        backgroundColor: glass
+            ? Colors.transparent
+            : Theme.of(context).brightness == Brightness.dark
+                ? AppColors.surfaceContainerLowest()
+                : AppColors.surfaceContainerLowest(),
         body: Stack(
           children: [
             if (glass) ...[
-              Positioned.fill(child: _glassBackground()),
-              Positioned.fill(child: _glassOverlay()),
+              Positioned.fill(child: glassBackground()),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: <Color>[
+                        Color.fromRGBO(0, 0, 0, 0.55),
+                        Color.fromRGBO(0, 0, 0, 0.22),
+                        Color.fromRGBO(0, 0, 0, 0.40),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
             SafeArea(
               top: true,
@@ -500,10 +500,17 @@ class DynamicFormPageState extends State<DynamicFormPage>
           width: Dimensions.size30,
           height: Dimensions.size30,
           decoration: BoxDecoration(
-            color: primary.withValues(alpha: isDark ? 0.14 : 0.10),
+            color: primary.withValues(
+              alpha:
+                  Theme.of(context).brightness == Brightness.dark ? 0.14 : 0.10,
+            ),
             shape: BoxShape.circle,
             border: Border.all(
-              color: primary.withValues(alpha: isDark ? 0.28 : 0.18),
+              color: primary.withValues(
+                alpha: Theme.of(context).brightness == Brightness.dark
+                    ? 0.28
+                    : 0.18,
+              ),
             ),
           ),
           child: Icon(
@@ -538,11 +545,6 @@ class DynamicFormPageState extends State<DynamicFormPage>
     final String subtitle = label();
 
     final bool glass = isGlass;
-    final Color titleColor =
-        glass ? Colors.white.withOpacity(0.95) : AppColors.onSurface();
-    final Color subColor = glass
-        ? Colors.white.withOpacity(0.70)
-        : AppColors.onSurface().withValues(alpha: 0.65);
 
     final Widget content = Row(
       children: [
@@ -569,7 +571,9 @@ class DynamicFormPageState extends State<DynamicFormPage>
                   fontSize: Dimensions.text16,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 0.2,
-                  color: titleColor,
+                  color: glass
+                      ? Colors.white.withOpacity(0.95)
+                      : AppColors.onSurface(),
                 ),
               ),
               SizedBox(height: Dimensions.size2),
@@ -580,7 +584,9 @@ class DynamicFormPageState extends State<DynamicFormPage>
                 style: TextStyle(
                   fontSize: Dimensions.text12,
                   fontWeight: FontWeight.w700,
-                  color: subColor,
+                  color: glass
+                      ? Colors.white.withOpacity(0.70)
+                      : AppColors.onSurface().withValues(alpha: 0.65),
                 ),
               ),
             ],
@@ -632,7 +638,10 @@ class DynamicFormPageState extends State<DynamicFormPage>
           borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: AppColors.outline().withValues(alpha: isDark ? 0.28 : 0.22),
+            color: AppColors.outline().withValues(
+              alpha:
+                  Theme.of(context).brightness == Brightness.dark ? 0.28 : 0.22,
+            ),
           ),
         ),
       ),
@@ -645,8 +654,6 @@ class DynamicFormPageState extends State<DynamicFormPage>
     required VoidCallback onTap,
   }) {
     final bool glass = isGlass;
-    final Color iconColor =
-        glass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
 
     return Material(
       color: Colors.transparent,
@@ -668,7 +675,9 @@ class DynamicFormPageState extends State<DynamicFormPage>
                   height: Dimensions.size40,
                   child: Icon(
                     icon,
-                    color: iconColor,
+                    color: glass
+                        ? Colors.white.withOpacity(0.92)
+                        : AppColors.onSurface(),
                     size: Dimensions.size25,
                   ),
                 ),
@@ -677,13 +686,18 @@ class DynamicFormPageState extends State<DynamicFormPage>
                 width: Dimensions.size40,
                 height: Dimensions.size40,
                 decoration: ShapeDecoration(
-                  color: softColor(context),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.surfaceContainerLow()
+                      : AppColors.surfaceContainerLowest(),
                   shape: SmoothRectangleBorder(
                     borderRadius: BorderRadius.circular(Dimensions.size15),
                     smoothness: Dimensions.size1,
                     side: BorderSide(
-                      color: AppColors.outline()
-                          .withValues(alpha: isDark ? 0.26 : 0.18),
+                      color: AppColors.outline().withValues(
+                        alpha: Theme.of(context).brightness == Brightness.dark
+                            ? 0.26
+                            : 0.18,
+                      ),
                     ),
                   ),
                 ),
@@ -759,8 +773,11 @@ class DynamicFormPageState extends State<DynamicFormPage>
                   borderRadius: BorderRadius.circular(Dimensions.size20),
                   smoothness: Dimensions.size1,
                   side: BorderSide(
-                    color: AppColors.outline()
-                        .withValues(alpha: isDark ? 0.28 : 0.22),
+                    color: AppColors.outline().withValues(
+                      alpha: Theme.of(context).brightness == Brightness.dark
+                          ? 0.28
+                          : 0.22,
+                    ),
                   ),
                 ),
               ),
@@ -853,7 +870,6 @@ class DynamicFormPageState extends State<DynamicFormPage>
 
     final bool glass = isGlass;
     final Color primary = Theme.of(context).colorScheme.primary;
-    final Color onPrimary = Theme.of(context).colorScheme.onPrimary;
 
     if (glass) {
       return Material(
@@ -949,12 +965,15 @@ class DynamicFormPageState extends State<DynamicFormPage>
                 width: Dimensions.size35,
                 height: Dimensions.size35,
                 decoration: BoxDecoration(
-                  color: onPrimary.withValues(alpha: 0.18),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onPrimary
+                      .withValues(alpha: 0.18),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.save,
-                  color: onPrimary,
+                  color: Theme.of(context).colorScheme.onPrimary,
                   size: Dimensions.size20,
                 ),
               ),
@@ -962,7 +981,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
               Text(
                 "save".tr(),
                 style: TextStyle(
-                  color: onPrimary,
+                  color: Theme.of(context).colorScheme.onPrimary,
                   fontSize: Dimensions.text14,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 0.2,
@@ -985,12 +1004,4 @@ class DynamicFormPageState extends State<DynamicFormPage>
 
     return fab;
   }
-
-  Color backgroundColor(BuildContext context) => isDark
-      ? AppColors.surfaceContainerLowest()
-      : AppColors.surfaceContainerLowest();
-
-  Color softColor(BuildContext context) => isDark
-      ? AppColors.surfaceContainerLow()
-      : AppColors.surfaceContainerLowest();
 }

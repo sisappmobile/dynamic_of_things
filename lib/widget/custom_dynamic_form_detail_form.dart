@@ -43,19 +43,19 @@ class CustomDynamicFormDetailFormState
   GlobalKey<FormState> formState = GlobalKey<FormState>();
 
   late Map<String, dynamic> data;
-  bool _prefsReady = false;
+  bool prefsReady = false;
 
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
-    _initPrefs();
+    initPrefs();
 
     data = widget.data;
   }
 
-  Future<void> _initPrefs() async {
+  Future<void> initPrefs() async {
     try {
       await Preferences.getInstance().init();
     } catch (_) {
@@ -67,12 +67,12 @@ class CustomDynamicFormDetailFormState
     }
 
     setState(() {
-      _prefsReady = true;
+      prefsReady = true;
     });
   }
 
   bool get isGlass {
-    if (!_prefsReady) {
+    if (!prefsReady) {
       return false;
     }
 
@@ -82,7 +82,7 @@ class CustomDynamicFormDetailFormState
     return t == 2;
   }
 
-  Widget _glassBackground() {
+  Widget glassBackground() {
     final String p = (Preferences.getInstance()
                 .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
             "")
@@ -103,22 +103,6 @@ class CustomDynamicFormDetailFormState
     return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
   }
 
-  Widget _glassOverlay() {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            Color.fromRGBO(0, 0, 0, 0.55),
-            Color.fromRGBO(0, 0, 0, 0.22),
-            Color.fromRGBO(0, 0, 0, 0.40),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
@@ -130,8 +114,22 @@ class CustomDynamicFormDetailFormState
       body: Stack(
         children: [
           if (glass) ...[
-            Positioned.fill(child: _glassBackground()),
-            Positioned.fill(child: _glassOverlay()),
+            Positioned.fill(child: glassBackground()),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      Color.fromRGBO(0, 0, 0, 0.55),
+                      Color.fromRGBO(0, 0, 0, 0.22),
+                      Color.fromRGBO(0, 0, 0, 0.40),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
           Column(
             children: [

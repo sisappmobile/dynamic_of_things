@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import "dart:io";
 import "dart:ui";
@@ -52,42 +52,29 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
   int pageSize = 50;
 
   bool loading = false;
-  bool _prefsReady = false;
+  bool prefsReady = false;
 
   List<Map<String, dynamic>>? items;
 
   TextEditingController tecSearch = TextEditingController();
 
-  static const double _gapCard = 10;
-  static const double _gapInner = 8;
+  static const double gapCard = 10;
+  static const double gapInner = 8;
 
-  static const double _tilePadX = 10;
-  static const double _tilePadY = 10;
-
-  Color _bg(BuildContext context) => isGlass
-      ? Colors.white.withOpacity(0.06)
-      : AppColors.surfaceContainerLowest();
-  Color _card(BuildContext context) =>
-      isGlass ? Colors.white.withOpacity(0.10) : AppColors.surface();
-  Color _soft(BuildContext context) => isGlass
-      ? Colors.white.withOpacity(0.08)
-      : AppColors.surfaceContainerLowest();
-  Color _fg(BuildContext context) =>
-      isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
-  Color _outline(BuildContext context) =>
-      isGlass ? Colors.white.withOpacity(0.18) : AppColors.outline();
+  static const double tilePadX = 10;
+  static const double tilePadY = 10;
 
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
-    _initPrefs();
+    initPrefs();
 
     refresh();
   }
 
-  Future<void> _initPrefs() async {
+  Future<void> initPrefs() async {
     try {
       await Preferences.getInstance().init();
     } catch (_) {
@@ -99,12 +86,12 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
     }
 
     setState(() {
-      _prefsReady = true;
+      prefsReady = true;
     });
   }
 
   bool get isGlass {
-    if (!_prefsReady) {
+    if (!prefsReady) {
       return false;
     }
 
@@ -114,7 +101,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
     return t == 2;
   }
 
-  Widget _glassBackground() {
+  Widget glassBackground() {
     final String p = (Preferences.getInstance()
                 .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
             "")
@@ -135,22 +122,6 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
     return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
   }
 
-  Widget _glassOverlay() {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            Color.fromRGBO(0, 0, 0, 0.55),
-            Color.fromRGBO(0, 0, 0, 0.22),
-            Color.fromRGBO(0, 0, 0, 0.40),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     Theme.of(context);
@@ -159,12 +130,30 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
     final bool glass = isGlass;
 
     return Scaffold(
-      backgroundColor: glass ? Colors.transparent : _bg(context),
+      backgroundColor: glass
+          ? Colors.transparent
+          : isGlass
+              ? Colors.white.withOpacity(0.06)
+              : AppColors.surfaceContainerLowest(),
       body: Stack(
         children: [
           if (glass) ...[
-            Positioned.fill(child: _glassBackground()),
-            Positioned.fill(child: _glassOverlay()),
+            Positioned.fill(child: glassBackground()),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      Color.fromRGBO(0, 0, 0, 0.55),
+                      Color.fromRGBO(0, 0, 0, 0.22),
+                      Color.fromRGBO(0, 0, 0, 0.40),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
           Column(
             children: [
@@ -176,9 +165,9 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
                   Dimensions.size15,
                   Dimensions.size10,
                 ),
-                child: _topBar(),
+                child: topBar(),
               ),
-              Expanded(child: _bodyHost()),
+              Expanded(child: bodyHost()),
               SizedBox(height: safe.bottom),
             ],
           ),
@@ -186,7 +175,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
             left: Dimensions.size15,
             right: Dimensions.size15,
             bottom: safe.bottom + Dimensions.size10,
-            child: _bottomFloatingBar(),
+            child: floatingActionBar(),
           ),
         ],
       ),
@@ -266,14 +255,14 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
     }
   }
 
-  Widget _topBar() {
+  Widget topBar() {
     final bool glass = isGlass;
 
     final Widget content = Column(
       children: [
         Row(
           children: [
-            _iconPill(
+            iconPill(
               icon: Icons.turn_left_rounded,
               onTap: () {
                 if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
@@ -293,16 +282,18 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
                   fontSize: Dimensions.text16,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 0.2,
-                  color: _fg(context),
+                  color: isGlass
+                      ? Colors.white.withOpacity(0.92)
+                      : AppColors.onSurface(),
                 ),
               ),
             ),
             SizedBox(width: Dimensions.size10),
-            _mapModeButton(),
+            mapModeButton(),
           ],
         ),
         SizedBox(height: Dimensions.size10),
-        _searchBox(),
+        searchBox(),
       ],
     );
 
@@ -326,7 +317,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
         vertical: Dimensions.size10,
       ),
       decoration: ShapeDecoration(
-        color: _card(context),
+        color: isGlass ? Colors.white.withOpacity(0.10) : AppColors.surface(),
         shadows: [
           BoxShadow(
             blurRadius: Dimensions.size20,
@@ -336,9 +327,11 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
         ],
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size20),
-          smoothness: 1,
+          smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.35),
+            color: isGlass
+                ? Colors.white.withOpacity(0.18)
+                : AppColors.outline().withValues(alpha: 0.35),
           ),
         ),
       ),
@@ -346,16 +339,20 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
     );
   }
 
-  Widget _searchBox() {
+  Widget searchBox() {
     return Container(
       height: Dimensions.size50,
       decoration: ShapeDecoration(
-        color: _soft(context),
+        color: isGlass
+            ? Colors.white.withOpacity(0.08)
+            : AppColors.surfaceContainerLowest(),
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size15),
-          smoothness: 1,
+          smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.22),
+            color: isGlass
+                ? Colors.white.withOpacity(0.18)
+                : AppColors.outline().withValues(alpha: 0.22),
           ),
         ),
       ),
@@ -364,7 +361,9 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
         children: [
           Icon(
             Icons.search,
-            color: _fg(context).withValues(alpha: 0.65),
+            color: isGlass
+                ? Colors.white.withOpacity(0.92)
+                : AppColors.onSurface().withValues(alpha: 0.65),
           ),
           SizedBox(width: Dimensions.size10),
           Expanded(
@@ -385,7 +384,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
             ),
           ),
           if (StringUtils.isNotNullOrEmpty(tecSearch.text))
-            _iconTiny(
+            iconTiny(
               icon: Icons.close,
               onTap: () {
                 tecSearch.clear();
@@ -399,7 +398,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
     );
   }
 
-  Widget _iconTiny({
+  Widget iconTiny({
     required IconData icon,
     required VoidCallback onTap,
   }) {
@@ -413,20 +412,25 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
           child: Icon(
             icon,
             size: Dimensions.size20,
-            color: _fg(context).withValues(alpha: 0.75),
+            color: isGlass
+                ? Colors.white.withOpacity(0.92)
+                : AppColors.onSurface().withValues(alpha: 0.75),
           ),
         ),
       ),
     );
   }
 
-  Widget _iconPill({
+  Widget iconPill({
     required IconData icon,
     required VoidCallback onTap,
   }) {
     final bool glass = isGlass;
-    final Color iconColor =
-        glass ? Colors.white.withOpacity(0.92) : _fg(context);
+    final Color iconColor = glass
+        ? Colors.white.withOpacity(0.92)
+        : isGlass
+            ? Colors.white.withOpacity(0.92)
+            : AppColors.onSurface();
 
     return Material(
       color: Colors.transparent,
@@ -434,7 +438,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
         onTap: onTap,
         customBorder: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size15),
-          smoothness: 1,
+          smoothness: Dimensions.size1,
         ),
         child: glass
             ? GlassContainer(
@@ -457,18 +461,24 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
                 width: Dimensions.size40,
                 height: Dimensions.size40,
                 decoration: ShapeDecoration(
-                  color: _soft(context),
+                  color: isGlass
+                      ? Colors.white.withOpacity(0.08)
+                      : AppColors.surfaceContainerLowest(),
                   shape: SmoothRectangleBorder(
                     borderRadius: BorderRadius.circular(Dimensions.size15),
                     smoothness: 1,
                     side: BorderSide(
-                      color: _outline(context).withValues(alpha: 0.25),
+                      color: isGlass
+                          ? Colors.white.withOpacity(0.18)
+                          : AppColors.outline().withValues(alpha: 0.25),
                     ),
                   ),
                 ),
                 child: Icon(
                   icon,
-                  color: _fg(context),
+                  color: isGlass
+                      ? Colors.white.withOpacity(0.92)
+                      : AppColors.onSurface(),
                   size: Dimensions.size25,
                 ),
               ),
@@ -476,9 +486,9 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
     );
   }
 
-  Widget _mapModeButton() {
+  Widget mapModeButton() {
     if (items != null && items!.isNotEmpty) {
-      return _iconPill(
+      return iconPill(
         icon: Icons.map,
         onTap: () async {
           if (widget.dynamicFormResourceResponse.fields.any(
@@ -515,7 +525,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
                       },
                       child: Icon(
                         Icons.location_on_outlined,
-                        size: 30,
+                        size: Dimensions.size30,
                         color: Colors.red,
                       ),
                     ),
@@ -543,7 +553,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
     return const SizedBox.shrink();
   }
 
-  Widget _bodyHost() {
+  Widget bodyHost() {
     if (loading) {
       return BaseWidgets.shimmer();
     }
@@ -551,27 +561,29 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
     if (items == null) {
       return ListView(
         padding: EdgeInsets.all(Dimensions.size15),
-        children: [_failState()],
+        children: [failState()],
       );
     }
 
     if (items != null && items!.isEmpty) {
       return ListView(
         padding: EdgeInsets.all(Dimensions.size15),
-        children: [_emptyState()],
+        children: [emptyState()],
       );
     }
 
     return body();
   }
 
-  Widget _failState() {
+  Widget failState() {
     final Widget content = Column(
       children: [
         Icon(
           Icons.error_outline,
           size: Dimensions.size45,
-          color: _fg(context).withValues(alpha: 0.65),
+          color: isGlass
+              ? Colors.white.withOpacity(0.92)
+              : AppColors.onSurface().withValues(alpha: 0.65),
         ),
         SizedBox(height: Dimensions.size10),
         Text(
@@ -579,7 +591,9 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
           style: TextStyle(
             fontSize: Dimensions.text16,
             fontWeight: FontWeight.w900,
-            color: _fg(context),
+            color: isGlass
+                ? Colors.white.withOpacity(0.92)
+                : AppColors.onSurface(),
           ),
         ),
         SizedBox(height: Dimensions.size15),
@@ -611,12 +625,14 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
     return Container(
       padding: EdgeInsets.all(Dimensions.size20),
       decoration: ShapeDecoration(
-        color: _card(context),
+        color: isGlass ? Colors.white.withOpacity(0.10) : AppColors.surface(),
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size20),
-          smoothness: 1,
+          smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.35),
+            color: isGlass
+                ? Colors.white.withOpacity(0.18)
+                : AppColors.outline().withValues(alpha: 0.35),
           ),
         ),
       ),
@@ -624,13 +640,15 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
     );
   }
 
-  Widget _emptyState() {
+  Widget emptyState() {
     final Widget content = Column(
       children: [
         Icon(
           Icons.inbox_outlined,
           size: Dimensions.size45,
-          color: _fg(context).withValues(alpha: 0.65),
+          color: isGlass
+              ? Colors.white.withOpacity(0.92)
+              : AppColors.onSurface().withValues(alpha: 0.65),
         ),
         SizedBox(height: Dimensions.size10),
         Text(
@@ -638,7 +656,9 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
           style: TextStyle(
             fontSize: Dimensions.text16,
             fontWeight: FontWeight.w900,
-            color: _fg(context),
+            color: isGlass
+                ? Colors.white.withOpacity(0.92)
+                : AppColors.onSurface(),
           ),
         ),
         SizedBox(height: Dimensions.size5),
@@ -646,7 +666,9 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
           "try_adjust_filter_or_pull_to_refresh".tr(),
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: _fg(context).withValues(alpha: 0.70),
+            color: isGlass
+                ? Colors.white.withOpacity(0.92)
+                : AppColors.onSurface().withValues(alpha: 0.70),
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -667,12 +689,14 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
     return Container(
       padding: EdgeInsets.all(Dimensions.size20),
       decoration: ShapeDecoration(
-        color: _card(context),
+        color: isGlass ? Colors.white.withOpacity(0.10) : AppColors.surface(),
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size20),
-          smoothness: 1,
+          smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: 0.35),
+            color: isGlass
+                ? Colors.white.withOpacity(0.18)
+                : AppColors.outline().withValues(alpha: 0.35),
           ),
         ),
       ),
@@ -680,13 +704,16 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
     );
   }
 
-  Widget _bottomFloatingBar() {
+  Widget floatingActionBar() {
     final Widget inner = bottomBar();
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(Dimensions.size25),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        filter: ImageFilter.blur(
+          sigmaX: Dimensions.size15,
+          sigmaY: Dimensions.size15,
+        ),
         child: Container(
           padding: EdgeInsets.symmetric(
             horizontal: Dimensions.size15,
@@ -695,12 +722,16 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
           decoration: BoxDecoration(
             color: isGlass
                 ? Colors.white.withOpacity(0.12)
-                : _card(context).withValues(alpha: 0.92),
+                : isGlass
+                    ? Colors.white.withOpacity(0.10)
+                    : AppColors.surface().withValues(alpha: 0.92),
             borderRadius: BorderRadius.circular(Dimensions.size25),
             border: Border.all(
               color: isGlass
                   ? Colors.white.withOpacity(0.22)
-                  : _outline(context).withValues(alpha: 0.18),
+                  : isGlass
+                      ? Colors.white.withOpacity(0.18)
+                      : AppColors.outline().withValues(alpha: 0.18),
             ),
             boxShadow: [
               BoxShadow(
@@ -735,7 +766,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
         ),
         itemCount: items!.length,
         separatorBuilder: (BuildContext context, int index) {
-          return const SizedBox(height: _gapCard);
+          return const SizedBox(height: gapCard);
         },
         itemBuilder: (BuildContext context, int index) {
           Map<String, dynamic> item = items![index];
@@ -765,7 +796,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
                     dynamicFormResourceFieldItems[i + 1];
 
                 children
-                  ..add(SizedBox(width: _gapInner))
+                  ..add(SizedBox(width: gapInner))
                   ..add(
                     childrenWidget(
                       description: dfrfiRight.description,
@@ -786,7 +817,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
               );
 
               if (i + 2 < dynamicFormResourceFieldItems.length) {
-                widgets.add(SizedBox(height: _gapInner));
+                widgets.add(SizedBox(height: gapInner));
               }
             }
           }
@@ -803,7 +834,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
               },
               customBorder: SmoothRectangleBorder(
                 borderRadius: BorderRadius.circular(Dimensions.size20),
-                smoothness: 1,
+                smoothness: Dimensions.size1,
               ),
               child: Builder(
                 builder: (context) {
@@ -828,7 +859,9 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
 
                   return Ink(
                     decoration: ShapeDecoration(
-                      color: _card(context),
+                      color: isGlass
+                          ? Colors.white.withOpacity(0.10)
+                          : AppColors.surface(),
                       shadows: [
                         BoxShadow(
                           blurRadius: Dimensions.size20,
@@ -838,9 +871,11 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
                       ],
                       shape: SmoothRectangleBorder(
                         borderRadius: BorderRadius.circular(Dimensions.size20),
-                        smoothness: 1,
+                        smoothness: Dimensions.size1,
                         side: BorderSide(
-                          color: _outline(context).withValues(alpha: 0.35),
+                          color: isGlass
+                              ? Colors.white.withOpacity(0.18)
+                              : AppColors.outline().withValues(alpha: 0.35),
                         ),
                       ),
                     ),
@@ -863,16 +898,20 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
     return Expanded(
       child: Container(
         padding: EdgeInsets.symmetric(
-          horizontal: _tilePadX,
-          vertical: _tilePadY,
+          horizontal: tilePadX,
+          vertical: tilePadY,
         ),
         decoration: ShapeDecoration(
-          color: _soft(context),
+          color: isGlass
+              ? Colors.white.withOpacity(0.08)
+              : AppColors.surfaceContainerLowest(),
           shape: SmoothRectangleBorder(
             borderRadius: BorderRadius.circular(Dimensions.size15),
-            smoothness: 1,
+            smoothness: Dimensions.size1,
             side: BorderSide(
-              color: _outline(context).withValues(alpha: 0.20),
+              color: isGlass
+                  ? Colors.white.withOpacity(0.18)
+                  : AppColors.outline().withValues(alpha: 0.20),
             ),
           ),
         ),
@@ -888,7 +927,9 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
               style: TextStyle(
                 fontSize: Dimensions.text12,
                 fontWeight: FontWeight.w700,
-                color: _fg(context).withValues(alpha: 0.65),
+                color: isGlass
+                    ? Colors.white.withOpacity(0.92)
+                    : AppColors.onSurface().withValues(alpha: 0.65),
               ),
             ),
             SizedBox(height: Dimensions.size4),
@@ -901,7 +942,9 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
                 fontSize: Dimensions.text14,
                 fontWeight: FontWeight.w900,
                 height: 1.15,
-                color: _fg(context),
+                color: isGlass
+                    ? Colors.white.withOpacity(0.92)
+                    : AppColors.onSurface(),
               ),
             ),
           ],
@@ -946,7 +989,9 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: _fg(context).withValues(alpha: 0.75),
+              color: isGlass
+                  ? Colors.white.withOpacity(0.92)
+                  : AppColors.onSurface().withValues(alpha: 0.75),
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -962,7 +1007,8 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
           },
           pageTotal: (size / pageSize).ceil(),
           pageInit: pageIndex,
-          colorPrimary: _fg(context),
+          colorPrimary:
+              isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface(),
           colorSub: isGlass
               ? Colors.white.withOpacity(0.12)
               : AppColors.surfaceContainerLow(),
@@ -1032,7 +1078,7 @@ class CustomPagination extends StatefulWidget {
 class NumberPaginationState extends State<CustomPagination> {
   late int currentPage;
 
-  double _contrastRatio(Color a, Color b) {
+  double contrastRatio(Color a, Color b) {
     final double l1 = a.computeLuminance();
     final double l2 = b.computeLuminance();
     final double hi = l1 > l2 ? l1 : l2;
@@ -1040,8 +1086,8 @@ class NumberPaginationState extends State<CustomPagination> {
     return (hi + 0.05) / (lo + 0.05);
   }
 
-  Color _safeText(Color desired, Color bg) {
-    if (_contrastRatio(desired, bg) >= 3.0) {
+  Color safeText(Color desired, Color bg) {
+    if (contrastRatio(desired, bg) >= 3.0) {
       return desired;
     }
     return bg.computeLuminance() > 0.6
@@ -1049,7 +1095,7 @@ class NumberPaginationState extends State<CustomPagination> {
         : Colors.white.withOpacity(0.95);
   }
 
-  Color _borderColor() {
+  Color borderColor() {
     final double l1 = widget.colorPrimary.computeLuminance();
     final double l2 = widget.colorSub.computeLuminance();
 
@@ -1066,7 +1112,7 @@ class NumberPaginationState extends State<CustomPagination> {
     super.initState();
   }
 
-  void _changePage(int targetPage) {
+  void changePage(int targetPage) {
     int newPage = targetPage.clamp(1, widget.pageTotal);
 
     if (currentPage != newPage) {
@@ -1077,7 +1123,7 @@ class NumberPaginationState extends State<CustomPagination> {
     }
   }
 
-  Widget _buildPageNumbers(int rangeStart, int rangeEnd) {
+  Widget pageNumbers(int rangeStart, int rangeEnd) {
     return Flexible(
       fit: FlexFit.loose,
       child: Row(
@@ -1097,21 +1143,22 @@ class NumberPaginationState extends State<CustomPagination> {
                       selected ? widget.colorPrimary : widget.colorSub;
                   final Color desiredText =
                       selected ? widget.colorSub : widget.colorPrimary;
-                  final Color text = _safeText(desiredText, bg);
+                  final Color text = safeText(desiredText, bg);
 
                   return OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       surfaceTintColor: Colors.transparent,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(widget.buttonRadius),
-                        side: BorderSide(color: _borderColor()),
+                        borderRadius:
+                            BorderRadius.circular(widget.buttonRadius),
+                        side: BorderSide(color: borderColor()),
                       ),
                       padding: EdgeInsets.zero,
-                      minimumSize: const Size(48, 48),
+                      minimumSize: Size(Dimensions.size50, Dimensions.size50),
                       foregroundColor: text,
                       backgroundColor: bg,
                     ),
-                    onPressed: () => _changePage(index + 1 + rangeStart),
+                    onPressed: () => changePage(index + 1 + rangeStart),
                     child: Text(
                       "${index + 1 + rangeStart}",
                       style: TextStyle(
@@ -1130,22 +1177,22 @@ class NumberPaginationState extends State<CustomPagination> {
     );
   }
 
-  Widget _buildControlButton(Widget icon, bool enabled, VoidCallback onTap) {
+  Widget controlButton(Widget icon, bool enabled, VoidCallback onTap) {
     final Color bg = widget.colorSub;
-    final Color fg = _safeText(widget.colorPrimary, bg);
+    final Color fg = safeText(widget.colorPrimary, bg);
 
     return OutlinedButton(
       style: OutlinedButton.styleFrom(
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size10),
-          smoothness: 1,
+          smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _borderColor(),
+            color: borderColor(),
           ),
         ),
         surfaceTintColor: Colors.transparent,
         padding: EdgeInsets.zero,
-        minimumSize: const Size(48, 48),
+        minimumSize: Size(Dimensions.size50, Dimensions.size50),
         foregroundColor: enabled ? fg : Colors.grey,
         backgroundColor: bg,
         disabledForegroundColor: fg.withOpacity(0.55),
@@ -1168,18 +1215,18 @@ class NumberPaginationState extends State<CustomPagination> {
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _buildControlButton(
+        controlButton(
           widget.iconPrevious,
           currentPage != 1,
-          () => _changePage(currentPage - 1),
+          () => changePage(currentPage - 1),
         ),
         SizedBox(width: widget.groupSpacing),
-        _buildPageNumbers(rangeStart, rangeEnd),
+        pageNumbers(rangeStart, rangeEnd),
         SizedBox(width: widget.groupSpacing),
-        _buildControlButton(
+        controlButton(
           widget.iconNext,
           currentPage != widget.pageTotal,
-          () => _changePage(currentPage + 1),
+          () => changePage(currentPage + 1),
         ),
       ],
     );

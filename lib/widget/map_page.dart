@@ -1,3 +1,5 @@
+// ignore_for_file: unrelated_type_equality_checks
+
 import "dart:async";
 import "dart:io";
 import "dart:ui";
@@ -13,8 +15,8 @@ import "package:geolocator/geolocator.dart";
 import "package:path_provider/path_provider.dart";
 import "package:smooth_corner/smooth_corner.dart";
 
-final int _minZoom = 14;
-final int _maxZoom = 19;
+final int minZoom = 14;
+final int maxZoom = 19;
 
 class MapPage extends StatefulWidget {
   final List<Marker>? markers;
@@ -25,29 +27,29 @@ class MapPage extends StatefulWidget {
   });
 
   @override
-  State<MapPage> createState() => _MapPageState();
+  State<MapPage> createState() => MapPageState();
 }
 
-class _MapPageState extends State<MapPage> {
-  bool _isOnline = true;
+class MapPageState extends State<MapPage> {
+  bool isOnline = true;
 
-  StreamSubscription? _connectivitySub;
+  StreamSubscription? connectivitySub;
 
-  late AlignOnUpdate _alignPositionOnUpdate;
-  late final StreamController<double?> _alignPositionStreamController;
+  late AlignOnUpdate alignPositionOnUpdate;
+  late final StreamController<double?> alignPositionStreamController;
 
   @override
   void initState() {
     super.initState();
 
-    _watchConnectivity();
-    _checkLocationPermission();
+    watchConnectivity();
+    checkLocationPermission();
 
-    _alignPositionOnUpdate = AlignOnUpdate.always;
-    _alignPositionStreamController = StreamController<double?>();
+    alignPositionOnUpdate = AlignOnUpdate.always;
+    alignPositionStreamController = StreamController<double?>();
   }
 
-  Future<void> _checkLocationPermission() async {
+  Future<void> checkLocationPermission() async {
     bool serviceEnabled;
     LocationPermission permission;
 
@@ -62,15 +64,15 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
-  void _watchConnectivity() {
+  void watchConnectivity() {
     final connectivity = Connectivity();
 
-    _connectivitySub = connectivity.onConnectivityChanged.listen((result) {
+    connectivitySub = connectivity.onConnectivityChanged.listen((result) {
       if (!mounted) {
         return;
       }
       setState(() {
-        _isOnline = result != ConnectivityResult.none;
+        isOnline = result != ConnectivityResult.none;
       });
     });
 
@@ -80,19 +82,14 @@ class _MapPageState extends State<MapPage> {
       }
 
       setState(() {
-        _isOnline = result != ConnectivityResult.none;
+        isOnline = result != ConnectivityResult.none;
       });
     });
   }
 
-  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+  bool get isDark => Theme.of(context).brightness == Brightness.dark;
 
-  Color _card(BuildContext context) => AppColors.surface();
-  Color _soft(BuildContext context) => AppColors.surfaceContainerLowest();
-  Color _fg(BuildContext context) => AppColors.onSurface();
-  Color _outline(BuildContext context) => AppColors.outline();
-
-  Widget _glassTopBar(BuildContext context) {
+  Widget glassTopBar(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
 
     return Positioned(
@@ -111,32 +108,35 @@ class _MapPageState extends State<MapPage> {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(Dimensions.size25),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+              filter: ImageFilter.blur(
+                sigmaX: Dimensions.size15,
+                sigmaY: Dimensions.size15,
+              ),
               child: Container(
                 padding: EdgeInsets.symmetric(
                   horizontal: Dimensions.size15,
                   vertical: Dimensions.size10,
                 ),
                 decoration: BoxDecoration(
-                  color:
-                      _card(context).withValues(alpha: _isDark ? 0.78 : 0.90),
+                  color: AppColors.surface()
+                      .withValues(alpha: isDark ? 0.78 : 0.90),
                   borderRadius: BorderRadius.circular(Dimensions.size25),
                   border: Border.all(
-                    color: _outline(context)
-                        .withValues(alpha: _isDark ? 0.22 : 0.18),
+                    color: AppColors.outline()
+                        .withValues(alpha: isDark ? 0.22 : 0.18),
                   ),
                   boxShadow: [
                     BoxShadow(
                       blurRadius: Dimensions.size25,
                       offset: Offset(0, Dimensions.size15),
                       color:
-                          Colors.black.withValues(alpha: _isDark ? 0.18 : 0.12),
+                          Colors.black.withValues(alpha: isDark ? 0.18 : 0.12),
                     ),
                   ],
                 ),
                 child: Row(
                   children: [
-                    _iconPill(
+                    iconPill(
                       context: context,
                       icon: Icons.turn_left_rounded,
                       onTap: () {
@@ -153,12 +153,12 @@ class _MapPageState extends State<MapPage> {
                           fontSize: Dimensions.text16,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.2,
-                          color: _fg(context),
+                          color: AppColors.onSurface(),
                         ),
                       ),
                     ),
                     SizedBox(width: Dimensions.size10),
-                    _statusChip(context),
+                    statusChip(context),
                   ],
                 ),
               ),
@@ -169,7 +169,7 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  Widget _iconPill({
+  Widget iconPill({
     required BuildContext context,
     required IconData icon,
     required VoidCallback onTap,
@@ -180,38 +180,39 @@ class _MapPageState extends State<MapPage> {
         onTap: onTap,
         customBorder: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size15),
-          smoothness: 1,
+          smoothness: Dimensions.size1,
         ),
         child: Ink(
           width: Dimensions.size40,
           height: Dimensions.size40,
           decoration: ShapeDecoration(
-            color: _soft(context).withValues(alpha: _isDark ? 0.72 : 1),
+            color: AppColors.surfaceContainerLowest()
+                .withValues(alpha: isDark ? 0.72 : 1),
             shape: SmoothRectangleBorder(
               borderRadius: BorderRadius.circular(Dimensions.size15),
-              smoothness: 1,
+              smoothness: Dimensions.size1,
               side: BorderSide(
                 color:
-                    _outline(context).withValues(alpha: _isDark ? 0.22 : 0.18),
+                    AppColors.outline().withValues(alpha: isDark ? 0.22 : 0.18),
               ),
             ),
           ),
           child: Icon(
             icon,
             size: Dimensions.size25,
-            color: _fg(context),
+            color: AppColors.onSurface(),
           ),
         ),
       ),
     );
   }
 
-  Widget _statusChip(BuildContext context) {
+  Widget statusChip(BuildContext context) {
     final Color primary = Theme.of(context).colorScheme.primary;
 
-    final String label = _isOnline ? "Online" : "Offline";
+    final String label = isOnline ? "Online" : "Offline";
     final IconData icon =
-        _isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded;
+        isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded;
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -219,12 +220,13 @@ class _MapPageState extends State<MapPage> {
         vertical: Dimensions.size10,
       ),
       decoration: ShapeDecoration(
-        color: _soft(context).withValues(alpha: _isDark ? 0.72 : 1),
+        color: AppColors.surfaceContainerLowest()
+            .withValues(alpha: isDark ? 0.72 : 1),
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size15),
-          smoothness: 1,
+          smoothness: Dimensions.size1,
           side: BorderSide(
-            color: _outline(context).withValues(alpha: _isDark ? 0.22 : 0.18),
+            color: AppColors.outline().withValues(alpha: isDark ? 0.22 : 0.18),
           ),
         ),
       ),
@@ -239,7 +241,7 @@ class _MapPageState extends State<MapPage> {
               shape: BoxShape.circle,
               border: Border.all(color: primary.withValues(alpha: 0.25)),
             ),
-            child: Icon(icon, size: 16, color: primary),
+            child: Icon(icon, size: Dimensions.size15, color: primary),
           ),
           SizedBox(width: Dimensions.size10),
           Text(
@@ -248,7 +250,7 @@ class _MapPageState extends State<MapPage> {
               fontSize: Dimensions.text12,
               fontWeight: FontWeight.w900,
               letterSpacing: 0.2,
-              color: _fg(context),
+              color: AppColors.onSurface(),
             ),
           ),
         ],
@@ -256,7 +258,7 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  Widget _fabLocate(BuildContext context) {
+  Widget fabLocate(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
     final Color primary = Theme.of(context).colorScheme.primary;
     final Color onPrimary = Theme.of(context).colorScheme.onPrimary;
@@ -268,8 +270,8 @@ class _MapPageState extends State<MapPage> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            _alignPositionOnUpdate = AlignOnUpdate.always;
-            _alignPositionStreamController.add(18);
+            alignPositionOnUpdate = AlignOnUpdate.always;
+            alignPositionStreamController.add(18);
             setState(() {});
           },
           borderRadius: BorderRadius.circular(Dimensions.size30),
@@ -280,14 +282,14 @@ class _MapPageState extends State<MapPage> {
               color: primary,
               shadows: [
                 BoxShadow(
-                  blurRadius: 18,
-                  offset: const Offset(0, 10),
-                  color: Colors.black.withValues(alpha: _isDark ? 0.22 : 0.16),
+                  blurRadius: Dimensions.size20,
+                  offset: Offset(0, Dimensions.size10),
+                  color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.16),
                 ),
               ],
               shape: SmoothRectangleBorder(
                 borderRadius: BorderRadius.circular(Dimensions.size30),
-                smoothness: 1,
+                smoothness: Dimensions.size1,
               ),
             ),
             child: Row(
@@ -324,7 +326,7 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  Widget _mapHost() {
+  Widget mapHost() {
     return FutureBuilder<Directory>(
       future: getApplicationDocumentsDirectory(),
       builder: (context, snapshot) {
@@ -334,12 +336,12 @@ class _MapPageState extends State<MapPage> {
 
         return FlutterMap(
           options: MapOptions(
-            initialZoom: _minZoom.toDouble(),
-            minZoom: _isOnline ? null : _minZoom.toDouble(),
-            maxZoom: _maxZoom.toDouble(),
+            initialZoom: minZoom.toDouble(),
+            minZoom: isOnline ? null : minZoom.toDouble(),
+            maxZoom: maxZoom.toDouble(),
           ),
           children: [
-            _isOnline
+            isOnline
                 ? TileLayer(
                     urlTemplate:
                         "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -351,8 +353,8 @@ class _MapPageState extends State<MapPage> {
                     ),
                   ),
             CurrentLocationLayer(
-              alignPositionStream: _alignPositionStreamController.stream,
-              alignPositionOnUpdate: _alignPositionOnUpdate,
+              alignPositionStream: alignPositionStreamController.stream,
+              alignPositionOnUpdate: alignPositionOnUpdate,
             ),
             MarkerLayer(
               markers: widget.markers ?? [],
@@ -370,9 +372,9 @@ class _MapPageState extends State<MapPage> {
       contentBuilder: () {
         return Stack(
           children: [
-            Positioned.fill(child: _mapHost()),
-            _glassTopBar(context),
-            _fabLocate(context),
+            Positioned.fill(child: mapHost()),
+            glassTopBar(context),
+            fabLocate(context),
           ],
         );
       },
@@ -381,8 +383,8 @@ class _MapPageState extends State<MapPage> {
 
   @override
   void dispose() {
-    _connectivitySub?.cancel();
-    _alignPositionStreamController.close();
+    connectivitySub?.cancel();
+    alignPositionStreamController.close();
     super.dispose();
   }
 }

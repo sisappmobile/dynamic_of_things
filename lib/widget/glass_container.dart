@@ -2,6 +2,7 @@
 
 import "dart:ui";
 
+import "package:base/base.dart";
 import "package:flutter/material.dart";
 
 class GlassContainer extends StatelessWidget {
@@ -26,14 +27,6 @@ class GlassContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final Color fill = isDark
-        ? Colors.white.withOpacity(opacity)
-        : Colors.white.withOpacity(opacity + 0.06);
-
-    final Color border = isDark
-        ? Colors.white.withOpacity(borderOpacity)
-        : Colors.white.withOpacity(borderOpacity + 0.08);
-
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: BackdropFilter(
@@ -41,9 +34,16 @@ class GlassContainer extends StatelessWidget {
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
-            color: fill,
+            color: isDark
+                ? Colors.white.withOpacity(opacity)
+                : Colors.white.withOpacity(opacity + 0.06),
             borderRadius: BorderRadius.circular(borderRadius),
-            border: Border.all(color: border, width: 1),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(borderOpacity)
+                  : Colors.white.withOpacity(borderOpacity + 0.08),
+              width: Dimensions.size1,
+            ),
           ),
           child: child,
         ),
