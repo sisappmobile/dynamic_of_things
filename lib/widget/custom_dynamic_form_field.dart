@@ -2207,6 +2207,13 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       child: TextField(
         controller: controller,
         onChanged: onChanged,
+        cursorColor: isGlass
+            ? Colors.white.withOpacity(0.92)
+            : Theme.of(context).colorScheme.primary,
+        style: TextStyle(
+          color:
+              isGlass ? Colors.white.withOpacity(0.95) : AppColors.onSurface(),
+        ),
         maxLengthEnforcement: MaxLengthEnforcement.enforced,
         buildCounter: (
           context, {
