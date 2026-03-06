@@ -12,17 +12,27 @@ import "package:flutter/material.dart";
 import "package:flutter_map/flutter_map.dart";
 import "package:flutter_map_location_marker/flutter_map_location_marker.dart";
 import "package:geolocator/geolocator.dart";
+import "package:go_router/go_router.dart";
+import "package:latlong2/latlong.dart";
 import "package:path_provider/path_provider.dart";
 import "package:smooth_corner/smooth_corner.dart";
 
 final int minZoom = 14;
 final int maxZoom = 19;
 
+class MarkerItem {
+  final LatLng point;
+  final Icon icon;
+  final dynamic extra;
+
+  MarkerItem({required this.point, required this.icon, this.extra});
+}
+
 class MapPage extends StatefulWidget {
-  final List<Marker>? markers;
+  final List<MarkerItem>? markerItems;
 
   const MapPage({
-    this.markers,
+    this.markerItems,
     super.key,
   });
 
@@ -38,6 +48,11 @@ class MapPageState extends State<MapPage> {
   late AlignOnUpdate alignPositionOnUpdate;
   late final StreamController<double?> alignPositionStreamController;
 
+  StreamSubscription<Position>? positionSubscription;
+
+  LatLng? currentPosition;
+  MarkerItem? selectedMarker;
+
   @override
   void initState() {
     super.initState();
@@ -47,6 +62,12 @@ class MapPageState extends State<MapPage> {
 
     alignPositionOnUpdate = AlignOnUpdate.always;
     alignPositionStreamController = StreamController<double?>();
+  }
+
+  void onLocationUpdate(Position position) {
+    setState(() {
+      currentPosition = LatLng(position.latitude, position.longitude);
+    });
   }
 
   Future<void> checkLocationPermission() async {
@@ -62,6 +83,17 @@ class MapPageState extends State<MapPage> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
+
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      return;
+    }
+
+    positionSubscription = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.best,
+        distanceFilter: 0,
+      ),
+    ).listen(onLocationUpdate);
   }
 
   void watchConnectivity() {
@@ -130,7 +162,7 @@ class MapPageState extends State<MapPage> {
                       blurRadius: Dimensions.size25,
                       offset: Offset(0, Dimensions.size15),
                       color:
-                          Colors.black.withValues(alpha: isDark ? 0.18 : 0.12),
+                      Colors.black.withValues(alpha: isDark ? 0.18 : 0.12),
                     ),
                   ],
                 ),
@@ -193,7 +225,7 @@ class MapPageState extends State<MapPage> {
               smoothness: Dimensions.size1,
               side: BorderSide(
                 color:
-                    AppColors.outline().withValues(alpha: isDark ? 0.22 : 0.18),
+                AppColors.outline().withValues(alpha: isDark ? 0.22 : 0.18),
               ),
             ),
           ),
@@ -212,7 +244,7 @@ class MapPageState extends State<MapPage> {
 
     final String label = isOnline ? "Online" : "Offline";
     final IconData icon =
-        isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded;
+    isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded;
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -326,6 +358,62 @@ class MapPageState extends State<MapPage> {
     );
   }
 
+  Widget fabSelectCurrentMarker(BuildContext context) {
+    final EdgeInsets safe = MediaQuery.of(context).padding;
+    final Color primary = Theme.of(context).colorScheme.secondary;
+    final Color onPrimary = Theme.of(context).colorScheme.onSurface;
+
+    return Align(
+      alignment: Alignment.topCenter,
+      child: Container(
+        margin: EdgeInsets.only(top: safe.top + 90),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              if (BaseSettings.navigatorType ==
+                  BaseNavigatorType.legacy) {
+                Navigators.pop(result: selectedMarker);
+              } else {
+                context.pop(selectedMarker);
+              }
+            },
+            borderRadius: BorderRadius.circular(Dimensions.size30),
+            child: Ink(
+              padding: EdgeInsets.symmetric(
+                  horizontal: Dimensions.size20,
+                  vertical: Dimensions.size10,
+              ),
+              decoration: ShapeDecoration(
+                color: primary,
+                shadows: [
+                  BoxShadow(
+                    blurRadius: Dimensions.size20,
+                    offset: Offset(0, Dimensions.size10),
+                    color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.16),
+                  ),
+                ],
+                shape: SmoothRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.size30),
+                  smoothness: Dimensions.size1,
+                ),
+              ),
+              child: Text(
+                "Gunakan marker terpilih",
+                style: TextStyle(
+                  color: onPrimary,
+                  fontSize: Dimensions.text14,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget mapHost() {
     return FutureBuilder<Directory>(
       future: getApplicationDocumentsDirectory(),
@@ -343,21 +431,36 @@ class MapPageState extends State<MapPage> {
           children: [
             isOnline
                 ? TileLayer(
-                    urlTemplate:
-                        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                    userAgentPackageName: "com.sisapp.dynamic_of_things",
-                  )
+              urlTemplate:
+              "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+              userAgentPackageName: "com.sisapp.dynamic_of_things",
+            )
                 : TileLayer(
-                    tileProvider: LocalDiskTileProvider(
-                      basePath: "${snapshot.data!.path}/offline_tiles",
-                    ),
-                  ),
+              tileProvider: LocalDiskTileProvider(
+                basePath: "${snapshot.data!.path}/offline_tiles",
+              ),
+            ),
             CurrentLocationLayer(
               alignPositionStream: alignPositionStreamController.stream,
               alignPositionOnUpdate: alignPositionOnUpdate,
             ),
+            PolylineLayer(
+              polylines: buildPolylines(),
+            ),
             MarkerLayer(
-              markers: widget.markers ?? [],
+              markers: (widget.markerItems ?? []).map((e) {
+                return Marker(
+                  point: e.point,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        selectedMarker = e;
+                      });
+                    },
+                    child: e.icon,
+                  ),
+                );
+              }).toList(),
             ),
           ],
         );
@@ -375,6 +478,8 @@ class MapPageState extends State<MapPage> {
             Positioned.fill(child: mapHost()),
             glassTopBar(context),
             fabLocate(context),
+            if (selectedMarker != null)
+              fabSelectCurrentMarker(context),
           ],
         );
       },
@@ -386,5 +491,22 @@ class MapPageState extends State<MapPage> {
     connectivitySub?.cancel();
     alignPositionStreamController.close();
     super.dispose();
+  }
+
+  List<Polyline> buildPolylines() {
+    if (currentPosition == null || selectedMarker == null) {
+      return [];
+    }
+
+    return [
+      Polyline(
+        points: [
+          currentPosition!,
+          selectedMarker!.point,
+        ],
+        strokeWidth: 4,
+        color: Colors.blue,
+      ),
+    ];
   }
 }

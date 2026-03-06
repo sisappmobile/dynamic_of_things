@@ -22,7 +22,6 @@ import "package:easy_localization/easy_localization.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart" hide Action;
 import "package:flutter_bloc/flutter_bloc.dart";
-import "package:flutter_map/flutter_map.dart";
 import "package:go_router/go_router.dart";
 import "package:latlong2/latlong.dart";
 import "package:loader_overlay/loader_overlay.dart";
@@ -477,9 +476,9 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
           Field? primaryKey = listResponse!.fields
               .firstWhereOrNull((element) => element.primaryKey);
 
-          await Navigators.push(
+          MarkerItem? selectedMarkerItem = await Navigators.push(
             MapPage(
-              markers: (listResponse?.data ?? [])
+              markerItems: (listResponse?.data ?? [])
                   .where(
                 (element) =>
                     element["latitude"] != null &&
@@ -487,59 +486,59 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                         element["longtitude"] != null),
               )
                   .map((element) {
-                return Marker(
+                return MarkerItem(
                   point: LatLng(
                     double.parse(element["latitude"]),
                     double.parse(element["longitude"] ?? element["longtitude"]),
                   ),
-                  child: GestureDetector(
-                    onTap: () async {
-                      if (primaryKey != null) {
-                        String id = element[primaryKey.name].toString();
-
-                        bool result = false;
-
-                        if (BaseSettings.navigatorType ==
-                            BaseNavigatorType.legacy) {
-                          result = await Navigators.push(
-                                DynamicFormPage(
-                                  dynamicFormMenuItem:
-                                      widget.dynamicFormMenuItem,
-                                  readOnly: true,
-                                  dataId: id,
-                                  customerId: widget.customerId,
-                                ),
-                              ) ??
-                              false;
-                        } else {
-                          result = await context.push(
-                                "/dynamic-forms",
-                                extra: {
-                                  "dynamicFormMenuItem":
-                                      widget.dynamicFormMenuItem,
-                                  "readOnly": true,
-                                  "dataId": id,
-                                  "customerId": widget.customerId,
-                                },
-                              ) ??
-                              false;
-                        }
-
-                        if (result) {
-                          refresh();
-                        }
-                      }
-                    },
-                    child: Icon(
-                      Icons.location_on_outlined,
-                      size: Dimensions.size30,
-                      color: Colors.red,
-                    ),
+                  icon: Icon(
+                    Icons.location_on_outlined,
+                    size: Dimensions.size30,
+                    color: Colors.red,
                   ),
+                  extra: element,
                 );
               }).toList(),
             ),
           );
+
+          if (selectedMarkerItem != null) {
+            if (primaryKey != null) {
+              String id = selectedMarkerItem.extra[primaryKey.name].toString();
+
+              bool result = false;
+
+              if (BaseSettings.navigatorType ==
+                  BaseNavigatorType.legacy) {
+                result = await Navigators.push(
+                  DynamicFormPage(
+                    dynamicFormMenuItem:
+                    widget.dynamicFormMenuItem,
+                    readOnly: true,
+                    dataId: id,
+                    customerId: widget.customerId,
+                  ),
+                ) ??
+                    false;
+              } else {
+                result = await context.push(
+                  "/dynamic-forms",
+                  extra: {
+                    "dynamicFormMenuItem":
+                    widget.dynamicFormMenuItem,
+                    "readOnly": true,
+                    "dataId": id,
+                    "customerId": widget.customerId,
+                  },
+                ) ??
+                    false;
+              }
+
+              if (result) {
+                refresh();
+              }
+            }
+          }
         },
       );
     }
