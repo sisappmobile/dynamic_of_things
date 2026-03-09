@@ -150,7 +150,7 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
                 Padding(
                   padding: EdgeInsets.fromLTRB(
                     Dimensions.size15,
-                    Dimensions.size10,
+                    Dimensions.size5,
                     Dimensions.size15,
                     Dimensions.size10,
                   ),
@@ -353,7 +353,7 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.all(Dimensions.size15),
+        padding: EdgeInsets.all(Dimensions.size10),
         children: [
           SizedBox(height: Dimensions.size1),
           card,
@@ -399,14 +399,14 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
                       : AppColors.onSurface(),
                 ),
               ),
-              SizedBox(height: Dimensions.size2),
+              SizedBox(height: Dimensions.size1),
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: menuItems.length,
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  mainAxisExtent: Dimensions.size60 * 2,
+                  mainAxisExtent: Dimensions.size55 * 2,
                   crossAxisSpacing: Dimensions.size10,
                   mainAxisSpacing: Dimensions.size10,
                 ),
