@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_escaping_inner_quotes
+
 import "dart:convert";
 
 class DynamicFormTexts {
