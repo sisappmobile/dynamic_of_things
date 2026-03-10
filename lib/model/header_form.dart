@@ -3,6 +3,7 @@
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:dynamic_of_things/enumeration/dynamic_form_field_type.dart";
+import "package:dynamic_of_things/helper/dynamic_form_texts.dart";
 import "package:dynamic_of_things/helper/formats.dart";
 import "package:flutter/material.dart";
 
@@ -606,14 +607,14 @@ class Field with ChangeNotifier {
             String linkValue = data[link!.target];
 
             if (StringUtils.isNotNullOrEmpty(linkValue)) {
-              return linkValue;
+              return DynamicFormTexts.resolve(linkValue);
             }
           }
         }
 
-        return value.toString();
+        return DynamicFormTexts.resolve(value);
       } else {
-        return value.toString();
+        return DynamicFormTexts.resolve(value);
       }
     }
 

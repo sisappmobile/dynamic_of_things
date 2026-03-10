@@ -6,6 +6,7 @@ import "package:basic_utils/basic_utils.dart";
 import "package:collection/collection.dart";
 import "package:dynamic_of_things/enumeration/dynamic_form_field_type.dart";
 import "package:dynamic_of_things/helper/custom_attachments.dart";
+import "package:dynamic_of_things/helper/dynamic_form_texts.dart";
 import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/model/attachment.dart";
 import "package:dynamic_of_things/model/header_form.dart";
@@ -61,7 +62,7 @@ class DynamicForms {
 
         return numValue.currency();
       } else {
-        return value.toString();
+        return DynamicFormTexts.resolve(value);
       }
     }
 
