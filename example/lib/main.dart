@@ -37,7 +37,7 @@ import "package:smooth_corner/smooth_corner.dart";
 
 const String sessionIdKey = "sessionId";
 const String usernameKey = "username";
-const String baseUrl = "https://192.168.137.32:8443/salesforce/api/";
+const String baseUrl = "https://192.168.100.92:8443/salesforce/api/";
 // const String baseUrl = "https://10.0.2.2:8443/salesforce/api/";
 // const String baseUrl = "https://demo-murti.sisapp.com:13443/salesforce/api/";
 // const String baseUrl = "https://posdemo.sisapp.com:8443/salesforce/api/";

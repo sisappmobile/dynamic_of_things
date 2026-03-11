@@ -2206,76 +2206,93 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         horizontal: Dimensions.size10,
         vertical: Dimensions.size2,
       ),
-      child: TextField(
-        controller: controller,
-        onChanged: onChanged,
-        cursorColor: isGlass
-            ? Colors.white.withOpacity(0.92)
-            : Theme.of(context).colorScheme.primary,
-        style: TextStyle(
-          color:
-              isGlass ? Colors.white.withOpacity(0.95) : AppColors.onSurface(),
-        ),
-        maxLengthEnforcement: MaxLengthEnforcement.enforced,
-        buildCounter: (
-          context, {
-          required currentLength,
-          required isFocused,
-          required maxLength,
-        }) {
-          return const SizedBox.shrink();
+      child: Focus(
+        onFocusChange: (value) {
+          if (!value) {
+            if (widget.template == widget.headerForm.template) {
+              if (widget.field.hasScript) {
+                context.read<DynamicFormBloc>().add(
+                  DynamicFormRefresh(
+                    formId: widget.headerForm.template.id,
+                    customerId: widget.customerId,
+                    headerForm: widget.headerForm,
+                  ),
+                );
+              }
+            }
+          }
         },
-        maxLines: maxLines,
-        minLines: minLines,
-        inputFormatters: inputFormatters,
-        keyboardType: keyboardType,
-        decoration: InputDecoration(
-          hintText: readOnly ? null : widget.field.title,
-          hintStyle: TextStyle(
-            color: isGlass
-                ? Colors.white.withOpacity(0.92)
-                : AppColors.onSurface().withValues(
-                    alpha: Theme.of(context).brightness == Brightness.dark
-                        ? 0.55
-                        : 0.45,
-                  ),
-            fontWeight: FontWeight.w700,
+        child: TextField(
+          controller: controller,
+          onChanged: onChanged,
+          cursorColor: isGlass
+              ? Colors.white.withOpacity(0.92)
+              : Theme.of(context).colorScheme.primary,
+          style: TextStyle(
+            color:
+                isGlass ? Colors.white.withOpacity(0.95) : AppColors.onSurface(),
           ),
-          border: InputBorder.none,
-          isDense: true,
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: Dimensions.size5,
-            vertical: Dimensions.size15,
-          ),
-          suffixIcon: suffixIcon() != null
-              ? Container(
-                  margin: EdgeInsets.only(right: Dimensions.size5),
-                  decoration: BoxDecoration(
-                    color: isGlass
-                        ? Colors.white.withOpacity(0.16)
-                        : Theme.of(context).brightness == Brightness.dark
-                            ? AppColors.surfaceContainerHigh()
-                            : isGlass
-                                ? Colors.white.withOpacity(0.10)
-                                : AppColors.surface(),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isGlass
-                          ? Colors.white.withOpacity(0.18)
-                          : AppColors.outline().withValues(
-                              alpha: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? 0.30
-                                  : 0.18,
-                            ),
+          maxLengthEnforcement: MaxLengthEnforcement.enforced,
+          buildCounter: (
+            context, {
+            required currentLength,
+            required isFocused,
+            required maxLength,
+          }) {
+            return const SizedBox.shrink();
+          },
+          maxLines: maxLines,
+          minLines: minLines,
+          inputFormatters: inputFormatters,
+          keyboardType: keyboardType,
+          decoration: InputDecoration(
+            hintText: readOnly ? null : widget.field.title,
+            hintStyle: TextStyle(
+              color: isGlass
+                  ? Colors.white.withOpacity(0.92)
+                  : AppColors.onSurface().withValues(
+                      alpha: Theme.of(context).brightness == Brightness.dark
+                          ? 0.55
+                          : 0.45,
                     ),
-                  ),
-                  child: suffixIcon(),
-                )
-              : null,
+              fontWeight: FontWeight.w700,
+            ),
+            border: InputBorder.none,
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: Dimensions.size5,
+              vertical: Dimensions.size15,
+            ),
+            suffixIcon: suffixIcon() != null
+                ? Container(
+                    margin: EdgeInsets.only(right: Dimensions.size5),
+                    decoration: BoxDecoration(
+                      color: isGlass
+                          ? Colors.white.withOpacity(0.16)
+                          : Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.surfaceContainerHigh()
+                              : isGlass
+                                  ? Colors.white.withOpacity(0.10)
+                                  : AppColors.surface(),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isGlass
+                            ? Colors.white.withOpacity(0.18)
+                            : AppColors.outline().withValues(
+                                alpha: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? 0.30
+                                    : 0.18,
+                              ),
+                      ),
+                    ),
+                    child: suffixIcon(),
+                  )
+                : null,
+          ),
+          maxLength: maxLengthValue(),
+          readOnly: readOnly,
         ),
-        maxLength: maxLengthValue(),
-        readOnly: readOnly,
       ),
     );
   }
