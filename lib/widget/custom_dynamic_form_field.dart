@@ -24,6 +24,7 @@ import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_event.da
 import "package:dynamic_of_things/widget/barcode_scanner_page.dart";
 import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:dynamic_of_things/widget/signature_page.dart";
+import "package:dynamic_of_things/widget/simple_spinner_page.dart";
 import "package:dynamic_of_things/widget/spinner_page.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:file_picker/file_picker.dart";
@@ -1227,12 +1228,13 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         },
       );
     } else if (widget.field.type == DynamicFormFieldType.DROPDOWN.name) {
-      SpinnerItem? selectedItem = await BaseSheets.spinner(
-        context: context,
-        title: widget.field.title,
-        spinnerItems: widget.field.data
-            .map((e) => SpinnerItem(identity: e, description: e))
-            .toList(),
+      SpinnerItem? selectedItem = await Navigators.push(
+        SimpleSpinnerPage(
+            title: widget.field.title,
+            spinnerItems: widget.field.data
+                .map((e) => SpinnerItem(identity: e, description: e))
+                .toList(),
+        ),
       );
 
       if (selectedItem != null) {

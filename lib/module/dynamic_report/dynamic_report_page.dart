@@ -17,6 +17,7 @@ import "package:dynamic_of_things/module/dynamic_report/dynamic_report_event.dar
 import "package:dynamic_of_things/module/dynamic_report/dynamic_report_state.dart";
 import "package:dynamic_of_things/widget/custom_pagination.dart";
 import "package:dynamic_of_things/widget/glass_container.dart";
+import "package:dynamic_of_things/widget/simple_spinner_page.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:file_picker/file_picker.dart";
 import "package:flutter/material.dart";
@@ -1916,10 +1917,11 @@ class DynamicReportPageState extends State<DynamicReportPage>
                 );
               }
 
-              final SpinnerItem? selectedItem = await BaseSheets.spinner(
-                context: context,
-                title: filter.caption,
-                spinnerItems: spinnerItems,
+              final SpinnerItem? selectedItem = await Navigators.push(
+                SimpleSpinnerPage(
+                    title: filter.caption,
+                    spinnerItems: spinnerItems,
+                ),
               );
 
               if (selectedItem != null) {
