@@ -5,10 +5,14 @@ import "package:basic_utils/basic_utils.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/model/header_form.dart";
+import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dart";
+import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_event.dart";
+import "package:dynamic_of_things/widget/custom_dynamic_form_detail_list.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_field.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_location_field.dart";
 import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:flutter/material.dart";
+import "package:flutter_bloc/flutter_bloc.dart";
 
 class CustomDynamicForm extends StatefulWidget {
   final bool readOnly;
@@ -54,61 +58,172 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.zero,
-      itemCount: widget.template.sections.length,
+      itemCount: components.length,
       separatorBuilder: (context, index) => SizedBox(height: gapSection),
       itemBuilder: (BuildContext context, int sectionIndex) {
-        Section section = widget.template.sections[sectionIndex];
+        dynamic component = components.elementAt(sectionIndex);
 
-        List<Field> fields = section.fields
-            .where(
-              (element) =>
-                  !element.hidden &&
-                  !StringUtils.inList(
-                    element.name,
-                    ["latitude", "longitude", "longtitude"],
+        if (component is DetailForm) {
+          DetailForm detailForm = component;
+
+          if (detailForm.single) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    Dimensions.size15,
+                    Dimensions.size10,
+                    Dimensions.size15,
+                    Dimensions.size10,
                   ),
-            )
-            .toList();
-
-        final Widget loc = locationWidget();
-
-        return sectionCard(
-          context: context,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              titleWidget(section.title),
-              if (loc is! SizedBox) ...[
-                loc,
-                SizedBox(height: gapFields),
+                  child: header(title: detailForm.template.title),
+                ),
+                CustomDynamicForm(
+                  key: ValueKey("DetailForm-${widget.headerForm.template.id}"),
+                  readOnly: widget.readOnly,
+                  customerId: widget.customerId,
+                  headerForm: widget.headerForm,
+                  template: detailForm.template,
+                  data: detailForm.getData(widget.headerForm),
+                ),
               ],
-              ListView.separated(
-                separatorBuilder: (context, index) =>
-                    SizedBox(height: gapFields),
-                itemBuilder: (context, index) {
-                  Field field = fields[index];
+            );
+          } else {
+            return CustomDynamicFormDetailList(
+              key: ValueKey("DetailList-${detailForm.template.id}"),
+              readOnly: widget.readOnly,
+              customerId: widget.customerId,
+              headerForm: widget.headerForm,
+              detailForm: detailForm,
+              onRefresh: () {
+                context.read<DynamicFormBloc>().add(
+                  DynamicFormRefresh(
+                    formId: widget.headerForm.template.id,
+                    customerId: widget.customerId,
+                    headerForm: widget.headerForm,
+                  ),
+                );
+              },
+            );
+          }
+        } else {
+          Section section = component as Section;
 
-                  return fieldTile(
-                    context: context,
-                    child: CustomDynamicFormField(
-                      readOnly: widget.readOnly,
-                      customerId: widget.customerId,
-                      headerForm: widget.headerForm,
-                      template: widget.template,
-                      field: field,
-                      data: widget.data,
-                    ),
-                  );
-                },
-                itemCount: fields.length,
-                physics: const NeverScrollableScrollPhysics(),
-                shrinkWrap: true,
-              ),
-            ],
-          ),
-        );
+          List<Field> fields = section.fields
+              .where(
+                (element) =>
+            !element.hidden &&
+                !StringUtils.inList(
+                  element.name,
+                  ["latitude", "longitude", "longtitude"],
+                ),
+          )
+              .toList();
+
+          final Widget loc = locationWidget();
+
+          return sectionCard(
+            context: context,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                titleWidget(section.title),
+                if (loc is! SizedBox) ...[
+                  loc,
+                  SizedBox(height: gapFields),
+                ],
+                ListView.separated(
+                  separatorBuilder: (context, index) =>
+                      SizedBox(height: gapFields),
+                  itemBuilder: (context, index) {
+                    Field field = fields[index];
+
+                    return fieldTile(
+                      context: context,
+                      child: CustomDynamicFormField(
+                        readOnly: widget.readOnly,
+                        customerId: widget.customerId,
+                        headerForm: widget.headerForm,
+                        template: widget.template,
+                        field: field,
+                        data: widget.data,
+                      ),
+                    );
+                  },
+                  itemCount: fields.length,
+                  physics: const NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                ),
+              ],
+            ),
+          );
+        }
       },
     );
+  }
+
+  Widget header({required String title}) {
+    final bool glass = isGlass;
+    final Color primary = Theme.of(context).colorScheme.primary;
+
+    return Row(
+      children: [
+        Container(
+          width: Dimensions.size30,
+          height: Dimensions.size30,
+          decoration: BoxDecoration(
+            color: primary.withValues(
+              alpha:
+              Theme.of(context).brightness == Brightness.dark ? 0.14 : 0.10,
+            ),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: primary.withValues(
+                alpha: Theme.of(context).brightness == Brightness.dark
+                    ? 0.28
+                    : 0.18,
+              ),
+            ),
+          ),
+          child: Icon(
+            Icons.segment_rounded,
+            color: primary,
+            size: Dimensions.size20,
+          ),
+        ),
+        SizedBox(width: Dimensions.size10),
+        Expanded(
+          child: Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              color: glass
+                  ? Colors.white.withOpacity(0.92)
+                  : AppColors.onSurface(),
+              fontSize: Dimensions.text14,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<dynamic> get components {
+    List<dynamic> result = List<dynamic>.from(widget.template.sections);
+
+    if (widget.template == widget.headerForm.template) {
+      for (DetailForm detailForm in widget.headerForm.detailForms) {
+        if (detailForm.sectionIndex != null) {
+          result.insert(detailForm.sectionIndex!, detailForm);
+        } else {
+          result.add(detailForm);
+        }
+      }
+    }
+
+    return result;
   }
 
   Color soft(BuildContext context) {

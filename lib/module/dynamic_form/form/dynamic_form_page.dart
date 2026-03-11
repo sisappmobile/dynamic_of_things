@@ -13,7 +13,6 @@ import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dar
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_event.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_state.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form.dart";
-import "package:dynamic_of_things/widget/custom_dynamic_form_detail_list.dart";
 import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
@@ -329,60 +328,13 @@ class DynamicFormPageState extends State<DynamicFormPage>
     return Form(
       key: globalKey,
       child: SingleChildScrollView(
-        child: Column(
-          children: [
-            CustomDynamicForm(
-              key: ValueKey("Header-${headerForm!.template.id}"),
-              readOnly: widget.readOnly,
-              customerId: widget.customerId,
-              headerForm: headerForm!,
-              template: headerForm!.template,
-              data: headerForm!.data,
-            ),
-            ...headerForm!.detailForms.map((detailForm) {
-              if (detailForm.single) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        Dimensions.size15,
-                        Dimensions.size10,
-                        Dimensions.size15,
-                        Dimensions.size10,
-                      ),
-                      child: header(title: detailForm.template.title),
-                    ),
-                    CustomDynamicForm(
-                      key: ValueKey("DetailForm-${headerForm!.template.id}"),
-                      readOnly: widget.readOnly,
-                      customerId: widget.customerId,
-                      headerForm: headerForm!,
-                      template: detailForm.template,
-                      data: detailForm.getData(headerForm!),
-                    ),
-                  ],
-                );
-              } else {
-                return CustomDynamicFormDetailList(
-                  key: ValueKey("DetailList-${detailForm.template.id}"),
-                  readOnly: widget.readOnly,
-                  customerId: widget.customerId,
-                  headerForm: headerForm!,
-                  detailForm: detailForm,
-                  onRefresh: () {
-                    context.read<DynamicFormBloc>().add(
-                          DynamicFormRefresh(
-                            formId: headerForm!.template.id,
-                            customerId: widget.customerId,
-                            headerForm: headerForm!,
-                          ),
-                        );
-                  },
-                );
-              }
-            }),
-          ],
+        child: CustomDynamicForm(
+          key: ValueKey("Header-${headerForm!.template.id}"),
+          readOnly: widget.readOnly,
+          customerId: widget.customerId,
+          headerForm: headerForm!,
+          template: headerForm!.template,
+          data: headerForm!.data,
         ),
       ),
     );
@@ -488,53 +440,6 @@ class DynamicFormPageState extends State<DynamicFormPage>
     }
 
     return false;
-  }
-
-  Widget header({required String title}) {
-    final bool glass = isGlass;
-    final Color primary = Theme.of(context).colorScheme.primary;
-
-    return Row(
-      children: [
-        Container(
-          width: Dimensions.size30,
-          height: Dimensions.size30,
-          decoration: BoxDecoration(
-            color: primary.withValues(
-              alpha:
-                  Theme.of(context).brightness == Brightness.dark ? 0.14 : 0.10,
-            ),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: primary.withValues(
-                alpha: Theme.of(context).brightness == Brightness.dark
-                    ? 0.28
-                    : 0.18,
-              ),
-            ),
-          ),
-          child: Icon(
-            Icons.segment_rounded,
-            color: primary,
-            size: Dimensions.size20,
-          ),
-        ),
-        SizedBox(width: Dimensions.size10),
-        Expanded(
-          child: Text(
-            title.toUpperCase(),
-            style: TextStyle(
-              color: glass
-                  ? Colors.white.withOpacity(0.92)
-                  : AppColors.onSurface(),
-              fontSize: Dimensions.text14,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.2,
-            ),
-          ),
-        ),
-      ],
-    );
   }
 
   Widget appBar() {

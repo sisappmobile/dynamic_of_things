@@ -184,6 +184,7 @@ class Action {
 
 class DetailForm with ChangeNotifier {
   final bool single;
+  final int? sectionIndex;
   final List<ListColumn> columns;
   final Template template;
   final Map<String, dynamic> constructor;
@@ -192,6 +193,7 @@ class DetailForm with ChangeNotifier {
 
   DetailForm({
     required this.single,
+    required this.sectionIndex,
     required this.columns,
     required this.template,
     required this.constructor,
@@ -201,6 +203,7 @@ class DetailForm with ChangeNotifier {
 
   factory DetailForm.fromJson(Map<String, dynamic> json) => DetailForm(
     single: json["single"],
+    sectionIndex: json["sectionIndex"],
     columns: json["columns"] != null ? List<ListColumn>.from(json["columns"].map((e) => ListColumn.fromJson(e))) : [],
     template: Template.fromJson(json["template"]),
     constructor: json["template"],
