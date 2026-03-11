@@ -82,6 +82,8 @@ class DynamicForms {
       return DynamicFormFieldType.DATE.name;
     } else if (StringUtils.equalsIgnoreCase(value, "DATETIME")) {
       return DynamicFormFieldType.DATE_TIME.name;
+    } else if (StringUtils.equalsIgnoreCase(value, "TIME")) {
+      return DynamicFormFieldType.TIME.name;
     } else if (StringUtils.equalsIgnoreCase(value, "CHECKBOX")) {
       return DynamicFormFieldType.CHECK.name;
     } else if (StringUtils.equalsIgnoreCase(value, "COMBOBOX")) {
