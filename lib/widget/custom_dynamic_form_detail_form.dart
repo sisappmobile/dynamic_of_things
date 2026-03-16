@@ -328,7 +328,7 @@ class CustomDynamicFormDetailFormState
           borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: AppColors.outline()..withValues(alpha: 0.35),
+            color: AppColors.outline().withValues(alpha: 0.35),
           ),
         ),
       ),
@@ -392,70 +392,30 @@ class CustomDynamicFormDetailFormState
     );
   }
 
-  Widget card({
-    required BuildContext context,
-    required Widget child,
-    EdgeInsets? padding,
-  }) {
-    if (isGlass) {
-      return GlassContainer(
-        blur: Dimensions.size20,
-        borderRadius: Dimensions.size20,
-        opacity: 0.12,
-        borderOpacity: 0.22,
-        padding: padding ?? EdgeInsets.all(Dimensions.size15),
-        child: child,
-      );
-    }
-
-    return Container(
-      padding: padding ?? EdgeInsets.all(Dimensions.size15),
-      decoration: ShapeDecoration(
-        color: AppColors.surface(),
-        shadows: [
-          BoxShadow(
-            blurRadius: Dimensions.size20,
-            offset: Offset(0, Dimensions.size10),
-            color: Colors.black.withValues(alpha: 0.08),
-          ),
-        ],
-        shape: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimensions.size20),
-          smoothness: Dimensions.size1,
-          side: BorderSide(
-            color: AppColors.outline().withValues(alpha: 0.18),
-          ),
-        ),
-      ),
-      child: child,
-    );
-  }
-
   Widget body() {
     final bool glass = isGlass;
 
-    return Container(
-      color: glass ? Colors.transparent : AppColors.surfaceContainerLowest(),
-      child: Form(
-        key: formState,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-            Dimensions.size15,
-            0,
-            Dimensions.size15,
-            Dimensions.size15 + (widget.readOnly ? 0 : Dimensions.size75),
-          ),
-          child: Column(
-            children: [
-              card(
-                context: context,
-                padding: EdgeInsets.fromLTRB(
-                  Dimensions.size10,
-                  Dimensions.size10,
-                  Dimensions.size10,
-                  Dimensions.size10,
-                ),
-                child: CustomDynamicForm(
+    // PERBAIKAN UTAMA: Menggunakan MediaQuery.removePadding untuk mencegah ListView 
+    // di dalam CustomDynamicForm menyedot safe area (poni layar) yang menyebabkan gap raksasa.
+    return MediaQuery.removePadding(
+      context: context,
+      removeTop: true,
+      removeBottom: true,
+      child: Container(
+        color: glass ? Colors.transparent : AppColors.surfaceContainerLowest(),
+        child: Form(
+          key: formState,
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              Dimensions.size15,
+              Dimensions.size10, // Jarak telah disesuaikan agar rapi
+              Dimensions.size15,
+              Dimensions.size15 + (widget.readOnly ? 0 : Dimensions.size75),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CustomDynamicForm(
                   key: ValueKey("Detail-${widget.detailForm.template.id}"),
                   readOnly: widget.readOnly,
                   customerId: widget.customerId,
@@ -463,21 +423,12 @@ class CustomDynamicFormDetailFormState
                   template: widget.detailForm.template,
                   data: data,
                 ),
-              ),
-              ...widget.detailForm.subDetailForms.asMap().entries.map((entry) {
-                final int i = entry.key;
-                final subDetailForm = entry.value;
+                ...widget.detailForm.subDetailForms.asMap().entries.map((entry) {
+                  final int i = entry.key;
+                  final subDetailForm = entry.value;
 
-                return Padding(
-                  padding: EdgeInsets.only(top: Dimensions.size10),
-                  child: card(
-                    context: context,
-                    padding: EdgeInsets.fromLTRB(
-                      Dimensions.size10,
-                      Dimensions.size10,
-                      Dimensions.size10,
-                      Dimensions.size10,
-                    ),
+                  return Padding(
+                    padding: EdgeInsets.only(top: Dimensions.size20), // Spasi antar section dibuat lega & proporsional
                     child: CustomDynamicFormSubDetailList(
                       key: ValueKey(
                         "SubDetailList-${subDetailForm.template.id}-$i",
@@ -498,10 +449,10 @@ class CustomDynamicFormDetailFormState
                             );
                       },
                     ),
-                  ),
-                );
-              }),
-            ],
+                  );
+                }),
+              ],
+            ),
           ),
         ),
       ),

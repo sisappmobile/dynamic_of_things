@@ -37,10 +37,10 @@ import "package:smooth_corner/smooth_corner.dart";
 
 const String sessionIdKey = "sessionId";
 const String usernameKey = "username";
-const String baseUrl = "https://192.168.100.92:8443/salesforce/api/";
+// const String baseUrl = "https://192.168.100.92:8443/salesforce/api/";
 // const String baseUrl = "https://10.0.2.2:8443/salesforce/api/";
 // const String baseUrl = "https://demo-murti.sisapp.com:13443/salesforce/api/";
-// const String baseUrl = "https://posdemo.sisapp.com:8443/salesforce/api/";
+const String baseUrl = "https://posdemo.sisapp.com:8443/salesforce/api/";
 const String salt =
     "72e4425c484016c95677d1a2513681ff8e2b2459b11e68c8b67cc7b7fe60c422b629eb45d1a5b236c3df0031860c98f4b0f58c2497212ee20d58a833b9a3ea1d";
 
@@ -378,7 +378,7 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
       GlobalKey<FormState>(debugLabel: "formState");
 
   bool obscurePassword = true;
-  String deviceId = "05cb85e2354dc0eb";
+  String deviceId = "d4db82b1a0b16901";
 //apple reviewer
   // String deviceId = "b29d6a48d10ed383";
   // String deviceId = "2c49b31455f471db";

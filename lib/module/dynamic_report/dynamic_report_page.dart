@@ -60,11 +60,8 @@ class DynamicReportPageState extends State<DynamicReportPage>
   int pageSize = 20;
   int pageIndex = 1;
 
-  static const double gapCard = 10;
-
-  static const double gapInner = 8;
-  static const double tilePadX = 10;
-  static const double tilePadY = 10;
+  static const double gapCard = 16;
+  static const double gapInner = 16;
 
   @override
   void initState() {
@@ -649,7 +646,9 @@ class DynamicReportPageState extends State<DynamicReportPage>
 
       return ListView(
         padding: EdgeInsets.all(Dimensions.size15),
-        children: [emptyCard],
+        children: [
+          emptyCard,
+        ],
       );
     }
 
@@ -768,7 +767,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
               ? Colors.white.withOpacity(0.18)
               : AppColors.outline().withValues(alpha: 0.30),
         ),
-        SizedBox(height: Dimensions.size10),
+        SizedBox(height: Dimensions.size15),
         ...buildTwoColumnTiles(
           fields: fields,
           valueOf: valueOf,
@@ -782,13 +781,13 @@ class DynamicReportPageState extends State<DynamicReportPage>
         borderRadius: Dimensions.size20,
         opacity: 0.12,
         borderOpacity: 0.22,
-        padding: EdgeInsets.all(Dimensions.size15),
+        padding: EdgeInsets.all(Dimensions.size20), // Padding disesuaikan jadi lebih lega
         child: content,
       );
     }
 
     return Container(
-      padding: EdgeInsets.all(Dimensions.size15),
+      padding: EdgeInsets.all(Dimensions.size20), // Padding disesuaikan jadi lebih lega
       decoration: ShapeDecoration(
         color: AppColors.surface(),
         shadows: [
@@ -841,7 +840,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
                   ? reportTile(
                       title: rightField!.caption,
                       value: rightVal,
-                      left: false,
+                      left: true, // Set selalu left (rata kiri) untuk efek table
                     )
                   : const SizedBox.shrink(),
             ),
@@ -857,6 +856,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     return widgets;
   }
 
+  // PERBAIKAN UTAMA: Dihilangkannya wrapper border/background di dalam reportTile
   Widget reportTile({
     required String title,
     required String value,
@@ -890,18 +890,16 @@ class DynamicReportPageState extends State<DynamicReportPage>
           text: shownValue,
           style: valStyle,
           maxLines: 2,
-          maxWidth: c.maxWidth - (tilePadX * 2),
+          maxWidth: c.maxWidth, // disesuaikan karena padding dihilangkan
         );
 
         final Widget content = Column(
-          crossAxisAlignment:
-              left ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start, // Semua diratakan kiri ala grid modern
           children: [
             Text(
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              textAlign: left ? TextAlign.start : TextAlign.end,
               style: keyStyle,
             ),
             SizedBox(height: Dimensions.size4),
@@ -909,65 +907,28 @@ class DynamicReportPageState extends State<DynamicReportPage>
               shownValue,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              textAlign: left ? TextAlign.start : TextAlign.end,
               style: valStyle,
             ),
             if (overflow) ...[
               SizedBox(height: Dimensions.size4),
-              Align(
-                alignment: left ? Alignment.centerLeft : Alignment.centerRight,
-                child: Text(
-                  "tap_to_view".tr(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: Dimensions.text12,
-                    fontWeight: FontWeight.w700,
-                    color: glass
-                        ? Colors.white.withOpacity(0.55)
-                        : AppColors.onSurface().withValues(alpha: 0.50),
-                  ),
+              Text(
+                "tap_to_view".tr(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: Dimensions.text12,
+                  fontWeight: FontWeight.w700,
+                  color: glass
+                      ? Colors.white.withOpacity(0.55)
+                      : AppColors.onSurface().withValues(alpha: 0.50),
                 ),
               ),
             ],
           ],
         );
 
-        Widget tile;
-        if (glass) {
-          tile = GlassContainer(
-            blur: Dimensions.size15,
-            borderRadius: Dimensions.size15,
-            opacity: 0.10,
-            borderOpacity: 0.18,
-            padding: EdgeInsets.symmetric(
-              horizontal: tilePadX,
-              vertical: tilePadY,
-            ),
-            child: content,
-          );
-        } else {
-          tile = Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: tilePadX,
-              vertical: tilePadY,
-            ),
-            decoration: ShapeDecoration(
-              color: AppColors.surfaceContainerLowest(),
-              shape: SmoothRectangleBorder(
-                borderRadius: BorderRadius.circular(Dimensions.size15),
-                smoothness: Dimensions.size1,
-                side: BorderSide(
-                  color: AppColors.outline().withValues(alpha: 0.20),
-                ),
-              ),
-            ),
-            child: content,
-          );
-        }
-
         if (!overflow) {
-          return tile;
+          return content;
         }
 
         return Material(
@@ -980,11 +941,8 @@ class DynamicReportPageState extends State<DynamicReportPage>
                 value: shownValue,
               );
             },
-            customBorder: SmoothRectangleBorder(
-              borderRadius: BorderRadius.circular(Dimensions.size15),
-              smoothness: Dimensions.size1,
-            ),
-            child: tile,
+            borderRadius: BorderRadius.circular(Dimensions.size10),
+            child: content,
           ),
         );
       },
@@ -1471,7 +1429,6 @@ class DynamicReportPageState extends State<DynamicReportPage>
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         final EdgeInsets insets = MediaQuery.of(context).viewInsets;
-        final EdgeInsets safe = MediaQuery.of(context).padding;
 
         return StatefulBuilder(
           builder: (context, setStateSheet) {
@@ -1639,7 +1596,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
                                 Dimensions.size15,
                                 Dimensions.size5,
                                 Dimensions.size15,
-                                Dimensions.size15 + safe.bottom * 0.0,
+                                Dimensions.size15,
                               ),
                               child: Row(
                                 children: [
@@ -1739,6 +1696,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
     );
   }
 
+  // PERBAIKAN UTAMA: Filter wrapper card dihapus agar input menyatu rapi
   Widget filterCard({
     required String title,
     required Widget child,
@@ -1747,59 +1705,37 @@ class DynamicReportPageState extends State<DynamicReportPage>
   }) {
     final bool glass = isGlass;
 
-    final Widget content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: Dimensions.text14,
-                  fontWeight: FontWeight.w900,
-                  color: glass
-                      ? Colors.white.withOpacity(0.92)
-                      : AppColors.onSurface(),
+    return Padding(
+      padding: EdgeInsets.only(bottom: Dimensions.size20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: Dimensions.text14,
+                    fontWeight: FontWeight.w900,
+                    color: glass
+                        ? Colors.white.withOpacity(0.92)
+                        : AppColors.onSurface(),
+                  ),
                 ),
               ),
-            ),
-            IconButton(
-              onPressed: canClear ? onClear : null,
-              icon: const Icon(Icons.backspace),
-              color: glass ? Colors.white.withOpacity(0.75) : null,
-            ),
-          ],
-        ),
-        SizedBox(height: Dimensions.size10),
-        child,
-      ],
-    );
-
-    if (glass) {
-      return GlassContainer(
-        blur: Dimensions.size15,
-        borderRadius: Dimensions.size20,
-        opacity: 0.10,
-        borderOpacity: 0.18,
-        padding: EdgeInsets.all(Dimensions.size15),
-        child: content,
-      );
-    }
-
-    return Container(
-      padding: EdgeInsets.all(Dimensions.size15),
-      decoration: ShapeDecoration(
-        color: AppColors.surfaceContainerLowest(),
-        shape: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimensions.size20),
-          smoothness: Dimensions.size1,
-          side: BorderSide(
-            color: AppColors.outline().withValues(alpha: 0.20),
+              if (canClear)
+                IconButton(
+                  onPressed: onClear,
+                  icon: const Icon(Icons.backspace, size: 18),
+                  color: glass ? Colors.white.withOpacity(0.75) : null,
+                ),
+            ],
           ),
-        ),
+          SizedBox(height: Dimensions.size10),
+          child,
+        ],
       ),
-      child: content,
     );
   }
 

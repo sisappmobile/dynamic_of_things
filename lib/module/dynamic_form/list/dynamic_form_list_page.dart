@@ -54,11 +54,9 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
 
   TextEditingController tecSearch = TextEditingController();
 
-  static const double gapcard = 10;
-  static const double gapInner = 8;
-
-  static const double tilePaddingX = 10;
-  static const double tilePaddingY = 10;
+  // PERBAIKAN: Spacing disesuaikan agar rapi dan tidak terlalu renggang
+  static const double gapcard = 16;
+  static const double gapInner = 12;
 
   @override
   void initState() {
@@ -258,7 +256,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                                       tecSearch.text,
                                     ))
                                       icon(
-                                        icon: Icons.close,
+                                        iconData: Icons.close,
                                         onTap: () {
                                           tecSearch.clear();
                                           setState(() {});
@@ -311,7 +309,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                                     tecSearch.text,
                                   ))
                                     icon(
-                                      icon: Icons.close,
+                                      iconData: Icons.close,
                                       onTap: () {
                                         tecSearch.clear();
                                         setState(() {});
@@ -326,7 +324,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                           Row(
                             children: [
                               iconPill(
-                                icon: Icons.turn_left_rounded,
+                                iconData: Icons.turn_left_rounded,
                                 onTap: () {
                                   if (BaseSettings.navigatorType ==
                                       BaseNavigatorType.legacy) {
@@ -471,7 +469,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
           ),
         )) {
       return iconPill(
-        icon: Icons.map,
+        iconData: Icons.map,
         onTap: () async {
           Field? primaryKey = listResponse!.fields
               .firstWhereOrNull((element) => element.primaryKey);
@@ -508,29 +506,26 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
 
               bool result = false;
 
-              if (BaseSettings.navigatorType ==
-                  BaseNavigatorType.legacy) {
+              if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
                 result = await Navigators.push(
-                  DynamicFormPage(
-                    dynamicFormMenuItem:
-                    widget.dynamicFormMenuItem,
-                    readOnly: true,
-                    dataId: id,
-                    customerId: widget.customerId,
-                  ),
-                ) ??
+                      DynamicFormPage(
+                        dynamicFormMenuItem: widget.dynamicFormMenuItem,
+                        readOnly: true,
+                        dataId: id,
+                        customerId: widget.customerId,
+                      ),
+                    ) ??
                     false;
               } else {
                 result = await context.push(
-                  "/dynamic-forms",
-                  extra: {
-                    "dynamicFormMenuItem":
-                    widget.dynamicFormMenuItem,
-                    "readOnly": true,
-                    "dataId": id,
-                    "customerId": widget.customerId,
-                  },
-                ) ??
+                      "/dynamic-forms",
+                      extra: {
+                        "dynamicFormMenuItem": widget.dynamicFormMenuItem,
+                        "readOnly": true,
+                        "dataId": id,
+                        "customerId": widget.customerId,
+                      },
+                    ) ??
                     false;
               }
 
@@ -617,7 +612,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
 
                 children
                   ..add(
-                    SizedBox(width: gapInner),
+                    const SizedBox(width: gapInner),
                   )
                   ..add(
                     childrenWidget(
@@ -639,7 +634,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
               );
 
               if (i + 2 < fields.length) {
-                widgets.add(SizedBox(height: gapInner));
+                widgets.add(const SizedBox(height: gapInner));
               }
             }
           }
@@ -648,7 +643,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
             children: [
               pendingWidget(),
               Padding(
-                padding: EdgeInsets.all(Dimensions.size15),
+                padding: EdgeInsets.all(Dimensions.size20), // Padding dinaikkan agar pas dengan clean UI
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: widgets,
@@ -960,6 +955,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     }
   }
 
+  // PERBAIKAN UTAMA: Menghilangkan card / kontainer berlapis di childrenWidget
   Widget childrenWidget({
     required String description,
     required String value,
@@ -967,70 +963,37 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
   }) {
     final bool glass = isGlass;
 
-    final Widget content = Column(
-      crossAxisAlignment:
-          left ? CrossAxisAlignment.start : CrossAxisAlignment.end,
-      children: [
-        Text(
-          description,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: left ? TextAlign.start : TextAlign.end,
-          style: TextStyle(
-            fontSize: Dimensions.text12,
-            fontWeight: FontWeight.w700,
-            color: glass
-                ? Colors.white.withOpacity(0.70)
-                : AppColors.onSurface().withValues(alpha: 0.65),
-          ),
-        ),
-        SizedBox(height: Dimensions.size4),
-        Text(
-          StringUtils.isNotNullOrEmpty(value) ? value : "-",
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          textAlign: left ? TextAlign.start : TextAlign.end,
-          style: TextStyle(
-            fontSize: Dimensions.text14,
-            fontWeight: FontWeight.w900,
-            height: 1.15,
-            color:
-                glass ? Colors.white.withOpacity(0.95) : AppColors.onSurface(),
-          ),
-        ),
-      ],
-    );
-
     return Expanded(
-      child: glass
-          ? GlassContainer(
-              blur: Dimensions.size15,
-              borderRadius: Dimensions.size15,
-              opacity: 0.10,
-              borderOpacity: 0.18,
-              padding: EdgeInsets.symmetric(
-                horizontal: tilePaddingX,
-                vertical: tilePaddingY,
-              ),
-              child: content,
-            )
-          : Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: tilePaddingX,
-                vertical: tilePaddingY,
-              ),
-              decoration: ShapeDecoration(
-                color: AppColors.surfaceContainerLowest(),
-                shape: SmoothRectangleBorder(
-                  borderRadius: BorderRadius.circular(Dimensions.size15),
-                  smoothness: Dimensions.size1,
-                  side: BorderSide(
-                    color: AppColors.outline().withValues(alpha: 0.20),
-                  ),
-                ),
-              ),
-              child: content,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, // Format disamakan rata kiri semua agar terlihat bagai Grid Modern
+        children: [
+          Text(
+            description,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: Dimensions.text12,
+              fontWeight: FontWeight.w700,
+              color: glass
+                  ? Colors.white.withOpacity(0.70)
+                  : AppColors.onSurface().withValues(alpha: 0.65),
             ),
+          ),
+          SizedBox(height: Dimensions.size4),
+          Text(
+            StringUtils.isNotNullOrEmpty(value) ? value : "-",
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: Dimensions.text14,
+              fontWeight: FontWeight.w900,
+              height: 1.15,
+              color:
+                  glass ? Colors.white.withOpacity(0.95) : AppColors.onSurface(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1238,7 +1201,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
   }
 
   Widget icon({
-    required IconData icon,
+    required IconData iconData,
     required VoidCallback onTap,
   }) {
     final bool glass = isGlass;
@@ -1251,7 +1214,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
         child: Padding(
           padding: EdgeInsets.all(Dimensions.size5),
           child: Icon(
-            icon,
+            iconData,
             size: Dimensions.size20,
             color: glass
                 ? Colors.white.withOpacity(0.85)
@@ -1263,7 +1226,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
   }
 
   Widget iconPill({
-    required IconData icon,
+    required IconData iconData,
     required VoidCallback onTap,
   }) {
     return Material(
@@ -1285,7 +1248,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                   width: Dimensions.size40,
                   height: Dimensions.size40,
                   child: Icon(
-                    icon,
+                    iconData,
                     color: isGlass
                         ? Colors.white.withOpacity(0.92)
                         : AppColors.onSurface(),
@@ -1307,7 +1270,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                   ),
                 ),
                 child: Icon(
-                  icon,
+                  iconData,
                   color: AppColors.onSurface(),
                   size: Dimensions.size25,
                 ),

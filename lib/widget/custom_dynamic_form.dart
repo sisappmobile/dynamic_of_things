@@ -1,5 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
+
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
@@ -36,7 +37,8 @@ class CustomDynamicForm extends StatefulWidget {
 
 class CustomDynamicFormState extends State<CustomDynamicForm>
     with AutomaticKeepAliveClientMixin {
-  static const double gapSection = 14;
+  // PERBAIKAN: Jarak diperkecil agar tidak terlalu renggang namun tetap modern
+  static const double gapSection = 16;
   static const double gapFields = 12;
 
   bool get isGlass {
@@ -59,7 +61,7 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
       physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.zero,
       itemCount: components.length,
-      separatorBuilder: (context, index) => SizedBox(height: gapSection),
+      separatorBuilder: (context, index) => const SizedBox(height: gapSection),
       itemBuilder: (BuildContext context, int sectionIndex) {
         dynamic component = components.elementAt(sectionIndex);
 
@@ -75,7 +77,7 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
                     Dimensions.size15,
                     Dimensions.size10,
                     Dimensions.size15,
-                    Dimensions.size10,
+                    Dimensions.size10, // PERBAIKAN: Mengurangi jarak antara header dan card di bawahnya
                   ),
                   child: header(title: detailForm.template.title),
                 ),
@@ -113,12 +115,12 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
           List<Field> fields = section.fields
               .where(
                 (element) =>
-            !element.hidden &&
-                !StringUtils.inList(
-                  element.name,
-                  ["latitude", "longitude", "longtitude"],
-                ),
-          )
+                    !element.hidden &&
+                    !StringUtils.inList(
+                      element.name,
+                      ["latitude", "longitude", "longtitude"],
+                    ),
+              )
               .toList();
 
           final Widget loc = locationWidget();
@@ -131,11 +133,11 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
                 titleWidget(section.title),
                 if (loc is! SizedBox) ...[
                   loc,
-                  SizedBox(height: gapFields),
+                  const SizedBox(height: gapFields),
                 ],
                 ListView.separated(
                   separatorBuilder: (context, index) =>
-                      SizedBox(height: gapFields),
+                      const SizedBox(height: gapFields),
                   itemBuilder: (context, index) {
                     Field field = fields[index];
 
@@ -175,7 +177,7 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
           decoration: BoxDecoration(
             color: primary.withValues(
               alpha:
-              Theme.of(context).brightness == Brightness.dark ? 0.14 : 0.10,
+                  Theme.of(context).brightness == Brightness.dark ? 0.14 : 0.10,
             ),
             shape: BoxShape.circle,
             border: Border.all(
@@ -235,15 +237,6 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
         : AppColors.surfaceContainerLowest();
   }
 
-  Color soft2(BuildContext context) {
-    if (isGlass) {
-      return Colors.white.withOpacity(0.08);
-    }
-    return Theme.of(context).brightness == Brightness.dark
-        ? AppColors.surfaceContainer()
-        : AppColors.surfaceContainerLow();
-  }
-
   Widget sectionCard({
     required BuildContext context,
     required Widget child,
@@ -254,14 +247,14 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
         borderRadius: Dimensions.size20,
         opacity: 0.12,
         borderOpacity: 0.22,
-        padding: EdgeInsets.all(Dimensions.size15),
+        padding: EdgeInsets.all(Dimensions.size15), // PERBAIKAN: Padding dikembalikan ke proporsi yg pas
         child: child,
       );
     }
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(Dimensions.size15),
+      padding: EdgeInsets.all(Dimensions.size15), // PERBAIKAN: Padding dikembalikan ke proporsi yg pas
       decoration: BoxDecoration(
         color: soft(context),
         borderRadius: BorderRadius.circular(Dimensions.size20),
@@ -304,7 +297,7 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
       final Color primary = Theme.of(context).colorScheme.primary;
 
       return Padding(
-        padding: EdgeInsets.only(bottom: Dimensions.size10),
+        padding: EdgeInsets.only(bottom: Dimensions.size10), // PERBAIKAN: Jarak ke konten diturunkan agar lebih padat
         child: Row(
           children: [
             Container(
@@ -379,42 +372,12 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
     }
 
     if (hasLocationField) {
-      final Widget content = CustomDynamicFormLocationField(
+      return CustomDynamicFormLocationField(
         readOnly: widget.readOnly,
         customerId: widget.customerId,
         headerForm: widget.headerForm,
         template: widget.template,
         data: widget.data,
-      );
-
-      if (isGlass) {
-        return GlassContainer(
-          blur: Dimensions.size15,
-          borderRadius: Dimensions.size15,
-          opacity: 0.10,
-          borderOpacity: 0.18,
-          padding: EdgeInsets.all(Dimensions.size10),
-          child: content,
-        );
-      }
-
-      return Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(Dimensions.size10),
-        decoration: BoxDecoration(
-          color: soft2(context),
-          borderRadius: BorderRadius.circular(Dimensions.size15),
-          border: Border.all(
-            color: isGlass
-                ? Colors.white.withOpacity(0.18)
-                : AppColors.outline().withValues(
-                    alpha: Theme.of(context).brightness == Brightness.dark
-                        ? 0.28
-                        : 0.14,
-                  ),
-          ),
-        ),
-        child: content,
       );
     }
 

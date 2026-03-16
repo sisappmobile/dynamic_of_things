@@ -530,70 +530,36 @@ class CustomDynamicFormSubDetailFormState
   }
 
   Widget body() {
-    final bool glass = isGlass;
-
-    return Form(
-      key: formState,
-      child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(
-          Dimensions.size15,
-          Dimensions.size10,
-          Dimensions.size15,
-          Dimensions.size20 + MediaQuery.of(context).padding.bottom,
-        ),
-        child: Builder(
-          builder: (context) {
-            final Widget formContent = Column(
-              children: [
-                CustomDynamicForm(
-                  key:
-                      ValueKey("SubDetail-${widget.subDetailForm.template.id}"),
-                  readOnly: widget.readOnly,
-                  customerId: widget.customerId,
-                  headerForm: widget.headerForm,
-                  template: widget.subDetailForm.template,
-                  data: data,
-                ),
-              ],
-            );
-
-            if (glass) {
-              return GlassContainer(
-                blur: Dimensions.size20,
-                borderRadius: Dimensions.size20,
-                opacity: 0.12,
-                borderOpacity: 0.22,
-                padding: EdgeInsets.all(Dimensions.size10),
-                child: formContent,
-              );
-            }
-
-            return Container(
-              padding: EdgeInsets.all(Dimensions.size10),
-              decoration: ShapeDecoration(
-                color: isGlass
-                    ? Colors.white.withOpacity(0.10)
-                    : AppColors.surface(),
-                shadows: [
-                  BoxShadow(
-                    blurRadius: Dimensions.size20,
-                    offset: Offset(0, Dimensions.size10),
-                    color: Colors.black.withValues(alpha: 0.10),
-                  ),
-                ],
-                shape: SmoothRectangleBorder(
-                  borderRadius: BorderRadius.circular(Dimensions.size20),
-                  smoothness: Dimensions.size1,
-                  side: BorderSide(
-                    color: isGlass
-                        ? Colors.white.withOpacity(0.18)
-                        : AppColors.outline().withValues(alpha: 0.35),
-                  ),
-                ),
+    // PERBAIKAN: Menggunakan MediaQuery.removePadding agar jarak atas pada form
+    // tidak menjadi terlalu jauh/renggang karena terdorong safe area bawaan ListView.
+    return MediaQuery.removePadding(
+      context: context,
+      removeTop: true,
+      removeBottom: true,
+      child: Form(
+        key: formState,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            Dimensions.size15,
+            Dimensions.size10, // Jarak yang lebih rapi
+            Dimensions.size15,
+            Dimensions.size20 + (widget.readOnly ? 0 : Dimensions.size75),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // PERBAIKAN UTAMA: Wrapper `card()` dihapus agar tidak timbul efek card dalam card.
+              // Widget `CustomDynamicForm` secara default akan merender card-nya sendiri.
+              CustomDynamicForm(
+                key: ValueKey("SubDetail-${widget.subDetailForm.template.id}"),
+                readOnly: widget.readOnly,
+                customerId: widget.customerId,
+                headerForm: widget.headerForm,
+                template: widget.subDetailForm.template,
+                data: data,
               ),
-              child: formContent,
-            );
-          },
+            ],
+          ),
         ),
       ),
     );

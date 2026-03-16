@@ -39,11 +39,9 @@ class CustomDynamicFormDetailList extends StatefulWidget {
 class CustomDynamicFormDetailListState
     extends State<CustomDynamicFormDetailList>
     with AutomaticKeepAliveClientMixin {
-  static const double gapCard = 10;
-  static const double gapInner = 8;
-
-  static const double tilePadX = 10;
-  static const double tilePadY = 10;
+  // PERBAIKAN: Spasi diubah agar terlihat lebih lega
+  static const double gapCard = 16;
+  static const double gapInner = 12;
 
   bool get isGlass {
     try {
@@ -228,7 +226,7 @@ class CustomDynamicFormDetailListState
                         ListColumn lcRight = columns[i + 1];
 
                         children
-                          ..add(SizedBox(width: gapInner))
+                          ..add(const SizedBox(width: gapInner))
                           ..add(
                             childrenWidget(
                               description: lcRight.description,
@@ -249,7 +247,7 @@ class CustomDynamicFormDetailListState
                       );
 
                       if (i + 2 < columns.length) {
-                        widgets.add(SizedBox(height: gapInner));
+                        widgets.add(const SizedBox(height: gapInner));
                       }
                     }
                   }
@@ -452,7 +450,7 @@ class CustomDynamicFormDetailListState
                               borderRadius: Dimensions.size20,
                               opacity: 0.12,
                               borderOpacity: 0.22,
-                              padding: EdgeInsets.all(Dimensions.size15),
+                              padding: EdgeInsets.all(Dimensions.size20), // Padding diperbesar agar lega
                               child: SizedBox(
                                 width: MediaQuery.of(context).size.width,
                                 child: content,
@@ -462,7 +460,7 @@ class CustomDynamicFormDetailListState
 
                           return Ink(
                             width: MediaQuery.of(context).size.width,
-                            padding: EdgeInsets.all(Dimensions.size15),
+                            padding: EdgeInsets.all(Dimensions.size20), // Padding diperbesar agar lega
                             decoration: ShapeDecoration(
                               color: isGlass
                                   ? Colors.white.withOpacity(0.10)
@@ -504,6 +502,8 @@ class CustomDynamicFormDetailListState
   @override
   bool get wantKeepAlive => true;
 
+  // PERBAIKAN UTAMA: Dihapuskannya Card Decoration (border dan background)
+  // Menyelaraskan teks secara rata kiri (CrossAxisAlignment.start) layaknya grid tabel yang bersih.
   Widget childrenWidget({
     required String description,
     required String value,
@@ -512,59 +512,36 @@ class CustomDynamicFormDetailListState
     final String shownValue = (value.isNotEmpty) ? value : "-";
 
     return Expanded(
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: tilePadX,
-          vertical: tilePadY,
-        ),
-        decoration: ShapeDecoration(
-          color: isGlass
-              ? Colors.white.withOpacity(0.08)
-              : AppColors.surfaceContainerLowest(),
-          shape: SmoothRectangleBorder(
-            borderRadius: BorderRadius.circular(Dimensions.size15),
-            smoothness: Dimensions.size1,
-            side: BorderSide(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, // Semua diratakan ke kiri
+        children: [
+          Text(
+            description,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
               color: isGlass
-                  ? Colors.white.withOpacity(0.18)
-                  : AppColors.outline().withValues(alpha: 0.16),
+                  ? Colors.white.withOpacity(0.70)
+                  : AppColors.onSurface().withValues(alpha: 0.65),
+              fontSize: Dimensions.text12,
+              fontWeight: FontWeight.w700,
             ),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment:
-              left ? CrossAxisAlignment.start : CrossAxisAlignment.end,
-          children: [
-            Text(
-              description,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: left ? TextAlign.start : TextAlign.end,
-              style: TextStyle(
-                color: isGlass
-                    ? Colors.white.withOpacity(0.92)
-                    : AppColors.onSurface().withValues(alpha: 0.65),
-                fontSize: Dimensions.text12,
-                fontWeight: FontWeight.w800,
-              ),
+          SizedBox(height: Dimensions.size4),
+          Text(
+            shownValue,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: Dimensions.text14,
+              fontWeight: FontWeight.w900,
+              height: 1.15,
+              color: isGlass
+                  ? Colors.white.withOpacity(0.95)
+                  : AppColors.onSurface(),
             ),
-            SizedBox(height: Dimensions.size4),
-            Text(
-              shownValue,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: left ? TextAlign.start : TextAlign.end,
-              style: TextStyle(
-                fontSize: Dimensions.text14,
-                fontWeight: FontWeight.w900,
-                height: 1.15,
-                color: isGlass
-                    ? Colors.white.withOpacity(0.92)
-                    : AppColors.onSurface(),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

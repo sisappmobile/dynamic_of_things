@@ -57,11 +57,9 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
 
   TextEditingController tecSearch = TextEditingController();
 
-  static const double gapCard = 10;
-  static const double gapInner = 8;
-
-  static const double tilePadX = 10;
-  static const double tilePadY = 10;
+  // PERBAIKAN: Jarak disesuaikan agar lebih bernafas dan modern
+  static const double gapCard = 16;
+  static const double gapInner = 16;
 
   @override
   void initState() {
@@ -377,6 +375,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
               },
               decoration: InputDecoration(
                 hintText: "search".tr(),
+                hintStyle: TextStyle(color: Colors.white.withOpacity(0.80)),
                 border: InputBorder.none,
                 isDense: true,
               ),
@@ -707,16 +706,12 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
           decoration: BoxDecoration(
             color: isGlass
                 ? Colors.white.withOpacity(0.12)
-                : isGlass
-                    ? Colors.white.withOpacity(0.10)
-                    : AppColors.surface().withValues(alpha: 0.92),
+                : AppColors.surface().withValues(alpha: 0.92),
             borderRadius: BorderRadius.circular(Dimensions.size25),
             border: Border.all(
               color: isGlass
                   ? Colors.white.withOpacity(0.22)
-                  : isGlass
-                      ? Colors.white.withOpacity(0.18)
-                      : AppColors.outline().withValues(alpha: 0.18),
+                  : AppColors.outline().withValues(alpha: 0.18),
             ),
             boxShadow: [
               BoxShadow(
@@ -781,7 +776,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
                     dynamicFormResourceFieldItems[i + 1];
 
                 children
-                  ..add(SizedBox(width: gapInner))
+                  ..add(const SizedBox(width: gapInner))
                   ..add(
                     childrenWidget(
                       description: dfrfiRight.description,
@@ -802,7 +797,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
               );
 
               if (i + 2 < dynamicFormResourceFieldItems.length) {
-                widgets.add(SizedBox(height: gapInner));
+                widgets.add(const SizedBox(height: gapInner));
               }
             }
           }
@@ -823,8 +818,9 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
               ),
               child: Builder(
                 builder: (context) {
+                  // PERBAIKAN: Padding diperbesar sedikit agar konten di dalamnya bisa bernafas
                   final Widget content = Padding(
-                    padding: EdgeInsets.all(Dimensions.size15),
+                    padding: EdgeInsets.all(Dimensions.size20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: widgets,
@@ -844,9 +840,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
 
                   return Ink(
                     decoration: ShapeDecoration(
-                      color: isGlass
-                          ? Colors.white.withOpacity(0.10)
-                          : AppColors.surface(),
+                      color: AppColors.surface(),
                       shadows: [
                         BoxShadow(
                           blurRadius: Dimensions.size20,
@@ -858,9 +852,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
                         borderRadius: BorderRadius.circular(Dimensions.size20),
                         smoothness: Dimensions.size1,
                         side: BorderSide(
-                          color: isGlass
-                              ? Colors.white.withOpacity(0.18)
-                              : AppColors.outline().withValues(alpha: 0.35),
+                          color: AppColors.outline().withValues(alpha: 0.35),
                         ),
                       ),
                     ),
@@ -875,65 +867,44 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
     );
   }
 
+  // PERBAIKAN UTAMA: Menghilangkan wrapper kotak (Container/ShapeDecoration)
+  // Menyelaraskan teks seluruhnya rata kiri layaknya grid modern yang clean
   Widget childrenWidget({
     required String description,
     required String value,
     required bool left,
   }) {
     return Expanded(
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: tilePadX,
-          vertical: tilePadY,
-        ),
-        decoration: ShapeDecoration(
-          color: isGlass
-              ? Colors.white.withOpacity(0.08)
-              : AppColors.surfaceContainerLowest(),
-          shape: SmoothRectangleBorder(
-            borderRadius: BorderRadius.circular(Dimensions.size15),
-            smoothness: Dimensions.size1,
-            side: BorderSide(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, 
+        children: [
+          Text(
+            description,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: Dimensions.text12,
+              fontWeight: FontWeight.w700,
               color: isGlass
-                  ? Colors.white.withOpacity(0.18)
-                  : AppColors.outline().withValues(alpha: 0.20),
+                  ? Colors.white.withOpacity(0.70)
+                  : AppColors.onSurface().withValues(alpha: 0.65),
             ),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment:
-              left ? CrossAxisAlignment.start : CrossAxisAlignment.end,
-          children: [
-            Text(
-              description,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: left ? TextAlign.start : TextAlign.end,
-              style: TextStyle(
-                fontSize: Dimensions.text12,
-                fontWeight: FontWeight.w700,
-                color: isGlass
-                    ? Colors.white.withOpacity(0.92)
-                    : AppColors.onSurface().withValues(alpha: 0.65),
-              ),
+          SizedBox(height: Dimensions.size4),
+          Text(
+            StringUtils.isNotNullOrEmpty(value) ? value : "-",
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: Dimensions.text14,
+              fontWeight: FontWeight.w900,
+              height: 1.15,
+              color: isGlass
+                  ? Colors.white.withOpacity(0.95)
+                  : AppColors.onSurface(),
             ),
-            SizedBox(height: Dimensions.size4),
-            Text(
-              StringUtils.isNotNullOrEmpty(value) ? value : "-",
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: left ? TextAlign.start : TextAlign.end,
-              style: TextStyle(
-                fontSize: Dimensions.text14,
-                fontWeight: FontWeight.w900,
-                height: 1.15,
-                color: isGlass
-                    ? Colors.white.withOpacity(0.92)
-                    : AppColors.onSurface(),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1080,15 +1051,16 @@ class NumberPaginationState extends State<CustomPagination> {
         : Colors.white.withOpacity(0.95);
   }
 
+  // PERBAIKAN: Outline pada tombol diubah agar tidak terlalu kaku
   Color borderColor() {
     final double l1 = widget.colorPrimary.computeLuminance();
     final double l2 = widget.colorSub.computeLuminance();
 
     if (l1 > 0.85 && l2 > 0.85) {
-      return Colors.white.withOpacity(0.28);
+      return Colors.white.withOpacity(0.18); 
     }
 
-    return AppColors.outline();
+    return AppColors.outline().withValues(alpha: 0.15);
   }
 
   @override
@@ -1136,7 +1108,9 @@ class NumberPaginationState extends State<CustomPagination> {
                       shape: RoundedRectangleBorder(
                         borderRadius:
                             BorderRadius.circular(widget.buttonRadius),
-                        side: BorderSide(color: borderColor()),
+                        side: BorderSide(
+                          color: selected ? Colors.transparent : borderColor(),
+                        ),
                       ),
                       padding: EdgeInsets.zero,
                       minimumSize: Size(Dimensions.size50, Dimensions.size50),
@@ -1150,6 +1124,7 @@ class NumberPaginationState extends State<CustomPagination> {
                         fontSize: widget.fontSize,
                         fontFamily: widget.fontFamily,
                         color: text,
+                        fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
                       ),
                     ),
                   );

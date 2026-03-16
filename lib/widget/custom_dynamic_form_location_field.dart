@@ -98,34 +98,6 @@ class CustomDynamicFormLocationFieldState
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return sectionCard(
-      context: context,
-      padding: EdgeInsets.all(Dimensions.size15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          headerRow(context),
-          if (latLng != null) ...[
-            SizedBox(height: Dimensions.size15),
-            mapWidget(),
-          ],
-          if (!widget.readOnly) ...[
-            SizedBox(height: Dimensions.size15),
-            getLocationButton(),
-          ],
-        ],
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    connectivitySub?.cancel();
-    super.dispose();
-  }
-
   bool get isGlass {
     try {
       return (Preferences.getInstance()
@@ -137,46 +109,60 @@ class CustomDynamicFormLocationFieldState
     }
   }
 
-  Widget sectionCard({
-    required BuildContext context,
-    required Widget child,
-    EdgeInsets? padding,
-  }) {
-    if (isGlass) {
+  @override
+  void dispose() {
+    connectivitySub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // PERBAIKAN: Menghilangkan efek shadow dan menjadikan container mirip seperti form input biasa
+    final bool glass = isGlass;
+
+    final Widget content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        headerRow(context),
+        if (latLng != null) ...[
+          SizedBox(height: Dimensions.size15),
+          mapWidget(),
+        ],
+        if (!widget.readOnly) ...[
+          SizedBox(height: Dimensions.size15),
+          getLocationButton(),
+        ],
+      ],
+    );
+
+    if (glass) {
       return GlassContainer(
-        blur: Dimensions.size20,
-        borderRadius: Dimensions.size20,
-        opacity: 0.12,
-        borderOpacity: 0.22,
-        padding: padding ?? EdgeInsets.all(Dimensions.size15),
-        child: child,
+        blur: Dimensions.size15,
+        borderRadius: Dimensions.size15,
+        opacity: 0.05,
+        borderOpacity: 0.15,
+        padding: EdgeInsets.all(Dimensions.size15),
+        child: content,
       );
     }
 
     return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(Dimensions.size15),
       decoration: ShapeDecoration(
-        color: isGlass ? Colors.white.withOpacity(0.10) : AppColors.surface(),
-        shadows: [
-          BoxShadow(
-            blurRadius: Dimensions.size25,
-            offset: Offset(0, Dimensions.size15),
-            color: Colors.black.withValues(alpha: 0.08),
-          ),
-        ],
+        color: AppColors.surfaceContainerLowest(),
         shape: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimensions.size20),
+          borderRadius: BorderRadius.circular(Dimensions.size15),
           smoothness: Dimensions.size1,
           side: BorderSide(
-            color: isGlass
-                ? Colors.white.withOpacity(0.18)
-                : AppColors.outline().withValues(alpha: 0.18),
+            color: AppColors.outline().withValues(
+              alpha:
+                  Theme.of(context).brightness == Brightness.dark ? 0.15 : 0.10,
+            ),
           ),
         ),
       ),
-      child: Padding(
-        padding: padding ?? EdgeInsets.all(Dimensions.size15),
-        child: child,
-      ),
+      child: content,
     );
   }
 
@@ -238,10 +224,10 @@ class CustomDynamicFormLocationFieldState
         vertical: Dimensions.size5,
       ),
       decoration: BoxDecoration(
-        color: online ? c.withValues(alpha: 0.12) : c.withValues(alpha: 0.12),
+        color: c.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(Dimensions.size100),
         border: Border.all(
-          color: online ? c.withValues(alpha: 0.30) : c.withValues(alpha: 0.30),
+          color: c.withValues(alpha: 0.20),
         ),
       ),
       child: Row(
@@ -255,8 +241,8 @@ class CustomDynamicFormLocationFieldState
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  blurRadius: 10,
-                  color: c.withValues(alpha: 0.35),
+                  blurRadius: 8,
+                  color: c.withValues(alpha: 0.40),
                 ),
               ],
             ),
@@ -266,7 +252,7 @@ class CustomDynamicFormLocationFieldState
             online ? "Online" : "Offline",
             style: TextStyle(
               fontSize: Dimensions.text11,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               color: fg,
             ),
           ),
@@ -291,15 +277,15 @@ class CustomDynamicFormLocationFieldState
               height: 180,
               decoration: ShapeDecoration(
                 color: isGlass
-                    ? Colors.white.withOpacity(0.08)
+                    ? Colors.white.withOpacity(0.05)
                     : AppColors.surfaceContainerLowest(),
                 shape: SmoothRectangleBorder(
                   borderRadius: BorderRadius.circular(Dimensions.size15),
                   smoothness: Dimensions.size1,
                   side: BorderSide(
                     color: isGlass
-                        ? Colors.white.withOpacity(0.18)
-                        : AppColors.outline().withValues(alpha: 0.18),
+                        ? Colors.white.withOpacity(0.12)
+                        : AppColors.outline().withValues(alpha: 0.10),
                   ),
                 ),
               ),
@@ -319,7 +305,8 @@ class CustomDynamicFormLocationFieldState
                 border: Border.all(
                   color: isGlass
                       ? Colors.white.withOpacity(0.18)
-                      : AppColors.outline().withValues(alpha: 0.18),
+                      : AppColors.outline().withValues(alpha: 0.15),
+                  width: Dimensions.size1,
                 ),
               ),
               child: Stack(
@@ -348,7 +335,7 @@ class CustomDynamicFormLocationFieldState
                           Marker(
                             point: latLng!,
                             child: Icon(
-                              Icons.location_on_outlined,
+                              Icons.location_on_rounded,
                               size: 34,
                               color: Colors.red,
                             ),
@@ -365,9 +352,9 @@ class CustomDynamicFormLocationFieldState
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.black.withValues(alpha: 0.10),
+                              Colors.black.withValues(alpha: 0.05),
                               Colors.transparent,
-                              Colors.black.withValues(alpha: 0.08),
+                              Colors.black.withValues(alpha: 0.15),
                             ],
                           ),
                         ),
@@ -387,7 +374,7 @@ class CustomDynamicFormLocationFieldState
                             vertical: Dimensions.size5,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.10),
+                            color: Colors.black.withValues(alpha: 0.40),
                             borderRadius:
                                 BorderRadius.circular(Dimensions.size100),
                             border: Border.all(
@@ -400,6 +387,7 @@ class CustomDynamicFormLocationFieldState
                               fontSize: Dimensions.text11,
                               fontWeight: FontWeight.w900,
                               color: Colors.white.withValues(alpha: 0.95),
+                              letterSpacing: 0.2,
                             ),
                           ),
                         ),
@@ -420,7 +408,6 @@ class CustomDynamicFormLocationFieldState
   Widget getLocationButton() {
     if (!widget.readOnly) {
       final Color primary = Theme.of(context).colorScheme.primary;
-      final Color onPrimary = Theme.of(context).colorScheme.onPrimary;
 
       return Material(
         color: Colors.transparent,
@@ -466,40 +453,39 @@ class CustomDynamicFormLocationFieldState
               setState(() {});
             }
           },
-          borderRadius: BorderRadius.circular(Dimensions.size30),
+          borderRadius: BorderRadius.circular(Dimensions.size15),
           child: Ink(
-            height: Dimensions.size50,
+            height: Dimensions.size45,
             decoration: ShapeDecoration(
-              color: primary,
+              color: isGlass
+                  ? Colors.white.withOpacity(0.08)
+                  : primary.withOpacity(0.12),
               shape: SmoothRectangleBorder(
-                borderRadius: BorderRadius.circular(Dimensions.size30),
+                borderRadius: BorderRadius.circular(Dimensions.size15),
                 smoothness: Dimensions.size1,
+                side: BorderSide(
+                  color: isGlass
+                      ? Colors.white.withOpacity(0.18)
+                      : primary.withOpacity(0.20),
+                ),
               ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  width: Dimensions.size30,
-                  height: Dimensions.size30,
-                  decoration: BoxDecoration(
-                    color: onPrimary.withValues(alpha: 0.18),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.my_location_rounded,
-                    size: Dimensions.size20,
-                    color: onPrimary,
-                  ),
+                Icon(
+                  Icons.my_location_rounded,
+                  size: Dimensions.size20,
+                  color: isGlass ? Colors.white.withOpacity(0.92) : primary,
                 ),
                 SizedBox(width: Dimensions.size10),
                 Text(
                   "get_location".tr().toUpperCase(),
                   style: TextStyle(
-                    color: onPrimary,
+                    color: isGlass ? Colors.white.withOpacity(0.92) : primary,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.2,
-                    fontSize: Dimensions.text13,
+                    fontSize: Dimensions.text12,
                   ),
                 ),
               ],
@@ -533,12 +519,37 @@ class GetLocationPageState extends State<GetLocationPage> {
   Position? acceptedPosition;
 
   String status = "Waiting for location...";
+  bool prefsReady = false;
 
   @override
   void initState() {
     super.initState();
-
+    initPrefs();
     startListening();
+  }
+
+  Future<void> initPrefs() async {
+    try {
+      await Preferences.getInstance().init();
+    } catch (_) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      prefsReady = true;
+    });
+  }
+
+  bool get isGlass {
+    if (!prefsReady) {
+      return false;
+    }
+    final int t = Preferences.getInstance()
+            .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
+        1;
+    return t == 2;
   }
 
   Future<void> startListening() async {
@@ -600,11 +611,121 @@ class GetLocationPageState extends State<GetLocationPage> {
 
   @override
   Widget build(BuildContext context) {
-    final Color fg = AppColors.onSurface();
-    final Color outline = AppColors.outline();
-    final Color card = AppColors.surface();
-    final Color soft = AppColors.surfaceContainerLowest();
+    final bool glass = isGlass;
+    final Color fg =
+        glass ? Colors.white.withOpacity(0.95) : AppColors.onSurface();
+    final Color outline =
+        glass ? Colors.white.withOpacity(0.22) : AppColors.outline();
+    final Color card =
+        glass ? Colors.white.withOpacity(0.12) : AppColors.surface();
     final Color primary = Theme.of(context).colorScheme.primary;
+
+    final Widget dialogContent = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            Dimensions.size15,
+            Dimensions.size15,
+            Dimensions.size15,
+            Dimensions.size10,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: Dimensions.size40,
+                height: Dimensions.size40,
+                decoration: BoxDecoration(
+                  color: primary.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: primary.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Icon(
+                  Icons.my_location_rounded,
+                  color: glass ? Colors.white : primary,
+                  size: Dimensions.size20,
+                ),
+              ),
+              SizedBox(width: Dimensions.size10),
+              Expanded(
+                child: Text(
+                  "get_location".tr(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: Dimensions.text14,
+                    fontWeight: FontWeight.w900,
+                    color: fg,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    Navigators.pop(context: context);
+                  },
+                  customBorder: const CircleBorder(),
+                  child: Ink(
+                    width: Dimensions.size40,
+                    height: Dimensions.size40,
+                    decoration: BoxDecoration(
+                      color: glass
+                          ? Colors.white.withOpacity(0.10)
+                          : AppColors.surfaceContainerLowest(),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: outline.withValues(alpha: 0.18),
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: fg,
+                      size: Dimensions.size20,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Divider(height: 1, color: outline.withValues(alpha: 0.25)),
+        Padding(
+          padding: EdgeInsets.all(Dimensions.size25),
+          child: Column(
+            children: [
+              Container(
+                width: Dimensions.size50,
+                height: Dimensions.size50,
+                decoration: BoxDecoration(
+                  color: primary.withValues(alpha: 0.10),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: glass ? Colors.white.withOpacity(0.90) : primary,
+                  ),
+                ),
+              ),
+              SizedBox(height: Dimensions.size20),
+              Text(
+                status,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: Dimensions.text13,
+                  fontWeight: FontWeight.w800,
+                  color: fg,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
 
     return Material(
       color: Colors.transparent,
@@ -615,127 +736,43 @@ class GetLocationPageState extends State<GetLocationPage> {
               sigmaX: Dimensions.size10,
               sigmaY: Dimensions.size10,
             ),
-            child: Container(color: Colors.black.withAlpha(30)),
+            child: Container(color: Colors.black.withAlpha(80)),
           ),
           Center(
             child: Container(
               width: 340,
               margin: EdgeInsets.all(Dimensions.size20),
-              decoration: ShapeDecoration(
-                color: card,
-                shadows: [
-                  BoxShadow(
-                    blurRadius: Dimensions.size30,
-                    offset: Offset(0, Dimensions.size20),
-                    color: Colors.black.withValues(alpha: 0.18),
-                  ),
-                ],
-                shape: SmoothRectangleBorder(
-                  smoothness: Dimensions.size1,
-                  borderRadius: BorderRadius.circular(Dimensions.size25),
-                  side: BorderSide(color: outline.withValues(alpha: 0.18)),
-                ),
-              ),
-              clipBehavior: Clip.antiAliasWithSaveLayer,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      Dimensions.size15,
-                      Dimensions.size15,
-                      Dimensions.size15,
-                      Dimensions.size10,
+              child: glass
+                  ? GlassContainer(
+                      blur: Dimensions.size25,
+                      borderRadius: Dimensions.size25,
+                      opacity: 0.15,
+                      borderOpacity: 0.25,
+                      padding: EdgeInsets.zero,
+                      child: dialogContent,
+                    )
+                  : Container(
+                      decoration: ShapeDecoration(
+                        color: card,
+                        shadows: [
+                          BoxShadow(
+                            blurRadius: Dimensions.size30,
+                            offset: Offset(0, Dimensions.size20),
+                            color: Colors.black.withValues(alpha: 0.18),
+                          ),
+                        ],
+                        shape: SmoothRectangleBorder(
+                          smoothness: Dimensions.size1,
+                          borderRadius:
+                              BorderRadius.circular(Dimensions.size25),
+                          side: BorderSide(
+                            color: outline.withValues(alpha: 0.18),
+                          ),
+                        ),
+                      ),
+                      clipBehavior: Clip.antiAliasWithSaveLayer,
+                      child: dialogContent,
                     ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: Dimensions.size40,
-                          height: Dimensions.size40,
-                          decoration: BoxDecoration(
-                            color: primary.withValues(alpha: 0.12),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: primary.withValues(alpha: 0.22),
-                            ),
-                          ),
-                          child: Icon(
-                            Icons.my_location_rounded,
-                            color: primary,
-                          ),
-                        ),
-                        SizedBox(width: Dimensions.size10),
-                        Expanded(
-                          child: Text(
-                            "get_location".tr(),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: Dimensions.text14,
-                              fontWeight: FontWeight.w900,
-                              color: fg,
-                            ),
-                          ),
-                        ),
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () {
-                              Navigators.pop(context: context);
-                            },
-                            customBorder: const CircleBorder(),
-                            child: Ink(
-                              width: Dimensions.size40,
-                              height: Dimensions.size40,
-                              decoration: BoxDecoration(
-                                color: soft,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: outline.withValues(alpha: 0.18),
-                                ),
-                              ),
-                              child: Icon(
-                                Icons.close_rounded,
-                                color: fg,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Divider(height: 1, color: outline.withValues(alpha: 0.18)),
-                  Padding(
-                    padding: EdgeInsets.all(Dimensions.size20),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: Dimensions.size70,
-                          height: Dimensions.size70,
-                          decoration: BoxDecoration(
-                            color: primary.withValues(alpha: 0.10),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                        ),
-                        SizedBox(height: Dimensions.size15),
-                        Text(
-                          status,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: Dimensions.text14,
-                            fontWeight: FontWeight.w800,
-                            color: fg,
-                            height: 1.25,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ],
@@ -746,7 +783,6 @@ class GetLocationPageState extends State<GetLocationPage> {
   @override
   void dispose() {
     super.dispose();
-
     subscription?.cancel();
   }
 }

@@ -402,6 +402,7 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
               SizedBox(height: Dimensions.size1),
               GridView.builder(
                 shrinkWrap: true,
+                padding: EdgeInsets.only(top:Dimensions.size10),
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: menuItems.length,
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

@@ -256,24 +256,100 @@ class CustomDynamicFormBulkDetailFormState
     );
   }
 
-  Widget sectionCard({
-    required BuildContext context,
-    required Widget child,
-    EdgeInsets? padding,
-  }) {
+  // Header Progress dipertahankan bentuk card-nya karena merupakan indikator
+  Widget progressHeader(BuildContext context) {
+    final Color primary = Theme.of(context).colorScheme.primary;
+
+    final int current = index + 1;
+    final int total = rows.length;
+    final double progress = total <= 0 ? 0 : (current / total).clamp(0.0, 1.0);
+
+    final Widget content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: Dimensions.size15,
+                vertical: Dimensions.size5,
+              ),
+              decoration: BoxDecoration(
+                color: primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(Dimensions.size100),
+                border: Border.all(
+                  color: primary.withValues(alpha: 0.22),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.layers_rounded,
+                    size: Dimensions.size15,
+                    color: primary,
+                  ),
+                  SizedBox(width: Dimensions.size5),
+                  Text(
+                    "$current ${"of".tr().toLowerCase()} $total",
+                    style: TextStyle(
+                      fontSize: Dimensions.text12,
+                      fontWeight: FontWeight.w900,
+                      color: primary,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: Dimensions.size10),
+            Expanded(
+              child: Text(
+                widget.detailForm.template.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: Dimensions.text14,
+                  fontWeight: FontWeight.w900,
+                  color: isGlass
+                      ? Colors.white.withOpacity(0.92)
+                      : AppColors.onSurface(),
+                  letterSpacing: 0.1,
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: Dimensions.size10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(Dimensions.size100),
+          child: LinearProgressIndicator(
+            minHeight: Dimensions.size5,
+            value: progress,
+            backgroundColor: isGlass
+                ? Colors.white.withOpacity(0.18)
+                : AppColors.outline().withValues(alpha: 0.18),
+            valueColor: AlwaysStoppedAnimation<Color>(
+              primary.withValues(alpha: 0.90),
+            ),
+          ),
+        ),
+      ],
+    );
+
     if (isGlass) {
       return GlassContainer(
         blur: Dimensions.size20,
         borderRadius: Dimensions.size20,
         opacity: 0.12,
         borderOpacity: 0.22,
-        padding: padding ?? EdgeInsets.all(Dimensions.size15),
-        child: child,
+        padding: EdgeInsets.all(Dimensions.size15),
+        child: content,
       );
     }
 
     return Container(
-      padding: padding ?? EdgeInsets.all(Dimensions.size15),
+      padding: EdgeInsets.all(Dimensions.size15),
       decoration: ShapeDecoration(
         color: AppColors.surface(),
         shadows: [
@@ -291,149 +367,51 @@ class CustomDynamicFormBulkDetailFormState
           ),
         ),
       ),
-      child: child,
-    );
-  }
-
-  Widget progressHeader(BuildContext context) {
-    final Color primary = Theme.of(context).colorScheme.primary;
-
-    final int current = index + 1;
-    final int total = rows.length;
-    final double progress = total <= 0 ? 0 : (current / total).clamp(0.0, 1.0);
-
-    return sectionCard(
-      context: context,
-      padding: EdgeInsets.fromLTRB(
-        Dimensions.size15,
-        Dimensions.size15,
-        Dimensions.size15,
-        Dimensions.size15,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: Dimensions.size15,
-                  vertical: Dimensions.size5,
-                ),
-                decoration: BoxDecoration(
-                  color: primary.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(Dimensions.size100),
-                  border: Border.all(
-                    color: primary.withValues(alpha: 0.22),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.layers_rounded,
-                      size: Dimensions.size15,
-                      color: primary,
-                    ),
-                    SizedBox(width: Dimensions.size5),
-                    Text(
-                      "$current ${"of".tr().toLowerCase()} $total",
-                      style: TextStyle(
-                        fontSize: Dimensions.text12,
-                        fontWeight: FontWeight.w900,
-                        color: primary,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(width: Dimensions.size10),
-              Expanded(
-                child: Text(
-                  widget.detailForm.template.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: Dimensions.text14,
-                    fontWeight: FontWeight.w900,
-                    color: isGlass
-                        ? Colors.white.withOpacity(0.92)
-                        : AppColors.onSurface(),
-                    letterSpacing: 0.1,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: Dimensions.size10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(Dimensions.size100),
-            child: LinearProgressIndicator(
-              minHeight: Dimensions.size5,
-              value: progress,
-              backgroundColor: isGlass
-                  ? Colors.white.withOpacity(0.18)
-                  : AppColors.outline().withValues(alpha: 0.18),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                primary.withValues(alpha: 0.90),
-              ),
-            ),
-          ),
-        ],
-      ),
+      child: content,
     );
   }
 
   Widget body() {
     final bool glass = isGlass;
 
-    return Container(
-      color: glass ? Colors.transparent : AppColors.surfaceContainerLowest(),
-      child: Form(
-        key: formState,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-            Dimensions.size15,
-            Dimensions.size10,
-            Dimensions.size15,
-            Dimensions.size15,
-          ),
-          child: Column(
-            children: [
-              progressHeader(context),
-              SizedBox(height: Dimensions.size15),
-              sectionCard(
-                context: context,
-                padding: EdgeInsets.fromLTRB(
-                  Dimensions.size15,
-                  Dimensions.size15,
-                  Dimensions.size15,
-                  Dimensions.size10,
-                ),
-                child: CustomDynamicForm(
-                  key: ValueKey("Detail-${widget.detailForm.template.id}"),
+    return MediaQuery.removePadding(
+      context: context,
+      removeTop: true,
+      removeBottom: true,
+      child: Container(
+        color: glass ? Colors.transparent : AppColors.surfaceContainerLowest(),
+        child: Form(
+          key: formState,
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              Dimensions.size15,
+              Dimensions.size10,
+              Dimensions.size15,
+              Dimensions.size15 + Dimensions.size100, // Space aman untuk bottomBar
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                progressHeader(context),
+                SizedBox(height: Dimensions.size20), // Spasi antar header progress dan form
+
+                // PERBAIKAN UTAMA: Wrapper `sectionCard` dibuang
+                CustomDynamicForm(
+                  key: ValueKey("Detail-${widget.detailForm.template.id}-$index"),
                   readOnly: widget.readOnly,
                   customerId: widget.customerId,
                   headerForm: widget.headerForm,
                   template: widget.detailForm.template,
                   data: rows[index],
                 ),
-              ),
-              ...widget.detailForm.subDetailForms.map((subDetailForm) {
-                return Padding(
-                  padding: EdgeInsets.only(top: Dimensions.size15),
-                  child: sectionCard(
-                    context: context,
-                    padding: EdgeInsets.fromLTRB(
-                      Dimensions.size15,
-                      Dimensions.size15,
-                      Dimensions.size15,
-                      Dimensions.size15,
-                    ),
+
+                ...widget.detailForm.subDetailForms.map((subDetailForm) {
+                  return Padding(
+                    // PERBAIKAN UTAMA: Wrapper `sectionCard` dibuang, gap diperlebar
+                    padding: EdgeInsets.only(top: Dimensions.size25),
                     child: CustomDynamicFormSubDetailList(
                       key: ValueKey(
-                        "SubDetailList-${subDetailForm.template.id}",
+                        "SubDetailList-${subDetailForm.template.id}-$index",
                       ),
                       readOnly: widget.readOnly,
                       customerId: widget.customerId,
@@ -451,10 +429,10 @@ class CustomDynamicFormBulkDetailFormState
                             );
                       },
                     ),
-                  ),
-                );
-              }),
-            ],
+                  );
+                }),
+              ],
+            ),
           ),
         ),
       ),

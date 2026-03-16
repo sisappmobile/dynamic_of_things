@@ -1,5 +1,7 @@
 // ignore_for_file: deprecated_member_use, constant_identifier_names
 
+import "dart:ui";
+
 import "package:base/base.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
@@ -107,45 +109,70 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage>
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: Colors.black,
       appBar: AppBar(
         elevation: 0,
         centerTitle: true,
         backgroundColor: Colors.transparent,
-        leading: IconButton(
-          onPressed: popHandle,
-          icon: const Icon(
-            Icons.turn_left_rounded,
-            color: Colors.white,
-          ),
-        ),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            Text(
-              "Barcode Scanner".tr(),
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: Dimensions.text16,
-                color: Colors.white,
+        leading: UnconstrainedBox(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(Dimensions.size15),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: Dimensions.size15,
+                sigmaY: Dimensions.size15,
+              ),
+              child: Container(
+                width: Dimensions.size40,
+                height: Dimensions.size40,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(Dimensions.size15),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.15),
+                    width: 1,
+                  ),
+                ),
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: popHandle,
+                  icon: const Icon(
+                    Icons.turn_left_rounded,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
-            SizedBox(height: Dimensions.size5),
-            StatusPill(
-              icon: Icons.text_fields_rounded,
-              label: scannerWordCase.spell(),
-            ),
-          ],
+          ),
         ),
+        title: Text(
+          "Barcode Scanner".tr(),
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: Dimensions.text16,
+            color: Colors.white,
+            letterSpacing: 0.2,
+          ),
+        ),
+        actions: [
+          Padding(
+            padding: EdgeInsets.only(right: Dimensions.size15),
+            child: Center(
+              child: StatusPill(
+                icon: Icons.text_fields_rounded,
+                label: scannerWordCase.spell(),
+              ),
+            ),
+          ),
+        ],
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color(0xCC0B0F1A),
-                Color(0x000B0F1A),
+                Colors.black.withOpacity(0.70),
+                Colors.transparent,
               ],
             ),
           ),
@@ -188,7 +215,7 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage>
           ),
           Center(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: Dimensions.size20),
+              padding: EdgeInsets.symmetric(horizontal: Dimensions.size40),
               child: AspectRatio(
                 aspectRatio: 1,
                 child: ScanFrame(isActive: isScanning),
@@ -196,77 +223,99 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage>
             ),
           ),
           Positioned(
-            left: 0,
-            right: 0,
-            bottom: (media.padding.bottom) + 110,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: Dimensions.size20),
-              child: Column(
-                children: [
-                  Text(
-                    "point_the_camera_at_a_barcode".tr(),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.92),
-                      fontSize: Dimensions.text14,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  SizedBox(height: Dimensions.size5),
-                  Text(
-                    "use_the_buttons_below_for_case_flash_and_camera".tr(),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.72),
-                      fontSize: Dimensions.text12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
             left: Dimensions.size15,
             right: Dimensions.size15,
-            bottom: (media.padding.bottom) + Dimensions.size15,
-            child: SolidBar(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ActionTile(
-                      icon: Symbols.match_case,
-                      title: "Case",
-                      subtitle: scannerWordCase.spell(),
-                      onTap: cycleWordCase,
+            bottom: media.padding.bottom + Dimensions.size20,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Info Text Glass Pill
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(Dimensions.size20),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(
+                      sigmaX: Dimensions.size15,
+                      sigmaY: Dimensions.size15,
+                    ),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: Dimensions.size20,
+                        vertical: Dimensions.size10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.35),
+                        borderRadius: BorderRadius.circular(Dimensions.size20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.12),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "point_the_camera_at_a_barcode".tr(),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.95),
+                              fontSize: Dimensions.text14,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          SizedBox(height: Dimensions.size2),
+                          Text(
+                            "use_the_buttons_below_for_case_flash_and_camera".tr(),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.70),
+                              fontSize: Dimensions.text12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  SizedBox(width: Dimensions.size10),
-                  Expanded(
-                    child: ActionTile(
-                      icon: cameraController.torchEnabled
-                          ? Icons.flash_on_rounded
-                          : Icons.flash_off_rounded,
-                      title: "Flash".tr(),
-                      subtitle: cameraController.torchEnabled ? "On" : "Off",
-                      onTap: torchToggle,
-                    ),
+                ),
+                SizedBox(height: Dimensions.size20),
+                // Actions Glass Bar
+                SolidBar(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: ActionTile(
+                          icon: Symbols.match_case,
+                          title: "Case",
+                          subtitle: scannerWordCase.spell(),
+                          onTap: cycleWordCase,
+                        ),
+                      ),
+                      Expanded(
+                        child: ActionTile(
+                          icon: cameraController.torchEnabled
+                              ? Icons.flash_on_rounded
+                              : Icons.flash_off_rounded,
+                          title: "Flash".tr(),
+                          subtitle: cameraController.torchEnabled ? "On" : "Off",
+                          onTap: torchToggle,
+                        ),
+                      ),
+                      Expanded(
+                        child: ActionTile(
+                          icon: cameraController.facing == CameraFacing.front
+                              ? Icons.camera_front_rounded
+                              : Icons.camera_rear_rounded,
+                          title: "Camera".tr(),
+                          subtitle: cameraController.facing == CameraFacing.front
+                              ? "Front".tr()
+                              : "Rear".tr(),
+                          onTap: cameraSwitch,
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(width: Dimensions.size10),
-                  Expanded(
-                    child: ActionTile(
-                      icon: cameraController.facing == CameraFacing.front
-                          ? Icons.camera_front_rounded
-                          : Icons.camera_rear_rounded,
-                      title: "Camera".tr(),
-                      subtitle: cameraController.facing == CameraFacing.front
-                          ? "Front".tr()
-                          : "Rear".tr(),
-                      onTap: cameraSwitch,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
@@ -284,16 +333,30 @@ class SolidBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(Dimensions.size10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(Dimensions.size20),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.14),
-          width: Dimensions.size1,
+    // Membungkus bar bawah dalam satu Glass Container besar
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(Dimensions.size25),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(
+          sigmaX: Dimensions.size20,
+          sigmaY: Dimensions.size20,
+        ),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            vertical: Dimensions.size15,
+            horizontal: Dimensions.size5,
+          ),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0B0F1A).withOpacity(0.50),
+            borderRadius: BorderRadius.circular(Dimensions.size25),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.15),
+              width: Dimensions.size1,
+            ),
+          ),
+          child: child,
         ),
       ),
-      child: child,
     );
   }
 }
@@ -314,63 +377,50 @@ class ActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Desain modern vertikal tanpa border kotak di dalamnya
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(Dimensions.size15),
         onTap: onTap,
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: Dimensions.size10,
-            vertical: Dimensions.size10,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.06),
-            borderRadius: BorderRadius.circular(Dimensions.size15),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.10),
-              width: Dimensions.size1,
-            ),
-          ),
-          child: Row(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: Dimensions.size5),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: Dimensions.size40,
                 height: Dimensions.size40,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.10),
-                  borderRadius: BorderRadius.circular(Dimensions.size15),
+                  color: Colors.white.withOpacity(0.12),
+                  shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: Colors.white, size: Dimensions.size20),
+                child: Icon(
+                  icon,
+                  color: Colors.white.withOpacity(0.95),
+                  size: Dimensions.size20,
+                ),
               ),
-              SizedBox(width: Dimensions.size10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.90),
-                        fontSize: Dimensions.text12,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    SizedBox(height: Dimensions.size2),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.72),
-                        fontSize: Dimensions.text12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+              SizedBox(height: Dimensions.size10),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.95),
+                  fontSize: Dimensions.text12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              SizedBox(height: 2),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.65),
+                  fontSize: Dimensions.text12,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -393,37 +443,46 @@ class StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: Dimensions.size10,
-        vertical: Dimensions.size5,
-      ),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0B0F1A).withOpacity(0.55),
-        borderRadius: BorderRadius.circular(Dimensions.size100),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.16),
-          width: Dimensions.size1,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(Dimensions.size100),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(
+          sigmaX: Dimensions.size10,
+          sigmaY: Dimensions.size10,
         ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: Dimensions.size15,
-            color: Colors.white.withOpacity(0.92),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: Dimensions.size10,
+            vertical: Dimensions.size5,
           ),
-          SizedBox(width: Dimensions.size5),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.92),
-              fontSize: Dimensions.text12,
-              fontWeight: FontWeight.w800,
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.35),
+            borderRadius: BorderRadius.circular(Dimensions.size100),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.15),
+              width: Dimensions.size1,
             ),
           ),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: Dimensions.size15,
+                color: Colors.white.withOpacity(0.92),
+              ),
+              SizedBox(width: Dimensions.size5),
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.92),
+                  fontSize: Dimensions.text12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -439,13 +498,16 @@ class ScanFrame extends StatelessWidget {
     return Stack(
       children: [
         Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF0B0F1A).withOpacity(0.18),
-              borderRadius: BorderRadius.circular(Dimensions.size25),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.18),
-                width: Dimensions.size1,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(Dimensions.size25),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(Dimensions.size25),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.15),
+                  width: Dimensions.size1,
+                ),
               ),
             ),
           ),
@@ -486,7 +548,7 @@ class CornerPainter extends CustomPainter {
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
 
-    const double len = 36;
+    const double len = 45; // Sedikit diperpanjang agar lebih futuristik dan modern
 
     canvas
       ..drawPath(
