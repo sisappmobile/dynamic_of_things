@@ -12,8 +12,7 @@ import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_sta
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 
-class DynamicFormListBloc
-    extends Bloc<DynamicFormListEvent, DynamicFormListState> {
+class DynamicFormListBloc extends Bloc<DynamicFormListEvent, DynamicFormListState> {
   DynamicFormListBloc() : super(DynamicFormListInitial()) {
     on<DynamicFormListLoad>((event, emit) async {
       try {
@@ -22,31 +21,10 @@ class DynamicFormListBloc
         ListResponse? listResponse;
 
         if (DynamicForms.offline) {
-          HeaderForm? headerForm = Offlines.headerForm(event.id);
-
-          if (headerForm != null) {
-            listResponse = ListResponse(
-              createUsingScanQr: false,
-              actions: headerForm.template.actions.map((element) {
-                return Action(
-                  id: element.id,
-                  resourceId: element.resourceId,
-                  name: element.name,
-                );
-              }).toList(),
-              fields: headerForm.template.columns.map((element) {
-                return Field(
-                    name: element.name,
-                    type: element.type,
-                    description: element.description,
-                    primaryKey: element.primaryKey);
-              }).toList(),
-              data: await Offlines.list(
-                tableName: headerForm.template.tableName,
-                customerId: event.customerId,
-              ),
-            );
-          }
+          listResponse = await Offlines.list(
+            id: event.id,
+            customerId: event.customerId,
+          );
         } else {
           listResponse = await DotApis.getInstance().dynamicFormList(
             id: event.id,
@@ -78,8 +56,7 @@ class DynamicFormListBloc
         if (response.statusCode == 204) {
           emit(DynamicFormListCustomActionSuccess(headerForm: null));
         } else if (response.statusCode == 200) {
-          HeaderForm headerForm = HeaderForm.fromJson(response.data)
-            ..dataId = event.dataId;
+          HeaderForm headerForm = HeaderForm.fromJson(response.data)..dataId = event.dataId;
 
           emit(DynamicFormListCustomActionSuccess(headerForm: headerForm));
         }

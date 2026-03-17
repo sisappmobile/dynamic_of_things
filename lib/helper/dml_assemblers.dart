@@ -403,6 +403,15 @@ class DMLAssemblers {
     return result;
   }
 
+  Future<List<Map<String, Object?>>> allWithTransaction(Transaction transaction) async {
+    final List<Map<String, Object?>> result = await transaction.rawQuery(
+      _build(),
+      _parameters,
+    );
+
+    return result;
+  }
+
   Future<int> count() async {
     final Database database = await Sqlites.get();
 
@@ -414,8 +423,27 @@ class DMLAssemblers {
     return result[0]["count"] as int;
   }
 
+  Future<int> countWithTransaction(Transaction transaction) async {
+    final List<Map<String, Object?>> result = await transaction.rawQuery(
+      _build(true),
+      _parameters,
+    );
+
+    return result[0]["count"] as int;
+  }
+
   Future<Map<String, dynamic>?> first() async {
     final List<Map<String, Object?>> result = await all();
+
+    if (result.isNotEmpty) {
+      return result.first;
+    } else {
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> firstWithTransaction(Transaction transaction) async {
+    final List<Map<String, Object?>> result = await allWithTransaction(transaction);
 
     if (result.isNotEmpty) {
       return result.first;

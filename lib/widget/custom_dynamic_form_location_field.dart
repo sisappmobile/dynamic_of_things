@@ -9,9 +9,9 @@ import "package:basic_utils/basic_utils.dart";
 import "package:connectivity_plus/connectivity_plus.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
-import "package:dynamic_of_things/local_disk_tile_provider.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:dynamic_of_things/widget/glass_container.dart";
+import "package:dynamic_of_things/widget/map_page.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:flutter_map/flutter_map.dart";
@@ -46,6 +46,8 @@ class CustomDynamicFormLocationFieldState
   ll.LatLng? latLng;
 
   bool isOnline = true;
+
+  String baseMap = "satellite";
 
   StreamSubscription? connectivitySub;
 
@@ -267,6 +269,18 @@ class CustomDynamicFormLocationFieldState
     );
   }
 
+  String tileUrlTemplate(String path) {
+    if (isOnline) {
+      if (baseMap == "satellite") {
+        return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+      } else {
+        return "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+      }
+    } else {
+      return "$path/$offlineMapBaseFolder/$baseMap/{z}/{x}/{y}.png";
+    }
+  }
+
   Widget mapWidget() {
     if (latLng != null) {
       return FutureBuilder<Directory>(
@@ -317,19 +331,11 @@ class CustomDynamicFormLocationFieldState
                       initialZoom: 19,
                     ),
                     children: [
-                      isOnline
-                          ? TileLayer(
-                              urlTemplate:
-                                  "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                              userAgentPackageName:
-                                  "com.sisapp.dynamic_of_things",
-                            )
-                          : TileLayer(
-                              tileProvider: LocalDiskTileProvider(
-                                basePath:
-                                    "${snapshot.data!.path}/offline_tiles",
-                              ),
-                            ),
+                      TileLayer(
+                        tileProvider: isOnline ? NetworkTileProvider() : FileTileProvider(),
+                        urlTemplate: tileUrlTemplate(snapshot.data!.path),
+                        userAgentPackageName: "com.sisapp.dynamic_of_things",
+                      ),
                       MarkerLayer(
                         markers: [
                           Marker(

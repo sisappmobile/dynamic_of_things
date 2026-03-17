@@ -484,6 +484,19 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
     );
   }
 
+  Color? hexToColor(String? hexString) {
+    try {
+      final buffer = StringBuffer();
+      if (hexString!.length == 6 || hexString.length == 7) {
+        buffer.write("ff");
+      }
+      buffer.write(hexString.replaceFirst("#", ""));
+      return Color(int.parse(buffer.toString(), radix: 16));
+    } catch (_) {}
+
+    return null;
+  }
+
   Widget mapModeButton() {
     if (items != null && items!.isNotEmpty) {
       return iconPill(
@@ -508,7 +521,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
                     icon: Icon(
                       Icons.location_on_outlined,
                       size: Dimensions.size30,
-                      color: Colors.red,
+                      color: hexToColor(element["colorlocation"]) ?? Colors.red,
                     ),
                     extra: element,
                   );

@@ -514,40 +514,10 @@ class DotApis {
     );
   }
 
-  Future<Response> versioningCheck(Map<String, int> body) async {
-    return await dio.post(
-      "v2/offline-dynamic-forms/version-check",
-      data: body,
-    );
-  }
-
-  Future<Response> versioningDynamicFormTemplate(int version) async {
+  Future<Response> synchronizationPull(int version) async {
     return await dio.get(
-      "v2/offline-dynamic-forms/templates",
-      options: Options(
-        headers: {
-          "sfa-background": "true",
-        },
-      ),
+      "v2/synchronizations/pull",
       queryParameters: {
-        "version": version,
-      },
-    );
-  }
-
-  Future<Response> versioningDynamicFormData({
-    required String tableName,
-    required int version,
-  }) async {
-    return await dio.get(
-      "v2/offline-dynamic-forms/datas",
-      options: Options(
-        headers: {
-          "sfa-background": "true",
-        },
-      ),
-      queryParameters: {
-        "tableName": tableName,
         "version": version,
       },
     );

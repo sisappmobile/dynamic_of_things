@@ -6,7 +6,6 @@ import "dart:ui";
 
 import "package:base/base.dart";
 import "package:connectivity_plus/connectivity_plus.dart";
-import "package:dynamic_of_things/local_disk_tile_provider.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:flutter_map/flutter_map.dart";
@@ -19,6 +18,8 @@ import "package:smooth_corner/smooth_corner.dart";
 
 final int minZoom = 14;
 final int maxZoom = 19;
+
+String get offlineMapBaseFolder => "offline_maps";
 
 class MarkerItem {
   final LatLng point;
@@ -53,6 +54,8 @@ class MapPageState extends State<MapPage> {
   LatLng? currentPosition;
   MarkerItem? selectedMarker;
 
+  String baseMap = "satellite";
+
   @override
   void initState() {
     super.initState();
@@ -60,7 +63,7 @@ class MapPageState extends State<MapPage> {
     watchConnectivity();
     checkLocationPermission();
 
-    alignPositionOnUpdate = AlignOnUpdate.always;
+    alignPositionOnUpdate = AlignOnUpdate.once;
     alignPositionStreamController = StreamController<double?>();
   }
 
@@ -381,8 +384,8 @@ class MapPageState extends State<MapPage> {
             borderRadius: BorderRadius.circular(Dimensions.size30),
             child: Ink(
               padding: EdgeInsets.symmetric(
-                  horizontal: Dimensions.size20,
-                  vertical: Dimensions.size10,
+                horizontal: Dimensions.size20,
+                vertical: Dimensions.size10,
               ),
               decoration: ShapeDecoration(
                 color: primary,
@@ -414,7 +417,64 @@ class MapPageState extends State<MapPage> {
     );
   }
 
+  Widget selectLayer(BuildContext context) {
+    final EdgeInsets safe = MediaQuery.of(context).padding;
+
+    return Align(
+      alignment: Alignment.topRight,
+      child: Container(
+        margin: EdgeInsets.only(top: safe.top + 150, right: 20),
+        child: Builder(
+          builder: (targetContext) {
+            return FilledButton.icon(
+              onPressed: () async {
+                String? selectedValue = await BasePopupMenus.show(
+                  context: context,
+                  targetContext: targetContext,
+                  items: [
+                    PopupMenuItem<String>(
+                      enabled: true,
+                      value: "nonsatellite",
+                      child: Text(
+                        "Non-satellite",
+                        style: TextStyle(color: AppColors.onTertiaryContainer()),
+                      ),
+                    ),
+                    PopupMenuItem<String>(
+                      enabled: true,
+                      value: "satellite",
+                      child: Text(
+                        "Satellite",
+                        style: TextStyle(color: AppColors.onTertiaryContainer()),
+                      ),
+                    ),
+                  ],
+                  value: baseMap,
+                );
+
+                if (selectedValue != null) {
+                  setState(() {
+                    baseMap = selectedValue;
+                  });
+                }
+              },
+              style: FilledButton.styleFrom(
+                padding: EdgeInsets.fromLTRB(5, 5, 10, 5),
+                backgroundColor: AppColors.tertiary(),
+                foregroundColor: AppColors.onTertiary(),
+                iconColor: AppColors.onTertiary(),
+              ),
+              label: Text(baseMap),
+              icon: Icon(Icons.arrow_drop_down),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   Widget mapHost() {
+
     return FutureBuilder<Directory>(
       future: getApplicationDocumentsDirectory(),
       builder: (context, snapshot) {
@@ -429,16 +489,10 @@ class MapPageState extends State<MapPage> {
             maxZoom: maxZoom.toDouble(),
           ),
           children: [
-            isOnline
-                ? TileLayer(
-              urlTemplate:
-              "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            TileLayer(
+              tileProvider: isOnline ? NetworkTileProvider() : FileTileProvider(),
+              urlTemplate: tileUrlTemplate(snapshot.data!.path),
               userAgentPackageName: "com.sisapp.dynamic_of_things",
-            )
-                : TileLayer(
-              tileProvider: LocalDiskTileProvider(
-                basePath: "${snapshot.data!.path}/offline_tiles",
-              ),
             ),
             CurrentLocationLayer(
               alignPositionStream: alignPositionStreamController.stream,
@@ -480,6 +534,7 @@ class MapPageState extends State<MapPage> {
             fabLocate(context),
             if (selectedMarker != null)
               fabSelectCurrentMarker(context),
+            selectLayer(context),
           ],
         );
       },
@@ -491,6 +546,18 @@ class MapPageState extends State<MapPage> {
     connectivitySub?.cancel();
     alignPositionStreamController.close();
     super.dispose();
+  }
+
+  String tileUrlTemplate(String path) {
+    if (isOnline) {
+      if (baseMap == "satellite") {
+        return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+      } else {
+        return "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+      }
+    } else {
+      return "$path/$offlineMapBaseFolder/$baseMap/{z}/{x}/{y}.png";
+    }
   }
 
   List<Polyline> buildPolylines() {

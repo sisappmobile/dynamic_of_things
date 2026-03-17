@@ -15,7 +15,7 @@ import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/helper/offlines.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
-import "package:dynamic_of_things/helper/realms.dart";
+import "package:dynamic_of_things/helper/pulls.dart";
 import "package:dynamic_of_things/helper/sqlites.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dart";
@@ -23,7 +23,6 @@ import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_blo
 import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_report/dynamic_report_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_schedule/dynamic_schedule_bloc.dart";
-import "package:dynamic_of_things/realm/version_dao.dart";
 import "package:dynamic_of_things_example/glass_background_setting_page.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/foundation.dart";
@@ -37,12 +36,11 @@ import "package:smooth_corner/smooth_corner.dart";
 
 const String sessionIdKey = "sessionId";
 const String usernameKey = "username";
-// const String baseUrl = "https://192.168.100.92:8443/salesforce/api/";
+const String baseUrl = "https://172.16.12.6:8443/salesforce/api/";
 // const String baseUrl = "https://10.0.2.2:8443/salesforce/api/";
 // const String baseUrl = "https://demo-murti.sisapp.com:13443/salesforce/api/";
-const String baseUrl = "https://posdemo.sisapp.com:8443/salesforce/api/";
-const String salt =
-    "72e4425c484016c95677d1a2513681ff8e2b2459b11e68c8b67cc7b7fe60c422b629eb45d1a5b236c3df0031860c98f4b0f58c2497212ee20d58a833b9a3ea1d";
+// const String baseUrl = "https://posdemo.sisapp.com:8443/salesforce/api/";
+const String salt = "72e4425c484016c95677d1a2513681ff8e2b2459b11e68c8b67cc7b7fe60c422b629eb45d1a5b236c3df0031860c98f4b0f58c2497212ee20d58a833b9a3ea1d";
 
 final GoRouter goRouter = GoRouter(
   routes: [
@@ -89,8 +87,7 @@ Future<void> main() async {
     seedColor: Colors.teal,
     brightness: Brightness.light,
   );
-  AppColors.darkColorScheme =
-      ColorScheme.fromSeed(seedColor: Colors.teal, brightness: Brightness.dark);
+  AppColors.darkColorScheme = ColorScheme.fromSeed(seedColor: Colors.teal, brightness: Brightness.dark);
 
   DynamicForms.offline = false;
 
@@ -98,10 +95,8 @@ Future<void> main() async {
     baseUrl,
     InterceptorsWrapper(
       onRequest: (options, handler) {
-        options.headers["sfa-session-id"] =
-            BasePreferences.getInstance().getString(sessionIdKey);
-        options.headers["sfa-timestamp"] =
-            DateTime.now().millisecondsSinceEpoch.toString();
+        options.headers["sfa-session-id"] = BasePreferences.getInstance().getString(sessionIdKey);
+        options.headers["sfa-timestamp"] = DateTime.now().millisecondsSinceEpoch.toString();
         options.headers["sfa-security-code"] = crypto.sha256
             .convert(
               utf8.encode(
@@ -116,35 +111,13 @@ Future<void> main() async {
   );
 
   await BasePreferences.getInstance().init();
+  await Sqlites.get();
 
   Timer.run(() async {
     while (true) {
       try {
         if (BasePreferences.getInstance().contain(sessionIdKey)) {
-          Response response =
-              await DotApis.getInstance().versioningCheck(VersionDao.check());
-
-          if (response.statusCode == 200) {
-            Map<String, int> entries = Map<String, int>.from(response.data);
-
-            for (MapEntry<String, int> entry in entries.entries) {
-              if (entry.key == "FORM") {
-                response =
-                    await DotApis.getInstance().versioningDynamicFormTemplate(
-                  VersionDao.last(VersionDao.form),
-                );
-
-                if (response.statusCode == 200) {
-                  await Offlines.insertOrUpdate(
-                    latestVersion: entry.value,
-                    items: List<Map<String, dynamic>>.from(response.data),
-                  );
-                }
-              } else {
-                await Offlines.data(tableName: entry.key);
-              }
-            }
-          }
+          await Pulls.execute();
         }
       } catch (e, s) {
         if (kDebugMode) {
@@ -352,8 +325,7 @@ class DismissKeyboard extends StatelessWidget {
       onTap: () {
         FocusScopeNode currentFocus = FocusScope.of(context);
 
-        if (!currentFocus.hasPrimaryFocus &&
-            currentFocus.focusedChild != null) {
+        if (!currentFocus.hasPrimaryFocus && currentFocus.focusedChild != null) {
           FocusManager.instance.primaryFocus?.unfocus();
         }
       },
@@ -374,11 +346,10 @@ class SignInPage extends StatefulWidget {
 class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
   final TextEditingController tecUsername = TextEditingController();
   final TextEditingController tecPassword = TextEditingController();
-  final GlobalKey<FormState> formState =
-      GlobalKey<FormState>(debugLabel: "formState");
+  final GlobalKey<FormState> formState = GlobalKey<FormState>(debugLabel: "formState");
 
   bool obscurePassword = true;
-  String deviceId = "d4db82b1a0b16901";
+  String deviceId = "05cb85e2354dc0eb";
 //apple reviewer
   // String deviceId = "b29d6a48d10ed383";
   // String deviceId = "2c49b31455f471db";
@@ -429,9 +400,7 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
                           prefixIcon: const Icon(Icons.password),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              obscurePassword
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
+                              obscurePassword ? Icons.visibility_off : Icons.visibility,
                             ),
                             onPressed: () {
                               setState(() {
@@ -449,8 +418,7 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
                   width: Dimensions.screenWidth,
                   child: FilledButton(
                     onPressed: () async {
-                      if (formState.currentState != null &&
-                          formState.currentState!.validate()) {
+                      if (formState.currentState != null && formState.currentState!.validate()) {
                         try {
                           context.loaderOverlay.show();
 
@@ -474,17 +442,13 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
                             ),
                           );
 
-                          (dio.httpClientAdapter as IOHttpClientAdapter)
-                              .createHttpClient = () {
-                            HttpClient httpClient = HttpClient()
-                              ..badCertificateCallback =
-                                  (cert, host, port) => true;
+                          (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+                            HttpClient httpClient = HttpClient()..badCertificateCallback = (cert, host, port) => true;
 
                             return httpClient;
                           };
 
-                          String timestamp =
-                              DateTime.now().millisecondsSinceEpoch.toString();
+                          String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
 
                           Response response = await dio.post(
                             "v1/sign-in",
@@ -504,14 +468,13 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
                           if (response.statusCode == 200) {
                             Map<String, dynamic> json = response.data;
 
-                            int responseCode =
-                                Formats.tryParseNumber(json["RC"]).toInt();
+                            int responseCode = Formats.tryParseNumber(json["RC"]).toInt();
 
                             if (responseCode == 0) {
-                              await BasePreferences.getInstance()
-                                  .setString(sessionIdKey, json["SI"]);
-                              await BasePreferences.getInstance()
-                                  .setString(usernameKey, json["UN"]);
+                              await BasePreferences.getInstance().setString(sessionIdKey, json["SI"]);
+                              await BasePreferences.getInstance().setString(usernameKey, json["UN"]);
+                              await setCompanyId(json["CID"]);
+                              await setSalesUnitId(json["SLID"]);
 
                               context.go("/");
                             } else {
@@ -600,9 +563,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
       return;
     }
 
-    final int t = Preferences.getInstance()
-            .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
-        1;
+    final int t = Preferences.getInstance().getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ?? 1;
 
     setState(() {
       _prefsReady = true;
@@ -837,8 +798,6 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       await BasePreferences.getInstance().clear();
 
                       Sqlites.delete();
-
-                      Realms.clear();
 
                       context.go("/");
                     },
