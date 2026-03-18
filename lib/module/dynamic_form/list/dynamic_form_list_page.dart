@@ -109,7 +109,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
 
     if (kIsWeb) {
       if (p == "wallpaper_default.jpg") {
-        final String base64Data = Preferences.getInstance().getString("WEB_WALLPAPER_BYTES") ?? "";
+        final String base64Data = Preferences.getInstance().getStringDynamicForm("WEB_WALLPAPER_BYTES") ?? "";
         if (base64Data.isNotEmpty) {
           try {
             final Uint8List bytes = base64Decode(base64Data);
