@@ -492,7 +492,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                   icon: Icon(
                     Icons.location_on_outlined,
                     size: Dimensions.size30,
-                    color: hexToColor(element["colorlocation"]) ?? Colors.red,
+                    color: Colors.red,
                   ),
                   extra: element,
                 );
@@ -539,19 +539,6 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     }
 
     return const SizedBox.shrink();
-  }
-
-  Color? hexToColor(String? hexString) {
-    try {
-      final buffer = StringBuffer();
-      if (hexString!.length == 6 || hexString.length == 7) {
-        buffer.write("ff");
-      }
-      buffer.write(hexString.replaceFirst("#", ""));
-      return Color(int.parse(buffer.toString(), radix: 16));
-    } catch (_) {}
-
-    return null;
   }
 
   Widget body() {
