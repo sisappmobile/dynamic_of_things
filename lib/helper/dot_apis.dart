@@ -1,7 +1,9 @@
+import "dart:io";
+
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:dio/dio.dart";
-import "package:dynamic_of_things/helper/dio_platform_adapter.dart";
+import "package:dio/io.dart";
 import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/model/dynamic_form_list_response.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
@@ -46,7 +48,11 @@ class DotApis {
       ),
     );
 
-    configureBadCertificateBypass(dio);
+    (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+      HttpClient httpClient = HttpClient()..badCertificateCallback = (cert, host, port) => true;
+
+      return httpClient;
+    };
   }
 
   Future<DynamicFormMenuResponse?> dynamicFormMenu({String? customerId}) async {
@@ -431,7 +437,11 @@ class DotApis {
       ),
     );
 
-    configureBadCertificateBypass(dio);
+    (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+      HttpClient httpClient = HttpClient()..badCertificateCallback = (cert, host, port) => true;
+
+      return httpClient;
+    };
 
     return await dio.get(
       url,
