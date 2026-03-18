@@ -1,6 +1,8 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
+import "dart:convert";
 import "dart:io";
+import "dart:typed_data";
 
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
@@ -104,6 +106,20 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     if (p.isEmpty) {
       return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
     }
+
+    if (kIsWeb) {
+      if (p == "wallpaper_default.jpg") {
+        final String base64Data = Preferences.getInstance().getString("WEB_WALLPAPER_BYTES") ?? "";
+        if (base64Data.isNotEmpty) {
+          try {
+            final Uint8List bytes = base64Decode(base64Data);
+            return Image.memory(bytes, fit: BoxFit.cover);
+          } catch (_) {}
+        }
+      }
+      return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
+    }
+
     if (p.startsWith("assets/")) {
       return Image.asset(p, fit: BoxFit.cover);
     }
