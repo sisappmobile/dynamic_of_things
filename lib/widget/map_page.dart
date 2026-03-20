@@ -17,7 +17,7 @@ import "package:path_provider/path_provider.dart";
 import "package:smooth_corner/smooth_corner.dart";
 
 final int minZoom = 14;
-final int maxZoom = 19;
+final int maxZoom = 22;
 
 String get offlineMapBaseFolder => "offline_maps";
 
@@ -493,6 +493,17 @@ class MapPageState extends State<MapPage> {
               tileProvider: isOnline ? NetworkTileProvider() : FileTileProvider(),
               urlTemplate: tileUrlTemplate(snapshot.data!.path),
               userAgentPackageName: "com.sisapp.dynamic_of_things",
+            ),
+            TileLayer(
+              urlTemplate: "${snapshot.data!.path}/$offlineMapBaseFolder/custom/{z}/{x}/{y}.png",
+              tileProvider: FileTileProvider(),
+              tms: true,
+              tileBuilder: (context, tileWidget, tile) {
+                return Opacity(
+                  opacity: 0.7,
+                  child: tileWidget,
+                );
+              },
             ),
             CurrentLocationLayer(
               alignPositionStream: alignPositionStreamController.stream,

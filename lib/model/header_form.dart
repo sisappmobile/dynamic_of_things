@@ -2,35 +2,32 @@
 
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
+import "package:collection/collection.dart";
 import "package:dynamic_of_things/enumeration/dynamic_form_field_type.dart";
+import "package:dynamic_of_things/helper/dml_assemblers.dart";
 import "package:dynamic_of_things/helper/dynamic_form_texts.dart";
 import "package:dynamic_of_things/helper/formats.dart";
+import "package:dynamic_of_things/helper/offlines.dart";
 import "package:flutter/material.dart";
+import "package:sqflite/sqflite.dart";
 
 class HeaderForm {
-  final Category category;
-  final Template template;
-  final List<DetailForm> detailForms;
-  Map<String, dynamic> data;
-  final bool hasOnChangeEvent;
+  late Category category;
+  late Template template;
+  List<DetailForm> detailForms = [];
+  late Map<String, dynamic> data;
+  late bool hasOnChangeEvent;
 
   String? dataId;
 
-  HeaderForm({
-    required this.category,
-    required this.template,
-    required this.detailForms,
-    required this.data,
-    required this.hasOnChangeEvent,
-  });
+  HeaderForm();
 
-  factory HeaderForm.fromJson(Map<String, dynamic> json) => HeaderForm(
-    category: Category.fromJson(json["category"]),
-    template: Template.fromJson(json["template"]),
-    detailForms: json["detailForms"] != null ? List<DetailForm>.from(json["detailForms"].map((e) => DetailForm.fromJson(e))) : [],
-    data: json["data"],
-    hasOnChangeEvent: json["hasOnChangeEvent"],
-  );
+  factory HeaderForm.fromJson(Map<String, dynamic> json) => HeaderForm()
+    ..category = Category.fromJson(json["category"])
+    ..template = Template.fromJson(json["template"])
+    ..detailForms = json["detailForms"] != null ? List<DetailForm>.from(json["detailForms"].map((e) => DetailForm.fromJson(e))) : []
+    ..data = json["data"]
+    ..hasOnChangeEvent = json["hasOnChangeEvent"];
 
   Map<String, dynamic> toJson() => {
     "template": template.toJson(),
@@ -40,27 +37,20 @@ class HeaderForm {
 }
 
 class Menu {
-  final String id;
-  final String name;
-  final int index;
-  final String type;
-  final String icon;
+  late String id;
+  late String name;
+  late int index;
+  late String type;
+  late String icon;
 
-  Menu({
-    required this.id,
-    required this.name,
-    required this.index,
-    required this.type,
-    required this.icon,
-  });
+  Menu();
 
-  factory Menu.fromJson(Map<String, dynamic> json) => Menu(
-    id: json["id"] ?? "",
-    name: json["name"] ?? "",
-    index: json["index"] ?? 0,
-    type: json["type"] ?? "",
-    icon: json["icon"] ?? "",
-  );
+  factory Menu.fromJson(Map<String, dynamic> json) => Menu()
+    ..id = json["id"] ?? ""
+    ..name = json["name"] ?? ""
+    ..index = json["index"] ?? 0
+    ..type = json["type"] ?? ""
+    ..icon = json["icon"] ?? "";
 
   Map<String, dynamic> toJson() => {
     "id": id,
@@ -72,24 +62,18 @@ class Menu {
 }
 
 class Category {
-  final String id;
-  final String name;
-  final int index;
-  final Menu menu;
+  late String id;
+  late String name;
+  late int index;
+  late Menu menu;
 
-  Category({
-    required this.id,
-    required this.name,
-    required this.index,
-    required this.menu,
-  });
+  Category();
 
-  factory Category.fromJson(Map<String, dynamic> json) => Category(
-    id: json["id"] ?? "",
-    name: json["name"] ?? "",
-    index: json["index"] ?? 0,
-    menu: Menu.fromJson(json["menu"]),
-  );
+  factory Category.fromJson(Map<String, dynamic> json) => Category()
+    ..id = json["id"] ?? ""
+    ..name = json["name"] ?? ""
+    ..index = json["index"] ?? 0
+    ..menu = Menu.fromJson(json["menu"]);
 
   Map<String, dynamic> toJson() => {
     "id": id,
@@ -100,48 +84,216 @@ class Category {
 }
 
 class Template {
-  final String id;
-  final String tableName;
-  final String title;
-  final String description;
-  final bool journey;
-  final bool recordLocationOnSubmit;
-  final num? locationAccuracyInMeters;
-  final num? locationAccuracyEfectiveDurationInSeconds;
-  final List<Action> actions;
-  final List<ListColumn> columns;
-  final List<Resource> resources;
-  final List<Section> sections;
+  late String id;
+  late String tableName;
+  late String title;
+  late String description;
+  late bool journey;
+  late bool recordLocationOnSubmit;
+  late num? locationAccuracyInMeters;
+  late num? locationAccuracyEfectiveDurationInSeconds;
+  List<Action> actions = [];
+  List<Section> sections = [];
 
-  Template({
-    required this.id,
-    required this.tableName,
-    required this.title,
-    required this.description,
-    required this.journey,
-    required this.recordLocationOnSubmit,
-    required this.locationAccuracyInMeters,
-    required this.locationAccuracyEfectiveDurationInSeconds,
-    required this.actions,
-    required this.columns,
-    required this.resources,
-    required this.sections,
-  });
+  Template();
 
-  factory Template.fromJson(Map<String, dynamic> json) => Template(
-    id: json["id"] ?? "",
-    tableName: json["tableName"] ?? "",
-    title: json["title"] ?? "",
-    description: json["description"] ?? "",
-    journey: json["journey"] ?? false,
-    recordLocationOnSubmit: json["recordLocationOnSubmit"] ?? false,
-    locationAccuracyInMeters: json["locationAccuracyInMeters"],
-    locationAccuracyEfectiveDurationInSeconds: json["locationAccuracyEfectiveDurationInSeconds"],
-    actions: json["actions"] != null ? List<Action>.from(json["actions"].map((e) => Action.fromJson(e))) : [],
-    columns: json["columns"] != null ? List<ListColumn>.from(json["columns"].map((e) => ListColumn.fromJson(e))) : [],
-    resources: json["resources"] != null ? List<Resource>.from(json["resources"].map((e) => Resource.fromJson(e))) : [],
-    sections: json["sections"] != null ? List<Section>.from(json["sections"].map((e) => Section.fromJson(e))) : [],
-  );
+  factory Template.fromJson(Map<String, dynamic> json) => Template()
+    ..id = json["id"] ?? ""
+    ..tableName = json["tableName"] ?? ""
+    ..title = json["title"] ?? ""
+    ..description = json["description"] ?? ""
+    ..journey = json["journey"] ?? false
+    ..recordLocationOnSubmit = json["recordLocationOnSubmit"] ?? false
+    ..locationAccuracyInMeters = json["locationAccuracyInMeters"]
+    ..locationAccuracyEfectiveDurationInSeconds = json["locationAccuracyEfectiveDurationInSeconds"]
+    ..actions = json["actions"] != null ? List<Action>.from(json["actions"].map((e) => Action.fromJson(e))) : []
+    ..sections = json["sections"] != null ? List<Section>.from(json["sections"].map((e) => Section.fromJson(e))) : [];
+
+  static Future<Template> loadTemplate(int mode, Map<String, dynamic> customFormView, List<Map<String, dynamic>> fields, {
+    Transaction? transaction,
+  }) async {
+    Template template = Template();
+
+    template.id = customFormView["id"].toString();
+    template.tableName = customFormView["table_name"];
+    template.title = customFormView["form_desc"];
+    template.description = customFormView["form_desc"];
+    template.journey = customFormView["f_journey"] == "Y";
+    template.recordLocationOnSubmit = customFormView["f_record_location_on_submit"] == "Y";
+    template.locationAccuracyInMeters = customFormView["location_accuracy_in_meters"];
+    template.locationAccuracyEfectiveDurationInSeconds = customFormView["location_accuracy_effective_duration_in_seconds"];
+
+    {
+      List<Map<String, dynamic>> dtoList = await DMLAssemblers
+          .create()
+          .select("CAST(e.function_id AS TEXT) AS id")
+          .select("e.resource_id AS resource_id")
+          .select("e.function_name AS name")
+          .from("c_group_access_sales_unit_custom_form a")
+          .join("INNER JOIN c_group_access_sales_unit_custom_form_detail b ON b.group_id = a.id")
+          .join("INNER JOIN c_sales_access_custom_form c ON c.group_id = a.id")
+          .join("INNER JOIN c_sales_access_function_custom_form d ON d.access_id = c.id")
+          .join("INNER JOIN c_custom_functions e ON e.resource_id = d.resource_id AND e.custom_id = c.custom_id")
+          .equalTo("b.user_id", currentSalesUnitId)
+          .and()
+          .equalTo("c.custom_id", customFormView["id"])
+          .all(transaction);
+
+      for (Map<String, dynamic> hashDTO in dtoList) {
+        template.actions.add(
+          Action()
+            ..id = hashDTO["id"]
+            ..resourceId = hashDTO["resource_id"]
+            ..name = hashDTO["name"],
+        );
+      }
+    }
+
+    {
+      Map<String, List<Map<String, dynamic>>> sectionMap = groupBy(fields, (element) => (element["group_field_name"] ?? "") as String);
+
+      for (MapEntry<String, List<Map<String, dynamic>>> mapEntry in sectionMap.entries) {
+        Section section = Section();
+
+        section.title = mapEntry.key;
+
+        for (Map<String, dynamic> fieldCustomFormView in mapEntry.value) {
+          if (fieldCustomFormView["f_link_value"] != "Y" || (fieldCustomFormView["f_link_value"] == "Y" && StringUtils.isNotNullOrEmpty(fieldCustomFormView["dst_link_field_value"]))) {
+            if (customFormView["f_journey"] == "Y" && fieldCustomFormView["field_name"] == "customer_id") {
+              continue;
+            }
+
+            if (fieldCustomFormView["f_pk"] != "Y" && !StringUtils.inList(fieldCustomFormView["field_name"], ["company_id", "bu_id", "salesunit_id"])) {
+              String dataType = fieldCustomFormView["field_data_type"];
+
+              Field field = Field();
+
+              field.name = fieldCustomFormView["field_name"];
+              field.title = fieldCustomFormView["field_caption"];
+
+              if (mode == 0) {
+                field.readOnly = fieldCustomFormView["f_readonly"] == "Y" || fieldCustomFormView["f_default_value"] == "Y";
+              } else {
+                field.readOnly = fieldCustomFormView["f_readonly"] == "Y";
+              }
+
+              field.required = fieldCustomFormView["f_mandatory"] == "Y" && fieldCustomFormView["f_default_value"] != "Y";
+              field.hidden = fieldCustomFormView["f_hidden"] == "Y";
+              field.defaultValue = fieldCustomFormView["default_value"] ?? "";
+              field.hasScript = StringUtils.isNotNullOrEmpty(fieldCustomFormView["script_android"]);
+              field.linkUrl = fieldCustomFormView["f_is_link_url"] == "Y";
+
+              if (fieldCustomFormView["enable_after_colum"] != null) {
+                field.enableAfter = (await DMLAssemblers
+                    .create()
+                    .select("COALESCE(b.field_name, a.field_name) AS field_name")
+                    .from("c_field_custom_form a")
+                    .join("LEFT JOIN c_field_custom_form b ON b.dst_link_field_value = a.field_name")
+                    .equalTo("a.custom_id", customFormView["id"])
+                    .and()
+                    .equalTo("a.column_id", fieldCustomFormView["enable_after_colum"])
+                    .first(transaction))?["field_name"];
+              }
+
+              if (!StringUtils.inList(dataType, ["DATA", "MULTIDATA"])) {
+                if (fieldCustomFormView["f_link_value"] == "Y") {
+                  field.readOnly = true;
+                }
+              }
+
+              if (dataType == "STRING") {
+                if (fieldCustomFormView["f_text_area"] == "Y") {
+                  field.type = "LONG_TEXT";
+                } else {
+                  field.type = "SHORT_TEXT";
+                }
+              } else if (dataType == "TEXT") {
+                field.type = "LONG_TEXT";
+              } else if (dataType == "PASSWORD") {
+                field.type = "SHORT_TEXT";
+                field.obscure = true;
+              } else if (dataType == "NUMERIC") {
+                field.type = "NUMBER";
+              } else if (dataType == "EMAIL") {
+                field.type = "EMAIL";
+              } else if (dataType == "DATE") {
+                field.type = "DATE";
+              } else if (dataType == "DATETIME") {
+                field.type = "DATE_TIME";
+              } else if (dataType == "TIME") {
+                field.type = "TIME";
+              } else if (dataType == "CHECKBOX") {
+                field.type = "CHECK";
+              } else if (dataType == "FILE") {
+                field.type = "FILE";
+              } else if (dataType == "FOTO") {
+                field.type = "FOTO";
+              } else if (dataType == "VIDEO") {
+                field.type = "VIDEO";
+              } else if (dataType == "SIGNATURE") {
+                field.type = "SIGNATURE";
+              } else if (dataType == "UPLOAD_FOTO") {
+                field.type = "UPLOAD_FOTO";
+              } else if (dataType == "UPLOAD_VIDEO") {
+                field.type = "UPLOAD_VIDEO";
+              } else if (dataType == "UPLOAD_SIGNATURE") {
+                field.type = "UPLOAD_SIGNATURE";
+              } else if (dataType == "BARCODE") {
+                field.type = "BARCODE";
+              } else if (dataType == "QRCODE") {
+                field.type = "QRCODE";
+              } else if (dataType == "COMBOBOX") {
+                field.type = "DROPDOWN";
+                field.data = ((fieldCustomFormView["field_data_value"] ?? "") as String)
+                    .split("\n")
+                    .map((e) => e.replaceAll("\r", ""))
+                    .toList();
+              } else if (StringUtils.inList(dataType, ["DATA", "MULTIDATA"])) {
+                field.type = "DROPDOWN_DATA";
+
+                if (dataType == "MULTIDATA") {
+                  field.multiple = true;
+                }
+
+                if (fieldCustomFormView["f_link_value"] == "Y") {
+                  Link link = Link();
+
+                  link.source = fieldCustomFormView["src_link_field_value"];
+                  link.target = fieldCustomFormView["dst_link_field_value"];
+                  link.depends = (await DMLAssemblers
+                      .create()
+                      .select("value")
+                      .from("c_field_filter_from_field")
+                      .equalTo("field_id", fieldCustomFormView["id"])
+                      .all(transaction)).map((e) => e["value"] as String).toList();
+
+                  field.link = link;
+                }
+              }
+
+              if (fieldCustomFormView["field_data_length"] != null) {
+                Validation validation = Validation();
+
+                validation.type = "MAX_LENGTH";
+                validation.value = fieldCustomFormView["field_data_length"];
+                validation.errorMessage = "Jumlah karakter maksimal ${fieldCustomFormView["field_data_length"]}";
+
+                field.validations.add(validation);
+              }
+
+              section.fields.add(field);
+            }
+          }
+        }
+
+        if (section.fields.isNotEmpty) {
+          template.sections.add(section);
+        }
+      }
+    }
+
+    return template;
+  }
 
   Map<String, dynamic> toJson() => {
     "id": id,
@@ -153,27 +305,21 @@ class Template {
     "locationAccuracyInMeters": locationAccuracyInMeters,
     "locationAccuracyEfectiveDurationInSeconds": locationAccuracyEfectiveDurationInSeconds,
     "actions": List<dynamic>.from(actions.map((x) => x.toJson())),
-    "resources": List<dynamic>.from(resources.map((x) => x.toJson())),
     "sections": List<dynamic>.from(sections.map((x) => x.toJson())),
   };
 }
 
 class Action {
-  final String id;
-  final String resourceId;
-  final String name;
+  late String id;
+  late String resourceId;
+  late String name;
 
-  Action({
-    required this.id,
-    required this.resourceId,
-    required this.name,
-  });
+  Action();
 
-  factory Action.fromJson(Map<String, dynamic> json) => Action(
-    id: json["id"] ?? "",
-    resourceId: json["resourceId"] ?? "",
-    name: json["name"] ?? "",
-  );
+  factory Action.fromJson(Map<String, dynamic> json) => Action()
+    ..id = json["id"] ?? ""
+    ..resourceId = json["resourceId"] ?? ""
+    ..name = json["name"] ?? "";
 
   Map<String, dynamic> toJson() => {
     "id": id,
@@ -183,33 +329,62 @@ class Action {
 }
 
 class DetailForm with ChangeNotifier {
-  final bool single;
-  final int? sectionIndex;
-  final List<ListColumn> columns;
-  final Template template;
-  final Map<String, dynamic> constructor;
-  final List<SubDetailForm> subDetailForms;
-  final bool hasOnChangeEvent;
+  late bool single;
+  late int? sectionIndex;
+  List<ListColumn> columns = [];
+  late Template template;
+  late Map<String, dynamic> constructor;
+  List<SubDetailForm> subDetailForms = [];
+  late bool hasOnChangeEvent;
 
-  DetailForm({
-    required this.single,
-    required this.sectionIndex,
-    required this.columns,
-    required this.template,
-    required this.constructor,
-    required this.subDetailForms,
-    required this.hasOnChangeEvent,
-  });
+  DetailForm();
 
-  factory DetailForm.fromJson(Map<String, dynamic> json) => DetailForm(
-    single: json["single"],
-    sectionIndex: json["sectionIndex"],
-    columns: json["columns"] != null ? List<ListColumn>.from(json["columns"].map((e) => ListColumn.fromJson(e))) : [],
-    template: Template.fromJson(json["template"]),
-    constructor: json["template"],
-    subDetailForms: json["subDetailForms"] != null ? List<SubDetailForm>.from(json["subDetailForms"].map((e) => SubDetailForm.fromJson(e))) : [],
-    hasOnChangeEvent: json["hasOnChangeEvent"],
-  );
+  factory DetailForm.fromJson(Map<String, dynamic> json) => DetailForm()
+    ..single = json["single"]
+    ..sectionIndex = json["sectionIndex"]
+    ..columns = json["columns"] != null ? List<ListColumn>.from(json["columns"].map((e) => ListColumn.fromJson(e))) : []
+    ..template = Template.fromJson(json["template"])
+    ..constructor = json["template"]
+    ..subDetailForms = json["subDetailForms"] != null ? List<SubDetailForm>.from(json["subDetailForms"].map((e) => SubDetailForm.fromJson(e))) : []
+    ..hasOnChangeEvent = json["hasOnChangeEvent"];
+
+  static Future<DetailForm> load({
+    required int mode,
+    required DetailCarrier detailCarrier,
+    Transaction? transaction,
+  }) async {
+    DetailForm detailForm = DetailForm();
+
+    detailForm.single = detailCarrier.customFormView["template_mode"] == "CARD";
+    detailForm.template = await Template.loadTemplate(mode, detailCarrier.customFormView, detailCarrier.fields, transaction: transaction);
+    detailForm.hasOnChangeEvent = detailCarrier.fields.any((element) => StringUtils.isNotNullOrEmpty(element["script_android"]));
+
+    if (!detailForm.single) {
+      for (Map<String, dynamic> fieldCustomFormView in detailCarrier.fields) {
+        if (fieldCustomFormView["field_name"] != "salesunit_id") {
+          ListColumn listColumn = ListColumn();
+
+          if (fieldCustomFormView["f_link_value"] == "Y") {
+            listColumn.name = fieldCustomFormView["dst_link_field_value"] ?? "";
+          } else {
+            listColumn.name = fieldCustomFormView["field_name"];
+          }
+
+          listColumn.type = DynamicFormFieldType.convert(fieldCustomFormView["field_data_type"]).name;
+          listColumn.description = fieldCustomFormView["field_caption"];
+          listColumn.primaryKey = fieldCustomFormView["f_pk"] == "Y";
+
+          detailForm.columns.add(listColumn);
+        }
+      }
+
+      for (SubDetailCarrier subDetailCarrier in detailCarrier.subDetailCarriers) {
+        detailForm.subDetailForms.add(await SubDetailForm.load(mode: mode, subDetailCarrier: subDetailCarrier));
+      }
+    }
+
+    return detailForm;
+  }
 
   Map<String, dynamic> toJson() => {
     "single": single,
@@ -253,24 +428,49 @@ class DetailForm with ChangeNotifier {
 }
 
 class SubDetailForm with ChangeNotifier {
-  final List<ListColumn> columns;
-  final Template template;
-  final Map<String, dynamic> constructor;
-  final bool hasOnChangeEvent;
+  List<ListColumn> columns = [];
+  late Template template;
+  late Map<String, dynamic> constructor;
+  late bool hasOnChangeEvent;
 
-  SubDetailForm({
-    required this.columns,
-    required this.template,
-    required this.constructor,
-    required this.hasOnChangeEvent,
-  });
+  SubDetailForm();
 
-  factory SubDetailForm.fromJson(Map<String, dynamic> json) => SubDetailForm(
-    columns: json["columns"] != null ? List<ListColumn>.from(json["columns"].map((e) => ListColumn.fromJson(e))) : [],
-    template: Template.fromJson(json["template"]),
-    constructor: json["template"],
-    hasOnChangeEvent: json["hasOnChangeEvent"],
-  );
+  factory SubDetailForm.fromJson(Map<String, dynamic> json) => SubDetailForm()
+    ..columns = json["columns"] != null ? List<ListColumn>.from(json["columns"].map((e) => ListColumn.fromJson(e))) : []
+    ..template = Template.fromJson(json["template"])
+    ..constructor = json["template"]
+    ..hasOnChangeEvent = json["hasOnChangeEvent"];
+
+  static Future<SubDetailForm> load({
+    required int mode,
+    required SubDetailCarrier subDetailCarrier,
+    Transaction? transaction,
+  }) async {
+    SubDetailForm subDetailForm = SubDetailForm();
+
+    subDetailForm.template = await Template.loadTemplate(mode, subDetailCarrier.customFormView, subDetailCarrier.fields, transaction: transaction);
+    subDetailForm.hasOnChangeEvent = subDetailCarrier.fields.any((element) => StringUtils.isNotNullOrEmpty(element["script_android"]));
+
+    for (Map<String, dynamic> fieldCustomFormView in subDetailCarrier.fields) {
+      if (fieldCustomFormView["field_name"] != "salesunit_id") {
+        ListColumn listColumn = ListColumn();
+
+        if (fieldCustomFormView["f_link_value"] == "Y") {
+          listColumn.name = fieldCustomFormView["dst_field_value"];
+        } else {
+          listColumn.name = fieldCustomFormView["field_name"];
+        }
+
+        listColumn.type = DynamicFormFieldType.convert(fieldCustomFormView["field_data_type"]).name;
+        listColumn.description = fieldCustomFormView["field_caption"];
+        listColumn.primaryKey = fieldCustomFormView["f_pk"] == "Y";
+
+        subDetailForm.columns.add(listColumn);
+      }
+    }
+
+    return subDetailForm;
+  }
 
   Map<String, dynamic> toJson() => {
     "columns": List<dynamic>.from(columns.map((x) => x.toJson())),
@@ -308,24 +508,18 @@ class SubDetailForm with ChangeNotifier {
 }
 
 class ListColumn {
-  final String name;
-  final String type;
-  final String description;
-  final bool primaryKey;
+  late String name;
+  late String type;
+  late String description;
+  late bool primaryKey;
 
-  ListColumn({
-    required this.name,
-    required this.type,
-    required this.description,
-    required this.primaryKey,
-  });
+  ListColumn();
 
-  factory ListColumn.fromJson(Map<String, dynamic> json) => ListColumn(
-    name: json["name"] ?? "",
-    type: json["type"] ?? "",
-    description: json["description"] ?? "",
-    primaryKey: json["primaryKey"] ?? false,
-  );
+  factory ListColumn.fromJson(Map<String, dynamic> json) => ListColumn()
+    ..name = json["name"] ?? ""
+    ..type = json["type"] ?? ""
+    ..description = json["description"] ?? ""
+    ..primaryKey = json["primaryKey"] ?? false;
 
   Map<String, dynamic> toJson() => {
     "name": name,
@@ -336,36 +530,26 @@ class ListColumn {
 }
 
 class Resource {
-  final String name;
-  final String key;
-  final String table;
-  final List<String> fields;
-  final List<ManualFilter> manualFilters;
-  final List<AutoFilter> autoFilters;
-  final List<DetailSetup> detailSetups;
-  final List<LoadOnField> loadOnFields;
+  late String name;
+  late String key;
+  late String table;
+  List<String> fields = [];
+  List<ManualFilter> manualFilters = [];
+  List<AutoFilter> autoFilters = [];
+  List<DetailSetup> detailSetups = [];
+  List<LoadOnField> loadOnFields = [];
 
-  Resource({
-    required this.name,
-    required this.key,
-    required this.table,
-    required this.fields,
-    required this.manualFilters,
-    required this.autoFilters,
-    required this.detailSetups,
-    required this.loadOnFields,
-  });
+  Resource();
 
-  factory Resource.fromJson(Map<String, dynamic> json) => Resource(
-    name: json["name"] ?? "",
-    key: json["key"] ?? "",
-    table: json["table"] ?? "",
-    fields: json["fields"] != null ? List<String>.from(json["fields"].map((e) => e)) : [],
-    manualFilters: json["manualFilters"] != null ? List<ManualFilter>.from(json["manualFilters"].map((e) => ManualFilter.fromJson(e))) : [],
-    autoFilters: json["autoFilters"] != null ? List<AutoFilter>.from(json["autoFilters"].map((e) => AutoFilter.fromJson(e))) : [],
-    detailSetups: json["detailSetups"] != null ? List<DetailSetup>.from(json["detailSetups"].map((e) => DetailSetup.fromJson(e))) : [],
-    loadOnFields: json["loadOnFields"] != null ? List<LoadOnField>.from(json["loadOnFields"].map((e) => LoadOnField.fromJson(e))) : [],
-  );
+  factory Resource.fromJson(Map<String, dynamic> json) => Resource()
+    ..name = json["name"] ?? ""
+    ..key = json["key"] ?? ""
+    ..table = json["table"] ?? ""
+    ..fields = json["fields"] != null ? List<String>.from(json["fields"].map((e) => e)) : []
+    ..manualFilters = json["manualFilters"] != null ? List<ManualFilter>.from(json["manualFilters"].map((e) => ManualFilter.fromJson(e))) : []
+    ..autoFilters = json["autoFilters"] != null ? List<AutoFilter>.from(json["autoFilters"].map((e) => AutoFilter.fromJson(e))) : []
+    ..detailSetups = json["detailSetups"] != null ? List<DetailSetup>.from(json["detailSetups"].map((e) => DetailSetup.fromJson(e))) : []
+    ..loadOnFields = json["loadOnFields"] != null ? List<LoadOnField>.from(json["loadOnFields"].map((e) => LoadOnField.fromJson(e))) : [];
 
   Map<String, dynamic> toJson() => {
     "name": name,
@@ -380,24 +564,18 @@ class Resource {
 }
 
 class ManualFilter {
-  final String key;
-  final String value;
-  final String operator;
-  final String operation;
+  late String key;
+  late String value;
+  late String operator;
+  late String operation;
 
-  ManualFilter({
-    required this.key,
-    required this.value,
-    required this.operator,
-    required this.operation,
-  });
+  ManualFilter();
 
-  factory ManualFilter.fromJson(Map<String, dynamic> json) => ManualFilter(
-    key: json["key"] ?? "",
-    value: json["value"] ?? "",
-    operator: json["operator"] ?? "",
-    operation: json["operation"] ?? "",
-  );
+  factory ManualFilter.fromJson(Map<String, dynamic> json) => ManualFilter()
+    ..key = json["key"] ?? ""
+    ..value = json["value"] ?? ""
+    ..operator = json["operator"] ?? ""
+    ..operation = json["operation"] ?? "";
 
   Map<String, dynamic> toJson() => {
     "key": key,
@@ -408,24 +586,18 @@ class ManualFilter {
 }
 
 class AutoFilter {
-  final String key;
-  final String value;
-  final String operator;
-  final String operation;
+  late String key;
+  late String value;
+  late String operator;
+  late String operation;
 
-  AutoFilter({
-    required this.key,
-    required this.value,
-    required this.operator,
-    required this.operation,
-  });
+  AutoFilter();
 
-  factory AutoFilter.fromJson(Map<String, dynamic> json) => AutoFilter(
-    key: json["key"] ?? "",
-    value: json["value"] ?? "",
-    operator: json["operator"] ?? "",
-    operation: json["operation"] ?? "",
-  );
+  factory AutoFilter.fromJson(Map<String, dynamic> json) => AutoFilter()
+    ..key = json["key"] ?? ""
+    ..value = json["value"] ?? ""
+    ..operator = json["operator"] ?? ""
+    ..operation = json["operation"] ?? "";
 
   Map<String, dynamic> toJson() => {
     "key": key,
@@ -436,18 +608,14 @@ class AutoFilter {
 }
 
 class DetailSetup {
-  final String srcKey;
-  final String dstKey;
+  late String srcKey;
+  late String dstKey;
 
-  DetailSetup({
-    required this.srcKey,
-    required this.dstKey,
-  });
+  DetailSetup();
 
-  factory DetailSetup.fromJson(Map<String, dynamic> json) => DetailSetup(
-    srcKey: json["srcKey"] ?? "",
-    dstKey: json["dstKey"] ?? "",
-  );
+  factory DetailSetup.fromJson(Map<String, dynamic> json) => DetailSetup()
+    ..srcKey = json["srcKey"] ?? ""
+    ..dstKey = json["dstKey"] ?? "";
 
   Map<String, dynamic> toJson() => {
     "srcKey": srcKey,
@@ -456,21 +624,16 @@ class DetailSetup {
 }
 
 class LoadOnField {
-  final bool detail;
-  final String source;
-  final String target;
+  late bool detail;
+  late String source;
+  late String target;
 
-  LoadOnField({
-    required this.detail,
-    required this.source,
-    required this.target,
-  });
+  LoadOnField();
 
-  factory LoadOnField.fromJson(Map<String, dynamic> json) => LoadOnField(
-    detail: json["detail"] ?? false,
-    source: json["source"] ?? "",
-    target: json["target"] ?? "",
-  );
+  factory LoadOnField.fromJson(Map<String, dynamic> json) => LoadOnField()
+    ..detail = json["detail"] ?? false
+    ..source = json["source"] ?? ""
+    ..target = json["target"] ?? "";
 
   Map<String, dynamic> toJson() => {
     "detail": detail,
@@ -480,18 +643,14 @@ class LoadOnField {
 }
 
 class Section {
-  final String title;
-  final List<Field> fields;
+  late String title;
+  List<Field> fields = [];
 
-  Section({
-    required this.title,
-    required this.fields,
-  });
+  Section();
 
-  factory Section.fromJson(Map<String, dynamic> json) => Section(
-    title: json["title"] ?? "",
-    fields: json["fields"] != null ? List<Field>.from(json["fields"].map((e) => Field.fromJson(e))) : [],
-  );
+  factory Section.fromJson(Map<String, dynamic> json) => Section()
+    ..title = json["title"] ?? ""
+    ..fields = json["fields"] != null ? List<Field>.from(json["fields"].map((e) => Field.fromJson(e))) : [];
 
   Map<String, dynamic> toJson() => {
     "title": title,
@@ -500,62 +659,44 @@ class Section {
 }
 
 class Field with ChangeNotifier {
-  final String name;
-  final String type;
-  final String title;
-  final String description;
-  bool readOnly;
-  final bool required;
-  final bool multiple;
-  final bool obscure;
-  final bool hidden;
-  final bool hasScript;
-  final bool linkUrl;
-  final String defaultValue;
-  final String enableAfter;
-  final List<Validation> validations;
-  final List<dynamic> data;
-  final Link? link;
+  late String name;
+  late String type;
+  late String title;
+  late String description;
+  late bool readOnly;
+  late bool required;
+  late bool multiple;
+  late bool obscure;
+  late bool hidden;
+  late bool hasScript;
+  late bool linkUrl;
+  late String defaultValue;
+  String? enableAfter;
+  List<Validation> validations = [];
+  List<dynamic> data = [];
+  late Link? link;
 
   bool forceRefresh = false;
 
-  Field({
-    required this.name,
-    required this.type,
-    required this.title,
-    required this.description,
-    required this.readOnly,
-    required this.required,
-    required this.multiple,
-    required this.obscure,
-    required this.hidden,
-    required this.hasScript,
-    required this.linkUrl,
-    required this.defaultValue,
-    required this.enableAfter,
-    required this.validations,
-    required this.data,
-    required this.link,
-  });
+  Field();
 
-  factory Field.fromJson(Map<String, dynamic> json) => Field(
-    name: json["name"] ?? "",
-    type: json["type"] ?? "",
-    title: json["title"] ?? "",
-    description: json["description"] ?? "",
-    readOnly: json["readOnly"] ?? false,
-    required: json["required"] ?? false,
-    multiple: json["multiple"] ?? false,
-    obscure: json["obscure"] ?? false,
-    hidden: json["hidden"] ?? false,
-    hasScript: json["hasScript"] ?? false,
-    linkUrl: json["linkUrl"] ?? false,
-    defaultValue: json["defaultValue"] ?? "",
-    enableAfter: json["enableAfter"] ?? "",
-    validations: json["validations"] != null ? List<Validation>.from(json["validations"].map((e) => Validation.fromJson(e))) : [],
-    data: json["data"] != null ? List<dynamic>.from(json["data"].map((e) => e)) : [],
-    link: json["link"] != null ? Link.fromJson(json["link"]) : null,
-  );
+  factory Field.fromJson(Map<String, dynamic> json) => Field()
+    ..name = json["name"] ?? ""
+    ..type = json["type"] ?? ""
+    ..title = json["title"] ?? ""
+    ..description = json["description"] ?? ""
+    ..readOnly = json["readOnly"] ?? false
+    ..required = json["required"] ?? false
+    ..multiple = json["multiple"] ?? false
+    ..obscure = json["obscure"] ?? false
+    ..hidden = json["hidden"] ?? false
+    ..hasScript = json["hasScript"] ?? false
+    ..linkUrl = json["linkUrl"] ?? false
+    ..defaultValue = json["defaultValue"] ?? ""
+    ..enableAfter = json["enableAfter"]
+    ..validations = json["validations"] != null ? List<Validation>.from(json["validations"].map((e) => Validation.fromJson(e))) : []
+    ..data = json["data"] != null ? List<dynamic>.from(json["data"].map((e) => e)) : []
+    ..link = json["link"] != null ? Link.fromJson(json["link"]) : null;
 
   Map<String, dynamic> toJson() => {
     "name": name,
@@ -626,21 +767,16 @@ class Field with ChangeNotifier {
 }
 
 class Validation {
-  final String type;
-  final dynamic value;
-  final String errorMessage;
+  late String type;
+  late dynamic value;
+  late String errorMessage;
 
-  Validation({
-    required this.type,
-    required this.value,
-    required this.errorMessage,
-  });
+  Validation();
 
-  factory Validation.fromJson(Map<String, dynamic> json) => Validation(
-    type: json["type"] ?? "",
-    value: json["value"],
-    errorMessage: json["errorMessage"] ?? "",
-  );
+  factory Validation.fromJson(Map<String, dynamic> json) => Validation()
+    ..type = json["type"] ?? ""
+    ..value = json["value"]
+    ..errorMessage = json["errorMessage"] ?? "";
 
   Map<String, dynamic> toJson() => {
     "type": type,
@@ -650,21 +786,16 @@ class Validation {
 }
 
 class Link {
-  final String source;
-  final String target;
-  final List<String> depends;
+  late String source;
+  late String target;
+  List<String> depends = [];
 
-  Link({
-    required this.source,
-    required this.target,
-    required this.depends,
-  });
+  Link();
 
-  factory Link.fromJson(Map<String, dynamic> json) => Link(
-    source: json["source"] ?? "",
-    target: json["target"] ?? "",
-    depends: json["depends"] != null ? List<String>.from(json["depends"].map((e) => e)) : [],
-  );
+  factory Link.fromJson(Map<String, dynamic> json) => Link()
+    ..source = json["source"] ?? ""
+    ..target = json["target"] ?? ""
+    ..depends = json["depends"] != null ? List<String>.from(json["depends"].map((e) => e)) : [];
 
   Map<String, dynamic> toJson() => {
     "source": source,

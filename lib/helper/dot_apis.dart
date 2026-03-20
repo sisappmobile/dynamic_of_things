@@ -1,3 +1,4 @@
+import "dart:convert";
 import "dart:io";
 
 import "package:base/base.dart";
@@ -520,6 +521,15 @@ class DotApis {
       queryParameters: {
         "version": version,
       },
+    );
+  }
+
+  Future<Response> synchronizationPush(List<Map<String, dynamic>> changes) async {
+    changes.forEach((element) => element["payload"] = jsonDecode(element["payload"]));
+
+    return await dio.post(
+      "v2/synchronizations/push",
+      data: changes,
     );
   }
 }

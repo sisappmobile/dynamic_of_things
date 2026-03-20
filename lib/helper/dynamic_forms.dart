@@ -112,7 +112,7 @@ class DynamicForms {
         } else if (StringUtils.inList(field.type, [DynamicFormFieldType.NUMERIC.name, DynamicFormFieldType.NUMBER.name])) {
           row[key] = Formats.tryParseNumber(value);
         } else if (StringUtils.inList(field.type, [DynamicFormFieldType.CHECK.name])) {
-          row[key] = Formats.tryParseBool(value);
+          row[key] = Formats.tryParseBool(value) ? "Y" : "N";
         } else if (StringUtils.inList(field.type, [DynamicFormFieldType.DROPDOWN_DATA.name])) {
           row[key] = value.toString();
 
@@ -261,6 +261,12 @@ class DynamicForms {
           num result = Formats.tryParseNumber(value);
 
           return result;
+        } else if (field.type == DynamicFormFieldType.CHECK.name) {
+          if (value is bool) {
+            return value;
+          } else if (value is String) {
+            return value == "Y";
+          }
         } else if (field.type == DynamicFormFieldType.NUMBER.name) {
           num result = Formats.tryParseNumber(value);
 

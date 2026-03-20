@@ -21,6 +21,12 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
         HeaderForm? headerForm;
 
         if (DynamicForms.offline) {
+          headerForm = await Offlines.create(
+            formId: event.formId,
+            customerId: event.customerId,
+            extra: event.extra,
+            referenceId: event.referenceId,
+          );
         } else {
           headerForm = await DotApis.getInstance().dynamicFormCreate(
             formId: event.formId,
@@ -33,8 +39,11 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
         if (headerForm != null) {
           emit(DynamicFormCreateSuccess(headerForm: headerForm));
         }
-      } catch (e) {
-        print(e);
+      } catch (e, s) {
+        if (kDebugMode) {
+          print("Caught Exception: $e");
+          print("Stack Trace:\n$s");
+        }
 
         BaseOverlays.error(message: "common_something_wrong".tr());
       } finally {
@@ -49,6 +58,10 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
         HeaderForm? headerForm;
 
         if (DynamicForms.offline) {
+          headerForm = await Offlines.view(
+            formId: event.formId,
+            dataId: event.dataId,
+          );
         } else {
           headerForm = await DotApis.getInstance().dynamicFormView(
             formId: event.formId,
@@ -81,6 +94,10 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
         HeaderForm? headerForm;
 
         if (DynamicForms.offline) {
+          headerForm = await Offlines.edit(
+            formId: event.formId,
+            dataId: event.dataId,
+          );
         } else {
           headerForm = await DotApis.getInstance().dynamicFormEdit(
             formId: event.formId,
@@ -110,9 +127,10 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
         Map<String, dynamic> output = await DynamicForms.encode(event.headerForm);
 
         if (DynamicForms.offline) {
-          await Offlines.save(
-            headerForm: event.headerForm,
+          await Offlines.dynamicFormSave(
+            formId: event.formId,
             data: output,
+            customerId: event.customerId,
           );
         } else {
           if (StringUtils.isNotNullOrEmpty(event.headerForm.dataId)) {
@@ -148,36 +166,44 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
     });
 
     on<DynamicFormRefresh>((event, emit) async {
-      if (!DynamicForms.offline) {
-        try {
-          emit(DynamicFormRefreshLoading());
+      try {
+        emit(DynamicFormRefreshLoading());
 
-          Map<String, dynamic> output = await DynamicForms.encode(event.headerForm);
+        Map<String, dynamic> output = await DynamicForms.encode(event.headerForm);
 
-          HeaderForm? headerForm = await DotApis.getInstance().dynamicFormRefresh(
+        HeaderForm? headerForm;
+
+        if (DynamicForms.offline) {
+          headerForm = await Offlines.dynamicFormRefresh(
             formId: event.formId,
             data: output,
             customerId: event.customerId,
           );
-
-          if (headerForm != null) {
-            headerForm.dataId = event.headerForm.dataId;
-
-            emit(DynamicFormRefreshSuccess(headerForm: headerForm));
-          }
-        } catch (e, stack) {
-          print(stack);
-
-          String message = "something_wrong_please_try_again".tr();
-
-          if ("Exception" != e.toString()) {
-            message = e.toString().substring(11);
-          }
-
-          BaseOverlays.error(message: message);
-        } finally {
-          emit(DynamicFormRefreshFinished());
+        } else {
+          headerForm = await DotApis.getInstance().dynamicFormRefresh(
+            formId: event.formId,
+            data: output,
+            customerId: event.customerId,
+          );
         }
+
+        if (headerForm != null) {
+          headerForm.dataId = event.headerForm.dataId;
+
+          emit(DynamicFormRefreshSuccess(headerForm: headerForm));
+        }
+      } catch (e, stack) {
+        print(stack);
+
+        String message = "something_wrong_please_try_again".tr();
+
+        if ("Exception" != e.toString()) {
+          message = e.toString().substring(11);
+        }
+
+        BaseOverlays.error(message: message);
+      } finally {
+        emit(DynamicFormRefreshFinished());
       }
     });
   }

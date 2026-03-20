@@ -203,20 +203,20 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
       });
 
       if (DynamicForms.offline) {
-        Data? data = await Offlines.resourceData(
-          headerForm: widget.headerForm,
+        Map<String, dynamic>? result = await Offlines.dynamicFormResourceData(
+          formId: widget.headerForm.template.id,
           name: widget.name,
-          data: widget.data,
+          dataMap: widget.data,
+          customerId: widget.customerId,
+          query: tecSearch.text,
           pageIndex: pageIndex,
           pageSize: pageSize,
-          query: tecSearch.text,
-          customerId: widget.customerId,
         );
 
-        if (data != null) {
+        if (result != null) {
           setState(() {
-            items = data.items;
-            size = data.size;
+            items = result["items"];
+            size = result["size"];
           });
         }
       } else {

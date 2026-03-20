@@ -16,6 +16,7 @@ import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/helper/offlines.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/helper/pulls.dart";
+import "package:dynamic_of_things/helper/pushes.dart";
 import "package:dynamic_of_things/helper/sqlites.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dart";
@@ -36,7 +37,7 @@ import "package:smooth_corner/smooth_corner.dart";
 
 const String sessionIdKey = "sessionId";
 const String usernameKey = "username";
-const String baseUrl = "https://172.16.12.6:8443/salesforce/api/";
+const String baseUrl = "https://192.168.100.92:8443/salesforce/api/";
 // const String baseUrl = "https://10.0.2.2:8443/salesforce/api/";
 // const String baseUrl = "https://demo-murti.sisapp.com:13443/salesforce/api/";
 // const String baseUrl = "https://posdemo.sisapp.com:8443/salesforce/api/";
@@ -127,6 +128,23 @@ Future<void> main() async {
       }
 
       await Future.delayed(const Duration(minutes: 1));
+    }
+  });
+
+  Timer.run(() async {
+    while (true) {
+      try {
+        if (BasePreferences.getInstance().contain(sessionIdKey)) {
+          await Pushes.execute();
+        }
+      } catch (e, s) {
+        if (kDebugMode) {
+          print("Caught Exception: $e");
+          print("Stack Trace:\n$s");
+        }
+      }
+
+      await Future.delayed(const Duration(seconds: 5));
     }
   });
 
@@ -475,6 +493,10 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
                               await BasePreferences.getInstance().setString(usernameKey, json["UN"]);
                               await setCompanyId(json["CID"]);
                               await setSalesUnitId(json["SLID"]);
+                              await setUserId(json["userId"]);
+                              await setUsername(json["UN"]);
+                              await setBusinessUnitId(json["BUID"]);
+                              await setBusinessUnitCode(json["businessUnitCode"]);
 
                               context.go("/");
                             } else {
@@ -673,7 +695,28 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 ),
               ],
             ),
-
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    "Mode Offline",
+                    style: TextStyle(
+                      fontSize: Dimensions.text12,
+                      fontWeight: FontWeight.w900,
+                      color: cs.onSurface,
+                    ),
+                  ),
+                ),
+                Switch(
+                  value: DynamicForms.offline,
+                  onChanged: (value) {
+                    setState(() {
+                      DynamicForms.offline = value;
+                    });
+                  },
+                ),
+              ],
+            ),
             // tombol setting wallpaper (hanya ketika Glass aktif)
             if (_glassMode) ...[
               SizedBox(height: Dimensions.size10),

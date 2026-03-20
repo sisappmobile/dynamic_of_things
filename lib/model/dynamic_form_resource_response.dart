@@ -1,76 +1,55 @@
 import "package:dynamic_of_things/helper/formats.dart";
 
 class DynamicFormResourceResponse {
-  final String key;
-  final List<DynamicFormResourceFieldItem> fields;
-  final List<DynamicFormResourceDetailSetupItem> detailSetups;
-  final List<DynamicFormResourceLoadOnFieldItem> loadOnFields;
+  late String key;
+  List<DynamicFormResourceFieldItem> fields = [];
+  List<DynamicFormResourceDetailSetupItem> detailSetups = [];
+  List<DynamicFormResourceLoadOnFieldItem> loadOnFields = [];
 
-  DynamicFormResourceResponse({
-    required this.key,
-    required this.fields,
-    required this.detailSetups,
-    required this.loadOnFields,
-  });
+  DynamicFormResourceResponse();
 
-  factory DynamicFormResourceResponse.fromJson(Map<String, dynamic> json) => DynamicFormResourceResponse(
-    key: json["key"],
-    fields: json["fields"] != null ? List<DynamicFormResourceFieldItem>.from(json["fields"].map((e) => DynamicFormResourceFieldItem.fromJson(e))) : [],
-    detailSetups: json["detailSetups"] != null ? List<DynamicFormResourceDetailSetupItem>.from(json["detailSetups"].map((e) => DynamicFormResourceDetailSetupItem.fromJson(e))) : [],
-    loadOnFields: json["loadOnFields"] != null ? List<DynamicFormResourceLoadOnFieldItem>.from(json["loadOnFields"].map((e) => DynamicFormResourceLoadOnFieldItem.fromJson(e))) : [],
-  );
+  factory DynamicFormResourceResponse.fromJson(Map<String, dynamic> json) => DynamicFormResourceResponse()
+    ..key = json["key"]
+    ..fields = json["fields"] != null ? List<DynamicFormResourceFieldItem>.from(json["fields"].map((e) => DynamicFormResourceFieldItem.fromJson(e))) : []
+    ..detailSetups = json["detailSetups"] != null ? List<DynamicFormResourceDetailSetupItem>.from(json["detailSetups"].map((e) => DynamicFormResourceDetailSetupItem.fromJson(e))) : []
+    ..loadOnFields = json["loadOnFields"] != null ? List<DynamicFormResourceLoadOnFieldItem>.from(json["loadOnFields"].map((e) => DynamicFormResourceLoadOnFieldItem.fromJson(e))) : [];
 }
 
 class DynamicFormResourceDetailSetupItem {
-  final String srcKey;
-  final String dstKey;
+  late String srcKey;
+  late String dstKey;
 
-  DynamicFormResourceDetailSetupItem({
-    required this.srcKey,
-    required this.dstKey,
-  });
+  DynamicFormResourceDetailSetupItem();
 
-  factory DynamicFormResourceDetailSetupItem.fromJson(Map<String, dynamic> json) => DynamicFormResourceDetailSetupItem(
-    srcKey: json["srcKey"] ?? "",
-    dstKey: json["dstKey"] ?? "",
-  );
+  factory DynamicFormResourceDetailSetupItem.fromJson(Map<String, dynamic> json) => DynamicFormResourceDetailSetupItem()
+    ..srcKey = json["srcKey"] ?? ""
+    ..dstKey = json["dstKey"] ?? "";
 }
 
 class DynamicFormResourceFieldItem {
-  final String name;
-  final String type;
-  final String description;
-  final bool showed;
+  late String name;
+  late String type;
+  late String description;
+  late bool showed;
 
-  DynamicFormResourceFieldItem({
-    required this.name,
-    required this.type,
-    required this.description,
-    required this.showed,
-  });
+  DynamicFormResourceFieldItem();
 
-  factory DynamicFormResourceFieldItem.fromJson(Map<String, dynamic> json) => DynamicFormResourceFieldItem(
-    name: json["name"] ?? "",
-    type: json["type"] ?? "",
-    description: json["description"] ?? "",
-    showed: Formats.tryParseBool(json["showed"]),
-  );
+  factory DynamicFormResourceFieldItem.fromJson(Map<String, dynamic> json) => DynamicFormResourceFieldItem()
+    ..name = json["name"] ?? ""
+    ..type = json["type"] ?? ""
+    ..description = json["description"] ?? ""
+    ..showed = Formats.tryParseBool(json["showed"]);
 }
 
 class DynamicFormResourceLoadOnFieldItem {
-  final bool detail;
-  final String source;
-  final String target;
+  late bool detail;
+  late String source;
+  late String target;
 
-  DynamicFormResourceLoadOnFieldItem({
-    required this.detail,
-    required this.source,
-    required this.target,
-  });
+  DynamicFormResourceLoadOnFieldItem();
 
-  factory DynamicFormResourceLoadOnFieldItem.fromJson(Map<String, dynamic> json) => DynamicFormResourceLoadOnFieldItem(
-    detail: json["detail"] ?? false,
-    source: json["source"] ?? "",
-    target: json["target"] ?? "",
-  );
+  factory DynamicFormResourceLoadOnFieldItem.fromJson(Map<String, dynamic> json) => DynamicFormResourceLoadOnFieldItem()
+    ..detail = json["detail"] ?? false
+    ..source = json["source"] ?? ""
+    ..target = json["target"] ?? "";
 }

@@ -51,7 +51,7 @@ class DMLAssemblers {
   }
 
   DMLAssemblers and({bool condition = true}) {
-    if (condition) {
+    if (condition && _wheres.isNotEmpty) {
       _wheres.add("AND");
     }
 
@@ -59,7 +59,7 @@ class DMLAssemblers {
   }
 
   DMLAssemblers or({bool condition = true}) {
-    if (condition) {
+    if (condition && _wheres.isNotEmpty) {
       _wheres.add("OR");
     }
 
@@ -201,6 +201,14 @@ class DMLAssemblers {
   DMLAssemblers desc(String column, {bool condition = true}) {
     if (condition) {
       _orders.add("$column DESC");
+    }
+
+    return this;
+  }
+
+  DMLAssemblers customOrder(String command, {bool condition = true}) {
+    if (condition) {
+      _orders.add(command);
     }
 
     return this;
@@ -392,58 +400,36 @@ class DMLAssemblers {
     return stringBuilder;
   }
 
-  Future<List<Map<String, Object?>>> all() async {
-    final Database database = await Sqlites.get();
+  Future<List<Map<String, Object?>>> all([Transaction? transaction]) async {
+    DatabaseExecutor databaseExecutor = transaction ?? await Sqlites.get();
 
-    final List<Map<String, Object?>> result = await database.rawQuery(
+    final List<Map<String, Object?>> results = await databaseExecutor.rawQuery(
       _build(),
       _parameters,
     );
 
-    return result;
-  }
+    List<Map<String, dynamic>> copy = [];
 
-  Future<List<Map<String, Object?>>> allWithTransaction(Transaction transaction) async {
-    final List<Map<String, Object?>> result = await transaction.rawQuery(
-      _build(),
-      _parameters,
-    );
-
-    return result;
-  }
-
-  Future<int> count() async {
-    final Database database = await Sqlites.get();
-
-    final List<Map<String, Object?>> result = await database.rawQuery(
-      _build(true),
-      _parameters,
-    );
-
-    return result[0]["count"] as int;
-  }
-
-  Future<int> countWithTransaction(Transaction transaction) async {
-    final List<Map<String, Object?>> result = await transaction.rawQuery(
-      _build(true),
-      _parameters,
-    );
-
-    return result[0]["count"] as int;
-  }
-
-  Future<Map<String, dynamic>?> first() async {
-    final List<Map<String, Object?>> result = await all();
-
-    if (result.isNotEmpty) {
-      return result.first;
-    } else {
-      return null;
+    for (Map<String, dynamic> result in results) {
+      copy.add(Map<String, dynamic>.from(result));
     }
+
+    return copy;
   }
 
-  Future<Map<String, dynamic>?> firstWithTransaction(Transaction transaction) async {
-    final List<Map<String, Object?>> result = await allWithTransaction(transaction);
+  Future<int> count([Transaction? transaction]) async {
+    DatabaseExecutor databaseExecutor = transaction ?? await Sqlites.get();
+
+    final List<Map<String, Object?>> result = await databaseExecutor.rawQuery(
+      _build(true),
+      _parameters,
+    );
+
+    return result[0]["count"] as int;
+  }
+
+  Future<Map<String, dynamic>?> first([Transaction? transaction]) async {
+    final List<Map<String, Object?>> result = await all(transaction);
 
     if (result.isNotEmpty) {
       return result.first;

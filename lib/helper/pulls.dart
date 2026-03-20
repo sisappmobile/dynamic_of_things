@@ -1,8 +1,13 @@
+// ignore_for_file: avoid_print
+
 import "package:base/base.dart";
+import "package:collection/collection.dart";
 import "package:dio/dio.dart";
 import "package:dynamic_of_things/helper/dml_assemblers.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
+import "package:dynamic_of_things/helper/pg_to_sqlite_converter.dart";
 import "package:dynamic_of_things/helper/sqlites.dart";
+import "package:flutter/foundation.dart";
 import "package:sqflite/sqflite.dart";
 
 class Pulls {
@@ -20,7 +25,7 @@ class Pulls {
       await database.transaction((txn) async {
         for (Map<String, dynamic> change in changes) {
           String entity = change["entity"];
-          Map<String, dynamic> data = Map<String, dynamic>.from(change["data"]);
+          Map<String, dynamic> payload = Map<String, dynamic>.from(change["payload"]);
 
           List<Map<String, dynamic>> tableInfos = await txn.rawQuery("PRAGMA table_info($entity)");
 
@@ -30,27 +35,70 @@ class Pulls {
                 .select("*")
                 .from("f_dynamic_table")
                 .equalTo("table_name", entity)
-                .firstWithTransaction(txn);
+                .first(txn);
 
             if (table != null) {
-              List<Map<String, dynamic>> columns = await DMLAssemblers
+              List<Map<String, dynamic>> dynamicTableDetailViews = await DMLAssemblers
                   .create()
                   .select("*")
                   .from("f_dynamic_table_detail")
                   .equalTo("table_id", table["id"])
-                  .allWithTransaction(txn);
+                  .all(txn);
 
-              await txn.execute("CREATE TABLE $entity ( ${columns.map((column) => "${column["column_name"]} TEXT").join(", ")} )");
+              String? pkColumn = dynamicTableDetailViews.firstWhereOrNull((dynamicTableDetailViews) => dynamicTableDetailViews["f_pk"] == "Y")?["column_name"];
+
+              List<String> columns = dynamicTableDetailViews.map((dynamicTableDetailViews) => dynamicTableDetailViews["column_name"] as String).toList();
+
+              List<String> additionalColumns = [
+                "table_id",
+                "form_id",
+                "f_delete",
+                "version",
+                "user_id",
+              ];
+
+              for (String additionalColumn in additionalColumns) {
+                if (!columns.contains(additionalColumn)) {
+                  columns.add(additionalColumn);
+                }
+              }
+
+              await txn.execute("CREATE TABLE $entity ( ${columns.map((column) => "$column TEXT ${column == pkColumn ? "PRIMARY KEY" : ""}").join(", ")} )");
 
               tableInfos = await txn.rawQuery("PRAGMA table_info($entity)");
             }
           }
 
           if (tableInfos.isNotEmpty) {
-            await txn.insert(entity, Map<String, dynamic>.fromEntries(data.entries.where((element) => element.value is! List && tableInfos.map((e) => e["name"]).contains(element.key))), conflictAlgorithm: ConflictAlgorithm.replace);
+            if (payload["idempotent_id"] != null) {
+              int rowsAffected = await txn.delete(entity, where: "id = ?", whereArgs: [payload["idempotent_id"]]);
+
+              if (rowsAffected > 0) {
+                print("$rowsAffected $entity with idempotent id: ${payload["idempotent_id"]} has been deleted");
+              }
+            }
+
+            await txn.insert(entity, Map<String, dynamic>.fromEntries(payload.entries.where((element) => element.value is! List && tableInfos.map((e) => e["name"]).contains(element.key))), conflictAlgorithm: ConflictAlgorithm.replace);
           }
 
-          await checkList(txn, data);
+          if (entity == "c_segment_report") {
+            try {
+              final converter = PgToSqliteConverter();
+
+              final sqliteQuery = converter.convert(payload["segment_report_query"]);
+
+              await txn.execute("CREATE VIEW IF NOT EXISTS ${payload["view_name"]} AS $sqliteQuery");
+            } catch (e, s) {
+              if (kDebugMode) {
+                print("Caught Exception: $e");
+                print("Stack Trace:\n$s");
+              }
+
+              rethrow;
+            }
+          }
+
+          await checkList(txn, payload);
         }
       }).then((value) async {
         await BasePreferences.getInstance().setInt("sync_current_version", currentVersion);
@@ -75,17 +123,32 @@ class Pulls {
               .select("*")
               .from("f_dynamic_table")
               .equalTo("table_name", element.key)
-              .firstWithTransaction(transaction);
+              .first(transaction);
 
           if (table != null) {
-            List<Map<String, dynamic>> columns = await DMLAssemblers
+            List<String> columns = (await DMLAssemblers
                 .create()
                 .select("*")
                 .from("f_dynamic_table_detail")
                 .equalTo("table_id", table["id"])
-                .allWithTransaction(transaction);
+                .all(transaction)
+            ).map((element) => element["column_name"] as String).toList();
 
-            await transaction.execute("CREATE TABLE ${element.key} ( ${columns.map((column) => "${column["column_name"]} TEXT").join(", ")} )");
+            List<String> additionalColumns = [
+              "table_id",
+              "form_id",
+              "f_delete",
+              "version",
+              "user_id",
+            ];
+
+            for (String additionalColumn in additionalColumns) {
+              if (!columns.contains(additionalColumn)) {
+                columns.add(additionalColumn);
+              }
+            }
+
+            await transaction.execute("CREATE TABLE ${element.key} ( ${columns.map((column) => "$column TEXT").join(", ")} )");
 
             tableInfos = await transaction.rawQuery("PRAGMA table_info(${element.key})");
           }
