@@ -1,7 +1,9 @@
 // ignore_for_file: deprecated_member_use
 
+import "dart:convert";
 import "dart:io";
 import "dart:math" as math;
+import "dart:typed_data";
 
 import "package:base/base.dart";
 import "package:collection/collection.dart";
@@ -14,6 +16,7 @@ import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_event.dart"
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_state.dart";
 import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:easy_localization/easy_localization.dart";
+import "package:flutter/foundation.dart" show kIsWeb;
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:go_router/go_router.dart";
@@ -97,6 +100,20 @@ class DynamicChartPageState extends State<DynamicChartPage>
     if (p.isEmpty) {
       return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
     }
+
+    if (kIsWeb) {
+      if (p == "wallpaper_default.jpg") {
+        final String base64Data = Preferences.getInstance().getStringDynamicForm("WEB_WALLPAPER_BYTES") ?? "";
+        if (base64Data.isNotEmpty) {
+          try {
+            final Uint8List bytes = base64Decode(base64Data);
+            return Image.memory(bytes, fit: BoxFit.cover);
+          } catch (_) {}
+        }
+      }
+      return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
+    }
+
     if (p.startsWith("assets/")) {
       return Image.asset(p, fit: BoxFit.cover);
     }
