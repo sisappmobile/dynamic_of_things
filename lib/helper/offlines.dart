@@ -1167,6 +1167,8 @@ class Offlines {
               .select("*")
               .from("c_field_load_on_field")
               .equalTo("field_id", currentFieldCustomFormView["id"])
+              .and()
+              .isNotNull("src_key")
               .all();
 
           for (Map<String, dynamic> loadOnField in loadOnFields) {
@@ -1940,87 +1942,76 @@ class Offlines {
 
       Map<String, dynamic> headerDTO = container.data;
 
-      List<String> sqlStatements = [];
+      Database database = await Sqlites.get();
 
-      sqlStatements.addAll(
+      await database.transaction((transaction) async {
         await getSqlStatements(
+          transaction: transaction,
           hashDTO: headerDTO,
           headerDTO: null,
           customFormView: container.carrier.customFormView,
           headerCustomFormView: null,
           fields: container.carrier.fields,
           customerId: customerId,
-        ),
-      );
+        );
 
-      for (DetailCarrier detailCarrier in container.carrier.detailCarriers) {
-        if (detailCarrier.customFormView["template_mode"] == "LIST") {
-          List<Map<String, dynamic>> detailDTOs = headerDTO[detailCarrier.customFormView["table_name"]];
+        for (DetailCarrier detailCarrier in container.carrier.detailCarriers) {
+          if (detailCarrier.customFormView["template_mode"] == "LIST") {
+            List<Map<String, dynamic>> detailDTOs = headerDTO[detailCarrier.customFormView["table_name"]];
 
-          for (Map<String, dynamic> detailDTO in detailDTOs) {
-            sqlStatements.addAll(
+            for (Map<String, dynamic> detailDTO in detailDTOs) {
               await getSqlStatements(
+                transaction: transaction,
                 hashDTO: detailDTO,
                 headerDTO: headerDTO,
                 customFormView: detailCarrier.customFormView,
                 headerCustomFormView: container.carrier.customFormView,
                 fields: detailCarrier.fields,
                 customerId: customerId,
-              ),
-            );
+              );
 
-            for (SubDetailCarrier subDetailCarrier in detailCarrier.subDetailCarriers) {
-              List<Map<String, dynamic>> subDetailDTOs = detailDTO[subDetailCarrier.customFormView["table_name"]];
+              for (SubDetailCarrier subDetailCarrier in detailCarrier.subDetailCarriers) {
+                List<Map<String, dynamic>> subDetailDTOs = detailDTO[subDetailCarrier.customFormView["table_name"]];
 
-              for (Map<String, dynamic> subDetailDTO in subDetailDTOs) {
-                sqlStatements.addAll(
+                for (Map<String, dynamic> subDetailDTO in subDetailDTOs) {
                   await getSqlStatements(
+                    transaction: transaction,
                     hashDTO: subDetailDTO,
                     headerDTO: detailDTO,
                     customFormView: subDetailCarrier.customFormView,
                     headerCustomFormView: detailCarrier.customFormView,
                     fields: subDetailCarrier.fields,
                     customerId: customerId,
-                  ),
-                );
+                  );
+                }
               }
             }
-          }
-        } else {
-          Map<String, dynamic> detailDTO = headerDTO[detailCarrier.customFormView["table_name"]];
+          } else {
+            Map<String, dynamic> detailDTO = headerDTO[detailCarrier.customFormView["table_name"]];
 
-          sqlStatements.addAll(
             await getSqlStatements(
+              transaction: transaction,
               hashDTO: detailDTO,
               headerDTO: headerDTO,
               customFormView: detailCarrier.customFormView,
               headerCustomFormView: container.carrier.customFormView,
               fields: detailCarrier.fields,
               customerId: customerId,
-            ),
-          );
+            );
+          }
         }
-      }
 
-      sqlStatements.add(
         await insertSyncQueue(
+          transaction: transaction,
           entity: customFormView["table_name"],
-          idempotentId: headerDTO["id"],
           payload: headerDTO,
-        ),
-      );
-
-      Database database = await Sqlites.get();
-
-      await database.transaction((txn) async {
-        for (String sqlStatement in sqlStatements) {
-          await txn.execute(sqlStatement);
-        }
+        );
       });
     }
   }
 
-  static Future<List<String>> getSqlStatements({
+  static Future<void> getSqlStatements({
+    required Transaction transaction,
     required Map<String, dynamic> hashDTO,
     required Map<String, dynamic>? headerDTO,
     required Map<String, dynamic> customFormView,
@@ -2066,60 +2057,55 @@ class Offlines {
       }
     }
 
-    List<String> sqlStatements = [];
-
     if (hashDTO["id"] != null) {
       metadata["action"] = "update";
 
       hashDTO["_metadata"] = metadata;
 
-      sqlStatements.add(
-        await updateStatement(
-          hashDTO: hashDTO,
-          customFormView: customFormView,
-          headerDTO: headerDTO,
-          headerCustomFormView: headerCustomFormView,
-          customerId: customerId,
-        ),
+      await updateStatement(
+        transaction: transaction,
+        hashDTO: hashDTO,
+        customFormView: customFormView,
+        headerDTO: headerDTO,
+        headerCustomFormView: headerCustomFormView,
+        customerId: customerId,
       );
 
-      String? updateScheduleStatement = await updateSchedule(hashDTO: hashDTO, customFormView: customFormView);
-
-      if (updateScheduleStatement != null) {
-        sqlStatements.add(updateScheduleStatement);
-      }
+      await updateSchedule(
+        transaction: transaction,
+        hashDTO: hashDTO,
+        customFormView: customFormView,
+      );
     } else {
       metadata["action"] = "insert";
 
       hashDTO["_metadata"] = metadata;
 
-      sqlStatements.add(
-        await insertStatement(
-          hashDTO: hashDTO,
-          customFormView: customFormView,
-          headerDTO: headerDTO,
-          headerCustomFormView: headerCustomFormView,
-          customerId: customerId,
-        ),
+      await insertStatement(
+        transaction: transaction,
+        hashDTO: hashDTO,
+        customFormView: customFormView,
+        headerDTO: headerDTO,
+        headerCustomFormView: headerCustomFormView,
+        customerId: customerId,
       );
 
-      String? insertScheduleStatement = await insertSchedule(hashDTO: hashDTO, customFormView: customFormView);
-
-      if (insertScheduleStatement != null) {
-        sqlStatements.add(insertScheduleStatement);
-      }
+      await insertSchedule(
+        transaction: transaction,
+        hashDTO: hashDTO,
+        customFormView: customFormView,
+      );
     }
 
-    String? insertHistoryStatement = await insertHistory(hashDTO: hashDTO, customFormView: customFormView);
-
-    if (insertHistoryStatement != null) {
-      sqlStatements.add(insertHistoryStatement);
-    }
-
-    return sqlStatements;
+    await insertHistory(
+      transaction: transaction,
+      hashDTO: hashDTO,
+      customFormView: customFormView,
+    );
   }
 
-  static Future<String> insertStatement({
+  static Future<void> insertStatement({
+    required Transaction transaction,
     required Map<String, dynamic> hashDTO,
     required Map<String, dynamic> customFormView,
     required Map<String, dynamic>? headerDTO,
@@ -2128,7 +2114,7 @@ class Offlines {
   }) async {
     String tableName = customFormView["table_name"];
 
-    List<String> actualFields = await getActualFields(tableName);
+    List<String> actualFields = await getActualFields(tableName, transaction);
 
     for (String actualField in actualFields) {
       bool found = false;
@@ -2148,7 +2134,7 @@ class Offlines {
 
     for (String fieldName in hashDTO.keys) {
       if (fieldName == "id") {
-        hashDTO[fieldName] = await nextIdempotentId(tableName);
+        hashDTO[fieldName] = nextIdempotentId();
       } else if (fieldName == "company_id") {
         hashDTO[fieldName] = currentCompanyId;
       } else if (fieldName == "bu_id") {
@@ -2178,10 +2164,558 @@ class Offlines {
 
     Iterable<MapEntry<String, dynamic>> iterable = hashDTO.entries.where((entry) => !(entry.value is List || entry.value is Map) && actualFields.contains(entry.key));
 
-    return "INSERT INTO $tableName ( ${iterable.map((entry) => entry.key).join(", ")} ) VALUES ( ${iterable.map((entry) => entry.value != null ? "'${entry.value}'" : "NULL").join(", ")} );";
+    Map<String, dynamic>? newRow = (await transaction.rawQuery("INSERT INTO $tableName ( ${iterable.map((entry) => entry.key).join(", ")} ) VALUES ( ${iterable.map((entry) => entry.value != null ? "'${entry.value}'" : "NULL").join(", ")} ) RETURNING *;")).firstOrNull;
+
+    if (newRow != null) {
+      await handleTrigger(
+        states: ["BEFORE", "AFTER"],
+        operations: ["INSERT", "INSERT OR UPDATE"],
+        transaction: transaction,
+        oldRow: {},
+        newRow: Map<String, dynamic>.from(newRow),
+        customFormView: customFormView,
+      );
+    }
   }
 
-  static Future<String?> insertSchedule({
+  static Future<void> handleTrigger({
+    required List<String> states,
+    required List<String> operations,
+    required Transaction transaction,
+    required Map<String, dynamic> oldRow,
+    required Map<String, dynamic> newRow,
+    required Map<String, dynamic> customFormView,
+  }) async {
+    List<Map<String, dynamic>> dynamicTableTriggerViews = await DMLAssemblers
+        .create()
+        .select("*")
+        .from("f_dynamic_table_trigger")
+        .equalTo("table_id", customFormView["table_header_id"])
+        .and()
+        .inn("trigger_state", states)
+        .and()
+        .inn("trigger_operation", operations)
+        .all(transaction);
+
+    for (Map<String, dynamic> dynamicTableTriggerView in dynamicTableTriggerViews) {
+      List<Map<String, dynamic>> dynamicTableTriggerActionViews = await DMLAssemblers
+          .create()
+          .select("*")
+          .from("f_dynamic_table_trigger_action")
+          .equalTo("trigger_id", dynamicTableTriggerView["id"])
+          .asc("sequence_index")
+          .all(transaction);
+
+      List<Map<String, dynamic>> dynamicTableTriggerVariableViews = await DMLAssemblers
+          .create()
+          .select("*")
+          .from("f_dynamic_table_trigger_variable")
+          .equalTo("trigger_id", dynamicTableTriggerView["id"])
+          .all(transaction);
+
+      Map<String, dynamic> variable = {};
+
+      for (Map<String, dynamic> dynamicTableTriggerVariableView in dynamicTableTriggerVariableViews) {
+        Map<String, dynamic>? result = await DMLAssemblers
+            .create()
+            .select("*")
+            .from(dynamicTableTriggerVariableView["source_table_name"])
+            .equalTo(dynamicTableTriggerVariableView["column_key"], newRow[dynamicTableTriggerVariableView["column_value"]])
+            .first(transaction);
+
+        if (result != null) {
+          variable[dynamicTableTriggerVariableView["variable_name"]] = result;
+        }
+      }
+
+      for (Map<String, dynamic> dynamicTableTriggerActionView in dynamicTableTriggerActionViews) {
+        if (dynamicTableTriggerActionView["action_function"] == "INSERT") {
+          await handleTriggerActionInsert(
+            transaction: transaction,
+            oldRow: oldRow,
+            newRow: newRow,
+            dynamicTableTriggerActionView: dynamicTableTriggerActionView,
+            variable: variable,
+          );
+        } else if (dynamicTableTriggerActionView["action_function"] == "UPDATE") {
+          await handleTriggerActionUpdate(
+            transaction: transaction,
+            oldRow: oldRow,
+            newRow: newRow,
+            dynamicTableTriggerActionView: dynamicTableTriggerActionView,
+            variable: variable,
+          );
+        } else if (dynamicTableTriggerActionView["action_function"] == "DELETE") {
+          await handleTriggerActionDelete(
+            transaction: transaction,
+            oldRow: oldRow,
+            newRow: newRow,
+            dynamicTableTriggerActionView: dynamicTableTriggerActionView,
+            variable: variable,
+          );
+        }
+      }
+    }
+  }
+
+  static Future<void> handleTriggerUpdate({
+    required Transaction transaction,
+    required Map<String, dynamic> oldRow,
+    required Map<String, dynamic> newRow,
+    required Map<String, dynamic> customFormView,
+  }) async {
+    List<Map<String, dynamic>> dynamicTableTriggerViews = await DMLAssemblers
+        .create()
+        .select("*")
+        .from("f_dynamic_table_trigger")
+        .equalTo("table_id", customFormView["table_header_id"])
+        .and()
+        .inn("trigger_state", ["BEFORE", "AFTER"])
+        .and()
+        .inn("trigger_operation", ["UPDATE", "INSERT OR UPDATE"])
+        .all(transaction);
+
+    for (Map<String, dynamic> dynamicTableTriggerView in dynamicTableTriggerViews) {
+      List<Map<String, dynamic>> dynamicTableTriggerActionViews = await DMLAssemblers
+          .create()
+          .select("*")
+          .from("f_dynamic_table_trigger_action")
+          .equalTo("trigger_id", dynamicTableTriggerView["id"])
+          .asc("sequence_index")
+          .all(transaction);
+
+      List<Map<String, dynamic>> dynamicTableTriggerVariableViews = await DMLAssemblers
+          .create()
+          .select("*")
+          .from("f_dynamic_table_trigger_variable")
+          .equalTo("trigger_id", dynamicTableTriggerView["id"])
+          .all(transaction);
+
+      Map<String, dynamic> variable = {};
+
+      for (Map<String, dynamic> dynamicTableTriggerVariableView in dynamicTableTriggerVariableViews) {
+        Map<String, dynamic>? result = await DMLAssemblers
+            .create()
+            .select("*")
+            .from(dynamicTableTriggerVariableView["source_table_name"])
+            .equalTo(dynamicTableTriggerVariableView["column_key"], newRow[dynamicTableTriggerVariableView["column_value"]])
+            .first(transaction);
+
+        if (result != null) {
+          variable[dynamicTableTriggerVariableView["variable_name"]] = result;
+        }
+      }
+
+      for (Map<String, dynamic> dynamicTableTriggerActionView in dynamicTableTriggerActionViews) {
+        if (dynamicTableTriggerActionView["action_function"] == "INSERT") {
+          await handleTriggerActionInsert(
+            transaction: transaction,
+            oldRow: {},
+            newRow: newRow,
+            dynamicTableTriggerActionView: dynamicTableTriggerActionView,
+            variable: variable,
+          );
+        } else if (dynamicTableTriggerActionView["action_function"] == "UPDATE") {
+          await handleTriggerActionUpdate(
+            transaction: transaction,
+            oldRow: {},
+            newRow: newRow,
+            dynamicTableTriggerActionView: dynamicTableTriggerActionView,
+            variable: variable,
+          );
+        } else if (dynamicTableTriggerActionView["action_function"] == "DELETE") {
+          await handleTriggerActionDelete(
+            transaction: transaction,
+            oldRow: {},
+            newRow: newRow,
+            dynamicTableTriggerActionView: dynamicTableTriggerActionView,
+            variable: variable,
+          );
+        }
+      }
+    }
+  }
+
+  static String buildKey({
+    required Map<String, dynamic> oldRow,
+    required Map<String, dynamic> newRow,
+    required Map<String, dynamic> variable,
+    required Map<String, dynamic> dynamicTableTriggerActionDetailView,
+  }) {
+    if (dynamicTableTriggerActionDetailView["f_manual_key"] == "Y") {
+      String? columnKey = dynamicTableTriggerActionDetailView["column_key"];
+
+      if (StringUtils.isNotNullOrEmpty(columnKey)) {
+        List<List<String>> pairedVariableKeywords = extractAllTableColumn(columnKey!);
+
+        for (List<String> pairedVariableKeyword in pairedVariableKeywords) {
+          String key = pairedVariableKeyword[0];
+          String value = pairedVariableKeyword[1];
+
+          if (StringUtils.inList(key, ["new", "NEW"])) {
+            columnKey = columnKey!.replaceAll("$key.$value", newRow[value] != null ? "'${newRow[value]}'" : "NULL");
+          } else if (StringUtils.inList(key, ["old", "OLD"])) {
+            columnKey = columnKey!.replaceAll("$key.$value", oldRow[value] != null ? "'${oldRow[value]}'" : "NULL");
+          } else {
+            columnKey = columnKey!.replaceAll("$key.$value", variable[key][value] != null ? "'${variable[key][value]}'" : "NULL");
+          }
+        }
+
+        return columnKey!;
+      } else {
+        return "NULL";
+      }
+    } else {
+      return dynamicTableTriggerActionDetailView["column_key"];
+    }
+  }
+
+  static String buildValue({
+    required Map<String, dynamic> oldRow,
+    required Map<String, dynamic> newRow,
+    required Map<String, dynamic> variable,
+    required Map<String, dynamic> dynamicTableTriggerActionDetailView,
+  })  {
+    if (dynamicTableTriggerActionDetailView["f_manual_value"] == "Y") {
+      String? columnValue = dynamicTableTriggerActionDetailView["column_value"];
+
+      if (StringUtils.isNotNullOrEmpty(columnValue)) {
+        List<List<String>> pairedVariableKeywords = extractAllTableColumn(columnValue!);
+
+        for (List<String> pairedVariableKeyword in pairedVariableKeywords) {
+          String key = pairedVariableKeyword[0];
+          String value = pairedVariableKeyword[1];
+
+          if (StringUtils.inList(key, ["new", "NEW"])) {
+            columnValue = columnValue!.replaceAll("$key.$value", newRow[value] != null ? "'${newRow[value]}'" : "NULL");
+          } else if (StringUtils.inList(key, ["old", "OLD"])) {
+            columnValue = columnValue!.replaceAll("$key.$value", oldRow[value] != null ? "'${oldRow[value]}'" : "NULL");
+          } else {
+            columnValue = columnValue!.replaceAll("$key.$value", variable[key][value] != null ? "'${variable[key][value]}'" : "NULL");
+          }
+        }
+
+        return columnValue!;
+      } else {
+        return "NULL";
+      }
+    } else if (dynamicTableTriggerActionDetailView["f_variable"] == "Y") {
+      return variable[dynamicTableTriggerActionDetailView["variable_name"]][dynamicTableTriggerActionDetailView["column_value"]] != null ? "'${variable[dynamicTableTriggerActionDetailView["variable_name"]][dynamicTableTriggerActionDetailView["column_value"]]}'" : "NULL";
+    } else if (dynamicTableTriggerActionDetailView["f_sequence_id"] == "Y") {
+      return "'${nextIdempotentId()}'";
+    } else {
+      if (newRow.isEmpty) {
+        return oldRow[dynamicTableTriggerActionDetailView["column_value"]] != null ? "'${oldRow[dynamicTableTriggerActionDetailView["column_value"]]}'" : "NULL";
+      } else {
+        return newRow[dynamicTableTriggerActionDetailView["column_value"]] != null ? "'${newRow[dynamicTableTriggerActionDetailView["column_value"]]}'" : "NULL";
+      }
+    }
+  }
+
+  static String buildOperation(String operation) {
+    if (operation == "ILIKE") {
+      return "LIKE";
+    } else {
+      return operation;
+    }
+  }
+
+  static String buildOperand(String? operand) {
+    return operand ?? "";
+  }
+
+  static Future<void> handleTriggerActionInsert({
+    required Transaction transaction,
+    required Map<String, dynamic> oldRow,
+    required Map<String, dynamic> newRow,
+    required Map<String, dynamic> dynamicTableTriggerActionView,
+    required Map<String, dynamic> variable,
+  }) async {
+    String buildData(Map<String, dynamic> dynamicTableTriggerActionDetailView) {
+      return dynamicTableTriggerActionDetailView["key"];
+    }
+
+    String buildCondition(Map<String, dynamic> dynamicTableTriggerActionDetailView) {
+      return buildValue(
+        oldRow: oldRow,
+        newRow: newRow,
+        variable: variable,
+        dynamicTableTriggerActionDetailView: dynamicTableTriggerActionDetailView,
+      );
+    }
+
+    String buildConditionExtra(Map<String, dynamic> dynamicTableTriggerActionDetailView) {
+      String key = buildKey(
+        oldRow: oldRow,
+        newRow: newRow,
+        variable: variable,
+        dynamicTableTriggerActionDetailView: dynamicTableTriggerActionDetailView,
+      );
+
+      String value = buildValue(
+        oldRow: oldRow,
+        newRow: newRow,
+        variable: variable,
+        dynamicTableTriggerActionDetailView: dynamicTableTriggerActionDetailView,
+      );
+
+      String operation = buildOperation(dynamicTableTriggerActionDetailView["operation"]);
+      String operand = buildOperand(dynamicTableTriggerActionDetailView["operand"]);
+
+      if (StringUtils.inList(operation, ["IN", "NOT IN"])) {
+        return "$key $operation ($value) $operand";
+      } else {
+        return "$key $operation $value $operand";
+      }
+    }
+
+    String tableName = dynamicTableTriggerActionView["dest_table_name"];
+
+    List<Map<String, dynamic>> dynamicTableTriggerActionDetailViews = await DMLAssemblers
+        .create()
+        .select("*")
+        .from("f_dynamic_table_trigger_action_detail")
+        .equalTo("action_id", dynamicTableTriggerActionView["id"])
+        .asc("action_mode")
+        .asc("index_field")
+        .all(transaction);
+
+    Map<String, dynamic>? affectedRow = (await transaction.rawQuery("""
+        INSERT INTO $tableName ( ${dynamicTableTriggerActionDetailViews.where((element) => element["action_mode"] == "DATA").map((dynamicTableTriggerActionDetailView) => buildData(dynamicTableTriggerActionDetailView)).join(", ")} )
+        SELECT ${dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(", ")}
+        WHERE ${dynamicTableTriggerActionDetailViews.isNotEmpty ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION_EXTRA").map((dynamicTableTriggerActionDetailView) => buildConditionExtra(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}
+        RETURNING * 
+      """
+    )).firstOrNull;
+
+    if (affectedRow != null) {
+      String? sequenceName = (await DMLAssemblers
+          .create()
+          .select("sequence_name")
+          .from("f_dynamic_table")
+          .equalTo("table_name", tableName)
+          .first(transaction))?["sequence_name"];
+
+      if (StringUtils.isNotNullOrEmpty(sequenceName)) {
+        Map<String, dynamic> finalizedAffectedRow = Map<String, dynamic>.from(affectedRow);
+
+        List<Map<String, dynamic>> generateNumbers = await DMLAssemblers
+            .create()
+            .select("c.field_name")
+            .select("c.default_value AS template")
+            .from("f_dynamic_table a")
+            .join("INNER JOIN c_custom_form b ON b.table_header_id = a.id")
+            .join("INNER JOIN c_field_custom_form c ON c.custom_id = b.id")
+            .equalTo("a.table_name", tableName)
+            .and()
+            .customWhere("c.default_value LIKE '%\$GENERATE_NUMBER%'")
+            .all(transaction);
+
+        finalizedAffectedRow["_metadata"] = {
+          "action": "insert",
+          "sequence": sequenceName,
+          "generate_numbers": generateNumbers,
+        };
+
+        await insertSyncQueue(
+          transaction: transaction,
+          entity: tableName,
+          payload: finalizedAffectedRow,
+        );
+      }
+    }
+  }
+
+  static Future<void> handleTriggerActionUpdate({
+    required Transaction transaction,
+    required Map<String, dynamic> oldRow,
+    required Map<String, dynamic> newRow,
+    required Map<String, dynamic> dynamicTableTriggerActionView,
+    required Map<String, dynamic> variable,
+  }) async {
+    String buildData(Map<String, dynamic> dynamicTableTriggerActionDetailView) {
+      String value = buildValue(
+        oldRow: oldRow,
+        newRow: newRow,
+        variable: variable,
+        dynamicTableTriggerActionDetailView: dynamicTableTriggerActionDetailView,
+      );
+
+      return "${dynamicTableTriggerActionDetailView["column_key"]} = $value";
+    }
+
+    String buildCondition(Map<String, dynamic> dynamicTableTriggerActionDetailView) {
+      String key = buildKey(
+        oldRow: oldRow,
+        newRow: newRow,
+        variable: variable,
+        dynamicTableTriggerActionDetailView: dynamicTableTriggerActionDetailView,
+      );
+
+      String value = buildValue(
+        oldRow: oldRow,
+        newRow: newRow,
+        variable: variable,
+        dynamicTableTriggerActionDetailView: dynamicTableTriggerActionDetailView,
+      );
+
+      String operation = buildOperation(dynamicTableTriggerActionDetailView["operation"]);
+      String operand = buildOperand(dynamicTableTriggerActionDetailView["operand"]);
+
+      if (StringUtils.inList(operation, ["IN", "NOT IN"])) {
+        return "$key $operation ($value) $operand";
+      } else {
+        return "$key $operation $value $operand";
+      }
+    }
+
+    String tableName = dynamicTableTriggerActionView["dest_table_name"];
+
+    List<Map<String, dynamic>> dynamicTableTriggerActionDetailViews = await DMLAssemblers
+        .create()
+        .select("*")
+        .from("f_dynamic_table_trigger_action_detail")
+        .equalTo("action_id", dynamicTableTriggerActionView["id"])
+        .asc("action_mode")
+        .asc("index_field")
+        .all(transaction);
+
+    Map<String, dynamic>? affectedRow = (await transaction.rawQuery("""
+        UPDATE $tableName
+        SET ${dynamicTableTriggerActionDetailViews.where((element) => element["action_mode"] == "DATA").map((dynamicTableTriggerActionDetailView) => buildData(dynamicTableTriggerActionDetailView)).join(", ")}
+        WHERE ${dynamicTableTriggerActionDetailViews.isNotEmpty ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}
+        RETURNING *
+      """
+    )).firstOrNull;
+
+    if (affectedRow != null) {
+      String? sequenceName = (await DMLAssemblers
+          .create()
+          .select("sequence_name")
+          .from("f_dynamic_table")
+          .equalTo("table_name", tableName)
+          .first(transaction))?["sequence_name"];
+
+      if (StringUtils.isNotNullOrEmpty(sequenceName)) {
+        Map<String, dynamic> finalizedAffectedRow = Map<String, dynamic>.from(affectedRow);
+
+        List<Map<String, dynamic>> generateNumbers = await DMLAssemblers
+            .create()
+            .select("c.field_name")
+            .select("c.default_value AS template")
+            .from("f_dynamic_table a")
+            .join("INNER JOIN c_custom_form b ON b.table_header_id = a.id")
+            .join("INNER JOIN c_field_custom_form c ON c.custom_id = b.id")
+            .equalTo("a.table_name", tableName)
+            .and()
+            .customWhere("c.default_value LIKE '%\$GENERATE_NUMBER%'")
+            .all(transaction);
+
+        finalizedAffectedRow["_metadata"] = {
+          "action": "update",
+          "sequence": sequenceName,
+          "generate_numbers": generateNumbers,
+        };
+
+        await insertSyncQueue(
+          transaction: transaction,
+          entity: tableName,
+          payload: finalizedAffectedRow,
+        );
+      }
+    }
+  }
+
+  static Future<void> handleTriggerActionDelete({
+    required Transaction transaction,
+    required Map<String, dynamic> oldRow,
+    required Map<String, dynamic> newRow,
+    required Map<String, dynamic> dynamicTableTriggerActionView,
+    required Map<String, dynamic> variable,
+  }) async {
+    String buildCondition(Map<String, dynamic> dynamicTableTriggerActionDetailView) {
+      String key = buildKey(
+        oldRow: oldRow,
+        newRow: newRow,
+        variable: variable,
+        dynamicTableTriggerActionDetailView: dynamicTableTriggerActionDetailView,
+      );
+
+      String value = buildValue(
+        oldRow: oldRow,
+        newRow: newRow,
+        variable: variable,
+        dynamicTableTriggerActionDetailView: dynamicTableTriggerActionDetailView,
+      );
+
+      String operation = buildOperation(dynamicTableTriggerActionDetailView["operation"]);
+      String operand = buildOperand(dynamicTableTriggerActionDetailView["operand"]);
+
+      if (StringUtils.inList(operation, ["IN", "NOT IN"])) {
+        return "$key $operation ($value) $operand";
+      } else {
+        return "$key $operation $value $operand";
+      }
+    }
+
+    String tableName = dynamicTableTriggerActionView["dest_table_name"];
+
+    List<Map<String, dynamic>> dynamicTableTriggerActionDetailViews = await DMLAssemblers
+        .create()
+        .select("*")
+        .from("f_dynamic_table_trigger_action_detail")
+        .equalTo("action_id", dynamicTableTriggerActionView["id"])
+        .asc("action_mode")
+        .asc("index_field")
+        .all(transaction);
+
+    Map<String, dynamic>? affectedRow = (await transaction.rawQuery("""
+        DELETE FROM $tableName
+        WHERE ${dynamicTableTriggerActionDetailViews.isNotEmpty ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}
+        RETURNING *
+      """
+    )).firstOrNull;
+
+    if (affectedRow != null) {
+      String? sequenceName = (await DMLAssemblers
+          .create()
+          .select("sequence_name")
+          .from("f_dynamic_table")
+          .equalTo("table_name", tableName)
+          .first(transaction))?["sequence_name"];
+
+      if (StringUtils.isNotNullOrEmpty(sequenceName)) {
+        Map<String, dynamic> finalizedAffectedRow = Map<String, dynamic>.from(affectedRow);
+
+        List<Map<String, dynamic>> generateNumbers = await DMLAssemblers
+            .create()
+            .select("c.field_name")
+            .select("c.default_value AS template")
+            .from("f_dynamic_table a")
+            .join("INNER JOIN c_custom_form b ON b.table_header_id = a.id")
+            .join("INNER JOIN c_field_custom_form c ON c.custom_id = b.id")
+            .equalTo("a.table_name", tableName)
+            .and()
+            .customWhere("c.default_value LIKE '%\$GENERATE_NUMBER%'")
+            .all(transaction);
+
+        finalizedAffectedRow["_metadata"] = {
+          "action": "delete",
+          "sequence": sequenceName,
+          "generate_numbers": generateNumbers,
+        };
+
+        await insertSyncQueue(
+          transaction: transaction,
+          entity: tableName,
+          payload: finalizedAffectedRow,
+        );
+      }
+    }
+  }
+
+  static Future<void> insertSchedule({
+    required Transaction transaction,
     required Map<String, dynamic> hashDTO,
     required Map<String, dynamic> customFormView,
   }) async {
@@ -2196,7 +2730,7 @@ class Offlines {
           .equalTo("a.id", customFormView["table_schedule_id"])
           .and()
           .equalTo("b.template_mode", "SCHEDULE")
-          .first();
+          .first(transaction);
 
       if (scheduleMetaData != null) {
         List<Map<String, dynamic>> dynamicScheduleMappingViews = await DMLAssemblers
@@ -2204,18 +2738,17 @@ class Offlines {
             .select("*")
             .from("t_dynamic_schedule_mapping")
             .equalTo("custom_form_id", customFormView["id"])
-            .all();
+            .all(transaction);
 
         Iterable<MapEntry<String, dynamic>> iterable = hashDTO.entries.where((entry) => !(entry.value is List || entry.value is Map || StringUtils.inList(entry.key, ["id", "create_date", "create_who"])) && dynamicScheduleMappingViews.any((dynamicScheduleMappingView) => dynamicScheduleMappingView["master_column"] == entry.key));
 
-        return "INSERT INTO ${scheduleMetaData["table_name"]} ( id, create_date, create_who, company_id, bu_id, table_id, form_id, custom_form_data, custom_form_id, ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => dynamicScheduleMappingView["schedule_column"] as String).join(", ")} ) VALUES ( '${nextIdempotentId(scheduleMetaData["table_name"])}', DATETIME(), '$currentUsername', '$currentCompanyId', '$currentBusinessUnitId', '${scheduleMetaData["table_id"]}', '${scheduleMetaData["form_id"]}', '${hashDTO["id"]}', '${hashDTO["form_id"]}', ${iterable.map((entry) => entry.value != null ? "'${entry.value}'" : "NULL").join(", ")} );";
+        await transaction.execute("INSERT INTO ${scheduleMetaData["table_name"]} ( id, create_date, create_who, company_id, bu_id, table_id, form_id, custom_form_data, custom_form_id, ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => dynamicScheduleMappingView["schedule_column"] as String).join(", ")} ) VALUES ( '${nextIdempotentId()}', DATETIME(), '$currentUsername', '$currentCompanyId', '$currentBusinessUnitId', '${scheduleMetaData["table_id"]}', '${scheduleMetaData["form_id"]}', '${hashDTO["id"]}', '${hashDTO["form_id"]}', ${iterable.map((entry) => entry.value != null ? "'${entry.value}'" : "NULL").join(", ")} );");
       }
     }
-
-    return null;
   }
 
-  static Future<String> updateStatement({
+  static Future<void> updateStatement({
+    required Transaction transaction,
     required Map<String, dynamic> hashDTO,
     required Map<String, dynamic> customFormView,
     required Map<String, dynamic>? headerDTO,
@@ -2224,7 +2757,7 @@ class Offlines {
   }) async {
     String tableName = customFormView["table_name"];
 
-    List<String> actualFields = await getActualFields(tableName);
+    List<String> actualFields = await getActualFields(tableName, transaction);
 
     for (String actualField in actualFields) {
       bool found = false;
@@ -2270,12 +2803,33 @@ class Offlines {
       }
     }
 
-    Iterable<MapEntry<String, dynamic>> iterable = hashDTO.entries.where((entry) => !(entry.value is List || entry.value is Map || StringUtils.inList(entry.key, ["salesunit_id", "user_id"])) && actualFields.contains(entry.key));
+    Map<String, dynamic>? oldRow = await DMLAssemblers
+        .create()
+        .select("*")
+        .from(tableName)
+        .equalTo("id", hashDTO["id"])
+        .first(transaction);
 
-    return "UPDATE $tableName SET ${iterable.map((entry) => "${entry.key} = ${entry.value != null ? "'${entry.value}'" : "NULL"}").join(", ")} WHERE id = '${hashDTO["id"]}';";
+    if (oldRow != null) {
+      Iterable<MapEntry<String, dynamic>> iterable = hashDTO.entries.where((entry) => !(entry.value is List || entry.value is Map || StringUtils.inList(entry.key, ["salesunit_id", "user_id"])) && actualFields.contains(entry.key));
+
+      Map<String, dynamic>? newRow = (await transaction.rawQuery("UPDATE $tableName SET ${iterable.map((entry) => "${entry.key} = ${entry.value != null ? "'${entry.value}'" : "NULL"}").join(", ")} WHERE id = '${hashDTO["id"]}' RETURNING *;")).firstOrNull;
+
+      if (newRow != null) {
+        await handleTrigger(
+          states: ["BEFORE", "AFTER"],
+          operations: ["UPDATE", "INSERT OR UPDATE"],
+          transaction: transaction,
+          oldRow: oldRow,
+          newRow: newRow,
+          customFormView: customFormView,
+        );
+      }
+    }
   }
 
-  static Future<String?> updateSchedule({
+  static Future<void> updateSchedule({
+    required Transaction transaction,
     required Map<String, dynamic> hashDTO,
     required Map<String, dynamic> customFormView,
   }) async {
@@ -2290,7 +2844,7 @@ class Offlines {
           .equalTo("a.id", customFormView["table_schedule_id"])
           .and()
           .equalTo("b.template_mode", "SCHEDULE")
-          .first();
+          .first(transaction);
 
       if (scheduleMetaData != null) {
         List<Map<String, dynamic>> dynamicScheduleMappingViews = await DMLAssemblers
@@ -2298,18 +2852,17 @@ class Offlines {
             .select("*")
             .from("t_dynamic_schedule_mapping")
             .equalTo("custom_form_id", customFormView["id"])
-            .all();
+            .all(transaction);
 
         Iterable<MapEntry<String, dynamic>> iterable = hashDTO.entries.where((entry) => !(entry.value is List || entry.value is Map || StringUtils.inList(entry.key, ["id", "create_date", "create_who"])) && dynamicScheduleMappingViews.any((dynamicScheduleMappingView) => dynamicScheduleMappingView["master_column"] == entry.key));
 
-        return "UPDATE ${scheduleMetaData["table_name"]} SET change_date = DATETIME(), change_who = '$currentUsername',  ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => "${dynamicScheduleMappingView["schedule_column"]} = ${iterable.firstWhereOrNull((element) => element.key == dynamicScheduleMappingView["master_column"])?.value != null ? "'${iterable.firstWhereOrNull((element) => element.key == dynamicScheduleMappingView["master_column"])?.value}'" : "NULL"}" ).join(", ")} WHERE custom_form_data = '${hashDTO["id"]}' AND custom_form_id = '${hashDTO["form_id"]}';";
+        await transaction.execute("UPDATE ${scheduleMetaData["table_name"]} SET change_date = DATETIME(), change_who = '$currentUsername',  ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => "${dynamicScheduleMappingView["schedule_column"]} = ${iterable.firstWhereOrNull((element) => element.key == dynamicScheduleMappingView["master_column"])?.value != null ? "'${iterable.firstWhereOrNull((element) => element.key == dynamicScheduleMappingView["master_column"])?.value}'" : "NULL"}" ).join(", ")} WHERE custom_form_data = '${hashDTO["id"]}' AND custom_form_id = '${hashDTO["form_id"]}';");
       }
     }
-
-    return null;
   }
 
-  static Future<String?> insertHistory({
+  static Future<void> insertHistory({
+    required Transaction transaction,
     required Map<String, dynamic> hashDTO,
     required Map<String, dynamic> customFormView,
   }) async {
@@ -2319,36 +2872,34 @@ class Offlines {
         .from("f_dynamic_table a")
         .join("INNER JOIN f_dynamic_table b ON b.table_name = a.history_table")
         .equalTo("a.id", customFormView["table_header_id"])
-        .first()
+        .first(transaction)
     )?["table_name"];
 
     if (tableName != null) {
-      List<String> actualFields = await getActualFields(tableName);
+      List<String> actualFields = await getActualFields(tableName, transaction);
 
       Iterable<MapEntry<String, dynamic>> iterable = hashDTO.entries.where((entry) => !(entry.value is List || entry.value is Map || StringUtils.inList(entry.key, ["id", "create_date", "create_who"])) && actualFields.contains(entry.key));
 
-      return "INSERT INTO $tableName ( id, create_date, create_who, history_system_id, ${iterable.map((entry) => entry.key).join(", ")} ) VALUES ( '${nextIdempotentId(tableName)}', DATETIME(), '$currentUsername', '${hashDTO["id"]}', ${iterable.map((entry) => entry.value != null ? "'${entry.value}'" : "NULL").join(", ")} );";
+      await transaction.execute("INSERT INTO $tableName ( id, create_date, create_who, history_system_id, ${iterable.map((entry) => entry.key).join(", ")} ) VALUES ( '${nextIdempotentId()}', DATETIME(), '$currentUsername', '${hashDTO["id"]}', ${iterable.map((entry) => entry.value != null ? "'${entry.value}'" : "NULL").join(", ")} );");
     }
-
-    return null;
   }
 
-  static Future<String> insertSyncQueue({
+  static Future<void> insertSyncQueue({
+    required Transaction transaction,
     required String entity,
-    required String idempotentId,
     required Map<String, dynamic> payload,
   }) async {
-    return "INSERT INTO _sync_queues ( id, entity, idempotent_id, payload, created_at ) VALUES ( '${Uuid().v4()}', '$entity', '$idempotentId', '${jsonEncode(payload)}', DATETIME() );";
+    await transaction.execute("INSERT INTO _sync_queues ( id, entity, payload, created_at ) VALUES ( '${Uuid().v4()}', '$entity', '${jsonEncode(payload)}', DATETIME() );");
   }
 
-  static Future<int> nextIdempotentId(String tableName) async {
-    return DateTime.now().microsecondsSinceEpoch;
+  static String nextIdempotentId() {
+    return DateTime.now().microsecondsSinceEpoch.toString();
   }
 
-  static Future<int> nextSequence(String name) async {
-    Database database = await Sqlites.get();
+  static Future<int> nextSequence(String name, [Transaction? transaction]) async {
+    DatabaseExecutor databaseExecutor = transaction ?? await Sqlites.get();
 
-    int value = (await database.rawQuery(
+    int value = (await databaseExecutor.rawQuery(
       "INSERT INTO _sequences (id, value) VALUES (?, 1) ON CONFLICT (id) DO UPDATE SET value = value + 1 RETURNING value",
       [name],
     ))[0]["value"] as int;
@@ -2356,7 +2907,7 @@ class Offlines {
     return value;
   }
 
-  static Future<String> generateNumberSeries(String name, String template) async {
+  static Future<String> generateNumberSeries(String name, String template, [Transaction? transaction]) async {
     try {
       final data = template.split("#");
 
@@ -2400,7 +2951,7 @@ class Offlines {
       final digit = int.parse(data[2]);
 
       // Call your ID generator (you must implement this in Dart)
-      final generatedNumber = "${await nextSequence(name)}".padLeft(digit - prefix.length, "0");
+      final generatedNumber = "${await nextSequence(name, transaction)}".padLeft(digit - prefix.length, "0");
 
       print("Success Generated Number Series Dynamic with prefix $prefix to be : $generatedNumber");
 
@@ -2412,7 +2963,17 @@ class Offlines {
     return template;
   }
 
-  static Future<List<String>> getActualFields(String tableName) async {
-    return (await (await Sqlites.get()).rawQuery("PRAGMA table_info($tableName)")).map((e) => e["name"] as String).toList();
+  static Future<List<String>> getActualFields(String tableName, [Transaction? transaction]) async {
+    DatabaseExecutor databaseExecutor = transaction ?? await Sqlites.get();
+
+    return (await databaseExecutor.rawQuery("PRAGMA table_info($tableName)")).map((e) => e["name"] as String).toList();
+  }
+
+  static List<List<String>> extractAllTableColumn(String input) {
+    final regex = RegExp(r"([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)");
+
+    return regex.allMatches(input).map((match) {
+      return [match.group(1)!, match.group(2)!];
+    }).toList();
   }
 }

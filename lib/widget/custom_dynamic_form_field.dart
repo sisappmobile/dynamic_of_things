@@ -28,6 +28,7 @@ import "package:dynamic_of_things/widget/simple_spinner_page.dart";
 import "package:dynamic_of_things/widget/spinner_page.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:file_picker/file_picker.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
@@ -1215,7 +1216,12 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             customerId: widget.customerId,
           );
         }
-      } catch (e) {
+      } catch (e, s) {
+        if (kDebugMode) {
+          print("Caught Exception: $e");
+          print("Stack Trace:\n$s");
+        }
+
         BaseOverlays.error(message: "something_wrong_please_try_again".tr());
       } finally {
         context.loaderOverlay.hide();

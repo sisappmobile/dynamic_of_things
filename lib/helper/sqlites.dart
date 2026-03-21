@@ -9,6 +9,13 @@ class Sqlites {
 
   static Future<Database> get() async {
     if (database == null) {
+      if (kDebugMode) {
+        // Use the debugQuickLoggerWrapper on the default factory
+        databaseFactory.debugQuickLoggerWrapper();
+        // Temporarily turn on SQL logging on the console
+        await databaseFactory.debugSetLogLevel(sqfliteLogLevelVerbose);
+      }
+
       database = await openDatabase(
         "${await getDatabasesPath()}/dynamic_of_things.db",
         version: 1,
@@ -16,7 +23,7 @@ class Sqlites {
         onCreate: (db, version) async {
           const tableScripts = [
             "create table _sequences ( id TEXT PRIMARY KEY, value INTEGER )",
-            "create table _sync_queues ( id TEXT PRIMARY KEY, entity TEXT, idempotent_id INTEGER, payload TEXT, created_at TEXT )",
+            "create table _sync_queues ( id TEXT PRIMARY KEY, entity TEXT, payload TEXT, created_at TEXT )",
             "create table c_custom_form( id INTEGER not null primary key, category_id INTEGER, company_id INTEGER, form_code TEXT, form_desc TEXT, form_requirements text, create_date TEXT not null, create_who TEXT not null, change_date TEXT, change_who TEXT, f_journey TEXT, f_form_existing TEXT, f_show_last_data TEXT, version INTEGER, f_visit TEXT, f_active TEXT, f_requirements TEXT, \"index\" INTEGER, f_all_bu TEXT, f_detail TEXT, table_header_id INTEGER, table_detail_id INTEGER, template_mode TEXT, f_menu_system TEXT, function_id TEXT, f_send_notification TEXT, source_table_notif_id INTEGER, f_send_notification_create TEXT default 'N', f_send_notification_update TEXT default 'N', f_send_notification_in_active TEXT default 'N', f_header TEXT, header_table_id INTEGER, f_notif_not_by_template TEXT, f_notif_by_template TEXT, f_multiple_detail TEXT, table_multiple_id INTEGER, caption_detail TEXT, f_use_multiple TEXT, reminder_web TEXT, source_table_load_id INTEGER, f_choose_icon TEXT, table_schedule_id INTEGER, f_allow_schedule TEXT, module_origin_id INTEGER, f_script_formula TEXT, script_formula text, f_record_location_on_submit TEXT, base_path_icon text, f_waktuqu TEXT, f_sub_detail TEXT, f_creator TEXT, f_user_group TEXT, list_user_group text, send_to TEXT, field_structure TEXT, details_message text, subject_notification TEXT, f_structure TEXT, f_by_field_value TEXT, by_field_value_id INTEGER, f_multpile_condition TEXT, f_sub_detail_multiple TEXT, global_variable text, f_store_history TEXT, history_show_column text, f_mandatory TEXT, f_add_more_notification TEXT, load_table_detail_id INTEGER, f_sort_list TEXT, f_validasi_periode TEXT, f_show_in_sidebar TEXT, f_to_module_system TEXT, color_bg_menu TEXT, color_bg_font TEXT, src_table_default_header INTEGER, f_is_online TEXT, f_can_offline TEXT, f_viewers TEXT, table_name_viewers TEXT, sequence_name_viewers TEXT, f_show_in_dashboard TEXT, location_accuracy_in_meters REAL, location_accuracy_effective_duration_in_seconds REAL, f_create_using_scan_qr TEXT, source_table_qr_id INTEGER, source_field_qr_id INTEGER, using_qr_type TEXT, f_create_from_reference TEXT, source_table_reference_id INTEGER, source_field_key_reference_id INTEGER, width_detail_column INTEGER, detail_index INTEGER )",
             'create table c_custom_form_category ( id INTEGER not null primary key, description TEXT, create_date TEXT not null, create_who TEXT not null, change_date TEXT, change_who TEXT, company_id INTEGER, "index" INTEGER, module_id INTEGER, module_origin_id INTEGER, f_choose_icon TEXT, base_path_icon text, version INTEGER )',
             "create table c_custom_functions ( function_id TEXT not null constraint pk_c_custom_functions primary key, custom_id INTEGER not null, function_name TEXT, resource_id TEXT, f_default TEXT, create_date TEXT not null, create_who TEXT not null, change_date TEXT, change_who TEXT, btn_delete TEXT, f_show_inlist TEXT, f_function_system TEXT, script_before text, script_after text, custom_type TEXT, script_before_mobile text, script_after_mobile text, script_afte_mobiler text )",
