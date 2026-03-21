@@ -299,10 +299,17 @@ class Offlines {
         .all();
 
     for (Map<String, dynamic> field in fields) {
+      String fieldDataType = field["field_data_type"];
+
+      if (field["field_name"] == "salesunit_id") {
+        fieldDataType = "SHORT_TEXT";
+      } else {
+        fieldDataType = DynamicFormFieldType.convert(fieldDataType).name;
+      }
       listResponse.fields.add(
         Field(
           name: field["field_name"],
-          type: DynamicFormFieldType.convert(field["field_data_type"]).name,
+          type: fieldDataType,
           description: field["field_caption"],
           primaryKey: field["f_pk"] == "Y",
         ),
@@ -446,7 +453,21 @@ class Offlines {
           .customWhere("($dataFilterClauseBuilder)");
     }
 
-    listResponse.data.addAll(await dmlAssemblers.all());
+    List<Map<String, dynamic>> rows = await dmlAssemblers.all();
+
+    for (Map<String, dynamic> row in rows) {
+      if (row.containsKey("salesunit_id")) {
+        row["salesunit_id"] = (await DMLAssemblers
+            .create()
+            .select("salesunit_name")
+            .from("m_salesunit")
+            .equalTo("salesunit_id", row["salesunit_id"])
+            .first()
+        )?["salesunit_name"];
+      }
+    }
+
+    listResponse.data.addAll(rows);
 
     return listResponse;
   }
