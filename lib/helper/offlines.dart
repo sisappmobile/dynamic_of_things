@@ -1043,6 +1043,14 @@ class Offlines {
   }
 
   static dynamic convert(dynamic value, Map<String, dynamic>? fieldCustomFormView) {
+    if (value != null && fieldCustomFormView != null) {
+      String dataType = fieldCustomFormView["field_data_type"];
+
+      if (StringUtils.inList(dataType, ["FILE", "FOTO", "VIDEO", "SIGNATURE", "UPLOAD_FOTO", "UPLOAD_VIDEO", "UPLOAD_SIGNATURE"])) {
+        return jsonDecode(value);
+      }
+    }
+
     return value;
   }
 
@@ -2043,6 +2051,7 @@ class Offlines {
     Map<String, dynamic> metadata = {
       "sequence": customFormView["sequence_name"],
       "generate_numbers": List<Map<String, dynamic>>.empty(growable: true),
+      "files": List<Map<String, dynamic>>.empty(growable: true),
     };
 
     for (Map<String, dynamic> fieldCustomFormView in fields) {
@@ -2072,7 +2081,16 @@ class Offlines {
       for (String fieldName in hashDTO.keys) {
         if (fieldName == fieldCustomFormView["field_name"]) {
           if (StringUtils.inList(fieldCustomFormView["field_data_type"], ["FILE", "FOTO", "VIDEO", "SIGNATURE", "UPLOAD_FOTO", "UPLOAD_VIDEO", "UPLOAD_SIGNATURE"])) {
+            Map<String, dynamic>? fileMap = hashDTO[fieldName];
 
+            if (fileMap != null) {
+              hashDTO[fieldName] = jsonEncode(fileMap);
+
+              (metadata["files"] as List<Map<String, dynamic>>).add({
+                "field_name": fieldName,
+                "data_type": fieldCustomFormView["field_data_type"],
+              });
+            }
           }
         }
       }
