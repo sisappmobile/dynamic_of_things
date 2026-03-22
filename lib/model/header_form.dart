@@ -180,7 +180,7 @@ class Template {
               field.required = fieldCustomFormView["f_mandatory"] == "Y" && fieldCustomFormView["f_default_value"] != "Y";
               field.hidden = fieldCustomFormView["f_hidden"] == "Y";
               field.defaultValue = fieldCustomFormView["default_value"] ?? "";
-              field.hasScript = StringUtils.isNotNullOrEmpty(fieldCustomFormView["script_android"]);
+              field.hasScript = StringUtils.isNotNullOrEmpty(fieldCustomFormView["pseudo_code"]);
               field.linkUrl = fieldCustomFormView["f_is_link_url"] == "Y";
 
               if (fieldCustomFormView["enable_after_colum"] != null) {
@@ -357,7 +357,7 @@ class DetailForm with ChangeNotifier {
 
     detailForm.single = detailCarrier.customFormView["template_mode"] == "CARD";
     detailForm.template = await Template.loadTemplate(mode, detailCarrier.customFormView, detailCarrier.fields, transaction: transaction);
-    detailForm.hasOnChangeEvent = detailCarrier.fields.any((element) => StringUtils.isNotNullOrEmpty(element["script_android"]));
+    detailForm.hasOnChangeEvent = detailCarrier.fields.any((element) => StringUtils.isNotNullOrEmpty(element["pseudo_code"]));
 
     if (!detailForm.single) {
       for (Map<String, dynamic> fieldCustomFormView in detailCarrier.fields) {
@@ -449,7 +449,7 @@ class SubDetailForm with ChangeNotifier {
     SubDetailForm subDetailForm = SubDetailForm();
 
     subDetailForm.template = await Template.loadTemplate(mode, subDetailCarrier.customFormView, subDetailCarrier.fields, transaction: transaction);
-    subDetailForm.hasOnChangeEvent = subDetailCarrier.fields.any((element) => StringUtils.isNotNullOrEmpty(element["script_android"]));
+    subDetailForm.hasOnChangeEvent = subDetailCarrier.fields.any((element) => StringUtils.isNotNullOrEmpty(element["pseudo_code"]));
 
     for (Map<String, dynamic> fieldCustomFormView in subDetailCarrier.fields) {
       if (fieldCustomFormView["field_name"] != "salesunit_id") {

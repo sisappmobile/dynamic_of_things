@@ -508,12 +508,8 @@ class Offlines {
       if (customFunctionsView != null) {
         List<String> scripts = [];
 
-        if (StringUtils.isNotNullOrEmpty(customFunctionsView["script_before_mobile"])) {
-          scripts.add(customFunctionsView["script_before_mobile"]);
-        }
-
-        if (StringUtils.isNotNullOrEmpty(customFunctionsView["script_after_mobile"])) {
-          scripts.add(customFunctionsView["script_after_mobile"]);
+        if (StringUtils.isNotNullOrEmpty(customFunctionsView["pseudo_code"])) {
+          scripts.add(customFunctionsView["pseudo_code"]);
         }
 
         if (scripts.isNotEmpty) {
@@ -742,12 +738,8 @@ class Offlines {
       if (customFunctionsView != null) {
         List<String> scripts = [];
 
-        if (StringUtils.isNotNullOrEmpty(customFunctionsView["script_before_mobile"])) {
-          scripts.add(customFunctionsView["script_before_mobile"]);
-        }
-
-        if (StringUtils.isNotNullOrEmpty(customFunctionsView["script_after_mobile"])) {
-          scripts.add(customFunctionsView["script_after_mobile"]);
+        if (StringUtils.isNotNullOrEmpty(customFunctionsView["pseudo_code"])) {
+          scripts.add(customFunctionsView["pseudo_code"]);
         }
 
         if (scripts.isNotEmpty) {
@@ -1037,7 +1029,7 @@ class Offlines {
     }
 
     headerForm.data = container.convert();
-    headerForm.hasOnChangeEvent = container.carrier.fields.any((element) => StringUtils.isNotNullOrEmpty(element["script_android"]));
+    headerForm.hasOnChangeEvent = container.carrier.fields.any((element) => StringUtils.isNotNullOrEmpty(element["pseudo_code"]));
 
     return headerForm;
   }
@@ -1661,17 +1653,17 @@ class Offlines {
       List<String> scripts = [];
 
       for (Map<String, dynamic> fieldCustomFormView in container.carrier.fields) {
-        if (StringUtils.isNotNullOrEmpty(fieldCustomFormView["script_android"])) {
-          if (!scripts.contains(fieldCustomFormView["script_android"])) {
-            scripts.add(fieldCustomFormView["script_android"]);
+        if (StringUtils.isNotNullOrEmpty(fieldCustomFormView["pseudo_code"])) {
+          if (!scripts.contains(fieldCustomFormView["pseudo_code"])) {
+            scripts.add(fieldCustomFormView["pseudo_code"]);
           }
         }
 
         for (DetailCarrier detailCarrier in container.carrier.detailCarriers) {
           for (Map<String, dynamic> detailFieldCustomFormView in detailCarrier.fields) {
-            if (StringUtils.isNotNullOrEmpty(detailFieldCustomFormView["script_android"])) {
-              if (!scripts.contains(detailFieldCustomFormView["script_android"])) {
-                scripts.add(detailFieldCustomFormView["script_android"]);
+            if (StringUtils.isNotNullOrEmpty(detailFieldCustomFormView["pseudo_code"])) {
+              if (!scripts.contains(detailFieldCustomFormView["pseudo_code"])) {
+                scripts.add(detailFieldCustomFormView["pseudo_code"]);
               }
             }
           }
@@ -1884,12 +1876,8 @@ class Offlines {
 
           List<String> scripts = [];
 
-          if (StringUtils.isNotNullOrEmpty(customFunctionsView["script_before_mobile"])) {
-            scripts.add(customFunctionsView["script_before_mobile"]);
-          }
-
-          if (StringUtils.isNotNullOrEmpty(customFunctionsView["script_after_mobile"])) {
-            scripts.add(customFunctionsView["script_after_mobile"]);
+          if (StringUtils.isNotNullOrEmpty(customFunctionsView["pseudo_code"])) {
+            scripts.add(customFunctionsView["pseudo_code"]);
           }
 
           if (scripts.isNotEmpty) {
@@ -1946,12 +1934,8 @@ class Offlines {
       if (customFunctionsView != null) {
         List<String> scripts = [];
 
-        if (StringUtils.isNotNullOrEmpty(customFunctionsView["script_before_mobile"])) {
-          scripts.add(customFunctionsView["script_before_mobile"]);
-        }
-
-        if (StringUtils.isNotNullOrEmpty(customFunctionsView["script_after_mobile"])) {
-          scripts.add(customFunctionsView["script_after_mobile"]);
+        if (StringUtils.isNotNullOrEmpty(customFunctionsView["pseudo_code"])) {
+          scripts.add(customFunctionsView["pseudo_code"]);
         }
 
         if (scripts.isNotEmpty) {
