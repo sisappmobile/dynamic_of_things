@@ -7,7 +7,13 @@ import "package:dynamic_of_things/helper/sqlites.dart";
 import "package:sqflite/sqflite.dart";
 
 class Pushes {
-  static Future<void> execute() async {
+  static final Pushes _instance = Pushes._internal();
+
+  static Pushes get instance => _instance;
+
+  Pushes._internal();
+
+  Future<void> execute() async {
     List<Map<String, dynamic>> syncQueues = await DMLAssemblers
         .create()
         .select("*")

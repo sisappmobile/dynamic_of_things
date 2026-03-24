@@ -1,4 +1,4 @@
-// ignore_for_file: always_put_required_named_parameters_first, always_specify_types
+// ignore_for_file: always_put_required_named_parameters_first, always_specify_types, cascade_invocations
 
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
@@ -330,7 +330,7 @@ class Action {
 
 class DetailForm with ChangeNotifier {
   late bool single;
-  late int? sectionIndex;
+  int? sectionIndex;
   List<ListColumn> columns = [];
   late Template template;
   late Map<String, dynamic> constructor;

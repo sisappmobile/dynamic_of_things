@@ -1,19 +1,74 @@
 // ignore_for_file: avoid_print
 
 import "package:base/base.dart";
-import "package:collection/collection.dart";
 import "package:dio/dio.dart";
 import "package:dynamic_of_things/helper/dml_assemblers.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
 import "package:dynamic_of_things/helper/pg_to_sqlite_converter.dart";
 import "package:dynamic_of_things/helper/sqlites.dart";
 import "package:flutter/foundation.dart";
+import "package:flutter/material.dart";
+import "package:get/get.dart" as g;
 import "package:sqflite/sqflite.dart";
 
-class Pulls {
-  static Future<void> execute() async {
-    Response response = await DotApis.getInstance().synchronizationPull(BasePreferences.getInstance().getInt("sync_current_version", 0)!);
+enum ProgressStatus { loading, success, error }
 
+class Pulls {
+  // ✅ singleton instance
+  static final Pulls _instance = Pulls._internal();
+
+  static Pulls get instance => _instance;
+
+  Pulls._internal();
+
+  bool _shouldShowProgress = false;
+  OverlayEntry? _overlayEntry;
+  ValueNotifier<ProgressStatus>? _statusNotifier;
+  VoidCallback? _hideAnimation;
+
+  Future<void> execute() async {
+    _shouldShowProgress = true;
+
+    Future.delayed(Duration(seconds: 1), () {
+      if (_shouldShowProgress) {
+        show();
+      }
+    });
+
+    int? currentVersion = BasePreferences.getInstance().getInt("sync_current_version");
+
+    if (currentVersion == null) {
+      try {
+        Response response = await DotApis.getInstance().synchronizationSnapshot();
+
+        await consume(response, true);
+      } catch (e, s) {
+        if (kDebugMode) {
+          print("Caught Exception: $e");
+          print("Stack Trace:\n$s");
+        }
+      }
+
+      currentVersion = BasePreferences.getInstance().getInt("sync_current_version") ?? 0;
+    }
+
+    bool result = false;
+
+    try {
+      Response response = await DotApis.getInstance().synchronizationPull(currentVersion);
+
+      result = await consume(response);
+    } catch (e, s) {
+      if (kDebugMode) {
+        print("Caught Exception: $e");
+        print("Stack Trace:\n$s");
+      }
+    } finally {
+      updateStatus(result ? ProgressStatus.success : ProgressStatus.error);
+    }
+  }
+
+  Future<bool> consume(Response response, [bool snapshot = false]) async {
     if (response.statusCode == 200) {
       Map<String, dynamic> json = Map<String, dynamic>.from(response.data);
 
@@ -22,7 +77,7 @@ class Pulls {
 
       Database database = await Sqlites.get();
 
-      await database.transaction((txn) async {
+      return await database.transaction((txn) async {
         for (Map<String, dynamic> change in changes) {
           String entity = change["entity"];
 
@@ -34,15 +89,27 @@ class Pulls {
         }
       }).then((value) async {
         await BasePreferences.getInstance().setInt("sync_current_version", currentVersion);
+
+        return true;
       }).onError((error, stackTrace) async {
         print("e: $error | s: $stackTrace");
+
+        return false;
       });
     } else if (response.statusCode == 204) {
-      print("Sync version is up to date");
+      if (snapshot) {
+        print("No snapshot data");
+      } else {
+        print("Sync version is up to date");
+      }
+
+      return true;
+    } else {
+      return false;
     }
   }
 
-  static Future<void> process(Transaction transaction, String tableName, Map<String, dynamic> payload, List<Map<String, dynamic>> tableInfos) async {
+  Future<void> process(Transaction transaction, String tableName, Map<String, dynamic> payload, List<Map<String, dynamic>> tableInfos) async {
     if (tableInfos.isNotEmpty) {
       if (payload["idempotent_id"] != null) {
         int rowsAffected = await transaction.delete(tableName, where: "id = ?", whereArgs: [payload["idempotent_id"]]);
@@ -72,7 +139,7 @@ class Pulls {
     }
   }
 
-  static Future<List<Map<String, dynamic>>> getTableInfos(Transaction transaction, String tableName) async {
+  Future<List<Map<String, dynamic>>> getTableInfos(Transaction transaction, String tableName) async {
     List<Map<String, dynamic>> tableInfos = await transaction.rawQuery("PRAGMA table_info($tableName)");
 
     if (tableInfos.isEmpty) {
@@ -96,11 +163,16 @@ class Pulls {
         List<String> columns = dynamicTableDetailViews.map((dynamicTableDetailViews) => dynamicTableDetailViews["column_name"] as String).toList();
 
         List<String> additionalColumns = [
+          "create_who",
+          "create_date",
+          "change_who",
+          "change_date",
           "table_id",
           "form_id",
           "f_delete",
           "version",
           "user_id",
+          "header_id",
         ];
 
         for (String additionalColumn in additionalColumns) {
@@ -118,7 +190,7 @@ class Pulls {
     return tableInfos;
   }
 
-  static Future<void> handleSegmentReport(Transaction transaction, Map<String, dynamic> payload) async {
+  Future<void> handleSegmentReport(Transaction transaction, Map<String, dynamic> payload) async {
     try {
       final converter = PgToSqliteConverter();
 
@@ -132,6 +204,202 @@ class Pulls {
       }
 
       rethrow;
+    }
+  }
+
+  void show() {
+    if (_overlayEntry != null) {
+      return;
+    }
+
+    final overlay = g.Get.key.currentState?.overlay;
+
+    if (overlay == null) {
+      return;
+    }
+
+    _statusNotifier = ValueNotifier(ProgressStatus.loading);
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) {
+        return _OverlayContent(
+          statusNotifier: _statusNotifier!,
+          onHideReady: (hideFn) {
+            _hideAnimation = hideFn;
+          },
+        );
+      },
+    );
+
+    overlay.insert(_overlayEntry!);
+  }
+
+  void hide() {
+    if (_overlayEntry == null) {
+      return;
+    }
+
+    _hideAnimation?.call();
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    _statusNotifier = null;
+    _hideAnimation = null;
+  }
+
+  void updateStatus(ProgressStatus status, {Duration? autoCloseAfter}) {
+    _shouldShowProgress = false;
+
+    autoCloseAfter ??= const Duration(milliseconds: 2000);
+
+    if (_statusNotifier == null) {
+      return;
+    }
+
+    _statusNotifier!.value = status;
+
+    Future.delayed(autoCloseAfter, () => hide());
+  }
+}
+
+class _OverlayContent extends StatefulWidget {
+  final ValueNotifier<ProgressStatus> statusNotifier;
+  final Function(VoidCallback hideFn) onHideReady;
+
+  const _OverlayContent({
+    required this.statusNotifier,
+    required this.onHideReady,
+  });
+
+  @override
+  State<_OverlayContent> createState() => _OverlayContentState();
+}
+
+class _OverlayContentState extends State<_OverlayContent> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fade;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      reverseDuration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    _fade = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+      reverseCurve: Curves.easeIn,
+    );
+
+    _scale = Tween(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOutBack,
+        reverseCurve: Curves.easeIn,
+      ),
+    );
+
+    widget.onHideReady(_hideWithAnimation);
+
+    _controller.forward();
+  }
+
+  void _hideWithAnimation() async {
+    await _controller.reverse();
+
+    Pulls.instance._removeOverlay();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.bottomLeft,
+      children: [
+        Positioned(
+          left: Dimensions.size15,
+          bottom: Dimensions.size15,
+          child: FadeTransition(
+            opacity: _fade,
+            child: ScaleTransition(
+              scale: _scale,
+              child: Card(
+                elevation: 6,
+                shape: const CircleBorder(),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: ValueListenableBuilder<ProgressStatus>(
+                    valueListenable: widget.statusNotifier,
+                    builder: (context, value, child) {
+                      return _AnimatedStatusIcon(status: value);
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AnimatedStatusIcon extends StatelessWidget {
+  final ProgressStatus status;
+
+  const _AnimatedStatusIcon({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 400),
+      transitionBuilder: (child, animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(
+            scale: CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutBack,
+            ),
+            child: child,
+          ),
+        );
+      },
+      child: _buildChild(status),
+    );
+  }
+
+  Widget _buildChild(ProgressStatus status) {
+    switch (status) {
+      case ProgressStatus.loading:
+        return const SizedBox(
+          key: ValueKey("loading"),
+          width: 36,
+          height: 36,
+          child: CircularProgressIndicator(),
+        );
+
+      case ProgressStatus.success:
+        return const Icon(
+          Icons.check_circle,
+          key: ValueKey("success"),
+          color: Colors.green,
+          size: 36,
+        );
+
+      case ProgressStatus.error:
+        return const Icon(
+          Icons.cancel,
+          key: ValueKey("error"),
+          color: Colors.red,
+          size: 36,
+        );
     }
   }
 }

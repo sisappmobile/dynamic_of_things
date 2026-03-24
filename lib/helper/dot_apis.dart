@@ -1,7 +1,6 @@
-import "package:base/base.dart";
 import "dart:convert";
-import "dart:io";
 
+import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:dio/dio.dart";
 import "package:dynamic_of_things/helper/dio_adapter.dart";
@@ -505,6 +504,10 @@ class DotApis {
         "until": until.dateFormat(),
       },
     );
+  }
+
+  Future<Response> synchronizationSnapshot() async {
+    return await dio.get("v2/synchronizations/snapshot");
   }
 
   Future<Response> synchronizationPull(int version) async {
