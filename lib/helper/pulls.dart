@@ -11,8 +11,6 @@ import "package:flutter/material.dart";
 import "package:get/get.dart" as g;
 import "package:sqflite/sqflite.dart";
 
-enum ProgressStatus { loading, success, error }
-
 class Pulls {
   // ✅ singleton instance
   static final Pulls _instance = Pulls._internal();
@@ -23,7 +21,7 @@ class Pulls {
 
   bool _shouldShowProgress = false;
   OverlayEntry? _overlayEntry;
-  ValueNotifier<ProgressStatus>? _statusNotifier;
+  ValueNotifier<int?>? _statusNotifier;
   VoidCallback? _hideAnimation;
 
   Future<void> execute() async {
@@ -64,7 +62,7 @@ class Pulls {
         print("Stack Trace:\n$s");
       }
     } finally {
-      updateStatus(result ? ProgressStatus.success : ProgressStatus.error);
+      updateStatus(result ? 101 : -1, autoCloseAfter: Duration(seconds: 3));
     }
   }
 
@@ -78,7 +76,9 @@ class Pulls {
       Database database = await Sqlites.get();
 
       return await database.transaction((txn) async {
-        for (Map<String, dynamic> change in changes) {
+        for (int i = 0; i < changes.length; i++) {
+          Map<String, dynamic> change = changes[i];
+
           String entity = change["entity"];
 
           Map<String, dynamic> payload = Map<String, dynamic>.from(change["payload"]);
@@ -86,6 +86,8 @@ class Pulls {
           List<Map<String, dynamic>> tableInfos = await getTableInfos(txn, entity);
 
           await process(txn, entity, payload, tableInfos);
+
+          updateStatus(((i + 1) / changes.length * 100).toInt());
         }
       }).then((value) async {
         await BasePreferences.getInstance().setInt("sync_current_version", currentVersion);
@@ -181,7 +183,7 @@ class Pulls {
           }
         }
 
-        await transaction.execute("CREATE TABLE $tableName ( ${columns.map((column) => "$column TEXT ${column == pkColumn ? "PRIMARY KEY" : ""}").join(", ")} )");
+        await transaction.execute("CREATE TABLE $tableName ( ${columns.toSet().map((column) => "$column TEXT ${column == pkColumn ? "PRIMARY KEY" : ""}").join(", ")} )");
 
         tableInfos = await transaction.rawQuery("PRAGMA table_info($tableName)");
       }
@@ -218,7 +220,7 @@ class Pulls {
       return;
     }
 
-    _statusNotifier = ValueNotifier(ProgressStatus.loading);
+    _statusNotifier = ValueNotifier(null);
 
     _overlayEntry = OverlayEntry(
       builder: (context) {
@@ -249,10 +251,8 @@ class Pulls {
     _hideAnimation = null;
   }
 
-  void updateStatus(ProgressStatus status, {Duration? autoCloseAfter}) {
+  void updateStatus(int? status, {Duration? autoCloseAfter}) {
     _shouldShowProgress = false;
-
-    autoCloseAfter ??= const Duration(milliseconds: 2000);
 
     if (_statusNotifier == null) {
       return;
@@ -260,12 +260,14 @@ class Pulls {
 
     _statusNotifier!.value = status;
 
-    Future.delayed(autoCloseAfter, () => hide());
+    if (autoCloseAfter != null) {
+      Future.delayed(autoCloseAfter, () => hide());
+    }
   }
 }
 
 class _OverlayContent extends StatefulWidget {
-  final ValueNotifier<ProgressStatus> statusNotifier;
+  final ValueNotifier<int?> statusNotifier;
   final Function(VoidCallback hideFn) onHideReady;
 
   const _OverlayContent({
@@ -334,7 +336,7 @@ class _OverlayContentState extends State<_OverlayContent> with SingleTickerProvi
                 shape: const CircleBorder(),
                 child: Padding(
                   padding: const EdgeInsets.all(4),
-                  child: ValueListenableBuilder<ProgressStatus>(
+                  child: ValueListenableBuilder<int?>(
                     valueListenable: widget.statusNotifier,
                     builder: (context, value, child) {
                       return _AnimatedStatusIcon(status: value);
@@ -351,7 +353,7 @@ class _OverlayContentState extends State<_OverlayContent> with SingleTickerProvi
 }
 
 class _AnimatedStatusIcon extends StatelessWidget {
-  final ProgressStatus status;
+  final int? status;
 
   const _AnimatedStatusIcon({required this.status});
 
@@ -375,31 +377,37 @@ class _AnimatedStatusIcon extends StatelessWidget {
     );
   }
 
-  Widget _buildChild(ProgressStatus status) {
-    switch (status) {
-      case ProgressStatus.loading:
-        return const SizedBox(
-          key: ValueKey("loading"),
-          width: 36,
-          height: 36,
-          child: CircularProgressIndicator(),
-        );
-
-      case ProgressStatus.success:
-        return const Icon(
-          Icons.check_circle,
-          key: ValueKey("success"),
-          color: Colors.green,
-          size: 36,
-        );
-
-      case ProgressStatus.error:
+  Widget _buildChild(int? status) {
+    if (status == null) {
+      return const SizedBox(
+        key: ValueKey("loading"),
+        width: 36,
+        height: 36,
+        child: CircularProgressIndicator(),
+      );
+    } else {
+      if (status == -1) {
         return const Icon(
           Icons.cancel,
           key: ValueKey("error"),
           color: Colors.red,
           size: 36,
         );
+      } else if (status == 101) {
+        return const Icon(
+          Icons.check_circle,
+          key: ValueKey("success"),
+          color: Colors.green,
+          size: 36,
+        );
+      } else {
+        return SizedBox(
+          key: ValueKey("loading"),
+          width: 36,
+          height: 36,
+          child: CircularProgressIndicator(value: status / 100),
+        );
+      }
     }
   }
 }

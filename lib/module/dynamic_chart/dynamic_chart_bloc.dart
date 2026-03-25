@@ -3,6 +3,8 @@
 import "package:base/base.dart";
 import "package:dio/dio.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
+import "package:dynamic_of_things/helper/dynamic_forms.dart";
+import "package:dynamic_of_things/helper/offline_charts.dart";
 import "package:dynamic_of_things/model/dynamic_chart_list_response.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_event.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_state.dart";
@@ -16,15 +18,25 @@ class DynamicChartBloc extends Bloc<DynamicChartEvent, DynamicChartState> {
       try {
         emit(DynamicChartLoadLoading());
 
-        Response response = await DotApis.getInstance().dynamicChartList();
+        ListResponse? listResponse;
 
-        if (response.statusCode == 200) {
-          emit(DynamicChartLoadSuccess(
-              listResponse: ListResponse.fromJson(response.data)));
+        if (DynamicForms.offline) {
+          listResponse = await OfflineCharts.list();
+        } else {
+          Response response = await DotApis.getInstance().dynamicChartList();
+
+          if (response.statusCode == 200) {
+            listResponse = ListResponse.fromJson(response.data);
+          }
         }
-      } catch (e) {
+
+        if (listResponse != null) {
+          emit(DynamicChartLoadSuccess(listResponse: listResponse));
+        }
+      } catch (e, s) {
         if (kDebugMode) {
-          print(e);
+          print("Caught Exception: $e");
+          print("Stack Trace:\n$s");
         }
 
         BaseOverlays.error(message: "common_something_wrong".tr());
@@ -37,26 +49,38 @@ class DynamicChartBloc extends Bloc<DynamicChartEvent, DynamicChartState> {
       try {
         emit(DynamicChartDataLoading(id: event.id));
 
-        Response response = await DotApis.getInstance().dynamicChartDetail(
-          id: event.id,
-          begin: event.begin,
-          until: event.until,
-        );
-
-        if (response.statusCode == 200) {
+        if (DynamicForms.offline) {
           emit(
             DynamicChartDataSuccess(
               id: event.id,
-              data: response.data,
+              data: await OfflineCharts.data(
+                id: event.id,
+                begin: event.begin,
+                until: event.until,
+              ),
             ),
           );
-        }
-      } catch (e) {
-        if (kDebugMode) {
-          print(e);
-        }
+        } else {
+          Response response = await DotApis.getInstance().dynamicChartDetail(
+            id: event.id,
+            begin: event.begin,
+            until: event.until,
+          );
 
-        BaseOverlays.error(message: "common_something_wrong".tr());
+          if (response.statusCode == 200) {
+            emit(
+              DynamicChartDataSuccess(
+                id: event.id,
+                data: response.data,
+              ),
+            );
+          }
+        }
+      } catch (e, s) {
+        if (kDebugMode) {
+          print("Caught Exception: $e");
+          print("Stack Trace:\n$s");
+        }
       } finally {
         emit(DynamicChartDataFinished(id: event.id));
       }

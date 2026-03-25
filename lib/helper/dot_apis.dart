@@ -505,10 +505,16 @@ class DotApis {
   }
 
   Future<Response> synchronizationSnapshot() async {
+    dio.options.connectTimeout = const Duration(minutes: 5);
+    dio.options.receiveTimeout = const Duration(minutes: 5);
+
     return await dio.get("v2/synchronizations/snapshot");
   }
 
   Future<Response> synchronizationPull(int version) async {
+    dio.options.connectTimeout = const Duration(minutes: 5);
+    dio.options.receiveTimeout = const Duration(minutes: 5);
+
     return await dio.get(
       "v2/synchronizations/pull",
       queryParameters: {
@@ -519,6 +525,9 @@ class DotApis {
 
   Future<Response> synchronizationPush(List<Map<String, dynamic>> changes) async {
     changes.forEach((element) => element["payload"] = jsonDecode(element["payload"]));
+
+    dio.options.connectTimeout = const Duration(minutes: 5);
+    dio.options.receiveTimeout = const Duration(minutes: 5);
 
     return await dio.post(
       "v2/synchronizations/push",
