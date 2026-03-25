@@ -3,6 +3,8 @@
 import "package:base/base.dart";
 import "package:dio/dio.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
+import "package:dynamic_of_things/helper/dynamic_forms.dart";
+import "package:dynamic_of_things/helper/offline_reports.dart";
 import "package:dynamic_of_things/model/dynamic_report_data.dart";
 import "package:dynamic_of_things/model/dynamic_report_template.dart";
 import "package:dynamic_of_things/module/dynamic_report/dynamic_report_event.dart";
@@ -17,18 +19,27 @@ class DynamicReportBloc extends Bloc<DynamicReportEvent, DynamicReportState> {
       try {
         emit(DynamicReportTemplateLoading());
 
-        Response response = await DotApis.getInstance().dynamicReportTemplate(
-          id: event.id,
-        );
+        Template? template;
 
-        if (response.statusCode == 200) {
-          emit(
-            DynamicReportTemplateSuccess(
-              template: Template.fromJson(response.data),
-            ),
-          );
+        if (DynamicForms.offline) {
+          template = await OfflineReports.template(event.id);
+        } else {
+          Response response = await DotApis.getInstance().dynamicReportTemplate(event.id);
+
+          if (response.statusCode == 200) {
+            template = Template.fromJson(response.data);
+          }
         }
-      } catch (e) {
+
+        if (template != null) {
+          emit(DynamicReportTemplateSuccess(template: template));
+        }
+      } catch (e, s) {
+        if (kDebugMode) {
+          print("Caught Exception: $e");
+          print("Stack Trace:\n$s");
+        }
+
         BaseOverlays.error(message: "common_something_wrong".tr());
       } finally {
         emit(DynamicReportTemplateFinished());
@@ -39,21 +50,31 @@ class DynamicReportBloc extends Bloc<DynamicReportEvent, DynamicReportState> {
       try {
         emit(DynamicReportDataLoading());
 
-        Response response = await DotApis.getInstance().dynamicReportData(
-          id: event.id,
-          dataRequest: event.dataRequest,
-        );
+        DataResponse? dataResponse;
 
-        if (response.statusCode == 200) {
-          emit(
-            DynamicReportDataSuccess(
-              dataResponse: DataResponse.fromJson(response.data),
-            ),
+        if (DynamicForms.offline) {
+          dataResponse = await OfflineReports.data(
+            id: event.id,
+            dataRequest: event.dataRequest,
           );
+        } else {
+          Response response = await DotApis.getInstance().dynamicReportData(
+            id: event.id,
+            dataRequest: event.dataRequest,
+          );
+
+          if (response.statusCode == 200) {
+            dataResponse = DataResponse.fromJson(response.data);
+          }
         }
-      } catch (e) {
+
+        if (dataResponse != null) {
+          emit(DynamicReportDataSuccess(dataResponse: dataResponse));
+        }
+      } catch (e, s) {
         if (kDebugMode) {
-          print(e);
+          print("Caught Exception: $e");
+          print("Stack Trace:\n$s");
         }
 
         BaseOverlays.error(message: "common_something_wrong".tr());
@@ -66,26 +87,41 @@ class DynamicReportBloc extends Bloc<DynamicReportEvent, DynamicReportState> {
       try {
         emit(DynamicReportExportLoading());
 
-        Response response = await DotApis.getInstance().dynamicReportExport(
-          id: event.id,
-          dataRequest: event.dataRequest,
-        );
-
-        if (response.statusCode == 200) {
-          String fileName =
-              response.headers["Content-Disposition"]![0].toString();
-
-          fileName = fileName.substring(fileName.lastIndexOf(";") + 1);
-          fileName = fileName.trim();
-          fileName = fileName.replaceAll(" ", "_");
-          fileName = fileName.toLowerCase();
-
-          emit(
-            DynamicReportExportSuccess(
-              fileName: fileName,
-              bytes: response.data,
-            ),
+        if (DynamicForms.offline) {
+          Map<String, dynamic>? result = await OfflineReports.export(
+            id: event.id,
+            dataRequest: event.dataRequest,
           );
+
+          if (result != null) {
+            emit(
+              DynamicReportExportSuccess(
+                fileName: result["fileName"],
+                bytes: result["bytes"],
+              ),
+            );
+          }
+        } else {
+          Response response = await DotApis.getInstance().dynamicReportExport(
+            id: event.id,
+            dataRequest: event.dataRequest,
+          );
+
+          if (response.statusCode == 200) {
+            String fileName = response.headers["Content-Disposition"]![0].toString();
+
+            fileName = fileName.substring(fileName.lastIndexOf(";") + 1);
+            fileName = fileName.trim();
+            fileName = fileName.replaceAll(" ", "_");
+            fileName = fileName.toLowerCase();
+
+            emit(
+              DynamicReportExportSuccess(
+                fileName: fileName,
+                bytes: response.data,
+              ),
+            );
+          }
         }
       } catch (e) {
         BaseOverlays.error(message: "common_something_wrong".tr());

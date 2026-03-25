@@ -12,8 +12,7 @@ dependencies:
   base:
     git:
       url: https://github.com/sisappmobile/base.git
-      ref: 2.0.10
-    # path: /Users/kecoakburikk/Documents/project/flutter/base
+      ref: 54a41478bd72150246251ebcfcbdf384dabbbcf5
 
   # inherited from base
   get: 4.7.2
@@ -21,7 +20,7 @@ dependencies:
   basic_utils: 5.8.2
   jiffy: 6.4.3
   shared_preferences: 2.5.3
-  syncfusion_flutter_datepicker: 29.2.11
+  syncfusion_flutter_datepicker: 33.1.45
   lottie: 3.3.1
   easy_localization: 3.0.7+1
   photo_view: 0.15.0
@@ -52,9 +51,10 @@ dependencies:
   loader_overlay: 5.0.0
   flutter_bloc: 9.1.1
   shimmer: 3.0.0
-  syncfusion_flutter_charts: 29.2.11
-  syncfusion_flutter_calendar: 29.2.11
-  syncfusion_flutter_signaturepad: 29.2.11
+  syncfusion_flutter_charts: 33.1.45
+  syncfusion_flutter_calendar: 33.1.45
+  syncfusion_flutter_signaturepad: 33.1.45
+  syncfusion_flutter_xlsio: 33.1.45
   sqflite: 2.4.2
   flutter_map: ^8.2.2
   latlong2: ^0.9.1

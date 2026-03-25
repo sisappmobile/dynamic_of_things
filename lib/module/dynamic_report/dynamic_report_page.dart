@@ -8,7 +8,9 @@ import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
+import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/formats.dart";
+import "package:dynamic_of_things/helper/offline_reports.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
 import "package:dynamic_of_things/model/dynamic_report_data.dart";
@@ -21,7 +23,7 @@ import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:dynamic_of_things/widget/simple_spinner_page.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:file_picker/file_picker.dart";
-import "package:flutter/foundation.dart" show kIsWeb;
+import "package:flutter/foundation.dart" show kIsWeb, kDebugMode;
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:go_router/go_router.dart";
@@ -1845,14 +1847,24 @@ class DynamicReportPageState extends State<DynamicReportPage>
             try {
               context.loaderOverlay.show();
 
-              items = await DotApis.getInstance().dynamicReportResource(
-                id: template!.id,
-                field: filter.name,
-              );
-            } catch (e) {
-              BaseOverlays.error(
-                message: "something_wrong_please_try_again".tr(),
-              );
+              if (DynamicForms.offline) {
+                items = await OfflineReports.resource(
+                  id: template!.id,
+                  field: filter.name,
+                );
+              } else {
+                items = await DotApis.getInstance().dynamicReportResource(
+                  id: template!.id,
+                  field: filter.name,
+                );
+              }
+            } catch (e, s) {
+              if (kDebugMode) {
+                print("Caught Exception: $e");
+                print("Stack Trace:\n$s");
+              }
+
+              BaseOverlays.error(message: "something_wrong_please_try_again".tr());
             } finally {
               context.loaderOverlay.hide();
             }

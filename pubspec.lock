@@ -45,11 +45,11 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "2.0.10"
-      resolved-ref: "8e3538f35de5acbcc805dbf53766dd6ed87c5683"
+      ref: "54a41478bd72150246251ebcfcbdf384dabbbcf5"
+      resolved-ref: "54a41478bd72150246251ebcfcbdf384dabbbcf5"
       url: "https://github.com/sisappmobile/base.git"
     source: git
-    version: "2.0.9"
+    version: "2.0.12"
   basic_utils:
     dependency: "direct main"
     description:
@@ -834,10 +834,10 @@ packages:
     dependency: transitive
     description:
       name: meta
-      sha256: e3641ec5d63ebf0d9b41bd43201a66e3fc79a65db5f61fc181f04cd27aab950c
+      sha256: "23f08335362185a5ea2ad3a4e597f1375e78bce8a040df5c600c8d3552ef2394"
       url: "https://pub.dev"
     source: hosted
-    version: "1.16.0"
+    version: "1.17.0"
   mgrs_dart:
     dependency: transitive
     description:
@@ -1263,50 +1263,66 @@ packages:
     dependency: "direct main"
     description:
       name: syncfusion_flutter_calendar
-      sha256: b3d245b7d316876576f6a3e6f1a13a7e0a7b1249712dae91000145de31967130
+      sha256: ff20d16fbfeb1ab324608657eb92accc3b2964e68271d4d5cf83a2918211d3ec
       url: "https://pub.dev"
     source: hosted
-    version: "29.2.11"
+    version: "33.1.45"
   syncfusion_flutter_charts:
     dependency: "direct main"
     description:
       name: syncfusion_flutter_charts
-      sha256: c43329a0f74337c96cbf6e1993c990a111c56df4f307b63590063c50d7b027f1
+      sha256: dcd4e579119d6c93bff270c3bb5034d6dfcf48d1ba98085f42917fd5c1a633a4
       url: "https://pub.dev"
     source: hosted
-    version: "29.2.11"
+    version: "33.1.45"
   syncfusion_flutter_core:
     dependency: transitive
     description:
       name: syncfusion_flutter_core
-      sha256: bee87cdfe527b31705190162e3bd27bf468d591ae7c68182244bdfd94e21f737
+      sha256: cdc9f865a2447b75446c6583e68b2800411687cc1a36df83769b66f96ed70df1
       url: "https://pub.dev"
     source: hosted
-    version: "29.2.11"
+    version: "33.1.45"
   syncfusion_flutter_datepicker:
     dependency: "direct main"
     description:
       name: syncfusion_flutter_datepicker
-      sha256: "2f61b9c7a7da38c2741061f8485ae2100e4135750590bf5a90f1162a258ebc0e"
+      sha256: "0afd0ad196263f045dbae57b4e893d24ec2e3f2d5aeb783548f8a7b3a9c29f9a"
       url: "https://pub.dev"
     source: hosted
-    version: "29.2.11"
+    version: "33.1.45"
   syncfusion_flutter_signaturepad:
     dependency: "direct main"
     description:
       name: syncfusion_flutter_signaturepad
-      sha256: "903dcd8a6afcd94488be296f9e45c28e2ea6634849eccb70066e310db4198edc"
+      sha256: "046bafe76e6fce32fb53a69feda73914a01657a55e4c8d6df08c391c1f239e78"
       url: "https://pub.dev"
     source: hosted
-    version: "29.2.11"
+    version: "33.1.45"
+  syncfusion_flutter_xlsio:
+    dependency: "direct main"
+    description:
+      name: syncfusion_flutter_xlsio
+      sha256: ed1089492da2bc6c9832584f0ad1c0a45c70bee8d14bc97392c3e227cd03102a
+      url: "https://pub.dev"
+    source: hosted
+    version: "33.1.45"
   syncfusion_localizations:
     dependency: transitive
     description:
       name: syncfusion_localizations
-      sha256: "5df8f93c61347447c6dee1e42ce78139be15f80e4fd114828e4b8cfefb4a008f"
+      sha256: "804a0b456e4a58bd7b9ac63005a696e444d7d1646c4344bf9bcba082676606d9"
       url: "https://pub.dev"
     source: hosted
-    version: "29.2.11"
+    version: "33.1.45"
+  syncfusion_officecore:
+    dependency: transitive
+    description:
+      name: syncfusion_officecore
+      sha256: "450bdd26357c5dc34dec924b306378fee01032b9ea885c6831d2169a2b33f14b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "33.1.45"
   synchronized:
     dependency: transitive
     description:
@@ -1327,10 +1343,10 @@ packages:
     dependency: transitive
     description:
       name: test_api
-      sha256: "522f00f556e73044315fa4585ec3270f1808a4b186c936e612cab0b565ff1e00"
+      sha256: ab2726c1a94d3176a45960b6234466ec367179b87dd74f1611adb1f3b5fb9d55
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.6"
+    version: "0.7.7"
   timer_count_down:
     dependency: "direct main"
     description:
@@ -1343,10 +1359,10 @@ packages:
     dependency: transitive
     description:
       name: timezone
-      sha256: ffc9d5f4d1193534ef051f9254063fa53d588609418c84299956c3db9383587d
+      sha256: "784a5e34d2eb62e1326f24d6f600aaaee452eb8ca8ef2f384a59244e292d158b"
       url: "https://pub.dev"
     source: hosted
-    version: "0.10.0"
+    version: "0.11.0"
   typed_data:
     dependency: transitive
     description:
@@ -1484,5 +1500,5 @@ packages:
     source: hosted
     version: "6.6.1"
 sdks:
-  dart: ">=3.9.0 <4.0.0"
-  flutter: ">=3.35.0"
+  dart: ">=3.10.0 <4.0.0"
+  flutter: ">=3.35.1"

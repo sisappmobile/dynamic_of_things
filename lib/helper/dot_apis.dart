@@ -441,9 +441,7 @@ class DotApis {
     );
   }
 
-  Future<Response> dynamicReportTemplate({
-    required String id,
-  }) async {
+  Future<Response> dynamicReportTemplate(String id) async {
     return await dio.get(
       "v2/dynamic-reports/$id/template",
     );
