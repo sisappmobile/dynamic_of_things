@@ -2049,7 +2049,7 @@ class Offlines {
               "template": defaultValue,
             });
 
-            defaultValue = await generateNumberSeries("${customFormView["table_name"]}_${fieldCustomFormView["field_name"]}", defaultValue);
+            defaultValue = await generateNumberSeries("${customFormView["table_name"]}_${fieldCustomFormView["field_name"]}", defaultValue, transaction);
           } else if (fieldCustomFormView["field_data_type"] == "NUMERIC") {
             defaultValue = defaultValue.replaceAll(",", "");
           }
@@ -2763,9 +2763,44 @@ class Offlines {
             .equalTo("custom_form_id", customFormView["id"])
             .all(transaction);
 
-        Iterable<MapEntry<String, dynamic>> iterable = hashDTO.entries.where((entry) => !(entry.value is List || entry.value is Map || StringUtils.inList(entry.key, ["id", "create_date", "create_who"])) && dynamicScheduleMappingViews.any((dynamicScheduleMappingView) => dynamicScheduleMappingView["master_column"] == entry.key));
+        Map<String, dynamic>? affectedRow = (await transaction.rawQuery("INSERT INTO ${scheduleMetaData["table_name"]} ( id, create_date, create_who, company_id, bu_id, table_id, form_id, custom_form_data, custom_form_id, ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => dynamicScheduleMappingView["schedule_column"] as String).join(", ")} ) VALUES ( '${nextIdempotentId()}', DATETIME(), '$currentUsername', '$currentCompanyId', '$currentBusinessUnitId', '${scheduleMetaData["table_id"]}', '${scheduleMetaData["form_id"]}', '${hashDTO["id"]}', '${hashDTO["form_id"]}', ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => hashDTO[dynamicScheduleMappingView["master_column"]] != null ? "'${hashDTO[dynamicScheduleMappingView["master_column"]]}'" : "NULL").join(", ")} ) RETURNING *")).firstOrNull;
 
-        await transaction.execute("INSERT INTO ${scheduleMetaData["table_name"]} ( id, create_date, create_who, company_id, bu_id, table_id, form_id, custom_form_data, custom_form_id, ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => dynamicScheduleMappingView["schedule_column"] as String).join(", ")} ) VALUES ( '${nextIdempotentId()}', DATETIME(), '$currentUsername', '$currentCompanyId', '$currentBusinessUnitId', '${scheduleMetaData["table_id"]}', '${scheduleMetaData["form_id"]}', '${hashDTO["id"]}', '${hashDTO["form_id"]}', ${iterable.map((entry) => entry.value != null ? "'${entry.value}'" : "NULL").join(", ")} );");
+        if (affectedRow != null) {
+          String? sequenceName = (await DMLAssemblers
+              .create()
+              .select("sequence_name")
+              .from("f_dynamic_table")
+              .equalTo("table_name", scheduleMetaData["table_name"])
+              .first(transaction))?["sequence_name"];
+
+          if (StringUtils.isNotNullOrEmpty(sequenceName)) {
+            Map<String, dynamic> finalizedAffectedRow = Map<String, dynamic>.from(affectedRow);
+
+            List<Map<String, dynamic>> generateNumbers = await DMLAssemblers
+                .create()
+                .select("c.field_name")
+                .select("c.default_value AS template")
+                .from("f_dynamic_table a")
+                .join("INNER JOIN c_custom_form b ON b.table_header_id = a.id")
+                .join("INNER JOIN c_field_custom_form c ON c.custom_id = b.id")
+                .equalTo("a.table_name", scheduleMetaData["table_name"])
+                .and()
+                .customWhere("c.default_value LIKE '%\$GENERATE_NUMBER%'")
+                .all(transaction);
+
+            finalizedAffectedRow["_metadata"] = {
+              "action": "insert",
+              "sequence": sequenceName,
+              "generate_numbers": generateNumbers,
+            };
+
+            await insertSyncQueue(
+              transaction: transaction,
+              entity: scheduleMetaData["table_name"],
+              payload: finalizedAffectedRow,
+            );
+          }
+        }
       }
     }
   }
@@ -2877,9 +2912,44 @@ class Offlines {
             .equalTo("custom_form_id", customFormView["id"])
             .all(transaction);
 
-        Iterable<MapEntry<String, dynamic>> iterable = hashDTO.entries.where((entry) => !(entry.value is List || entry.value is Map || StringUtils.inList(entry.key, ["id", "create_date", "create_who"])) && dynamicScheduleMappingViews.any((dynamicScheduleMappingView) => dynamicScheduleMappingView["master_column"] == entry.key));
+        Map<String, dynamic>? affectedRow = (await transaction.rawQuery("UPDATE ${scheduleMetaData["table_name"]} SET change_date = DATETIME(), change_who = '$currentUsername',  ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => "${dynamicScheduleMappingView["schedule_column"]} = ${hashDTO[dynamicScheduleMappingView["master_column"]] != null ? "'${hashDTO[dynamicScheduleMappingView["master_column"]]}'" : "NULL"}" ).join(", ")} WHERE custom_form_data = '${hashDTO["id"]}' AND custom_form_id = '${hashDTO["form_id"]}' RETURNING *")).firstOrNull;
 
-        await transaction.execute("UPDATE ${scheduleMetaData["table_name"]} SET change_date = DATETIME(), change_who = '$currentUsername',  ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => "${dynamicScheduleMappingView["schedule_column"]} = ${iterable.firstWhereOrNull((element) => element.key == dynamicScheduleMappingView["master_column"])?.value != null ? "'${iterable.firstWhereOrNull((element) => element.key == dynamicScheduleMappingView["master_column"])?.value}'" : "NULL"}" ).join(", ")} WHERE custom_form_data = '${hashDTO["id"]}' AND custom_form_id = '${hashDTO["form_id"]}';");
+        if (affectedRow != null) {
+          String? sequenceName = (await DMLAssemblers
+              .create()
+              .select("sequence_name")
+              .from("f_dynamic_table")
+              .equalTo("table_name", scheduleMetaData["table_name"])
+              .first(transaction))?["sequence_name"];
+
+          if (StringUtils.isNotNullOrEmpty(sequenceName)) {
+            Map<String, dynamic> finalizedAffectedRow = Map<String, dynamic>.from(affectedRow);
+
+            List<Map<String, dynamic>> generateNumbers = await DMLAssemblers
+                .create()
+                .select("c.field_name")
+                .select("c.default_value AS template")
+                .from("f_dynamic_table a")
+                .join("INNER JOIN c_custom_form b ON b.table_header_id = a.id")
+                .join("INNER JOIN c_field_custom_form c ON c.custom_id = b.id")
+                .equalTo("a.table_name", scheduleMetaData["table_name"])
+                .and()
+                .customWhere("c.default_value LIKE '%\$GENERATE_NUMBER%'")
+                .all(transaction);
+
+            finalizedAffectedRow["_metadata"] = {
+              "action": "update",
+              "sequence": sequenceName,
+              "generate_numbers": generateNumbers,
+            };
+
+            await insertSyncQueue(
+              transaction: transaction,
+              entity: scheduleMetaData["table_name"],
+              payload: finalizedAffectedRow,
+            );
+          }
+        }
       }
     }
   }
