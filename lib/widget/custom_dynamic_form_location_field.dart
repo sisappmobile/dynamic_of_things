@@ -84,9 +84,13 @@ class CustomDynamicFormLocationFieldState
     final connectivity = Connectivity();
 
     connectivitySub = connectivity.onConnectivityChanged.listen((result) {
-      setState(() {
-        isOnline = result != ConnectivityResult.none;
-      });
+      if (!mounted) {
+        return;
+      }
+
+      isOnline = result.any((element) => element != ConnectivityResult.none);
+
+      setState(() {});
     });
 
     connectivity.checkConnectivity().then((result) {
@@ -94,9 +98,9 @@ class CustomDynamicFormLocationFieldState
         return;
       }
 
-      setState(() {
-        isOnline = result != ConnectivityResult.none;
-      });
+      isOnline = result.any((element) => element != ConnectivityResult.none);
+
+      setState(() {});
     });
   }
 

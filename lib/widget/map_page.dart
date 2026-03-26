@@ -106,9 +106,10 @@ class MapPageState extends State<MapPage> {
       if (!mounted) {
         return;
       }
-      setState(() {
-        isOnline = result != ConnectivityResult.none;
-      });
+
+      isOnline = result.any((element) => element != ConnectivityResult.none);
+
+      setState(() {});
     });
 
     connectivity.checkConnectivity().then((result) {
@@ -116,9 +117,9 @@ class MapPageState extends State<MapPage> {
         return;
       }
 
-      setState(() {
-        isOnline = result != ConnectivityResult.none;
-      });
+      isOnline = result.any((element) => element != ConnectivityResult.none);
+
+      setState(() {});
     });
   }
 
