@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_single_cascade_in_expression_statements
 
+import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:flutter/foundation.dart";
 import "package:sqflite/sqflite.dart";
@@ -154,6 +155,14 @@ class Sqlites {
 
       database = null;
     }
+
+    await BasePreferences.getInstance().remove("dot-sales-unit-id");
+    await BasePreferences.getInstance().remove("dot-username");
+    await BasePreferences.getInstance().remove("dot-business-unit-id");
+    await BasePreferences.getInstance().remove("dot-business-unit-code");
+    await BasePreferences.getInstance().remove("dot-user-id");
+    await BasePreferences.getInstance().remove("dot-company-id");
+    await BasePreferences.getInstance().remove("dot-sync-current-version");
   }
 
   static String dataType(String value) {

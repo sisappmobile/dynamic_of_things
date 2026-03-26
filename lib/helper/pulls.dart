@@ -33,7 +33,7 @@ class Pulls {
       }
     });
 
-    int? currentVersion = BasePreferences.getInstance().getInt("sync_current_version");
+    int? currentVersion = BasePreferences.getInstance().getInt("dot-sync-current-version");
 
     if (currentVersion == null) {
       try {
@@ -47,7 +47,7 @@ class Pulls {
         }
       }
 
-      currentVersion = BasePreferences.getInstance().getInt("sync_current_version") ?? 0;
+      currentVersion = BasePreferences.getInstance().getInt("dot-sync-current-version") ?? 0;
     }
 
     bool result = false;
@@ -90,7 +90,7 @@ class Pulls {
           updateStatus(((i + 1) / changes.length * 100).toInt());
         }
       }).then((value) async {
-        await BasePreferences.getInstance().setInt("sync_current_version", currentVersion);
+        await BasePreferences.getInstance().setInt("dot-sync-current-version", currentVersion);
 
         return true;
       }).onError((error, stackTrace) async {
