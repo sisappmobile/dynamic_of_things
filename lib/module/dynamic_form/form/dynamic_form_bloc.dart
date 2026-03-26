@@ -150,16 +150,13 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
         }
 
         emit(DynamicFormSaveSuccess());
-      } catch (e, stack) {
-        print(stack);
-
-        String message = "something_wrong_please_try_again".tr();
-
-        if ("Exception" != e.toString()) {
-          message = e.toString().substring(11);
+      } catch (e, s) {
+        if (kDebugMode) {
+          print("Caught Exception: $e");
+          print("Stack Trace:\n$s");
         }
 
-        BaseOverlays.error(message: message);
+        BaseOverlays.error(message: "common_something_wrong".tr());
       } finally {
         emit(DynamicFormSaveFinished());
       }
@@ -192,16 +189,13 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
 
           emit(DynamicFormRefreshSuccess(headerForm: headerForm));
         }
-      } catch (e, stack) {
-        print(stack);
-
-        String message = "something_wrong_please_try_again".tr();
-
-        if ("Exception" != e.toString()) {
-          message = e.toString().substring(11);
+      } catch (e, s) {
+        if (kDebugMode) {
+          print("Caught Exception: $e");
+          print("Stack Trace:\n$s");
         }
 
-        BaseOverlays.error(message: message);
+        BaseOverlays.error(message: "common_something_wrong".tr());
       } finally {
         emit(DynamicFormRefreshFinished());
       }
