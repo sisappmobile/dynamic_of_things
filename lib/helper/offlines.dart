@@ -1437,8 +1437,9 @@ class Offlines {
             }
 
             if (StringUtils.isNotNullOrEmpty(query)) {
-              dmlAssemblers.customWhere("LOWER(${requiredFields.map((e) => "COALESCE(CAST($e AS TEXT), '')").join("||")}) LIKE ?");
-              dmlAssemblers.parameter("%$query%");
+              dmlAssemblers
+                  .and()
+                  .customWhere("LOWER(${requiredFields.map((e) => "COALESCE(CAST($e AS TEXT), '')").join("||")}) LIKE '%$query%'");
             }
 
             if (StringUtils.isNotNullOrEmpty(currentFieldCustomFormView["order_view"])) {
@@ -2931,8 +2932,8 @@ class Offlines {
     DatabaseExecutor databaseExecutor = transaction ?? await Sqlites.get();
 
     final lastInsertedId = await databaseExecutor.rawInsert(
-        "INSERT INTO _sequences (id, value) VALUES (?, 1) ON CONFLICT (id) DO UPDATE SET value = value + 1",
-        [name],
+      "INSERT INTO _sequences (id, value) VALUES (?, 1) ON CONFLICT (id) DO UPDATE SET value = value + 1",
+      [name],
     );
 
     int value = (await databaseExecutor.query(
