@@ -6,6 +6,7 @@ import "dart:ui";
 
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
+import "package:collection/collection.dart";
 import "package:connectivity_plus/connectivity_plus.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
@@ -17,6 +18,7 @@ import "package:flutter/material.dart";
 import "package:flutter_map/flutter_map.dart";
 import "package:geolocator/geolocator.dart";
 import "package:latlong2/latlong.dart" as ll;
+import "package:path/path.dart" as p;
 import "package:path_provider/path_provider.dart";
 import "package:smooth_corner/smooth_corner.dart";
 
@@ -55,9 +57,7 @@ class CustomDynamicFormLocationFieldState
   void initState() {
     super.initState();
 
-    if (!widget.readOnly) {
-      watchConnectivity();
-    }
+    watchConnectivity();
 
     num? latitude;
     num? longitude;
@@ -221,8 +221,7 @@ class CustomDynamicFormLocationFieldState
     final Color ok = Colors.green;
     final Color warn = Colors.orange;
 
-    final bool online = isOnline;
-    final Color c = online ? ok : warn;
+    final Color c = isOnline ? ok : warn;
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -255,7 +254,7 @@ class CustomDynamicFormLocationFieldState
           ),
           SizedBox(width: Dimensions.size5),
           Text(
-            online ? "Online" : "Offline",
+            isOnline ? "Online" : "Offline",
             style: TextStyle(
               fontSize: Dimensions.text11,
               fontWeight: FontWeight.w800,
@@ -264,7 +263,7 @@ class CustomDynamicFormLocationFieldState
           ),
           SizedBox(width: Dimensions.size5),
           Icon(
-            online ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+            isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
             size: Dimensions.size15,
             color: outline.withValues(alpha: 0.75),
           ),
@@ -311,6 +310,16 @@ class CustomDynamicFormLocationFieldState
             );
           }
 
+          double? minZoom;
+          double? maxZoom;
+
+          try {
+            List<double> zoomVarieties = Directory("${snapshot.data!.path}/$offlineMapBaseFolder/$baseMap").listSync().where((element) => element is Directory && double.tryParse(p.basename(element.path)) != null).map((element) => double.parse(p.basename(element.path))).sorted((a, b) => a.compareTo(b));
+
+            minZoom = zoomVarieties.first;
+            maxZoom = zoomVarieties.last;
+          } catch (_) {}
+
           return ClipRRect(
             borderRadius: BorderRadius.circular(Dimensions.size15),
             child: Container(
@@ -331,8 +340,10 @@ class CustomDynamicFormLocationFieldState
                 children: [
                   FlutterMap(
                     options: MapOptions(
-                      initialCenter: latLng!,
-                      initialZoom: 19,
+                      initialZoom: minZoom ?? 14,
+                      minZoom: minZoom,
+                      maxZoom: maxZoom,
+                      initialCenter: latLng!
                     ),
                     children: [
                       TileLayer(

@@ -5,6 +5,7 @@ import "dart:io";
 import "dart:ui";
 
 import "package:base/base.dart";
+import "package:collection/collection.dart";
 import "package:connectivity_plus/connectivity_plus.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
@@ -13,11 +14,9 @@ import "package:flutter_map_location_marker/flutter_map_location_marker.dart";
 import "package:geolocator/geolocator.dart";
 import "package:go_router/go_router.dart";
 import "package:latlong2/latlong.dart";
+import "package:path/path.dart" as p;
 import "package:path_provider/path_provider.dart";
 import "package:smooth_corner/smooth_corner.dart";
-
-final int minZoom = 14;
-final int maxZoom = 22;
 
 String get offlineMapBaseFolder => "offline_maps";
 
@@ -247,8 +246,7 @@ class MapPageState extends State<MapPage> {
     final Color primary = Theme.of(context).colorScheme.primary;
 
     final String label = isOnline ? "Online" : "Offline";
-    final IconData icon =
-    isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded;
+    final IconData icon = isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded;
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -475,7 +473,6 @@ class MapPageState extends State<MapPage> {
   }
 
   Widget mapHost() {
-
     return FutureBuilder<Directory>(
       future: getApplicationDocumentsDirectory(),
       builder: (context, snapshot) {
@@ -483,11 +480,21 @@ class MapPageState extends State<MapPage> {
           return const Center(child: CircularProgressIndicator());
         }
 
+        double? minZoom;
+        double? maxZoom;
+
+        try {
+          List<double> zoomVarieties = Directory("${snapshot.data!.path}/$offlineMapBaseFolder/$baseMap").listSync().where((element) => element is Directory && double.tryParse(p.basename(element.path)) != null).map((element) => double.parse(p.basename(element.path))).sorted((a, b) => a.compareTo(b));
+
+          minZoom = zoomVarieties.first;
+          maxZoom = zoomVarieties.last;
+        } catch (_) {}
+
         return FlutterMap(
           options: MapOptions(
-            initialZoom: minZoom.toDouble(),
-            minZoom: isOnline ? null : minZoom.toDouble(),
-            maxZoom: maxZoom.toDouble(),
+            initialZoom: minZoom ?? 14,
+            minZoom: minZoom,
+            maxZoom: maxZoom,
           ),
           children: [
             TileLayer(
