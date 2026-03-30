@@ -27,9 +27,6 @@ class _GlassBackgroundSettingPageState
 
   final List<String> _defaultWallpapers = <String>[
     "assets/image/wallpaper_glass.jpg",
-    "assets/image/wallpaper_glass2.jpg",
-    "assets/image/wallpaper_glass3.jpg",
-    "assets/image/wallpaper_glass4.jpg",
   ];
 
   @override

@@ -66,7 +66,11 @@ class DMLAssemblers {
     return this;
   }
 
-  DMLAssemblers equalTo(String column, dynamic parameter, {bool condition = true}) {
+  DMLAssemblers equalTo(
+    String column,
+    dynamic parameter, {
+    bool condition = true,
+  }) {
     if (condition) {
       if (parameter != null) {
         _wheres.add("$column = ?");
@@ -77,7 +81,11 @@ class DMLAssemblers {
     return this;
   }
 
-  DMLAssemblers notEqualTo(String column, dynamic parameter, {bool condition = true}) {
+  DMLAssemblers notEqualTo(
+    String column,
+    dynamic parameter, {
+    bool condition = true,
+  }) {
     if (condition) {
       if (parameter != null) {
         _wheres.add("$column != ?");
@@ -88,7 +96,11 @@ class DMLAssemblers {
     return this;
   }
 
-  DMLAssemblers lessThan(String column, dynamic parameter, {bool condition = true}) {
+  DMLAssemblers lessThan(
+    String column,
+    dynamic parameter, {
+    bool condition = true,
+  }) {
     if (condition) {
       if (parameter != null) {
         _wheres.add("$column < ?");
@@ -99,7 +111,11 @@ class DMLAssemblers {
     return this;
   }
 
-  DMLAssemblers lessThanOrEqualTo(String column, dynamic parameter, {bool condition = true}) {
+  DMLAssemblers lessThanOrEqualTo(
+    String column,
+    dynamic parameter, {
+    bool condition = true,
+  }) {
     if (condition) {
       if (parameter != null) {
         _wheres.add("$column <= ?");
@@ -110,7 +126,11 @@ class DMLAssemblers {
     return this;
   }
 
-  DMLAssemblers greaterThan(String column, dynamic parameter, {bool condition = true}) {
+  DMLAssemblers greaterThan(
+    String column,
+    dynamic parameter, {
+    bool condition = true,
+  }) {
     if (condition) {
       if (parameter != null) {
         _wheres.add("$column > ?");
@@ -121,7 +141,11 @@ class DMLAssemblers {
     return this;
   }
 
-  DMLAssemblers greaterThanOrEqualTo(String column, dynamic parameter, {bool condition = true}) {
+  DMLAssemblers greaterThanOrEqualTo(
+    String column,
+    dynamic parameter, {
+    bool condition = true,
+  }) {
     if (condition) {
       if (parameter != null) {
         _wheres.add("$column >= ?");
@@ -132,7 +156,11 @@ class DMLAssemblers {
     return this;
   }
 
-  DMLAssemblers inn(String column, List<dynamic> parameters, {bool condition = true}) {
+  DMLAssemblers inn(
+    String column,
+    List<dynamic> parameters, {
+    bool condition = true,
+  }) {
     if (condition) {
       if (parameters.isNotEmpty) {
         String tags = "";
@@ -401,6 +429,10 @@ class DMLAssemblers {
   }
 
   Future<List<Map<String, Object?>>> all([Transaction? transaction]) async {
+    if (transaction == null && !Sqlites.supported) {
+      return <Map<String, Object?>>[];
+    }
+
     DatabaseExecutor databaseExecutor = transaction ?? await Sqlites.get();
 
     final List<Map<String, Object?>> results = await databaseExecutor.rawQuery(
@@ -418,6 +450,10 @@ class DMLAssemblers {
   }
 
   Future<int> count([Transaction? transaction]) async {
+    if (transaction == null && !Sqlites.supported) {
+      return 0;
+    }
+
     DatabaseExecutor databaseExecutor = transaction ?? await Sqlites.get();
 
     final List<Map<String, Object?>> result = await databaseExecutor.rawQuery(

@@ -25,6 +25,14 @@ class Pulls {
   VoidCallback? _hideAnimation;
 
   Future<void> execute() async {
+    if (!Sqlites.supported) {
+      if (kDebugMode) {
+        print("Pulls skipped: SQLite offline storage is not available on web.");
+      }
+
+      return;
+    }
+
     _shouldShowProgress = true;
 
     Future.delayed(Duration(seconds: 1), () {
@@ -33,11 +41,13 @@ class Pulls {
       }
     });
 
-    int? currentVersion = BasePreferences.getInstance().getInt("dot-sync-current-version");
+    int? currentVersion =
+        BasePreferences.getInstance().getInt("dot-sync-current-version");
 
     if (currentVersion == null) {
       try {
-        Response response = await DotApis.getInstance().synchronizationSnapshot();
+        Response response =
+            await DotApis.getInstance().synchronizationSnapshot();
 
         await consume(response, true);
       } catch (e, s) {
@@ -47,13 +57,15 @@ class Pulls {
         }
       }
 
-      currentVersion = BasePreferences.getInstance().getInt("dot-sync-current-version") ?? 0;
+      currentVersion =
+          BasePreferences.getInstance().getInt("dot-sync-current-version") ?? 0;
     }
 
     bool result = false;
 
     try {
-      Response response = await DotApis.getInstance().synchronizationPull(currentVersion);
+      Response response =
+          await DotApis.getInstance().synchronizationPull(currentVersion);
 
       result = await consume(response);
     } catch (e, s) {
@@ -71,7 +83,8 @@ class Pulls {
       Map<String, dynamic> json = Map<String, dynamic>.from(response.data);
 
       int currentVersion = json["currentVersion"];
-      List<Map<String, dynamic>> changes = List<Map<String, dynamic>>.from(json["changes"]);
+      List<Map<String, dynamic>> changes =
+          List<Map<String, dynamic>>.from(json["changes"]);
 
       Database database = await Sqlites.get();
 
@@ -81,16 +94,19 @@ class Pulls {
 
           String entity = change["entity"];
 
-          Map<String, dynamic> payload = Map<String, dynamic>.from(change["payload"]);
+          Map<String, dynamic> payload =
+              Map<String, dynamic>.from(change["payload"]);
 
-          List<Map<String, dynamic>> tableInfos = await getTableInfos(txn, entity);
+          List<Map<String, dynamic>> tableInfos =
+              await getTableInfos(txn, entity);
 
           await process(txn, entity, payload, tableInfos);
 
           updateStatus(((i + 1) / changes.length * 100).toInt());
         }
       }).then((value) async {
-        await BasePreferences.getInstance().setInt("dot-sync-current-version", currentVersion);
+        await BasePreferences.getInstance()
+            .setInt("dot-sync-current-version", currentVersion);
 
         return true;
       }).onError((error, stackTrace) async {
@@ -111,23 +127,46 @@ class Pulls {
     }
   }
 
-  Future<void> process(Transaction transaction, String tableName, Map<String, dynamic> payload, List<Map<String, dynamic>> tableInfos) async {
+  Future<void> process(
+    Transaction transaction,
+    String tableName,
+    Map<String, dynamic> payload,
+    List<Map<String, dynamic>> tableInfos,
+  ) async {
     if (tableInfos.isNotEmpty) {
       if (payload["idempotent_id"] != null) {
-        int rowsAffected = await transaction.delete(tableName, where: "id = ?", whereArgs: [payload["idempotent_id"]]);
+        int rowsAffected = await transaction.delete(
+          tableName,
+          where: "id = ?",
+          whereArgs: [payload["idempotent_id"]],
+        );
 
         if (rowsAffected > 0) {
-          print("$rowsAffected $tableName with idempotent id: ${payload["idempotent_id"]} has been deleted");
+          print(
+            "$rowsAffected $tableName with idempotent id: ${payload["idempotent_id"]} has been deleted",
+          );
         }
       }
 
-      await transaction.insert(tableName, Map<String, dynamic>.fromEntries(payload.entries.where((element) => element.value is! List && tableInfos.map((e) => e["name"]).contains(element.key))), conflictAlgorithm: ConflictAlgorithm.replace);
+      await transaction.insert(
+        tableName,
+        Map<String, dynamic>.fromEntries(
+          payload.entries.where(
+            (element) =>
+                element.value is! List &&
+                tableInfos.map((e) => e["name"]).contains(element.key),
+          ),
+        ),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
 
       for (MapEntry<String, dynamic> entry in payload.entries) {
         if (entry.value is List) {
-          List<Map<String, dynamic>> detailTableInfos = await getTableInfos(transaction, entry.key);
+          List<Map<String, dynamic>> detailTableInfos =
+              await getTableInfos(transaction, entry.key);
 
-          List<Map<String, dynamic>> detailPayloads = List<Map<String, dynamic>>.from(entry.value);
+          List<Map<String, dynamic>> detailPayloads =
+              List<Map<String, dynamic>>.from(entry.value);
 
           for (Map<String, dynamic> detailPayload in detailPayloads) {
             process(transaction, entry.key, detailPayload, detailTableInfos);
@@ -141,28 +180,38 @@ class Pulls {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getTableInfos(Transaction transaction, String tableName) async {
-    List<Map<String, dynamic>> tableInfos = await transaction.rawQuery("PRAGMA table_info($tableName)");
+  Future<List<Map<String, dynamic>>> getTableInfos(
+    Transaction transaction,
+    String tableName,
+  ) async {
+    List<Map<String, dynamic>> tableInfos =
+        await transaction.rawQuery("PRAGMA table_info($tableName)");
 
     if (tableInfos.isEmpty) {
-      Map<String, dynamic>? table = await DMLAssemblers
-          .create()
+      Map<String, dynamic>? table = await DMLAssemblers.create()
           .select("*")
           .from("f_dynamic_table")
           .equalTo("table_name", tableName)
           .first(transaction);
 
       if (table != null) {
-        List<Map<String, dynamic>> dynamicTableDetailViews = await DMLAssemblers
-            .create()
-            .select("*")
-            .from("f_dynamic_table_detail")
-            .equalTo("table_id", table["id"])
-            .all(transaction);
+        List<Map<String, dynamic>> dynamicTableDetailViews =
+            await DMLAssemblers.create()
+                .select("*")
+                .from("f_dynamic_table_detail")
+                .equalTo("table_id", table["id"])
+                .all(transaction);
 
-        String? pkColumn = dynamicTableDetailViews.firstWhereOrNull((dynamicTableDetailViews) => dynamicTableDetailViews["f_pk"] == "Y")?["column_name"];
+        String? pkColumn = dynamicTableDetailViews.firstWhereOrNull(
+          (dynamicTableDetailViews) => dynamicTableDetailViews["f_pk"] == "Y",
+        )?["column_name"];
 
-        List<String> columns = dynamicTableDetailViews.map((dynamicTableDetailViews) => dynamicTableDetailViews["column_name"] as String).toList();
+        List<String> columns = dynamicTableDetailViews
+            .map(
+              (dynamicTableDetailViews) =>
+                  dynamicTableDetailViews["column_name"] as String,
+            )
+            .toList();
 
         List<String> additionalColumns = [
           "create_who",
@@ -183,22 +232,30 @@ class Pulls {
           }
         }
 
-        await transaction.execute("CREATE TABLE $tableName ( ${columns.toSet().map((column) => "$column TEXT ${column == pkColumn ? "PRIMARY KEY" : ""}").join(", ")} )");
+        await transaction.execute(
+          "CREATE TABLE $tableName ( ${columns.toSet().map((column) => "$column TEXT ${column == pkColumn ? "PRIMARY KEY" : ""}").join(", ")} )",
+        );
 
-        tableInfos = await transaction.rawQuery("PRAGMA table_info($tableName)");
+        tableInfos =
+            await transaction.rawQuery("PRAGMA table_info($tableName)");
       }
     }
 
     return tableInfos;
   }
 
-  Future<void> handleSegmentReport(Transaction transaction, Map<String, dynamic> payload) async {
+  Future<void> handleSegmentReport(
+    Transaction transaction,
+    Map<String, dynamic> payload,
+  ) async {
     try {
       final converter = PgToSqliteConverter();
 
       final sqliteQuery = converter.convert(payload["segment_report_query"]);
 
-      await transaction.execute("CREATE VIEW IF NOT EXISTS ${payload["view_name"]} AS $sqliteQuery");
+      await transaction.execute(
+        "CREATE VIEW IF NOT EXISTS ${payload["view_name"]} AS $sqliteQuery",
+      );
     } catch (e, s) {
       if (kDebugMode) {
         print("Caught Exception: $e");
@@ -279,7 +336,8 @@ class _OverlayContent extends StatefulWidget {
   State<_OverlayContent> createState() => _OverlayContentState();
 }
 
-class _OverlayContentState extends State<_OverlayContent> with SingleTickerProviderStateMixin {
+class _OverlayContentState extends State<_OverlayContent>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fade;
   late Animation<double> _scale;

@@ -373,7 +373,7 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
   // String deviceId = "b29d6a48d10ed383";
   // String deviceId = "2c49b31455f471db";
   // String deviceId = "0000000000000000";
-  // String deviceId = "d4db82b1a0b16901";
+  // String deviceId = "b29d6a48d10ed383";
 
   @override
   void initState() {
@@ -555,7 +555,7 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
 
   Future<String> _getDeviceId() async {
     if (kIsWeb) {
-      const String hardcodedWebDeviceId = "d4db82b1a0b16901";
+      const String hardcodedWebDeviceId = "b29d6a48d10ed383";
 
       if (hardcodedWebDeviceId.trim().isNotEmpty) {
         return hardcodedWebDeviceId;

@@ -104,7 +104,9 @@ class DynamicChartPageState extends State<DynamicChartPage>
 
     if (kIsWeb) {
       if (p == "wallpaper_default.jpg") {
-        final String base64Data = Preferences.getInstance().getStringDynamicForm("WEB_WALLPAPER_BYTES") ?? "";
+        final String base64Data = Preferences.getInstance()
+                .getStringDynamicForm("WEB_WALLPAPER_BYTES") ??
+            "";
         if (base64Data.isNotEmpty) {
           try {
             final Uint8List bytes = base64Decode(base64Data);
@@ -258,7 +260,8 @@ class DynamicChartPageState extends State<DynamicChartPage>
                 child: Column(
                   children: [
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: horizontalPadding),
                       child: DotResponsive.centered(
                         context: context,
                         tablet: 920,
@@ -423,7 +426,11 @@ class AppBarDynamicChart extends StatelessWidget {
                 style: TextStyle(
                   fontSize: Dimensions.text14,
                   fontWeight: FontWeight.w900,
-                  color: Colors.white.withOpacity(0.95),
+                  color: isGlass
+                      ? Colors.white.withOpacity(0.95)
+                      : (Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black87),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -508,7 +515,11 @@ class AppBarDynamicChart extends StatelessWidget {
               style: TextStyle(
                 fontSize: Dimensions.text14,
                 fontWeight: FontWeight.w900,
-                color: Theme.of(context).colorScheme.onSurface,
+                color: isGlass
+                    ? Colors.white.withOpacity(0.95)
+                    : (Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black87),
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
