@@ -1,10 +1,9 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
-import "dart:io";
-
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
+import "package:dynamic_of_things/helper/generals.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:dynamic_of_things/widget/glass_container.dart";
@@ -76,24 +75,7 @@ class SimpleSpinnerPageState extends State<SimpleSpinnerPage>
   }
 
   Widget glassBackground() {
-    final String p = (Preferences.getInstance()
-                .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
-            "")
-        .trim();
-
-    if (p.isEmpty) {
-      return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
-    }
-    if (p.startsWith("assets/")) {
-      return Image.asset(p, fit: BoxFit.cover);
-    }
-
-    final File f = File(p);
-    if (f.existsSync()) {
-      return Image.file(f, fit: BoxFit.cover);
-    }
-
-    return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
+    return Generals.orientationAwareWallpaper(context);
   }
 
   @override

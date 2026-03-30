@@ -1,6 +1,5 @@
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use, constant_identifier_names, depend_on_referenced_packages
 
-import "dart:convert";
 import "dart:io";
 import "dart:typed_data";
 
@@ -10,6 +9,7 @@ import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/formats.dart";
+import "package:dynamic_of_things/helper/generals.dart";
 import "package:dynamic_of_things/helper/offline_reports.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/helper/responsive_layout.dart";
@@ -107,40 +107,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
   }
 
   Widget glassBackground() {
-    final String p = (Preferences.getInstance()
-                .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
-            "")
-        .trim();
-
-    if (p.isEmpty) {
-      return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
-    }
-
-    if (kIsWeb) {
-      if (p == "wallpaper_default.jpg") {
-        final String base64Data = Preferences.getInstance()
-                .getStringDynamicForm("WEB_WALLPAPER_BYTES") ??
-            "";
-        if (base64Data.isNotEmpty) {
-          try {
-            final Uint8List bytes = base64Decode(base64Data);
-            return Image.memory(bytes, fit: BoxFit.cover);
-          } catch (_) {}
-        }
-      }
-      return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
-    }
-
-    if (p.startsWith("assets/")) {
-      return Image.asset(p, fit: BoxFit.cover);
-    }
-
-    final File f = File(p);
-    if (f.existsSync()) {
-      return Image.file(f, fit: BoxFit.cover);
-    }
-
-    return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
+    return Generals.orientationAwareWallpaper(context);
   }
 
   @override

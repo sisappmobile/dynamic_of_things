@@ -1,9 +1,8 @@
 // ignore_for_file: deprecated_member_use
 
-import "dart:io";
-
 import "package:base/base.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
+import "package:dynamic_of_things/helper/generals.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:easy_localization/easy_localization.dart";
@@ -26,7 +25,7 @@ class _GlassBackgroundSettingPageState
   bool _busy = false;
 
   final List<String> _defaultWallpapers = <String>[
-    "assets/image/wallpaper_glass.jpg",
+    Generals.defaultPortraitWallpaper,
   ];
 
   @override
@@ -45,22 +44,7 @@ class _GlassBackgroundSettingPageState
   }
 
   Widget glassBackground() {
-    final String p = (_path ?? "").trim();
-
-    if (p.isEmpty) {
-      return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
-    }
-
-    if (p.startsWith("assets/")) {
-      return Image.asset(p, fit: BoxFit.cover);
-    }
-
-    final File f = File(p);
-    if (f.existsSync()) {
-      return Image.file(f, fit: BoxFit.cover);
-    }
-
-    return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
+    return Generals.orientationAwareWallpaper(context);
   }
 
   Widget glassOverlay() {
@@ -113,6 +97,10 @@ class _GlassBackgroundSettingPageState
         SharedPreferenceKey.GLASS_BACKGROUND_PATH,
         newPath,
       );
+      await Preferences.getInstance().setString(
+        SharedPreferenceKey.GLASS_BACKGROUND_SOURCE,
+        "USER",
+      );
       await Preferences.getInstance().reload();
 
       setState(() {
@@ -129,6 +117,10 @@ class _GlassBackgroundSettingPageState
       SharedPreferenceKey.GLASS_BACKGROUND_PATH,
       assetPath,
     );
+    await Preferences.getInstance().setString(
+      SharedPreferenceKey.GLASS_BACKGROUND_SOURCE,
+      "BUNDLED",
+    );
     await Preferences.getInstance().reload();
 
     if (!mounted) {
@@ -143,6 +135,10 @@ class _GlassBackgroundSettingPageState
     await Preferences.getInstance().setString(
       SharedPreferenceKey.GLASS_BACKGROUND_PATH,
       assetPath,
+    );
+    await Preferences.getInstance().setString(
+      SharedPreferenceKey.GLASS_BACKGROUND_SOURCE,
+      "BUNDLED",
     );
     await Preferences.getInstance().reload();
 

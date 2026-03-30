@@ -1,9 +1,8 @@
 // ignore_for_file: deprecated_member_use
 
-import "dart:io";
-
 import "package:base/base.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
+import "package:dynamic_of_things/helper/generals.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:dynamic_of_things/model/header_form.dart";
@@ -82,24 +81,7 @@ class CustomDynamicFormSubDetailFormState
   }
 
   Widget glassBackground() {
-    final String p = (Preferences.getInstance()
-                .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
-            "")
-        .trim();
-
-    if (p.isEmpty) {
-      return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
-    }
-    if (p.startsWith("assets/")) {
-      return Image.asset(p, fit: BoxFit.cover);
-    }
-
-    final File f = File(p);
-    if (f.existsSync()) {
-      return Image.file(f, fit: BoxFit.cover);
-    }
-
-    return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
+    return Generals.orientationAwareWallpaper(context);
   }
 
   @override
@@ -574,7 +556,8 @@ class CustomDynamicFormSubDetailFormState
                 // PERBAIKAN UTAMA: Wrapper `card()` dihapus agar tidak timbul efek card dalam card.
                 // Widget `CustomDynamicForm` secara default akan merender card-nya sendiri.
                 CustomDynamicForm(
-                  key: ValueKey("SubDetail-${widget.subDetailForm.template.id}"),
+                  key:
+                      ValueKey("SubDetail-${widget.subDetailForm.template.id}"),
                   readOnly: widget.readOnly,
                   customerId: widget.customerId,
                   headerForm: widget.headerForm,

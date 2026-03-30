@@ -1,9 +1,8 @@
 // ignore_for_file: deprecated_member_use
 
-import "dart:io";
-
 import "package:base/base.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
+import "package:dynamic_of_things/helper/generals.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:dynamic_of_things/model/header_form.dart";
@@ -84,24 +83,7 @@ class CustomDynamicFormDetailFormState
   }
 
   Widget glassBackground() {
-    final String p = (Preferences.getInstance()
-                .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
-            "")
-        .trim();
-
-    if (p.isEmpty) {
-      return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
-    }
-    if (p.startsWith("assets/")) {
-      return Image.asset(p, fit: BoxFit.cover);
-    }
-
-    final File f = File(p);
-    if (f.existsSync()) {
-      return Image.file(f, fit: BoxFit.cover);
-    }
-
-    return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
+    return Generals.orientationAwareWallpaper(context);
   }
 
   @override
@@ -414,7 +396,7 @@ class CustomDynamicFormDetailFormState
   Widget body() {
     final bool glass = isGlass;
 
-    // PERBAIKAN UTAMA: Menggunakan MediaQuery.removePadding untuk mencegah ListView 
+    // PERBAIKAN UTAMA: Menggunakan MediaQuery.removePadding untuk mencegah ListView
     // di dalam CustomDynamicForm menyedot safe area (poni layar) yang menyebabkan gap raksasa.
     return MediaQuery.removePadding(
       context: context,
@@ -446,12 +428,17 @@ class CustomDynamicFormDetailFormState
                     template: widget.detailForm.template,
                     data: data,
                   ),
-                  ...widget.detailForm.subDetailForms.asMap().entries.map((entry) {
+                  ...widget.detailForm.subDetailForms
+                      .asMap()
+                      .entries
+                      .map((entry) {
                     final int i = entry.key;
                     final subDetailForm = entry.value;
 
                     return Padding(
-                      padding: EdgeInsets.only(top: Dimensions.size20), // Spasi antar section dibuat lega & proporsional
+                      padding: EdgeInsets.only(
+                        top: Dimensions.size20,
+                      ), // Spasi antar section dibuat lega & proporsional
                       child: CustomDynamicFormSubDetailList(
                         key: ValueKey(
                           "SubDetailList-${subDetailForm.template.id}-$i",

@@ -1,13 +1,12 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
-import "dart:convert";
-import "dart:io";
 
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:collection/collection.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
+import "package:dynamic_of_things/helper/generals.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:dynamic_of_things/model/dynamic_form_list_response.dart";
@@ -20,7 +19,6 @@ import "package:dynamic_of_things/widget/barcode_scanner_page.dart";
 import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:dynamic_of_things/widget/map_page.dart";
 import "package:easy_localization/easy_localization.dart";
-import "package:flutter/foundation.dart";
 import "package:flutter/material.dart" hide Action;
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:go_router/go_router.dart";
@@ -97,40 +95,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
   }
 
   Widget glassBackground() {
-    final String p = (Preferences.getInstance()
-                .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH) ??
-            "")
-        .trim();
-
-    if (p.isEmpty) {
-      return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
-    }
-
-    if (kIsWeb) {
-      if (p == "wallpaper_default.jpg") {
-        final String base64Data = Preferences.getInstance()
-                .getStringDynamicForm("WEB_WALLPAPER_BYTES") ??
-            "";
-        if (base64Data.isNotEmpty) {
-          try {
-            final Uint8List bytes = base64Decode(base64Data);
-            return Image.memory(bytes, fit: BoxFit.cover);
-          } catch (_) {}
-        }
-      }
-      return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
-    }
-
-    if (p.startsWith("assets/")) {
-      return Image.asset(p, fit: BoxFit.cover);
-    }
-
-    final File f = File(p);
-    if (f.existsSync()) {
-      return Image.file(f, fit: BoxFit.cover);
-    }
-
-    return Image.asset("assets/image/wallpaper_glass.jpg", fit: BoxFit.cover);
+    return Generals.orientationAwareWallpaper(context);
   }
 
   @override
