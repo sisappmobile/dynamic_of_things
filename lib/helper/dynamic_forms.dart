@@ -10,6 +10,7 @@ import "package:dynamic_of_things/helper/dynamic_form_texts.dart";
 import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/model/attachment.dart";
 import "package:dynamic_of_things/model/header_form.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:video_thumbnail/video_thumbnail.dart";
 
@@ -51,7 +52,10 @@ class DynamicForms {
         }
 
         return Formats.dateTime(dateTime);
-      } else if (StringUtils.inList(type, [DynamicFormFieldType.NUMBER.name, DynamicFormFieldType.NUMERIC.name])) {
+      } else if (StringUtils.inList(type, [
+        DynamicFormFieldType.NUMBER.name,
+        DynamicFormFieldType.NUMERIC.name,
+      ])) {
         num numValue = 0;
 
         if (value is String) {
@@ -105,15 +109,30 @@ class DynamicForms {
 
     if (value != null) {
       if (field != null) {
-        if (StringUtils.inList(field.type, [DynamicFormFieldType.DATE.name, DynamicFormFieldType.DATE_TIME.name])) {
+        if (StringUtils.inList(field.type, [
+          DynamicFormFieldType.DATE.name,
+          DynamicFormFieldType.DATE_TIME.name,
+        ])) {
           row[key] = Formats.tryParseJiffy(value)!.format();
-        } else if (StringUtils.inList(field.type, [DynamicFormFieldType.TIME.name])) {
+        } else if (StringUtils.inList(
+          field.type,
+          [DynamicFormFieldType.TIME.name],
+        )) {
           row[key] = Formats.time(value as TimeOfDay);
-        } else if (StringUtils.inList(field.type, [DynamicFormFieldType.NUMERIC.name, DynamicFormFieldType.NUMBER.name])) {
+        } else if (StringUtils.inList(field.type, [
+          DynamicFormFieldType.NUMERIC.name,
+          DynamicFormFieldType.NUMBER.name,
+        ])) {
           row[key] = Formats.tryParseNumber(value);
-        } else if (StringUtils.inList(field.type, [DynamicFormFieldType.CHECK.name])) {
+        } else if (StringUtils.inList(
+          field.type,
+          [DynamicFormFieldType.CHECK.name],
+        )) {
           row[key] = Formats.tryParseBool(value) ? "Y" : "N";
-        } else if (StringUtils.inList(field.type, [DynamicFormFieldType.DROPDOWN_DATA.name])) {
+        } else if (StringUtils.inList(
+          field.type,
+          [DynamicFormFieldType.DROPDOWN_DATA.name],
+        )) {
           row[key] = value.toString();
 
           if (field.link != null) {
@@ -121,7 +140,15 @@ class DynamicForms {
 
             row[linkKey] = row[linkKey];
           }
-        } else if (StringUtils.inList(field.type, [DynamicFormFieldType.FILE.name, DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.FOTO.name, DynamicFormFieldType.SIGNATURE.name, DynamicFormFieldType.UPLOAD_FOTO.name, DynamicFormFieldType.UPLOAD_VIDEO.name, DynamicFormFieldType.UPLOAD_SIGNATURE.name]))  {
+        } else if (StringUtils.inList(field.type, [
+          DynamicFormFieldType.FILE.name,
+          DynamicFormFieldType.VIDEO.name,
+          DynamicFormFieldType.FOTO.name,
+          DynamicFormFieldType.SIGNATURE.name,
+          DynamicFormFieldType.UPLOAD_FOTO.name,
+          DynamicFormFieldType.UPLOAD_VIDEO.name,
+          DynamicFormFieldType.UPLOAD_SIGNATURE.name,
+        ])) {
           Attachment attachment = value;
 
           row[key] = {
@@ -145,23 +172,35 @@ class DynamicForms {
 
     for (MapEntry<String, dynamic> headerMapEntry in headerForm.data.entries) {
       if (headerMapEntry.value is Map || headerMapEntry.value is List) {
-        DetailForm? detailForm = headerForm.detailForms.firstWhereOrNull((element) => element.template.tableName == headerMapEntry.key);
+        DetailForm? detailForm = headerForm.detailForms.firstWhereOrNull(
+          (element) => element.template.tableName == headerMapEntry.key,
+        );
 
         if (detailForm != null) {
           Future<void> detailProcess(Map<String, dynamic> detailRow) async {
-            for (MapEntry<String, dynamic> detailMapEntry in detailRow.entries) {
+            for (MapEntry<String, dynamic> detailMapEntry
+                in detailRow.entries) {
               if (detailMapEntry.value is Map || detailMapEntry.value is List) {
-                SubDetailForm? subDetailForm = detailForm.subDetailForms.firstWhereOrNull((element) => element.template.tableName == detailMapEntry.key);
+                SubDetailForm? subDetailForm =
+                    detailForm.subDetailForms.firstWhereOrNull(
+                  (element) => element.template.tableName == detailMapEntry.key,
+                );
 
                 if (subDetailForm != null) {
-                  Future<void> subDetailProcess(Map<String, dynamic> subDetailRow) async {
-                    for (MapEntry<String, dynamic> subDetailMapEntry in subDetailRow.entries) {
+                  Future<void> subDetailProcess(
+                    Map<String, dynamic> subDetailRow,
+                  ) async {
+                    for (MapEntry<String, dynamic> subDetailMapEntry
+                        in subDetailRow.entries) {
                       Field? subDetailField;
 
                       outerLoop:
-                      for (Section subDetailSection in subDetailForm.template.sections) {
-                        for (Field subDetailFieldCheck in subDetailSection.fields) {
-                          if (subDetailFieldCheck.name == subDetailMapEntry.key) {
+                      for (Section subDetailSection
+                          in subDetailForm.template.sections) {
+                        for (Field subDetailFieldCheck
+                            in subDetailSection.fields) {
+                          if (subDetailFieldCheck.name ==
+                              subDetailMapEntry.key) {
                             subDetailField = subDetailFieldCheck;
 
                             break outerLoop;
@@ -182,7 +221,8 @@ class DynamicForms {
 
                     await subDetailProcess(subDetailRow);
                   } else {
-                    for (Map<String, dynamic> subDetailRow in detailMapEntry.value) {
+                    for (Map<String, dynamic> subDetailRow
+                        in detailMapEntry.value) {
                       await subDetailProcess(subDetailRow);
                     }
                   }
@@ -271,7 +311,15 @@ class DynamicForms {
           num result = Formats.tryParseNumber(value);
 
           return result;
-        } else if (StringUtils.inList(field.type, [DynamicFormFieldType.FILE.name, DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.FOTO.name, DynamicFormFieldType.SIGNATURE.name, DynamicFormFieldType.UPLOAD_FOTO.name, DynamicFormFieldType.UPLOAD_VIDEO.name, DynamicFormFieldType.UPLOAD_SIGNATURE.name])) {
+        } else if (StringUtils.inList(field.type, [
+          DynamicFormFieldType.FILE.name,
+          DynamicFormFieldType.VIDEO.name,
+          DynamicFormFieldType.FOTO.name,
+          DynamicFormFieldType.SIGNATURE.name,
+          DynamicFormFieldType.UPLOAD_FOTO.name,
+          DynamicFormFieldType.UPLOAD_VIDEO.name,
+          DynamicFormFieldType.UPLOAD_SIGNATURE.name,
+        ])) {
           if (value is Map) {
             Map<String, dynamic> json = Map<String, dynamic>.from(value);
 
@@ -280,7 +328,11 @@ class DynamicForms {
               ..mime = json["mime"]
               ..bytes = base64Decode(json["bytes"]);
 
-            if (StringUtils.inList(field.type, [DynamicFormFieldType.VIDEO.name, DynamicFormFieldType.UPLOAD_VIDEO.name])) {
+            if (!kIsWeb &&
+                StringUtils.inList(field.type, [
+                  DynamicFormFieldType.VIDEO.name,
+                  DynamicFormFieldType.UPLOAD_VIDEO.name,
+                ])) {
               File file = await CustomAttachments.temporarySave(
                 fileName: "thumbnail-video",
                 bytes: attachment.bytes!,
@@ -323,15 +375,19 @@ class DynamicForms {
           }
         }
 
-        headerRow[headerMapEntry.key] = await decodeValue(field: headerField, value: headerMapEntry.value);
+        headerRow[headerMapEntry.key] =
+            await decodeValue(field: headerField, value: headerMapEntry.value);
       }
 
       if (headerMapEntry.value is Map || headerMapEntry.value is List) {
-        DetailForm? detailForm = headerForm.detailForms.firstWhereOrNull((element) => element.template.tableName == headerMapEntry.key);
+        DetailForm? detailForm = headerForm.detailForms.firstWhereOrNull(
+          (element) => element.template.tableName == headerMapEntry.key,
+        );
 
         if (detailForm != null) {
           Future<void> detailProcess(Map<String, dynamic> detailRow) async {
-            for (MapEntry<String, dynamic> detailMapEntry in detailRow.entries) {
+            for (MapEntry<String, dynamic> detailMapEntry
+                in detailRow.entries) {
               Future<void> detailPrimitiveValue() async {
                 Field? detailField;
 
@@ -346,21 +402,33 @@ class DynamicForms {
                   }
                 }
 
-                detailRow[detailMapEntry.key] = await decodeValue(field: detailField, value: detailMapEntry.value);
+                detailRow[detailMapEntry.key] = await decodeValue(
+                  field: detailField,
+                  value: detailMapEntry.value,
+                );
               }
 
               if (detailMapEntry.value is Map || detailMapEntry.value is List) {
-                SubDetailForm? subDetailForm = detailForm.subDetailForms.firstWhereOrNull((element) => element.template.tableName == detailMapEntry.key);
+                SubDetailForm? subDetailForm =
+                    detailForm.subDetailForms.firstWhereOrNull(
+                  (element) => element.template.tableName == detailMapEntry.key,
+                );
 
                 if (subDetailForm != null) {
-                  Future<void> subDetailProcess(Map<String, dynamic> subDetailRow) async {
-                    for (MapEntry<String, dynamic> subDetailMapEntry in subDetailRow.entries) {
+                  Future<void> subDetailProcess(
+                    Map<String, dynamic> subDetailRow,
+                  ) async {
+                    for (MapEntry<String, dynamic> subDetailMapEntry
+                        in subDetailRow.entries) {
                       Field? subDetailField;
 
                       outerLoop:
-                      for (Section subDetailSection in subDetailForm.template.sections) {
-                        for (Field subDetailFieldCheck in subDetailSection.fields) {
-                          if (subDetailFieldCheck.name == subDetailMapEntry.key) {
+                      for (Section subDetailSection
+                          in subDetailForm.template.sections) {
+                        for (Field subDetailFieldCheck
+                            in subDetailSection.fields) {
+                          if (subDetailFieldCheck.name ==
+                              subDetailMapEntry.key) {
                             subDetailField = subDetailFieldCheck;
 
                             break outerLoop;
@@ -368,7 +436,10 @@ class DynamicForms {
                         }
                       }
 
-                      subDetailRow[subDetailMapEntry.key] = await decodeValue(field: subDetailField, value: subDetailMapEntry.value);
+                      subDetailRow[subDetailMapEntry.key] = await decodeValue(
+                        field: subDetailField,
+                        value: subDetailMapEntry.value,
+                      );
                     }
                   }
 
@@ -377,7 +448,8 @@ class DynamicForms {
 
                     await subDetailProcess(subDetailRow);
                   } else {
-                    for (Map<String, dynamic> subDetailRow in detailMapEntry.value) {
+                    for (Map<String, dynamic> subDetailRow
+                        in detailMapEntry.value) {
                       await subDetailProcess(subDetailRow);
                     }
                   }

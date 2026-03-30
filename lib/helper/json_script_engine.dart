@@ -306,8 +306,12 @@ class JsonScriptEngine {
         result.add(current.trim());
         current = '';
       } else {
-        if (c == '(') bracket++;
-        if (c == ')') bracket--;
+        if (c == '(') {
+          bracket++;
+        }
+        if (c == ')') {
+          bracket--;
+        }
         current += c;
       }
     }
@@ -321,7 +325,9 @@ class JsonScriptEngine {
 
   DateTime _toDateTime(dynamic value) {
 
-    if (value is DateTime) return value;
+    if (value is DateTime) {
+      return value;
+    }
 
     if (value is String) {
       return DateTime.parse(value);
@@ -387,11 +393,17 @@ class JsonScriptEngine {
   dynamic _value(String v) {
     v = v.trim();
 
-    if (v == "true") return true;
-    if (v == "false") return false;
+    if (v == "true") {
+      return true;
+    }
+    if (v == "false") {
+      return false;
+    }
 
     // 🔥 constant NOW
-    if (v == "NOW") return DateTime.now();
+    if (v == "NOW") {
+      return DateTime.now();
+    }
 
     if (num.tryParse(v) != null) {
       return num.parse(v);
@@ -492,7 +504,9 @@ class JsonScriptEngine {
       if (line.startsWith("$startKeyword ") || line == startKeyword) {
         level++;
       } else if (line == endKeyword) {
-        if (level == 0) return i;
+        if (level == 0) {
+          return i;
+        }
         level--;
       }
     }

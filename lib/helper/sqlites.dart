@@ -7,8 +7,13 @@ import "package:sqflite/sqflite.dart";
 
 class Sqlites {
   static Database? database;
+  static bool get supported => !kIsWeb;
 
   static Future<Database> get() async {
+    if (!supported) {
+      throw UnsupportedError("SQLite offline storage is not available on web.");
+    }
+
     if (database == null) {
       if (kDebugMode) {
         // Use the debugQuickLoggerWrapper on the default factory
@@ -162,12 +167,16 @@ class Sqlites {
     return database!;
   }
 
-  static void delete() async {
-    await deleteDatabase("${await getDatabasesPath()}/dynamic_of_things.db");
+  static Future<void> delete() async {
+    if (supported) {
+      await deleteDatabase("${await getDatabasesPath()}/dynamic_of_things.db");
 
-    if (database != null) {
-      await database!.close();
+      if (database != null) {
+        await database!.close();
 
+        database = null;
+      }
+    } else {
       database = null;
     }
 

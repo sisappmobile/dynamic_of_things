@@ -6,6 +6,7 @@ import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
+import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
@@ -26,7 +27,8 @@ class SimpleSpinnerPage extends StatefulWidget {
   SimpleSpinnerPageState createState() => SimpleSpinnerPageState();
 }
 
-class SimpleSpinnerPageState extends State<SimpleSpinnerPage> with WidgetsBindingObserver {
+class SimpleSpinnerPageState extends State<SimpleSpinnerPage>
+    with WidgetsBindingObserver {
   bool prefsReady = false;
 
   TextEditingController tecSearch = TextEditingController();
@@ -100,6 +102,7 @@ class SimpleSpinnerPageState extends State<SimpleSpinnerPage> with WidgetsBindin
 
     final EdgeInsets safe = MediaQuery.of(context).padding;
     final bool glass = isGlass;
+    final double horizontalPadding = DotResponsive.horizontalPadding(context);
 
     return Scaffold(
       backgroundColor: glass
@@ -132,12 +135,15 @@ class SimpleSpinnerPageState extends State<SimpleSpinnerPage> with WidgetsBindin
               SizedBox(height: safe.top),
               Padding(
                 padding: EdgeInsets.fromLTRB(
-                  Dimensions.size15,
+                  horizontalPadding,
                   Dimensions.size10,
-                  Dimensions.size15,
+                  horizontalPadding,
                   Dimensions.size10,
                 ),
-                child: topBar(),
+                child: centeredContent(
+                  context: context,
+                  child: topBar(),
+                ),
               ),
               Expanded(child: bodyHost()),
               SizedBox(height: safe.bottom),
@@ -161,6 +167,40 @@ class SimpleSpinnerPageState extends State<SimpleSpinnerPage> with WidgetsBindin
     super.didChangePlatformBrightness();
 
     setState(() {});
+  }
+
+  Widget centeredContent({
+    required BuildContext context,
+    required Widget child,
+  }) {
+    return DotResponsive.centered(
+      context: context,
+      tablet: 920,
+      desktop: 1080,
+      child: child,
+    );
+  }
+
+  Widget stateList({
+    required BuildContext context,
+    required Widget child,
+  }) {
+    final double horizontalPadding = DotResponsive.horizontalPadding(context);
+
+    return ListView(
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        Dimensions.size10,
+        horizontalPadding,
+        Dimensions.size20,
+      ),
+      children: [
+        centeredContent(
+          context: context,
+          child: child,
+        ),
+      ],
+    );
   }
 
   Widget topBar() {
@@ -196,6 +236,8 @@ class SimpleSpinnerPageState extends State<SimpleSpinnerPage> with WidgetsBindin
                 ),
               ),
             ),
+            SizedBox(width: Dimensions.size10),
+            resultBadge(filteredItems().length),
           ],
         ),
         SizedBox(height: Dimensions.size10),
@@ -242,6 +284,38 @@ class SimpleSpinnerPageState extends State<SimpleSpinnerPage> with WidgetsBindin
         ),
       ),
       child: content,
+    );
+  }
+
+  Widget resultBadge(int count) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: Dimensions.size10,
+        vertical: 8,
+      ),
+      decoration: ShapeDecoration(
+        color: isGlass
+            ? Colors.white.withOpacity(0.10)
+            : AppColors.surfaceContainerLowest(),
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size100),
+          smoothness: Dimensions.size1,
+          side: BorderSide(
+            color: isGlass
+                ? Colors.white.withOpacity(0.18)
+                : AppColors.outline().withValues(alpha: 0.18),
+          ),
+        ),
+      ),
+      child: Text(
+        "$count",
+        style: TextStyle(
+          fontSize: Dimensions.text12,
+          fontWeight: FontWeight.w900,
+          color:
+              isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface(),
+        ),
+      ),
     );
   }
 
@@ -387,16 +461,20 @@ class SimpleSpinnerPageState extends State<SimpleSpinnerPage> with WidgetsBindin
   }
 
   Iterable<SpinnerItem> filteredItems() {
-    return widget.spinnerItems.where((element) => element.description.toLowerCase().contains(tecSearch.text.toLowerCase()));
+    return widget.spinnerItems.where(
+      (element) => element.description
+          .toLowerCase()
+          .contains(tecSearch.text.toLowerCase()),
+    );
   }
 
   Widget bodyHost() {
     if (filteredItems().isNotEmpty) {
       return body();
     } else {
-      return ListView(
-        padding: EdgeInsets.all(Dimensions.size15),
-        children: [emptyState()],
+      return stateList(
+        context: context,
+        child: emptyState(),
       );
     }
   }
@@ -466,92 +544,164 @@ class SimpleSpinnerPageState extends State<SimpleSpinnerPage> with WidgetsBindin
   }
 
   Widget body() {
-    return ListView.separated(
+    final List<SpinnerItem> items = filteredItems().toList();
+    final DotScreenType screenType = DotResponsive.sizeOf(context);
+
+    return ListView(
       padding: EdgeInsets.fromLTRB(
-        Dimensions.size15,
+        DotResponsive.horizontalPadding(context),
         Dimensions.size10,
-        Dimensions.size15,
+        DotResponsive.horizontalPadding(context),
         Dimensions.size100,
       ),
-      itemCount: filteredItems().length,
-      separatorBuilder: (BuildContext context, int index) {
-        return const SizedBox(height: gapCard);
-      },
-      itemBuilder: (BuildContext context, int index) {
-        SpinnerItem spinnerItem = filteredItems().elementAt(index);
+      children: [
+        centeredContent(
+          context: context,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final int crossAxisCount = screenType == DotScreenType.mobile
+                  ? 1
+                  : DotResponsive.gridColumnCount(
+                      availableWidth: constraints.maxWidth,
+                      minItemWidth: 260,
+                      min: 2,
+                      max: 3,
+                    );
 
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                Navigators.pop(result: spinnerItem);
-              } else {
-                context.pop(spinnerItem);
-              }
-            },
-            customBorder: SmoothRectangleBorder(
-              borderRadius: BorderRadius.circular(Dimensions.size20),
-              smoothness: Dimensions.size1,
-            ),
-            child: Builder(
-              builder: (context) {
-                final Widget content = Padding(
-                  padding: EdgeInsets.all(Dimensions.size15),
-                  child: Text(
-                    spinnerItem.description,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: Dimensions.text12,
-                      fontWeight: FontWeight.w700,
-                      color: isGlass
-                          ? Colors.white.withOpacity(0.92)
-                          : AppColors.onSurface().withValues(alpha: 0.65),
-                    ),
-                  ),
-                );
-
-                if (isGlass) {
-                  return GlassContainer(
-                    blur: Dimensions.size20,
-                    borderRadius: Dimensions.size20,
-                    opacity: 0.12,
-                    borderOpacity: 0.22,
-                    padding: EdgeInsets.zero,
-                    child: content,
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: items.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  mainAxisSpacing: Dimensions.size10,
+                  crossAxisSpacing: Dimensions.size10,
+                  mainAxisExtent: screenType == DotScreenType.mobile ? 92 : 102,
+                ),
+                itemBuilder: (context, index) {
+                  return spinnerCard(
+                    spinnerItem: items[index],
+                    index: index,
                   );
-                }
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 
-                return Ink(
-                  decoration: ShapeDecoration(
-                    color: isGlass
-                        ? Colors.white.withOpacity(0.10)
-                        : AppColors.surface(),
-                    shadows: [
-                      BoxShadow(
-                        blurRadius: Dimensions.size20,
-                        offset: Offset(0, Dimensions.size10),
-                        color: Colors.black.withValues(alpha: 0.10),
-                      ),
-                    ],
-                    shape: SmoothRectangleBorder(
-                      borderRadius: BorderRadius.circular(Dimensions.size20),
-                      smoothness: Dimensions.size1,
-                      side: BorderSide(
-                        color: isGlass
-                            ? Colors.white.withOpacity(0.18)
-                            : AppColors.outline().withValues(alpha: 0.35),
-                      ),
-                    ),
-                  ),
-                  child: content,
-                );
-              },
+  Widget spinnerCard({
+    required SpinnerItem spinnerItem,
+    required int index,
+  }) {
+    final Color accent = Theme.of(context).colorScheme.primary;
+    final String label = spinnerItem.description.trim();
+    final String initials =
+        label.isNotEmpty ? label.substring(0, 1).toUpperCase() : "${index + 1}";
+
+    final Widget content = Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: Dimensions.size15,
+        vertical: Dimensions.size10,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: Dimensions.size40,
+            height: Dimensions.size40,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: accent.withValues(alpha: 0.18),
+              ),
+            ),
+            child: Center(
+              child: Text(
+                initials,
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: accent,
+                  fontSize: Dimensions.text14,
+                ),
+              ),
             ),
           ),
-        );
-      },
+          SizedBox(width: Dimensions.size10),
+          Expanded(
+            child: Text(
+              spinnerItem.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: Dimensions.text13,
+                fontWeight: FontWeight.w800,
+                height: 1.15,
+                color: isGlass
+                    ? Colors.white.withOpacity(0.94)
+                    : AppColors.onSurface(),
+              ),
+            ),
+          ),
+          SizedBox(width: Dimensions.size10),
+          Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: Dimensions.size15,
+            color: isGlass
+                ? Colors.white.withOpacity(0.60)
+                : AppColors.onSurface().withValues(alpha: 0.45),
+          ),
+        ],
+      ),
+    );
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+            Navigators.pop(result: spinnerItem);
+          } else {
+            context.pop(spinnerItem);
+          }
+        },
+        customBorder: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size20),
+          smoothness: Dimensions.size1,
+        ),
+        child: isGlass
+            ? GlassContainer(
+                blur: Dimensions.size20,
+                borderRadius: Dimensions.size20,
+                opacity: 0.12,
+                borderOpacity: 0.22,
+                padding: EdgeInsets.zero,
+                child: content,
+              )
+            : Ink(
+                decoration: ShapeDecoration(
+                  color: AppColors.surface(),
+                  shadows: [
+                    BoxShadow(
+                      blurRadius: Dimensions.size20,
+                      offset: Offset(0, Dimensions.size10),
+                      color: Colors.black.withValues(alpha: 0.08),
+                    ),
+                  ],
+                  shape: SmoothRectangleBorder(
+                    borderRadius: BorderRadius.circular(Dimensions.size20),
+                    smoothness: Dimensions.size1,
+                    side: BorderSide(
+                      color: AppColors.outline().withValues(alpha: 0.22),
+                    ),
+                  ),
+                ),
+                child: content,
+              ),
+      ),
     );
   }
 }

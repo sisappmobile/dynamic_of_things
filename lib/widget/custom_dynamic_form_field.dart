@@ -33,7 +33,8 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:flutter_image_compress/flutter_image_compress.dart";
-import "package:get/get_utils/src/extensions/internacionalization.dart" hide Trans;
+import "package:get/get_utils/src/extensions/internacionalization.dart"
+    hide Trans;
 import "package:go_router/go_router.dart";
 import "package:loader_overlay/loader_overlay.dart";
 import "package:material_symbols_icons/material_symbols_icons.dart";
@@ -74,7 +75,10 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
   bool get isGlass {
     try {
-      return (Preferences.getInstance().getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ?? 1) == 2;
+      return (Preferences.getInstance()
+                  .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
+              1) ==
+          2;
     } catch (_) {
       return false;
     }
@@ -84,14 +88,18 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     if (isGlass) {
       return Colors.white.withOpacity(0.06);
     }
-    return Theme.of(context).brightness == Brightness.dark ? AppColors.surfaceContainer() : AppColors.surfaceContainerLowest();
+    return Theme.of(context).brightness == Brightness.dark
+        ? AppColors.surfaceContainer()
+        : AppColors.surfaceContainerLowest();
   }
 
   Color pillBg(BuildContext c) {
     if (isGlass) {
       return Colors.white.withOpacity(0.08);
     }
-    return Theme.of(context).brightness == Brightness.dark ? AppColors.surfaceContainerLow() : AppColors.surfaceContainerLowest();
+    return Theme.of(context).brightness == Brightness.dark
+        ? AppColors.surfaceContainerLow()
+        : AppColors.surfaceContainerLowest();
   }
 
   Color primary(BuildContext c) => Theme.of(c).colorScheme.primary;
@@ -154,7 +162,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             color: isGlass
                 ? Colors.white.withOpacity(0.12)
                 : AppColors.outline().withValues(
-                    alpha: Theme.of(context).brightness == Brightness.dark ? 0.15 : 0.10,
+                    alpha: Theme.of(context).brightness == Brightness.dark
+                        ? 0.15
+                        : 0.10,
                   ),
           ),
         ),
@@ -249,7 +259,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             field: field,
             body: textField(
               field,
-              onChanged: (value) => widget.field.setValue(widget.data, Formats.tryParseNumber(value)),
+              onChanged: (value) => widget.field
+                  .setValue(widget.data, Formats.tryParseNumber(value)),
               inputFormatters: [
                 ThousandsFormatter(
                   formatter: NumberFormat.decimalPattern("id"),
@@ -355,7 +366,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
               physics: const NeverScrollableScrollPhysics(),
               itemBuilder: (context, index) {
                 String string = widget.field.data[index];
-                final bool selected = string == widget.field.getValue(widget.data);
+                final bool selected =
+                    string == widget.field.getValue(widget.data);
 
                 return Material(
                   color: Colors.transparent,
@@ -370,7 +382,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                       decoration: ShapeDecoration(
                         color: selected ? soft(context) : Colors.transparent,
                         shape: SmoothRectangleBorder(
-                          borderRadius: BorderRadius.circular(Dimensions.size15),
+                          borderRadius:
+                              BorderRadius.circular(Dimensions.size15),
                           smoothness: Dimensions.size1,
                           side: BorderSide(
                             color: selected
@@ -391,7 +404,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                             child: Radio(
                               value: string,
                               groupValue: widget.field.getValue(widget.data),
-                              onChanged: !isReadOnly() ? (value) => changed(value) : null,
+                              onChanged: !isReadOnly()
+                                  ? (value) => changed(value)
+                                  : null,
                             ),
                           ),
                           SizedBox(width: Dimensions.size10),
@@ -401,7 +416,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                               style: TextStyle(
                                 fontSize: Dimensions.text14,
                                 fontWeight: FontWeight.w700,
-                                color: isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface(),
+                                color: isGlass
+                                    ? Colors.white.withOpacity(0.92)
+                                    : AppColors.onSurface(),
                               ),
                             ),
                           ),
@@ -417,7 +434,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                   ),
                 );
               },
-              separatorBuilder: (context, index) => SizedBox(height: Dimensions.size10),
+              separatorBuilder: (context, index) =>
+                  SizedBox(height: Dimensions.size10),
               itemCount: widget.field.data.length,
             ),
           );
@@ -450,7 +468,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: Dimensions.text14,
-                        color: isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface(),
+                        color: isGlass
+                            ? Colors.white.withOpacity(0.92)
+                            : AppColors.onSurface(),
                       ),
                     ),
                   ),
@@ -779,7 +799,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           if (StringUtils.isNotNullOrEmpty(validation.errorMessage)) {
             return validation.errorMessage;
           } else {
-            return "maximum_character_is".tr(args: [validation.value.toString()]);
+            return "maximum_character_is"
+                .tr(args: [validation.value.toString()]);
           }
         }
       }
@@ -806,7 +827,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         if (StringUtils.isNotNullOrEmpty(validation.errorMessage)) {
           return validation.errorMessage;
         } else {
-          return "value_must_be_greater_than".tr(args: [validation.value.toString()]);
+          return "value_must_be_greater_than"
+              .tr(args: [validation.value.toString()]);
         }
       }
     }
@@ -816,7 +838,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
   String? greaterThanOrEqualTo(int value) {
     Validation? validation = widget.field.validations.firstWhereOrNull(
-      (element) => element.type == DynamicFormValidationType.GREATER_THAN_OR_EQUAL_TO.name,
+      (element) =>
+          element.type ==
+          DynamicFormValidationType.GREATER_THAN_OR_EQUAL_TO.name,
     );
 
     if (validation != null) {
@@ -832,7 +856,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         if (StringUtils.isNotNullOrEmpty(validation.errorMessage)) {
           return validation.errorMessage;
         } else {
-          return "value_must_be_greater_than_or_equal_to".tr(args: [validation.value.toString()]);
+          return "value_must_be_greater_than_or_equal_to"
+              .tr(args: [validation.value.toString()]);
         }
       }
     }
@@ -858,7 +883,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         if (StringUtils.isNotNullOrEmpty(validation.errorMessage)) {
           return validation.errorMessage;
         } else {
-          return "value_must_be_less_than".tr(args: [validation.value.toString()]);
+          return "value_must_be_less_than"
+              .tr(args: [validation.value.toString()]);
         }
       }
     }
@@ -868,7 +894,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
   String? lessThanOrEqualTo(int value) {
     Validation? validation = widget.field.validations.firstWhereOrNull(
-      (element) => element.type == DynamicFormValidationType.LESS_THAN_OR_EQUAL_TO.name,
+      (element) =>
+          element.type == DynamicFormValidationType.LESS_THAN_OR_EQUAL_TO.name,
     );
 
     if (validation != null) {
@@ -884,7 +911,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         if (StringUtils.isNotNullOrEmpty(validation.errorMessage)) {
           return validation.errorMessage;
         } else {
-          return "value_must_be_less_than_or_equal_to".tr(args: [validation.value.toString()]);
+          return "value_must_be_less_than_or_equal_to"
+              .tr(args: [validation.value.toString()]);
         }
       }
     }
@@ -1088,16 +1116,29 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       );
 
       if (filePickerResult != null && filePickerResult.files.isNotEmpty) {
-        PlatformFile platformFile = filePickerResult.files.first;
+        final PlatformFile platformFile = filePickerResult.files.first;
+        final Uint8List? fileBytes = platformFile.bytes ??
+            (platformFile.path != null
+                ? await XFile(platformFile.path!).readAsBytes()
+                : null);
+        final String? mime = detectMimeType(
+          name: platformFile.name,
+          bytes: fileBytes,
+        );
+        final String? extension = platformFile.extension?.toLowerCase();
 
         Attachment attachment = Attachment()
           ..name = platformFile.name
-          ..mime = lookupMimeType(platformFile.path!);
+          ..mime = mime;
 
-        if (StringUtils.inList(
-          platformFile.extension!,
-          ["jpg", "jpeg", "png"],
-        )) {
+        if (!kIsWeb &&
+            platformFile.path != null &&
+            (isImageAttachmentMime(mime) ||
+                (extension != null &&
+                    StringUtils.inList(
+                      extension,
+                      ["jpg", "jpeg", "png", "webp", "heic"],
+                    )))) {
           XFile? xFile = await FlutterImageCompress.compressAndGetFile(
             platformFile.path!,
             await CustomAttachments.temporaryPath(fileName: platformFile.name),
@@ -1107,11 +1148,13 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           if (xFile != null) {
             attachment.bytes = await xFile.readAsBytes();
           }
-        } else {
-          attachment.bytes = platformFile.bytes;
         }
 
-        widget.field.setValue(widget.data, attachment);
+        attachment.bytes ??= fileBytes;
+
+        if (attachment.bytes != null) {
+          widget.field.setValue(widget.data, attachment);
+        }
       }
     } else if (widget.field.type == DynamicFormFieldType.FOTO.name) {
       Images.camera(
@@ -1169,18 +1212,32 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         allowGallery: true,
         callback: (files) async {
           if (files.isNotEmpty) {
+            final PlatformFile file = files.first;
+            final Uint8List? videoBytes = file.bytes ??
+                (file.path != null
+                    ? await XFile(file.path!).readAsBytes()
+                    : null);
+            final String? mime = detectMimeType(
+              name: file.name,
+              bytes: videoBytes,
+            );
             Attachment attachment = Attachment()
-              ..name = files.first.name
-              ..mime = "video/${files.first.extension}"
-              ..bytes = files.first.bytes
-              ..thumbnail = await vt.VideoThumbnail.thumbnailData(
-                video: files.first.path!,
+              ..name = file.name
+              ..mime = mime ?? "video/${file.extension ?? "mp4"}"
+              ..bytes = videoBytes;
+
+            if (!kIsWeb && file.path != null) {
+              attachment.thumbnail = await vt.VideoThumbnail.thumbnailData(
+                video: file.path!,
                 imageFormat: vt.ImageFormat.JPEG,
                 maxWidth: 128,
                 quality: 25,
               );
+            }
 
-            widget.field.setValue(widget.data, attachment);
+            if (attachment.bytes != null) {
+              widget.field.setValue(widget.data, attachment);
+            }
           }
         },
       );
@@ -1188,7 +1245,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       SpinnerItem? selectedItem = await Navigators.push(
         SimpleSpinnerPage(
           title: widget.field.title,
-          spinnerItems: widget.field.data.map((e) => SpinnerItem(identity: e, description: e)).toList(),
+          spinnerItems: widget.field.data
+              .map((e) => SpinnerItem(identity: e, description: e))
+              .toList(),
         ),
       );
 
@@ -1209,7 +1268,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             customerId: widget.customerId,
           );
         } else {
-          dynamicFormResourceResponse = await DotApis.getInstance().dynamicFormResource(
+          dynamicFormResourceResponse =
+              await DotApis.getInstance().dynamicFormResource(
             formId: widget.template.id,
             name: widget.field.name,
             data: widget.data,
@@ -1250,7 +1310,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           widget.field.setValue(widget.data, value);
 
           if (dynamicFormResourceResponse.loadOnFields.isNotEmpty) {
-            for (DynamicFormResourceLoadOnFieldItem item in dynamicFormResourceResponse.loadOnFields) {
+            for (DynamicFormResourceLoadOnFieldItem item
+                in dynamicFormResourceResponse.loadOnFields) {
               if (!item.detail) {
                 dynamic v = selectedItem[item.source];
 
@@ -1364,7 +1425,13 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
               if (result != null) {
                 for (DetailForm detailForm in widget.headerForm.detailForms) {
-                  List<Map<String, dynamic>> details = result[detailForm.template.tableName] != null ? List<Map<String, dynamic>>.from(result[detailForm.template.tableName].map((e) => e)) : [];
+                  List<Map<String, dynamic>> details =
+                      result[detailForm.template.tableName] != null
+                          ? List<Map<String, dynamic>>.from(
+                              result[detailForm.template.tableName]
+                                  .map((e) => e),
+                            )
+                          : [];
 
                   if (details.isNotEmpty) {
                     for (Map<String, dynamic> detail in details) {
@@ -1673,6 +1740,64 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
     return result;
   }
 
+  String? detectMimeType({
+    required String name,
+    Uint8List? bytes,
+  }) {
+    return lookupMimeType(
+      name,
+      headerBytes: bytes,
+    );
+  }
+
+  bool isImageAttachmentMime(String? mime) {
+    return mime?.toLowerCase().startsWith("image/") ?? false;
+  }
+
+  bool isVideoAttachment(Attachment attachment) {
+    return attachment.mime?.toLowerCase().startsWith("video/") == true ||
+        StringUtils.inList(widget.field.type, [
+          DynamicFormFieldType.VIDEO.name,
+          DynamicFormFieldType.UPLOAD_VIDEO.name,
+        ]);
+  }
+
+  Widget attachmentPlaceholder({
+    required Attachment attachment,
+    required IconData icon,
+  }) {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: primary(context).withValues(alpha: 0.12),
+      padding: EdgeInsets.all(Dimensions.size10),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            size: Dimensions.size30,
+            color: primary(context),
+          ),
+          SizedBox(height: Dimensions.size10),
+          Text(
+            attachment.name ?? "",
+            textAlign: TextAlign.center,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isGlass
+                  ? Colors.white.withOpacity(0.92)
+                  : AppColors.onSurface(),
+              fontSize: Dimensions.text12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // PERBAIKAN: Menghilangkan `actionPill` yang tebal, menggunakan style tombol flat yang bersih.
   List<Widget> fileWidgets() {
     Widget signatureButton() {
@@ -1727,7 +1852,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 onTap: () => onPressed(),
               ),
               Visibility(
-                visible: widget.field.type == DynamicFormFieldType.UPLOAD_SIGNATURE.name,
+                visible: widget.field.type ==
+                    DynamicFormFieldType.UPLOAD_SIGNATURE.name,
                 child: signatureButton(),
               ),
             ],
@@ -1740,98 +1866,108 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       widgets.add(SizedBox(height: Dimensions.size10));
 
       Attachment attachment = widget.field.getValue(widget.data);
+      final bool isVideo = isVideoAttachment(attachment);
+      final bool isImage = attachment.thumbnail != null ||
+          isImageAttachmentMime(attachment.mime);
+      final Uint8List? previewBytes =
+          attachment.thumbnail ?? (isImage ? attachment.bytes : null);
 
-      Widget thumbnailWidget = Image(
-        image: MemoryImage(attachment.thumbnail ?? attachment.bytes!),
-        width: Dimensions.size100,
-        height: Dimensions.size100,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            width: Dimensions.size100,
-            height: Dimensions.size100,
-            color: primary(context).withValues(alpha: 0.12),
-            child: Center(
-              child: Text(
-                attachment.name ?? "",
-                textAlign: TextAlign.center,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface(),
-                  fontSize: Dimensions.text12,
-                  fontWeight: FontWeight.w800,
+      Widget thumbnailWidget = ClipRRect(
+        borderRadius: BorderRadius.circular(Dimensions.size10),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: previewBytes != null
+                  ? Image(
+                      image: MemoryImage(previewBytes),
+                      width: Dimensions.size100,
+                      height: Dimensions.size100,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return attachmentPlaceholder(
+                          attachment: attachment,
+                          icon: isVideo
+                              ? Icons.play_circle_fill_rounded
+                              : Icons.insert_drive_file_rounded,
+                        );
+                      },
+                    )
+                  : attachmentPlaceholder(
+                      attachment: attachment,
+                      icon: isVideo
+                          ? Icons.play_circle_fill_rounded
+                          : Icons.insert_drive_file_rounded,
+                    ),
+            ),
+            Positioned.fill(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    if (attachment.bytes == null) {
+                      return;
+                    }
+
+                    if (isVideo) {
+                      BottomSheets.videoPreview(
+                        context: context,
+                        bytes: attachment.bytes!,
+                        mime: attachment.mime,
+                      );
+                    } else if (isImage) {
+                      BottomSheets.imagePreview(
+                        context: context,
+                        imageProvider: MemoryImage(attachment.bytes!),
+                      );
+                    }
+                  },
                 ),
               ),
             ),
-          );
-        },
-        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(Dimensions.size10),
-            child: Stack(
-              children: [
-                child,
-                Positioned.fill(
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () {
-                        if (attachment.thumbnail != null) {
-                          BottomSheets.videoPreview(
-                            context: context,
-                            bytes: attachment.bytes!,
-                          );
-                        } else {
-                          BottomSheets.imagePreview(
-                            context: context,
-                            imageProvider: MemoryImage(
-                              attachment.thumbnail ?? attachment.bytes!,
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ),
+            Positioned(
+              right: Dimensions.size5,
+              bottom: Dimensions.size5,
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: Dimensions.size10,
+                  vertical: Dimensions.size4,
                 ),
-                Positioned(
-                  right: Dimensions.size5,
-                  bottom: Dimensions.size5,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: Dimensions.size10,
-                      vertical: Dimensions.size4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      borderRadius: BorderRadius.circular(Dimensions.size100),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          attachment.thumbnail != null ? Icons.play_arrow_rounded : Icons.open_in_full_rounded,
-                          size: Dimensions.size10,
-                          color: Colors.white,
-                        ),
-                        SizedBox(width: Dimensions.size4),
-                        Text(
-                          attachment.thumbnail != null ? "Preview" : "Open",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: Dimensions.text10,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(Dimensions.size100),
                 ),
-              ],
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isVideo
+                          ? Icons.play_arrow_rounded
+                          : isImage
+                              ? Icons.open_in_full_rounded
+                              : Icons.insert_drive_file_rounded,
+                      size: Dimensions.size10,
+                      color: Colors.white,
+                    ),
+                    SizedBox(width: Dimensions.size4),
+                    Text(
+                      isVideo
+                          ? "Preview"
+                          : isImage
+                              ? "Open"
+                              : "File",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: Dimensions.text10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          );
-        },
+          ],
+        ),
       );
 
       widgets.add(
@@ -1854,7 +1990,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontWeight: FontWeight.w900,
-                      color: isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface(),
+                      color: isGlass
+                          ? Colors.white.withOpacity(0.92)
+                          : AppColors.onSurface(),
                       fontSize: Dimensions.text13,
                     ),
                   ),
@@ -1865,7 +2003,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      color: isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface().withValues(alpha: 0.65),
+                      color: isGlass
+                          ? Colors.white.withOpacity(0.92)
+                          : AppColors.onSurface().withValues(alpha: 0.65),
                       fontSize: Dimensions.text12,
                     ),
                   ),
@@ -1996,7 +2136,11 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.error, size: Dimensions.size15, color: AppColors.error()),
+                Icon(
+                  Icons.error,
+                  size: Dimensions.size15,
+                  color: AppColors.error(),
+                ),
                 SizedBox(width: Dimensions.size10),
                 Expanded(
                   child: Text(
@@ -2026,7 +2170,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             style: TextStyle(
               fontSize: Dimensions.text11,
               fontWeight: FontWeight.w900,
-              color: isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface().withValues(alpha: 0.55),
+              color: isGlass
+                  ? Colors.white.withOpacity(0.92)
+                  : AppColors.onSurface().withValues(alpha: 0.55),
             ),
           ),
         );
@@ -2055,7 +2201,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         labelWidget(),
-        SizedBox(height: Dimensions.size10), // PERBAIKAN: Spasi label & input didekatkan
+        SizedBox(
+          height: Dimensions.size10,
+        ), // PERBAIKAN: Spasi label & input didekatkan
         body,
         helperWidget(field),
       ],
@@ -2072,7 +2220,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             style: TextStyle(
               fontSize: Dimensions.text13,
               fontWeight: FontWeight.w700,
-              color: isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface().withValues(alpha: 0.85),
+              color: isGlass
+                  ? Colors.white.withOpacity(0.92)
+                  : AppColors.onSurface().withValues(alpha: 0.85),
               letterSpacing: 0.1,
             ),
           ),
@@ -2133,9 +2283,13 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         child: TextField(
           controller: controller,
           onChanged: onChanged,
-          cursorColor: isGlass ? Colors.white.withOpacity(0.92) : Theme.of(context).colorScheme.primary,
+          cursorColor: isGlass
+              ? Colors.white.withOpacity(0.92)
+              : Theme.of(context).colorScheme.primary,
           style: TextStyle(
-            color: isGlass ? Colors.white.withOpacity(0.95) : AppColors.onSurface(),
+            color: isGlass
+                ? Colors.white.withOpacity(0.95)
+                : AppColors.onSurface(),
           ),
           maxLengthEnforcement: MaxLengthEnforcement.enforced,
           buildCounter: (
@@ -2156,7 +2310,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
               color: isGlass
                   ? Colors.white.withOpacity(0.60)
                   : AppColors.onSurface().withValues(
-                      alpha: Theme.of(context).brightness == Brightness.dark ? 0.55 : 0.45,
+                      alpha: Theme.of(context).brightness == Brightness.dark
+                          ? 0.55
+                          : 0.45,
                     ),
               fontWeight: FontWeight.w600,
             ),
@@ -2220,7 +2376,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                   style: TextStyle(
                     fontSize: Dimensions.text14,
                     fontWeight: FontWeight.w800,
-                    color: isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface(),
+                    color: isGlass
+                        ? Colors.white.withOpacity(0.92)
+                        : AppColors.onSurface(),
                   ),
                 ),
               ),
@@ -2242,7 +2400,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                   color: isGlass
                       ? Colors.white.withOpacity(0.92)
                       : AppColors.onSurface().withValues(
-                          alpha: Theme.of(context).brightness == Brightness.dark ? 0.88 : 0.75,
+                          alpha: Theme.of(context).brightness == Brightness.dark
+                              ? 0.88
+                              : 0.75,
                         ),
                 ),
               ),
@@ -2263,7 +2423,9 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         return isGlass
             ? Colors.white.withOpacity(0.15)
             : AppColors.outline().withValues(
-                alpha: Theme.of(context).brightness == Brightness.dark ? 0.30 : 0.15,
+                alpha: Theme.of(context).brightness == Brightness.dark
+                    ? 0.30
+                    : 0.15,
               );
       }
     }
@@ -2329,7 +2491,9 @@ class NetworkVideoPlayerState extends State<NetworkVideoPlayer> {
               ),
               onPressed: () {
                 setState(() {
-                  controller.value.isPlaying ? controller.pause() : controller.play();
+                  controller.value.isPlaying
+                      ? controller.pause()
+                      : controller.play();
                 });
               },
             ),

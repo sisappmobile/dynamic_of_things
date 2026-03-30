@@ -7,6 +7,7 @@ import "dart:typed_data";
 import "package:base/base.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
+import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
 import "package:dynamic_of_things/model/dynamic_schedule_data.dart";
 import "package:dynamic_of_things/model/dynamic_schedule_template.dart";
@@ -116,7 +117,9 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
 
     if (kIsWeb) {
       if (p == "wallpaper_default.jpg") {
-        final String base64Data = Preferences.getInstance().getStringDynamicForm("WEB_WALLPAPER_BYTES") ?? "";
+        final String base64Data = Preferences.getInstance()
+                .getStringDynamicForm("WEB_WALLPAPER_BYTES") ??
+            "";
         if (base64Data.isNotEmpty) {
           try {
             final Uint8List bytes = base64Decode(base64Data);
@@ -150,109 +153,6 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
   void didChangePlatformBrightness() {
     super.didChangePlatformBrightness();
     setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocListener<DynamicScheduleBloc, DynamicScheduleState>(
-      listener: (context, state) async {
-        if (state is DynamicScheduleTemplateLoading) {
-          setState(() {
-            loading = true;
-            template = null;
-            items = <Item>[];
-            dataSource = ItemDataSource(<Item>[]);
-          });
-        } else if (state is DynamicScheduleTemplateSuccess) {
-          setState(() {
-            template = state.template;
-          });
-
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) {
-              return;
-            }
-          });
-        } else if (state is DynamicScheduleTemplateFinished) {
-          setState(() {
-            loading = false;
-          });
-        } else if (state is DynamicScheduleDataLoading) {
-          context.loaderOverlay.show();
-        } else if (state is DynamicScheduleDataSuccess) {
-          final List<Item> deduped = duplicateByid(state.items);
-
-          setState(() {
-            items = deduped;
-            dataSource = ItemDataSource(deduped);
-          });
-        } else if (state is DynamicScheduleDataFinished) {
-          context.loaderOverlay.hide();
-        }
-      },
-      child: Scaffold(
-        backgroundColor:
-            isGlass ? Colors.transparent : AppColors.surfaceContainerLowest(),
-        body: Stack(
-          children: [
-            if (isGlass) ...[
-              Positioned.fill(child: glassBackground()),
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: <Color>[
-                        Color.fromRGBO(0, 0, 0, 0.55),
-                        Color.fromRGBO(0, 0, 0, 0.22),
-                        Color.fromRGBO(0, 0, 0, 0.40),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-            Column(
-              children: [
-                SizedBox(height: MediaQuery.of(context).padding.top),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    Dimensions.size15,
-                    Dimensions.size10,
-                    Dimensions.size15,
-                    Dimensions.size10,
-                  ),
-                  child: appBar(),
-                ),
-                if (template != null && template!.forms.length > 1)
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      Dimensions.size15,
-                      0,
-                      Dimensions.size15,
-                      Dimensions.size10,
-                    ),
-                    child: chipRow(),
-                  ),
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      Dimensions.size15,
-                      0,
-                      Dimensions.size15,
-                      Dimensions.size15,
-                    ),
-                    child: separatedCard(),
-                  ),
-                ),
-                SizedBox(height: MediaQuery.of(context).padding.bottom),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   void refresh() {
@@ -321,6 +221,27 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
   bool hasEditAccess() {
     return template != null &&
         template!.actions.any((element) => element.resourceId == "BTN_EDIT");
+  }
+
+  double get horizontalPadding {
+    return DotResponsive.horizontalPadding(context);
+  }
+
+  bool get useWideScheduleLayout {
+    return DotResponsive.sizeOf(context) == DotScreenType.desktop;
+  }
+
+  Widget centeredContent({
+    required Widget child,
+    double tablet = 980,
+    double desktop = 1180,
+  }) {
+    return DotResponsive.centered(
+      context: context,
+      tablet: tablet,
+      desktop: desktop,
+      child: child,
+    );
   }
 
   Widget separatedCard() {
@@ -631,12 +552,140 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      child: Column(
-        children: [
-          calendarCard,
-          SizedBox(height: Dimensions.size10),
-          agendaCard,
-        ],
+      child: useWideScheduleLayout
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 7,
+                  child: calendarCard,
+                ),
+                SizedBox(width: Dimensions.size15),
+                Expanded(
+                  flex: 5,
+                  child: agendaCard,
+                ),
+              ],
+            )
+          : Column(
+              children: [
+                calendarCard,
+                SizedBox(height: Dimensions.size10),
+                agendaCard,
+              ],
+            ),
+    );
+  }
+
+  Widget scheduleBody() {
+    return centeredContent(
+      child: separatedCard(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<DynamicScheduleBloc, DynamicScheduleState>(
+      listener: (context, state) async {
+        if (state is DynamicScheduleTemplateLoading) {
+          setState(() {
+            loading = true;
+            template = null;
+            items = <Item>[];
+            dataSource = ItemDataSource(<Item>[]);
+          });
+        } else if (state is DynamicScheduleTemplateSuccess) {
+          setState(() {
+            template = state.template;
+          });
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) {
+              return;
+            }
+          });
+        } else if (state is DynamicScheduleTemplateFinished) {
+          setState(() {
+            loading = false;
+          });
+        } else if (state is DynamicScheduleDataLoading) {
+          context.loaderOverlay.show();
+        } else if (state is DynamicScheduleDataSuccess) {
+          final List<Item> deduped = duplicateByid(state.items);
+
+          setState(() {
+            items = deduped;
+            dataSource = ItemDataSource(deduped);
+          });
+        } else if (state is DynamicScheduleDataFinished) {
+          context.loaderOverlay.hide();
+        }
+      },
+      child: Scaffold(
+        backgroundColor:
+            isGlass ? Colors.transparent : AppColors.surfaceContainerLowest(),
+        body: Stack(
+          children: [
+            if (isGlass) ...[
+              Positioned.fill(child: glassBackground()),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: <Color>[
+                        Color.fromRGBO(0, 0, 0, 0.55),
+                        Color.fromRGBO(0, 0, 0, 0.22),
+                        Color.fromRGBO(0, 0, 0, 0.40),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            Column(
+              children: [
+                SizedBox(height: MediaQuery.of(context).padding.top),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    Dimensions.size10,
+                    horizontalPadding,
+                    Dimensions.size10,
+                  ),
+                  child: centeredContent(
+                    child: appBar(),
+                  ),
+                ),
+                if (template != null && template!.forms.length > 1)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      horizontalPadding,
+                      0,
+                      horizontalPadding,
+                      Dimensions.size10,
+                    ),
+                    child: centeredContent(
+                      child: chipRow(),
+                    ),
+                  ),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      horizontalPadding,
+                      0,
+                      horizontalPadding,
+                      Dimensions.size15,
+                    ),
+                    child: scheduleBody(),
+                  ),
+                ),
+                SizedBox(height: MediaQuery.of(context).padding.bottom),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1248,12 +1297,16 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
             children: [
               Padding(
                 padding: EdgeInsets.fromLTRB(
-                  Dimensions.size15,
+                  horizontalPadding,
                   0,
-                  Dimensions.size15,
+                  horizontalPadding,
                   Dimensions.size15,
                 ),
-                child: sheetCard,
+                child: centeredContent(
+                  child: sheetCard,
+                  tablet: 720,
+                  desktop: 760,
+                ),
               ),
             ],
           ),

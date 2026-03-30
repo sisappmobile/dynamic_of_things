@@ -477,14 +477,14 @@ class CustomDynamicFormSubDetailListState
                     borderOpacity: 0.22,
                     padding: EdgeInsets.zero,
                     child: SizedBox(
-                      width: MediaQuery.of(context).size.width,
+                      width: double.infinity,
                       child: content,
                     ),
                   );
                 }
 
                 return Ink(
-                  width: MediaQuery.of(context).size.width,
+                  width: double.infinity,
                   decoration: ShapeDecoration(
                     color: isGlass
                         ? Colors.white.withOpacity(0.10)

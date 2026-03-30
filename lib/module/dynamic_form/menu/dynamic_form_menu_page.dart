@@ -8,6 +8,7 @@ import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
+import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_page.dart";
 import "package:dynamic_of_things/module/dynamic_form/menu/dynamic_form_menu_bloc.dart";
@@ -93,7 +94,9 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
 
     if (kIsWeb) {
       if (p == "wallpaper_default.jpg") {
-        final String base64Data = Preferences.getInstance().getStringDynamicForm("WEB_WALLPAPER_BYTES") ?? "";
+        final String base64Data = Preferences.getInstance()
+                .getStringDynamicForm("WEB_WALLPAPER_BYTES") ??
+            "";
         if (base64Data.isNotEmpty) {
           try {
             final Uint8List bytes = base64Decode(base64Data);
@@ -120,6 +123,7 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
   Widget build(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
     final bool glass = isGlass;
+    final double horizontalPadding = DotResponsive.horizontalPadding(context);
 
     return BlocListener<DynamicFormMenuBloc, DynamicFormMenuState>(
       listener: (context, state) async {
@@ -166,12 +170,17 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
                 SizedBox(height: safe.top),
                 Padding(
                   padding: EdgeInsets.fromLTRB(
-                    Dimensions.size15,
+                    horizontalPadding,
                     Dimensions.size5,
-                    Dimensions.size15,
+                    horizontalPadding,
                     Dimensions.size10,
                   ),
-                  child: headerCard(),
+                  child: DotResponsive.centered(
+                    context: context,
+                    tablet: 920,
+                    desktop: 1080,
+                    child: headerCard(),
+                  ),
                 ),
                 Expanded(child: bodyHost()),
                 SizedBox(height: safe.bottom),
@@ -370,10 +379,20 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.all(Dimensions.size10),
+        padding: EdgeInsets.fromLTRB(
+          DotResponsive.horizontalPadding(context),
+          Dimensions.size10,
+          DotResponsive.horizontalPadding(context),
+          Dimensions.size10,
+        ),
         children: [
           SizedBox(height: Dimensions.size1),
-          card,
+          DotResponsive.centered(
+            context: context,
+            tablet: 920,
+            desktop: 1080,
+            child: card,
+          ),
         ],
       ),
     );
@@ -390,7 +409,12 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
       },
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.all(Dimensions.size15),
+        padding: EdgeInsets.fromLTRB(
+          DotResponsive.horizontalPadding(context),
+          Dimensions.size15,
+          DotResponsive.horizontalPadding(context),
+          Dimensions.size15,
+        ),
         itemCount: categories.length,
         separatorBuilder: (context, index) {
           return SizedBox(height: Dimensions.size15);
@@ -402,47 +426,74 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
             dynamicFormCategoryItem: dynamicFormCategoryItem,
           );
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                dynamicFormCategoryItem.name.toUpperCase(),
-                textAlign: TextAlign.start,
-                style: TextStyle(
-                  fontSize: Dimensions.text16,
-                  fontWeight: FontWeight.bold,
-                  color: glass
-                      ? Colors.white.withValues(alpha: 0.95)
-                      : AppColors.onSurface(),
-                ),
-              ),
-              SizedBox(height: Dimensions.size1),
-              GridView.builder(
-                shrinkWrap: true,
-                padding: EdgeInsets.only(top:Dimensions.size10),
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: menuItems.length,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisExtent: Dimensions.size55 * 2,
-                  crossAxisSpacing: Dimensions.size10,
-                  mainAxisSpacing: Dimensions.size10,
-                ),
-                itemBuilder: (BuildContext context, int index2) {
-                  DynamicFormMenuItem dynamicFormMenuItem = menuItems[index2];
-
-                  return menuCard(
-                    dynamicFormMenuItem: dynamicFormMenuItem,
-                    onTap: () async {
-                      await openMenuItem(
-                        dynamicFormCategoryItem: dynamicFormCategoryItem,
-                        dynamicFormMenuItem: dynamicFormMenuItem,
+          return DotResponsive.centered(
+            context: context,
+            tablet: 920,
+            desktop: 1080,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final DotScreenType screenType = DotResponsive.sizeOf(context);
+                final int crossAxisCount = screenType == DotScreenType.mobile
+                    ? DotResponsive.gridColumnCount(
+                        availableWidth: constraints.maxWidth,
+                        minItemWidth: 145,
+                        min: 2,
+                        max: 3,
+                      )
+                    : DotResponsive.gridColumnCount(
+                        availableWidth: constraints.maxWidth,
+                        minItemWidth: 210,
+                        min: 2,
+                        max: 4,
                       );
-                    },
-                  );
-                },
-              ),
-            ],
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      dynamicFormCategoryItem.name.toUpperCase(),
+                      textAlign: TextAlign.start,
+                      style: TextStyle(
+                        fontSize: Dimensions.text16,
+                        fontWeight: FontWeight.bold,
+                        color: glass
+                            ? Colors.white.withValues(alpha: 0.95)
+                            : AppColors.onSurface(),
+                      ),
+                    ),
+                    SizedBox(height: Dimensions.size1),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.only(top: Dimensions.size10),
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: menuItems.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        mainAxisExtent: screenType == DotScreenType.mobile
+                            ? 98
+                            : Dimensions.size55 * 2,
+                        crossAxisSpacing: Dimensions.size10,
+                        mainAxisSpacing: Dimensions.size10,
+                      ),
+                      itemBuilder: (BuildContext context, int index2) {
+                        DynamicFormMenuItem dynamicFormMenuItem =
+                            menuItems[index2];
+
+                        return menuCard(
+                          dynamicFormMenuItem: dynamicFormMenuItem,
+                          onTap: () async {
+                            await openMenuItem(
+                              dynamicFormCategoryItem: dynamicFormCategoryItem,
+                              dynamicFormMenuItem: dynamicFormMenuItem,
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                );
+              },
+            ),
           );
         },
       ),
@@ -714,6 +765,7 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
     required Future<void> Function() onTap,
   }) {
     final bool glass = isGlass;
+    final bool isMobile = DotResponsive.isMobileContext(context);
 
     final SmoothRectangleBorder shape = SmoothRectangleBorder(
       borderRadius: BorderRadius.circular(Dimensions.size15),
@@ -732,8 +784,8 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
                 opacity: 0.10,
                 borderOpacity: 0.18,
                 padding: EdgeInsets.symmetric(
-                  vertical: Dimensions.size10,
-                  horizontal: Dimensions.size5,
+                  vertical: isMobile ? 8 : Dimensions.size10,
+                  horizontal: 8,
                 ),
                 child: Center(
                   child: Text(
@@ -741,7 +793,8 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.92),
-                      fontSize: Dimensions.text14,
+                      fontSize:
+                          isMobile ? Dimensions.text12 : Dimensions.text14,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -760,8 +813,8 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
                   color: AppColors.primaryContainer(),
                 ),
                 padding: EdgeInsets.symmetric(
-                  vertical: Dimensions.size10,
-                  horizontal: Dimensions.size5,
+                  vertical: isMobile ? 8 : Dimensions.size10,
+                  horizontal: 8,
                 ),
                 child: Center(
                   child: Text(
@@ -769,7 +822,8 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: AppColors.onPrimaryContainer(),
-                      fontSize: Dimensions.text14,
+                      fontSize:
+                          isMobile ? Dimensions.text12 : Dimensions.text14,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

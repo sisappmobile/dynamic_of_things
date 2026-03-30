@@ -1,7 +1,6 @@
 // ignore_for_file: always_specify_types, use_build_context_synchronously, cascade_invocations, always_put_required_named_parameters_first, constant_identifier_names, avoid_print, deprecated_member_use
 
 import "dart:io";
-import "dart:typed_data";
 import "dart:ui"; // Ditambahkan untuk efek BackdropFilter (Glass)
 
 import "package:base/base.dart";
@@ -9,6 +8,7 @@ import "package:dynamic_of_things/enumeration/constant.dart"; // Akses constant
 import "package:dynamic_of_things/helper/custom_attachments.dart";
 import "package:dynamic_of_things/helper/preferences.dart"; // Akses preference isGlass
 import "package:easy_localization/easy_localization.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:go_router/go_router.dart";
 import "package:photo_view/photo_view.dart";
@@ -311,14 +311,25 @@ class BottomSheets {
   static void videoPreview({
     required BuildContext context,
     required Uint8List bytes,
+    String? mime,
   }) async {
-    File file = await CustomAttachments.temporarySave(
-      fileName: "video-preview",
-      bytes: bytes,
-    );
+    late VideoPlayerController videoPlayerController;
 
-    VideoPlayerController videoPlayerController =
-        VideoPlayerController.file(file);
+    if (kIsWeb) {
+      videoPlayerController = VideoPlayerController.networkUrl(
+        Uri.dataFromBytes(
+          bytes,
+          mimeType: mime ?? "video/mp4",
+        ),
+      );
+    } else {
+      File file = await CustomAttachments.temporarySave(
+        fileName: "video-preview",
+        bytes: bytes,
+      );
+
+      videoPlayerController = VideoPlayerController.file(file);
+    }
 
     await videoPlayerController.initialize();
     await videoPlayerController.setLooping(true);

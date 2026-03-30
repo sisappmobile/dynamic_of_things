@@ -10,6 +10,7 @@ import "package:collection/collection.dart";
 import "package:dynamic_of_things/enumeration/chart_model.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
+import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:dynamic_of_things/model/dynamic_chart_list_response.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_event.dart";
@@ -210,6 +211,9 @@ class DynamicChartPageState extends State<DynamicChartPage>
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = DotResponsive.isMobileContext(context);
+    final double horizontalPadding = DotResponsive.horizontalPadding(context);
+
     return BlocListener<DynamicChartBloc, DynamicChartState>(
       listener: (context, state) async {
         if (state is DynamicChartLoadLoading) {
@@ -222,43 +226,46 @@ class DynamicChartPageState extends State<DynamicChartPage>
           context.loaderOverlay.hide();
         }
       },
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final bool isMobile = Dimensions.isMobile();
-
-          return Scaffold(
-            backgroundColor: isGlass
-                ? Colors.transparent
-                : Theme.of(context).scaffoldBackgroundColor,
-            body: Stack(
-              children: [
-                if (isGlass && isMobile) ...[
-                  Positioned.fill(child: glassBackground()),
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: <Color>[
-                            Color.fromRGBO(0, 0, 0, 0.55),
-                            Color.fromRGBO(0, 0, 0, 0.22),
-                            Color.fromRGBO(0, 0, 0, 0.40),
-                          ],
-                        ),
-                      ),
+      child: Scaffold(
+        backgroundColor: isGlass
+            ? Colors.transparent
+            : Theme.of(context).scaffoldBackgroundColor,
+        body: Stack(
+          children: [
+            if (isGlass && isMobile) ...[
+              Positioned.fill(child: glassBackground()),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: <Color>[
+                        Color.fromRGBO(0, 0, 0, 0.55),
+                        Color.fromRGBO(0, 0, 0, 0.22),
+                        Color.fromRGBO(0, 0, 0, 0.40),
+                      ],
                     ),
                   ),
-                ],
-                Padding(
-                  padding: EdgeInsets.only(top: Dimensions.size20),
-                  child: SafeArea(
-                    top: !isGlass && isMobile,
-                    bottom: false,
-                    child: Column(
-                      children: [
-                        AppBarDynamicChart(
+                ),
+              ),
+            ],
+            Padding(
+              padding: EdgeInsets.only(top: Dimensions.size20),
+              child: SafeArea(
+                top: !isGlass && isMobile,
+                bottom: false,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                      child: DotResponsive.centered(
+                        context: context,
+                        tablet: 920,
+                        desktop: 1080,
+                        child: AppBarDynamicChart(
                           isGlass: isGlass && isMobile,
+                          showBackButton: isMobile,
                           title: "dynamic_chart".tr(),
                           rangeLabel: rangeLabel(),
                           onPickRange: pickRangeDate,
@@ -282,31 +289,44 @@ class DynamicChartPageState extends State<DynamicChartPage>
                             }
                           },
                         ),
-                        Expanded(child: body(glass: isGlass)),
-                      ],
+                      ),
                     ),
-                  ),
+                    Expanded(
+                      child: body(
+                        glass: isGlass,
+                        horizontalPadding: horizontalPadding,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
 
-  Widget body({required bool glass}) {
+  Widget body({
+    required bool glass,
+    required double horizontalPadding,
+  }) {
     if (listResponse == null) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.fromLTRB(
-          Dimensions.size15,
+          horizontalPadding,
           Dimensions.size10,
-          Dimensions.size15,
+          horizontalPadding,
           Dimensions.size30,
         ),
         children: [
-          LoadingCard(isGlass: glass),
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: LoadingCard(isGlass: glass),
+            ),
+          ),
         ],
       );
     }
@@ -319,9 +339,9 @@ class DynamicChartPageState extends State<DynamicChartPage>
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.fromLTRB(
-          Dimensions.size15,
+          horizontalPadding,
           Dimensions.size10,
-          Dimensions.size15,
+          horizontalPadding,
           Dimensions.size30,
         ),
         itemCount: charts.length,
@@ -354,6 +374,7 @@ class AppBarDynamicChart extends StatelessWidget {
   final VoidCallback onPickRange;
   final VoidCallback onBack;
   final bool isGlass;
+  final bool showBackButton;
 
   const AppBarDynamicChart({
     required this.title,
@@ -361,6 +382,7 @@ class AppBarDynamicChart extends StatelessWidget {
     required this.onPickRange,
     required this.onBack,
     required this.isGlass,
+    required this.showBackButton,
     super.key,
   });
 
@@ -372,27 +394,29 @@ class AppBarDynamicChart extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: Dimensions.size15),
         child: Row(
           children: [
-            GlassContainer(
-              blur: Dimensions.size20,
-              borderRadius: Dimensions.size20,
-              opacity: 0.12,
-              borderOpacity: 0.22,
-              padding: EdgeInsets.zero,
-              child: SizedBox(
-                width: Dimensions.size45,
-                height: Dimensions.size45,
-                child: IconButton(
-                  onPressed: onBack,
-                  padding: EdgeInsets.zero,
-                  icon: Icon(
-                    Icons.turn_left_rounded,
-                    color: Colors.white.withOpacity(0.95),
-                    size: Dimensions.size25,
+            if (showBackButton) ...[
+              GlassContainer(
+                blur: Dimensions.size20,
+                borderRadius: Dimensions.size20,
+                opacity: 0.12,
+                borderOpacity: 0.22,
+                padding: EdgeInsets.zero,
+                child: SizedBox(
+                  width: Dimensions.size45,
+                  height: Dimensions.size45,
+                  child: IconButton(
+                    onPressed: onBack,
+                    padding: EdgeInsets.zero,
+                    icon: Icon(
+                      Icons.turn_left_rounded,
+                      color: Colors.white.withOpacity(0.95),
+                      size: Dimensions.size25,
+                    ),
                   ),
                 ),
               ),
-            ),
-            SizedBox(width: Dimensions.size10),
+              SizedBox(width: Dimensions.size10),
+            ],
             Expanded(
               child: Text(
                 title,
@@ -460,22 +484,24 @@ class AppBarDynamicChart extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: Dimensions.size15),
       child: Row(
         children: [
-          InkWell(
-            borderRadius: BorderRadius.circular(Dimensions.size100),
-            onTap: onBack,
-            child: Padding(
-              padding: EdgeInsets.all(Dimensions.size10),
-              child: Icon(
-                Icons.turn_left_rounded,
-                size: Dimensions.size20,
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.90),
+          if (showBackButton) ...[
+            InkWell(
+              borderRadius: BorderRadius.circular(Dimensions.size100),
+              onTap: onBack,
+              child: Padding(
+                padding: EdgeInsets.all(Dimensions.size10),
+                child: Icon(
+                  Icons.turn_left_rounded,
+                  size: Dimensions.size20,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.90),
+                ),
               ),
             ),
-          ),
-          SizedBox(width: Dimensions.size5),
+            SizedBox(width: Dimensions.size5),
+          ],
           Expanded(
             child: Text(
               title,

@@ -9,6 +9,7 @@ import "package:basic_utils/basic_utils.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
+import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dart";
@@ -147,6 +148,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
   Widget build(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
     final bool glass = isGlass;
+    final double horizontalPadding = DotResponsive.horizontalPadding(context);
 
     return BlocListener<DynamicFormBloc, DynamicFormState>(
       listener: (context, state) async {
@@ -256,21 +258,38 @@ class DynamicFormPageState extends State<DynamicFormPage>
                     children: [
                       Padding(
                         padding: EdgeInsets.fromLTRB(
-                          Dimensions.size15,
+                          horizontalPadding,
                           Dimensions.size10,
-                          Dimensions.size15,
+                          horizontalPadding,
                           Dimensions.size10,
                         ),
-                        child: appBar(),
+                        child: DotResponsive.centered(
+                          context: context,
+                          tablet: 900,
+                          desktop: 980,
+                          child: appBar(),
+                        ),
                       ),
                       Expanded(child: bodyHost()),
                       SizedBox(height: safe.bottom),
                     ],
                   ),
                   Positioned(
-                    right: Dimensions.size15,
+                    left: 0,
+                    right: 0,
                     bottom: safe.bottom + Dimensions.size10,
-                    child: bottomActionFloatingBar(),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                      child: DotResponsive.centered(
+                        context: context,
+                        tablet: 900,
+                        desktop: 980,
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: bottomActionFloatingBar(),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -344,14 +363,19 @@ class DynamicFormPageState extends State<DynamicFormPage>
   Widget body() {
     return Form(
       key: globalKey,
-      child: SingleChildScrollView(
-        child: CustomDynamicForm(
-          key: ValueKey("Header-${headerForm!.template.id}"),
-          readOnly: widget.readOnly,
-          customerId: widget.customerId,
-          headerForm: headerForm!,
-          template: headerForm!.template,
-          data: headerForm!.data,
+      child: DotResponsive.centered(
+        context: context,
+        tablet: 900,
+        desktop: 980,
+        child: SingleChildScrollView(
+          child: CustomDynamicForm(
+            key: ValueKey("Header-${headerForm!.template.id}"),
+            readOnly: widget.readOnly,
+            customerId: widget.customerId,
+            headerForm: headerForm!,
+            template: headerForm!.template,
+            data: headerForm!.data,
+          ),
         ),
       ),
     );
@@ -745,9 +769,19 @@ class DynamicFormPageState extends State<DynamicFormPage>
             );
 
       return ListView(
-        padding: EdgeInsets.all(Dimensions.size15),
+        padding: EdgeInsets.fromLTRB(
+          DotResponsive.horizontalPadding(context),
+          Dimensions.size15,
+          DotResponsive.horizontalPadding(context),
+          Dimensions.size15,
+        ),
         children: [
-          errorCard,
+          DotResponsive.centered(
+            context: context,
+            tablet: 900,
+            desktop: 980,
+            child: errorCard,
+          ),
         ],
       );
     }
@@ -770,9 +804,9 @@ class DynamicFormPageState extends State<DynamicFormPage>
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.fromLTRB(
-          Dimensions.size15,
+          DotResponsive.horizontalPadding(context),
           Dimensions.size10,
-          Dimensions.size15,
+          DotResponsive.horizontalPadding(context),
           Dimensions.size10,
         ),
         children: [

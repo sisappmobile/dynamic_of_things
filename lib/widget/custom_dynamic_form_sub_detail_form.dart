@@ -5,6 +5,7 @@ import "dart:io";
 import "package:base/base.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
+import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form.dart";
 import "package:dynamic_of_things/widget/glass_container.dart";
@@ -105,6 +106,7 @@ class CustomDynamicFormSubDetailFormState
   Widget build(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
     final bool glass = isGlass;
+    final double horizontalPadding = DotResponsive.horizontalPadding(context);
 
     return Scaffold(
       backgroundColor: glass
@@ -137,21 +139,38 @@ class CustomDynamicFormSubDetailFormState
               SizedBox(height: safe.top),
               Padding(
                 padding: EdgeInsets.fromLTRB(
-                  Dimensions.size15,
+                  horizontalPadding,
                   Dimensions.size10,
-                  Dimensions.size15,
+                  horizontalPadding,
                   Dimensions.size10,
                 ),
-                child: topBar(context),
+                child: DotResponsive.centered(
+                  context: context,
+                  tablet: 900,
+                  desktop: 980,
+                  child: topBar(context),
+                ),
               ),
               Expanded(child: body()),
               SizedBox(height: safe.bottom),
             ],
           ),
           Positioned(
-            right: Dimensions.size15,
+            left: 0,
+            right: 0,
             bottom: safe.bottom + Dimensions.size10,
-            child: floatingSaveFab(),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: DotResponsive.centered(
+                context: context,
+                tablet: 900,
+                desktop: 980,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: floatingSaveFab(),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -545,20 +564,25 @@ class CustomDynamicFormSubDetailFormState
             Dimensions.size15,
             Dimensions.size20 + (widget.readOnly ? 0 : Dimensions.size75),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // PERBAIKAN UTAMA: Wrapper `card()` dihapus agar tidak timbul efek card dalam card.
-              // Widget `CustomDynamicForm` secara default akan merender card-nya sendiri.
-              CustomDynamicForm(
-                key: ValueKey("SubDetail-${widget.subDetailForm.template.id}"),
-                readOnly: widget.readOnly,
-                customerId: widget.customerId,
-                headerForm: widget.headerForm,
-                template: widget.subDetailForm.template,
-                data: data,
-              ),
-            ],
+          child: DotResponsive.centered(
+            context: context,
+            tablet: 900,
+            desktop: 980,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // PERBAIKAN UTAMA: Wrapper `card()` dihapus agar tidak timbul efek card dalam card.
+                // Widget `CustomDynamicForm` secara default akan merender card-nya sendiri.
+                CustomDynamicForm(
+                  key: ValueKey("SubDetail-${widget.subDetailForm.template.id}"),
+                  readOnly: widget.readOnly,
+                  customerId: widget.customerId,
+                  headerForm: widget.headerForm,
+                  template: widget.subDetailForm.template,
+                  data: data,
+                ),
+              ],
+            ),
           ),
         ),
       ),

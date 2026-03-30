@@ -7,6 +7,7 @@ import "dart:ui";
 import "package:base/base.dart";
 import "package:collection/collection.dart";
 import "package:connectivity_plus/connectivity_plus.dart";
+import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:flutter_map/flutter_map.dart";
@@ -86,7 +87,8 @@ class MapPageState extends State<MapPage> {
       permission = await Geolocator.requestPermission();
     }
 
-    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
       return;
     }
 
@@ -126,6 +128,7 @@ class MapPageState extends State<MapPage> {
 
   Widget glassTopBar(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
+    final double horizontalPadding = DotResponsive.horizontalPadding(context);
 
     return Positioned(
       left: 0,
@@ -135,66 +138,71 @@ class MapPageState extends State<MapPage> {
         bottom: false,
         child: Padding(
           padding: EdgeInsets.fromLTRB(
-            Dimensions.size15,
+            horizontalPadding,
             safe.top > 0 ? Dimensions.size10 : Dimensions.size15,
-            Dimensions.size15,
+            horizontalPadding,
             Dimensions.size10,
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(Dimensions.size25),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: Dimensions.size15,
-                sigmaY: Dimensions.size15,
-              ),
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: Dimensions.size15,
-                  vertical: Dimensions.size10,
+          child: DotResponsive.centered(
+            context: context,
+            tablet: 960,
+            desktop: 1120,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(Dimensions.size25),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: Dimensions.size15,
+                  sigmaY: Dimensions.size15,
                 ),
-                decoration: BoxDecoration(
-                  color: AppColors.surface()
-                      .withValues(alpha: isDark ? 0.78 : 0.90),
-                  borderRadius: BorderRadius.circular(Dimensions.size25),
-                  border: Border.all(
-                    color: AppColors.outline()
-                        .withValues(alpha: isDark ? 0.22 : 0.18),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: Dimensions.size15,
+                    vertical: Dimensions.size10,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      blurRadius: Dimensions.size25,
-                      offset: Offset(0, Dimensions.size15),
-                      color:
-                      Colors.black.withValues(alpha: isDark ? 0.18 : 0.12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface()
+                        .withValues(alpha: isDark ? 0.78 : 0.90),
+                    borderRadius: BorderRadius.circular(Dimensions.size25),
+                    border: Border.all(
+                      color: AppColors.outline()
+                          .withValues(alpha: isDark ? 0.22 : 0.18),
                     ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    iconPill(
-                      context: context,
-                      icon: Icons.turn_left_rounded,
-                      onTap: () {
-                        Navigator.of(context).maybePop();
-                      },
-                    ),
-                    SizedBox(width: Dimensions.size10),
-                    Expanded(
-                      child: Text(
-                        "map".tr(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: Dimensions.text16,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.2,
-                          color: AppColors.onSurface(),
+                    boxShadow: [
+                      BoxShadow(
+                        blurRadius: Dimensions.size25,
+                        offset: Offset(0, Dimensions.size15),
+                        color: Colors.black
+                            .withValues(alpha: isDark ? 0.18 : 0.12),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      iconPill(
+                        context: context,
+                        icon: Icons.turn_left_rounded,
+                        onTap: () {
+                          Navigator.of(context).maybePop();
+                        },
+                      ),
+                      SizedBox(width: Dimensions.size10),
+                      Expanded(
+                        child: Text(
+                          "map".tr(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: Dimensions.text16,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.2,
+                            color: AppColors.onSurface(),
+                          ),
                         ),
                       ),
-                    ),
-                    SizedBox(width: Dimensions.size10),
-                    statusChip(context),
-                  ],
+                      SizedBox(width: Dimensions.size10),
+                      statusChip(context),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -228,7 +236,7 @@ class MapPageState extends State<MapPage> {
               smoothness: Dimensions.size1,
               side: BorderSide(
                 color:
-                AppColors.outline().withValues(alpha: isDark ? 0.22 : 0.18),
+                    AppColors.outline().withValues(alpha: isDark ? 0.22 : 0.18),
               ),
             ),
           ),
@@ -246,7 +254,8 @@ class MapPageState extends State<MapPage> {
     final Color primary = Theme.of(context).colorScheme.primary;
 
     final String label = isOnline ? "Online" : "Offline";
-    final IconData icon = isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded;
+    final IconData icon =
+        isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded;
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -296,63 +305,77 @@ class MapPageState extends State<MapPage> {
     final EdgeInsets safe = MediaQuery.of(context).padding;
     final Color primary = Theme.of(context).colorScheme.primary;
     final Color onPrimary = Theme.of(context).colorScheme.onPrimary;
+    final double horizontalPadding = DotResponsive.horizontalPadding(context);
 
     return Positioned(
-      right: Dimensions.size15,
+      left: 0,
+      right: 0,
       bottom: safe.bottom + Dimensions.size15,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            alignPositionOnUpdate = AlignOnUpdate.always;
-            alignPositionStreamController.add(18);
-            setState(() {});
-          },
-          borderRadius: BorderRadius.circular(Dimensions.size30),
-          child: Ink(
-            height: Dimensions.size55,
-            padding: EdgeInsets.symmetric(horizontal: Dimensions.size20),
-            decoration: ShapeDecoration(
-              color: primary,
-              shadows: [
-                BoxShadow(
-                  blurRadius: Dimensions.size20,
-                  offset: Offset(0, Dimensions.size10),
-                  color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.16),
-                ),
-              ],
-              shape: SmoothRectangleBorder(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+        child: DotResponsive.centered(
+          context: context,
+          tablet: 960,
+          desktop: 1120,
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  alignPositionOnUpdate = AlignOnUpdate.always;
+                  alignPositionStreamController.add(18);
+                  setState(() {});
+                },
                 borderRadius: BorderRadius.circular(Dimensions.size30),
-                smoothness: Dimensions.size1,
+                child: Ink(
+                  height: Dimensions.size55,
+                  padding: EdgeInsets.symmetric(horizontal: Dimensions.size20),
+                  decoration: ShapeDecoration(
+                    color: primary,
+                    shadows: [
+                      BoxShadow(
+                        blurRadius: Dimensions.size20,
+                        offset: Offset(0, Dimensions.size10),
+                        color: Colors.black
+                            .withValues(alpha: isDark ? 0.22 : 0.16),
+                      ),
+                    ],
+                    shape: SmoothRectangleBorder(
+                      borderRadius: BorderRadius.circular(Dimensions.size30),
+                      smoothness: Dimensions.size1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: Dimensions.size35,
+                        height: Dimensions.size35,
+                        decoration: BoxDecoration(
+                          color: onPrimary.withValues(alpha: 0.18),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.my_location_rounded,
+                          color: onPrimary,
+                          size: Dimensions.size20,
+                        ),
+                      ),
+                      SizedBox(width: Dimensions.size10),
+                      Text(
+                        "Lokasi Saya",
+                        style: TextStyle(
+                          color: onPrimary,
+                          fontSize: Dimensions.text14,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: Dimensions.size35,
-                  height: Dimensions.size35,
-                  decoration: BoxDecoration(
-                    color: onPrimary.withValues(alpha: 0.18),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.my_location_rounded,
-                    color: onPrimary,
-                    size: Dimensions.size20,
-                  ),
-                ),
-                SizedBox(width: Dimensions.size10),
-                Text(
-                  "Lokasi Saya",
-                  style: TextStyle(
-                    color: onPrimary,
-                    fontSize: Dimensions.text14,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-              ],
             ),
           ),
         ),
@@ -364,49 +387,59 @@ class MapPageState extends State<MapPage> {
     final EdgeInsets safe = MediaQuery.of(context).padding;
     final Color primary = Theme.of(context).colorScheme.secondary;
     final Color onPrimary = Theme.of(context).colorScheme.onSurface;
+    final double horizontalPadding = DotResponsive.horizontalPadding(context);
 
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Container(
-        margin: EdgeInsets.only(top: safe.top + 90),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              if (BaseSettings.navigatorType ==
-                  BaseNavigatorType.legacy) {
-                Navigators.pop(result: selectedMarker);
-              } else {
-                context.pop(selectedMarker);
-              }
-            },
-            borderRadius: BorderRadius.circular(Dimensions.size30),
-            child: Ink(
-              padding: EdgeInsets.symmetric(
-                horizontal: Dimensions.size20,
-                vertical: Dimensions.size10,
-              ),
-              decoration: ShapeDecoration(
-                color: primary,
-                shadows: [
-                  BoxShadow(
-                    blurRadius: Dimensions.size20,
-                    offset: Offset(0, Dimensions.size10),
-                    color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.16),
+    return Positioned(
+      left: 0,
+      right: 0,
+      top: safe.top + 90,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+        child: DotResponsive.centered(
+          context: context,
+          tablet: 960,
+          desktop: 1120,
+          child: Center(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                    Navigators.pop(result: selectedMarker);
+                  } else {
+                    context.pop(selectedMarker);
+                  }
+                },
+                borderRadius: BorderRadius.circular(Dimensions.size30),
+                child: Ink(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: Dimensions.size20,
+                    vertical: Dimensions.size10,
                   ),
-                ],
-                shape: SmoothRectangleBorder(
-                  borderRadius: BorderRadius.circular(Dimensions.size30),
-                  smoothness: Dimensions.size1,
-                ),
-              ),
-              child: Text(
-                "Gunakan marker terpilih",
-                style: TextStyle(
-                  color: onPrimary,
-                  fontSize: Dimensions.text14,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.2,
+                  decoration: ShapeDecoration(
+                    color: primary,
+                    shadows: [
+                      BoxShadow(
+                        blurRadius: Dimensions.size20,
+                        offset: Offset(0, Dimensions.size10),
+                        color: Colors.black
+                            .withValues(alpha: isDark ? 0.22 : 0.16),
+                      ),
+                    ],
+                    shape: SmoothRectangleBorder(
+                      borderRadius: BorderRadius.circular(Dimensions.size30),
+                      smoothness: Dimensions.size1,
+                    ),
+                  ),
+                  child: Text(
+                    "Gunakan marker terpilih",
+                    style: TextStyle(
+                      color: onPrimary,
+                      fontSize: Dimensions.text14,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -418,55 +451,70 @@ class MapPageState extends State<MapPage> {
 
   Widget selectLayer(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
+    final double horizontalPadding = DotResponsive.horizontalPadding(context);
 
-    return Align(
-      alignment: Alignment.topRight,
-      child: Container(
-        margin: EdgeInsets.only(top: safe.top + 150, right: 20),
-        child: Builder(
-          builder: (targetContext) {
-            return FilledButton.icon(
-              onPressed: () async {
-                String? selectedValue = await BasePopupMenus.show(
-                  context: context,
-                  targetContext: targetContext,
-                  items: [
-                    PopupMenuItem<String>(
-                      enabled: true,
-                      value: "nonsatellite",
-                      child: Text(
-                        "Non-satellite",
-                        style: TextStyle(color: AppColors.onTertiaryContainer()),
-                      ),
-                    ),
-                    PopupMenuItem<String>(
-                      enabled: true,
-                      value: "satellite",
-                      child: Text(
-                        "Satellite",
-                        style: TextStyle(color: AppColors.onTertiaryContainer()),
-                      ),
-                    ),
-                  ],
-                  value: baseMap,
+    return Positioned(
+      left: 0,
+      right: 0,
+      top: safe.top + 150,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+        child: DotResponsive.centered(
+          context: context,
+          tablet: 960,
+          desktop: 1120,
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Builder(
+              builder: (targetContext) {
+                return FilledButton.icon(
+                  onPressed: () async {
+                    String? selectedValue = await BasePopupMenus.show(
+                      context: context,
+                      targetContext: targetContext,
+                      items: [
+                        PopupMenuItem<String>(
+                          enabled: true,
+                          value: "nonsatellite",
+                          child: Text(
+                            "Non-satellite",
+                            style: TextStyle(
+                              color: AppColors.onTertiaryContainer(),
+                            ),
+                          ),
+                        ),
+                        PopupMenuItem<String>(
+                          enabled: true,
+                          value: "satellite",
+                          child: Text(
+                            "Satellite",
+                            style: TextStyle(
+                              color: AppColors.onTertiaryContainer(),
+                            ),
+                          ),
+                        ),
+                      ],
+                      value: baseMap,
+                    );
+
+                    if (selectedValue != null) {
+                      setState(() {
+                        baseMap = selectedValue;
+                      });
+                    }
+                  },
+                  style: FilledButton.styleFrom(
+                    padding: EdgeInsets.fromLTRB(5, 5, 10, 5),
+                    backgroundColor: AppColors.tertiary(),
+                    foregroundColor: AppColors.onTertiary(),
+                    iconColor: AppColors.onTertiary(),
+                  ),
+                  label: Text(baseMap),
+                  icon: Icon(Icons.arrow_drop_down),
                 );
-
-                if (selectedValue != null) {
-                  setState(() {
-                    baseMap = selectedValue;
-                  });
-                }
               },
-              style: FilledButton.styleFrom(
-                padding: EdgeInsets.fromLTRB(5, 5, 10, 5),
-                backgroundColor: AppColors.tertiary(),
-                foregroundColor: AppColors.onTertiary(),
-                iconColor: AppColors.onTertiary(),
-              ),
-              label: Text(baseMap),
-              icon: Icon(Icons.arrow_drop_down),
-            );
-          },
+            ),
+          ),
         ),
       ),
     );
@@ -484,7 +532,16 @@ class MapPageState extends State<MapPage> {
         double? maxZoom;
 
         try {
-          List<double> zoomVarieties = Directory("${snapshot.data!.path}/$offlineMapBaseFolder/$baseMap").listSync().where((element) => element is Directory && double.tryParse(p.basename(element.path)) != null).map((element) => double.parse(p.basename(element.path))).sorted((a, b) => a.compareTo(b));
+          List<double> zoomVarieties =
+              Directory("${snapshot.data!.path}/$offlineMapBaseFolder/$baseMap")
+                  .listSync()
+                  .where(
+                    (element) =>
+                        element is Directory &&
+                        double.tryParse(p.basename(element.path)) != null,
+                  )
+                  .map((element) => double.parse(p.basename(element.path)))
+                  .sorted((a, b) => a.compareTo(b));
 
           minZoom = zoomVarieties.first;
           maxZoom = zoomVarieties.last;
@@ -498,12 +555,14 @@ class MapPageState extends State<MapPage> {
           ),
           children: [
             TileLayer(
-              tileProvider: isOnline ? NetworkTileProvider() : FileTileProvider(),
+              tileProvider:
+                  isOnline ? NetworkTileProvider() : FileTileProvider(),
               urlTemplate: tileUrlTemplate(snapshot.data!.path),
               userAgentPackageName: "com.sisapp.dynamic_of_things",
             ),
             TileLayer(
-              urlTemplate: "${snapshot.data!.path}/$offlineMapBaseFolder/custom/{z}/{x}/{y}.png",
+              urlTemplate:
+                  "${snapshot.data!.path}/$offlineMapBaseFolder/custom/{z}/{x}/{y}.png",
               tileProvider: FileTileProvider(),
               tms: true,
               tileBuilder: (context, tileWidget, tile) {
@@ -551,8 +610,7 @@ class MapPageState extends State<MapPage> {
             Positioned.fill(child: mapHost()),
             glassTopBar(context),
             fabLocate(context),
-            if (selectedMarker != null)
-              fabSelectCurrentMarker(context),
+            if (selectedMarker != null) fabSelectCurrentMarker(context),
             selectLayer(context),
           ],
         );

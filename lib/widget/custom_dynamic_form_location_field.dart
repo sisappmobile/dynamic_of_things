@@ -314,7 +314,17 @@ class CustomDynamicFormLocationFieldState
           double? maxZoom;
 
           try {
-            List<double> zoomVarieties = Directory("${snapshot.data!.path}/$offlineMapBaseFolder/$baseMap").listSync().where((element) => element is Directory && double.tryParse(p.basename(element.path)) != null).map((element) => double.parse(p.basename(element.path))).sorted((a, b) => a.compareTo(b));
+            List<double> zoomVarieties = Directory(
+              "${snapshot.data!.path}/$offlineMapBaseFolder/$baseMap",
+            )
+                .listSync()
+                .where(
+                  (element) =>
+                      element is Directory &&
+                      double.tryParse(p.basename(element.path)) != null,
+                )
+                .map((element) => double.parse(p.basename(element.path)))
+                .sorted((a, b) => a.compareTo(b));
 
             minZoom = zoomVarieties.first;
             maxZoom = zoomVarieties.last;
@@ -343,11 +353,13 @@ class CustomDynamicFormLocationFieldState
                       initialZoom: minZoom ?? 14,
                       minZoom: minZoom,
                       maxZoom: maxZoom,
-                      initialCenter: latLng!
+                      initialCenter: latLng!,
                     ),
                     children: [
                       TileLayer(
-                        tileProvider: isOnline ? NetworkTileProvider() : FileTileProvider(),
+                        tileProvider: isOnline
+                            ? NetworkTileProvider()
+                            : FileTileProvider(),
                         urlTemplate: tileUrlTemplate(snapshot.data!.path),
                         userAgentPackageName: "com.sisapp.dynamic_of_things",
                       ),
@@ -791,7 +803,7 @@ class GetLocationPageState extends State<GetLocationPage> {
                           ),
                         ),
                       ),
-                      clipBehavior: Clip.antiAliasWithSaveLayer,
+                      clipBehavior: Clip.antiAlias,
                       child: dialogContent,
                     ),
             ),

@@ -12,6 +12,7 @@ import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/helper/offline_reports.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
+import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
 import "package:dynamic_of_things/model/dynamic_report_data.dart";
 import "package:dynamic_of_things/model/dynamic_report_template.dart";
@@ -117,7 +118,9 @@ class DynamicReportPageState extends State<DynamicReportPage>
 
     if (kIsWeb) {
       if (p == "wallpaper_default.jpg") {
-        final String base64Data = Preferences.getInstance().getStringDynamicForm("WEB_WALLPAPER_BYTES") ?? "";
+        final String base64Data = Preferences.getInstance()
+                .getStringDynamicForm("WEB_WALLPAPER_BYTES") ??
+            "";
         if (base64Data.isNotEmpty) {
           try {
             final Uint8List bytes = base64Decode(base64Data);
@@ -156,6 +159,7 @@ class DynamicReportPageState extends State<DynamicReportPage>
   Widget build(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
     final bool glass = isGlass;
+    final double horizontalPadding = DotResponsive.horizontalPadding(context);
 
     return BlocListener<DynamicReportBloc, DynamicReportState>(
       listener: (context, state) async {
@@ -224,22 +228,35 @@ class DynamicReportPageState extends State<DynamicReportPage>
                 SizedBox(height: safe.top),
                 Padding(
                   padding: EdgeInsets.fromLTRB(
-                    Dimensions.size15,
+                    horizontalPadding,
                     Dimensions.size10,
-                    Dimensions.size15,
+                    horizontalPadding,
                     Dimensions.size10,
                   ),
-                  child: headerCard(),
+                  child: DotResponsive.centered(
+                    context: context,
+                    tablet: 920,
+                    desktop: 1080,
+                    child: headerCard(),
+                  ),
                 ),
                 Expanded(child: body()),
                 SizedBox(height: safe.bottom + Dimensions.size75),
               ],
             ),
             Positioned(
-              left: Dimensions.size15,
-              right: Dimensions.size15,
+              left: 0,
+              right: 0,
               bottom: safe.bottom + Dimensions.size2,
-              child: floatingactionbar(),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                child: DotResponsive.centered(
+                  context: context,
+                  tablet: 920,
+                  desktop: 1080,
+                  child: floatingactionbar(),
+                ),
+              ),
             ),
           ],
         ),
@@ -275,43 +292,88 @@ class DynamicReportPageState extends State<DynamicReportPage>
     required Uint8List bytes,
     required String fileName,
   }) async {
-    String? directoryPath = await FilePicker.platform.getDirectoryPath();
+    try {
+      if (kIsWeb) {
+        await FilePicker.platform.saveFile(
+          fileName: fileName,
+          bytes: bytes,
+          type: FileType.any,
+        );
 
-    if (directoryPath != null) {
-      String filePath = path.join(directoryPath, fileName);
-
-      bool fileExists = await File(filePath).exists();
-
-      if (fileExists) {
-        int count = 1;
-        String newFileName = "1-$fileName";
-
-        while (await File(path.join(directoryPath, newFileName)).exists()) {
-          count++;
-          newFileName = "$count-$fileName";
+        if (!mounted) {
+          return;
         }
 
-        fileName = newFileName;
-        filePath = path.join(directoryPath, fileName);
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (!mounted) {
+            return;
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("file_has_been_successfully_downloaded".tr()),
+                  Text(fileName),
+                ],
+              ),
+              duration: const Duration(milliseconds: 2000),
+            ),
+          );
+        });
+
+        return;
       }
 
-      await File(filePath).writeAsBytes(bytes);
+      String? directoryPath = await FilePicker.platform.getDirectoryPath();
 
-      Future.delayed(const Duration(milliseconds: 500), () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("file_has_been_successfully_downloaded".tr()),
-                Text(filePath),
-              ],
+      if (directoryPath != null) {
+        String filePath = path.join(directoryPath, fileName);
+
+        bool fileExists = await File(filePath).exists();
+
+        if (fileExists) {
+          int count = 1;
+          String newFileName = "1-$fileName";
+
+          while (await File(path.join(directoryPath, newFileName)).exists()) {
+            count++;
+            newFileName = "$count-$fileName";
+          }
+
+          fileName = newFileName;
+          filePath = path.join(directoryPath, fileName);
+        }
+
+        await File(filePath).writeAsBytes(bytes);
+
+        if (!mounted) {
+          return;
+        }
+
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (!mounted) {
+            return;
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("file_has_been_successfully_downloaded".tr()),
+                  Text(filePath),
+                ],
+              ),
+              duration: const Duration(milliseconds: 2000),
             ),
-            duration: const Duration(milliseconds: 2000),
-          ),
-        );
-      });
-    } else {
+          );
+        });
+      }
+    } catch (_) {
       BaseOverlays.error(message: "error_occured_when_saving_file".tr());
     }
   }
@@ -580,8 +642,20 @@ class DynamicReportPageState extends State<DynamicReportPage>
             );
 
       return ListView(
-        padding: EdgeInsets.all(Dimensions.size15),
-        children: [emptyCard],
+        padding: EdgeInsets.fromLTRB(
+          DotResponsive.horizontalPadding(context),
+          Dimensions.size15,
+          DotResponsive.horizontalPadding(context),
+          Dimensions.size15,
+        ),
+        children: [
+          DotResponsive.centered(
+            context: context,
+            tablet: 920,
+            desktop: 1080,
+            child: emptyCard,
+          ),
+        ],
       );
     }
 
@@ -663,9 +737,19 @@ class DynamicReportPageState extends State<DynamicReportPage>
             );
 
       return ListView(
-        padding: EdgeInsets.all(Dimensions.size15),
+        padding: EdgeInsets.fromLTRB(
+          DotResponsive.horizontalPadding(context),
+          Dimensions.size15,
+          DotResponsive.horizontalPadding(context),
+          Dimensions.size15,
+        ),
         children: [
-          emptyCard,
+          DotResponsive.centered(
+            context: context,
+            tablet: 920,
+            desktop: 1080,
+            child: emptyCard,
+          ),
         ],
       );
     }
@@ -675,18 +759,23 @@ class DynamicReportPageState extends State<DynamicReportPage>
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.fromLTRB(
-          Dimensions.size15,
+          DotResponsive.horizontalPadding(context),
           Dimensions.size10,
-          Dimensions.size15,
+          DotResponsive.horizontalPadding(context),
           Dimensions.size10,
         ),
         itemCount: dataResponse!.rows.length,
         separatorBuilder: (_, __) => const SizedBox(height: gapCard),
         itemBuilder: (context, index) {
           final Map<String, dynamic> map = dataResponse!.rows[index];
-          return cardDynamic(
-            index: index + 1,
-            row: map,
+          return DotResponsive.centered(
+            context: context,
+            tablet: 920,
+            desktop: 1080,
+            child: cardDynamic(
+              index: index + 1,
+              row: map,
+            ),
           );
         },
       ),
@@ -799,13 +888,17 @@ class DynamicReportPageState extends State<DynamicReportPage>
         borderRadius: Dimensions.size20,
         opacity: 0.12,
         borderOpacity: 0.22,
-        padding: EdgeInsets.all(Dimensions.size20), // Padding disesuaikan jadi lebih lega
+        padding: EdgeInsets.all(
+          Dimensions.size20,
+        ), // Padding disesuaikan jadi lebih lega
         child: content,
       );
     }
 
     return Container(
-      padding: EdgeInsets.all(Dimensions.size20), // Padding disesuaikan jadi lebih lega
+      padding: EdgeInsets.all(
+        Dimensions.size20,
+      ), // Padding disesuaikan jadi lebih lega
       decoration: ShapeDecoration(
         color: AppColors.surface(),
         shadows: [
@@ -858,7 +951,8 @@ class DynamicReportPageState extends State<DynamicReportPage>
                   ? reportTile(
                       title: rightField!.caption,
                       value: rightVal,
-                      left: true, // Set selalu left (rata kiri) untuk efek table
+                      left:
+                          true, // Set selalu left (rata kiri) untuk efek table
                     )
                   : const SizedBox.shrink(),
             ),
@@ -912,7 +1006,8 @@ class DynamicReportPageState extends State<DynamicReportPage>
         );
 
         final Widget content = Column(
-          crossAxisAlignment: CrossAxisAlignment.start, // Semua diratakan kiri ala grid modern
+          crossAxisAlignment:
+              CrossAxisAlignment.start, // Semua diratakan kiri ala grid modern
           children: [
             Text(
               title,
@@ -1864,7 +1959,9 @@ class DynamicReportPageState extends State<DynamicReportPage>
                 print("Stack Trace:\n$s");
               }
 
-              BaseOverlays.error(message: "something_wrong_please_try_again".tr());
+              BaseOverlays.error(
+                message: "something_wrong_please_try_again".tr(),
+              );
             } finally {
               context.loaderOverlay.hide();
             }
@@ -1883,8 +1980,8 @@ class DynamicReportPageState extends State<DynamicReportPage>
 
               final SpinnerItem? selectedItem = await Navigators.push(
                 SimpleSpinnerPage(
-                    title: filter.caption,
-                    spinnerItems: spinnerItems,
+                  title: filter.caption,
+                  spinnerItems: spinnerItems,
                 ),
               );
 

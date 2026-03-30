@@ -110,41 +110,44 @@ Future<void> main() async {
   );
 
   await BasePreferences.getInstance().init();
-  await Sqlites.get();
 
-  Timer.run(() async {
-    while (true) {
-      try {
-        if (BasePreferences.getInstance().contain(sessionIdKey)) {
-          await Pulls.instance.execute();
+  if (Sqlites.supported) {
+    await Sqlites.get();
+
+    Timer.run(() async {
+      while (true) {
+        try {
+          if (BasePreferences.getInstance().contain(sessionIdKey)) {
+            await Pulls.instance.execute();
+          }
+        } catch (e, s) {
+          if (kDebugMode) {
+            print("Caught Exception: $e");
+            print("Stack Trace:\n$s");
+          }
         }
-      } catch (e, s) {
-        if (kDebugMode) {
-          print("Caught Exception: $e");
-          print("Stack Trace:\n$s");
-        }
+
+        await Future.delayed(const Duration(seconds: 30));
       }
+    });
 
-      await Future.delayed(const Duration(seconds: 30));
-    }
-  });
+    Timer.run(() async {
+      while (true) {
+        try {
+          if (BasePreferences.getInstance().contain(sessionIdKey)) {
+            await Pushes.instance.execute();
+          }
+        } catch (e, s) {
+          if (kDebugMode) {
+            print("Caught Exception: $e");
+            print("Stack Trace:\n$s");
+          }
+        }
 
-  Timer.run(() async {
-    while (true) {
-      try {
-        if (BasePreferences.getInstance().contain(sessionIdKey)) {
-          await Pushes.instance.execute();
-        }
-      } catch (e, s) {
-        if (kDebugMode) {
-          print("Caught Exception: $e");
-          print("Stack Trace:\n$s");
-        }
+        await Future.delayed(const Duration(seconds: 5));
       }
-
-      await Future.delayed(const Duration(seconds: 5));
-    }
-  });
+    });
+  }
 
   runApp(
     EasyLocalization(
@@ -365,7 +368,7 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
   final GlobalKey<FormState> formState = GlobalKey<FormState>(debugLabel: "formState");
 
   bool obscurePassword = true;
-  String deviceId = "05cb85e2354dc0eb";
+  String deviceId = kIsWeb ? "b29d6a48d10ed383" : "05cb85e2354dc0eb";
   // String deviceId = "2c49b31455f471db";
   // String deviceId = "b29d6a48d10ed383";
   // String deviceId = "2c49b31455f471db";
@@ -377,6 +380,8 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
+
+    _initDeviceId();
   }
 
   @override
@@ -534,6 +539,50 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
     super.dispose();
 
     WidgetsBinding.instance.removeObserver(this);
+  }
+
+  Future<void> _initDeviceId() async {
+    final String resolvedDeviceId = await _getDeviceId();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      deviceId = resolvedDeviceId;
+    });
+  }
+
+  Future<String> _getDeviceId() async {
+    if (kIsWeb) {
+      const String hardcodedWebDeviceId = "d4db82b1a0b16901";
+
+      if (hardcodedWebDeviceId.trim().isNotEmpty) {
+        return hardcodedWebDeviceId;
+      }
+
+      await Preferences.getInstance().init();
+
+      if (Preferences.getInstance().contain(SharedPreferenceKey.WEB_DEVICE_ID)) {
+        String? savedDeviceId = Preferences.getInstance().getString(
+          SharedPreferenceKey.WEB_DEVICE_ID,
+        );
+
+        if (savedDeviceId != null && savedDeviceId.isNotEmpty) {
+          return savedDeviceId;
+        }
+      }
+
+      String newDeviceId = "${DateTime.now().millisecondsSinceEpoch}";
+      await Preferences.getInstance().setString(
+        SharedPreferenceKey.WEB_DEVICE_ID,
+        newDeviceId,
+      );
+
+      return newDeviceId;
+    }
+
+    return deviceId;
   }
 
   String sha256(String? data) {
@@ -703,12 +752,14 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   ),
                 ),
                 Switch(
-                  value: DynamicForms.offline,
-                  onChanged: (value) {
-                    setState(() {
-                      DynamicForms.offline = value;
-                    });
-                  },
+                  value: !kIsWeb && DynamicForms.offline,
+                  onChanged: kIsWeb
+                      ? null
+                      : (value) {
+                          setState(() {
+                            DynamicForms.offline = value;
+                          });
+                        },
                 ),
               ],
             ),
@@ -835,7 +886,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     positiveCallback: () async {
                       await BasePreferences.getInstance().clear();
 
-                      Sqlites.delete();
+                      await Sqlites.delete();
 
                       context.go("/");
                     },

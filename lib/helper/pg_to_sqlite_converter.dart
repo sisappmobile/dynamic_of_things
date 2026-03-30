@@ -104,8 +104,12 @@ class PgToSqliteConverter {
   String _mapType(String type) {
     final t = type.toUpperCase();
 
-    if (t.contains("INT")) return "INTEGER";
-    if (t.contains("CHAR") || t.contains("TEXT")) return "TEXT";
+    if (t.contains("INT")) {
+      return "INTEGER";
+    }
+    if (t.contains("CHAR") || t.contains("TEXT")) {
+      return "TEXT";
+    }
     if (t.contains("NUMERIC") || t.contains("REAL") || t.contains("DOUBLE")) {
       return "REAL";
     }

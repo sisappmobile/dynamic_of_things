@@ -452,14 +452,14 @@ class CustomDynamicFormDetailListState
                               borderOpacity: 0.22,
                               padding: EdgeInsets.all(Dimensions.size20), // Padding diperbesar agar lega
                               child: SizedBox(
-                                width: MediaQuery.of(context).size.width,
+                                width: double.infinity,
                                 child: content,
                               ),
                             );
                           }
 
                           return Ink(
-                            width: MediaQuery.of(context).size.width,
+                            width: double.infinity,
                             padding: EdgeInsets.all(Dimensions.size20), // Padding diperbesar agar lega
                             decoration: ShapeDecoration(
                               color: isGlass

@@ -5,6 +5,7 @@ import "dart:io";
 import "package:base/base.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
+import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_event.dart";
@@ -107,6 +108,7 @@ class CustomDynamicFormDetailFormState
   Widget build(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
     final bool glass = isGlass;
+    final double horizontalPadding = DotResponsive.horizontalPadding(context);
 
     return Scaffold(
       backgroundColor:
@@ -136,21 +138,38 @@ class CustomDynamicFormDetailFormState
               SizedBox(height: safe.top),
               Padding(
                 padding: EdgeInsets.fromLTRB(
-                  Dimensions.size15,
+                  horizontalPadding,
                   Dimensions.size10,
-                  Dimensions.size15,
+                  horizontalPadding,
                   Dimensions.size10,
                 ),
-                child: appBar(),
+                child: DotResponsive.centered(
+                  context: context,
+                  tablet: 900,
+                  desktop: 980,
+                  child: appBar(),
+                ),
               ),
               Expanded(child: body()),
               SizedBox(height: safe.bottom),
             ],
           ),
           Positioned(
-            right: Dimensions.size15,
+            left: 0,
+            right: 0,
             bottom: safe.bottom + Dimensions.size5,
-            child: bottomBar(),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: DotResponsive.centered(
+                context: context,
+                tablet: 900,
+                desktop: 980,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: bottomBar(),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -412,46 +431,51 @@ class CustomDynamicFormDetailFormState
               Dimensions.size15,
               Dimensions.size15 + (widget.readOnly ? 0 : Dimensions.size75),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CustomDynamicForm(
-                  key: ValueKey("Detail-${widget.detailForm.template.id}"),
-                  readOnly: widget.readOnly,
-                  customerId: widget.customerId,
-                  headerForm: widget.headerForm,
-                  template: widget.detailForm.template,
-                  data: data,
-                ),
-                ...widget.detailForm.subDetailForms.asMap().entries.map((entry) {
-                  final int i = entry.key;
-                  final subDetailForm = entry.value;
+            child: DotResponsive.centered(
+              context: context,
+              tablet: 900,
+              desktop: 980,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CustomDynamicForm(
+                    key: ValueKey("Detail-${widget.detailForm.template.id}"),
+                    readOnly: widget.readOnly,
+                    customerId: widget.customerId,
+                    headerForm: widget.headerForm,
+                    template: widget.detailForm.template,
+                    data: data,
+                  ),
+                  ...widget.detailForm.subDetailForms.asMap().entries.map((entry) {
+                    final int i = entry.key;
+                    final subDetailForm = entry.value;
 
-                  return Padding(
-                    padding: EdgeInsets.only(top: Dimensions.size20), // Spasi antar section dibuat lega & proporsional
-                    child: CustomDynamicFormSubDetailList(
-                      key: ValueKey(
-                        "SubDetailList-${subDetailForm.template.id}-$i",
+                    return Padding(
+                      padding: EdgeInsets.only(top: Dimensions.size20), // Spasi antar section dibuat lega & proporsional
+                      child: CustomDynamicFormSubDetailList(
+                        key: ValueKey(
+                          "SubDetailList-${subDetailForm.template.id}-$i",
+                        ),
+                        readOnly: widget.readOnly,
+                        customerId: widget.customerId,
+                        headerForm: widget.headerForm,
+                        detailForm: widget.detailForm,
+                        subDetailForm: subDetailForm,
+                        detailData: data,
+                        onRefresh: () {
+                          context.read<DynamicFormBloc>().add(
+                                DynamicFormRefresh(
+                                  formId: widget.headerForm.template.id,
+                                  customerId: widget.customerId,
+                                  headerForm: widget.headerForm,
+                                ),
+                              );
+                        },
                       ),
-                      readOnly: widget.readOnly,
-                      customerId: widget.customerId,
-                      headerForm: widget.headerForm,
-                      detailForm: widget.detailForm,
-                      subDetailForm: subDetailForm,
-                      detailData: data,
-                      onRefresh: () {
-                        context.read<DynamicFormBloc>().add(
-                              DynamicFormRefresh(
-                                formId: widget.headerForm.template.id,
-                                customerId: widget.customerId,
-                                headerForm: widget.headerForm,
-                              ),
-                            );
-                      },
-                    ),
-                  );
-                }),
-              ],
+                    );
+                  }),
+                ],
+              ),
             ),
           ),
         ),

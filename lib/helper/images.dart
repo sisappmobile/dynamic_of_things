@@ -1,5 +1,4 @@
 import "dart:typed_data";
-import "dart:ui" as ui;
 
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
@@ -17,45 +16,36 @@ class Images {
     required double width,
     required double height,
   }) async {
-    final recorder = ui.PictureRecorder();
+    Uint8List watermarkedBytes = source;
 
-    var canvas = Canvas(recorder);
+    const List<Offset> outlineOffsets = <Offset>[
+      Offset(0, 0),
+      Offset(1, 0),
+      Offset(2, 0),
+      Offset(0, 1),
+      Offset(2, 1),
+      Offset(0, 2),
+      Offset(1, 2),
+      Offset(2, 2),
+    ];
 
-    TextPainter textPainter = TextPainter(
-      text: TextSpan(
-          text: text,
-          style: TextStyle(
-            color: Colors.white,
-            backgroundColor: Colors.black,
-            fontSize: Dimensions.text20,
-          ),
-      ),
-      textAlign: TextAlign.justify,
-      textDirection: TextDirection.ltr,
-    )
-      ..layout(maxWidth: width)
-      ..paint(canvas, const Offset(0, 0));
-
-    final picture = recorder.endRecording();
-
-    var res = await picture.toImage(width.round(), textPainter.height.round());
-
-    ByteData? data = await res.toByteData(format: ui.ImageByteFormat.png);
-
-    if (data != null) {
-      Uint8List watermarkedBytes = await ImageWatermark.addImageWatermark(
-        originalImageBytes: source,
-        waterkmarkImageBytes: Uint8List.view(data.buffer),
-        imgWidth: width.round(),
-        imgHeight: textPainter.height.round(),
-        dstX: 0,
-        dstY: 0,
+    for (final Offset offset in outlineOffsets) {
+      watermarkedBytes = await ImageWatermark.addTextWatermark(
+        imgBytes: watermarkedBytes,
+        watermarkText: text,
+        dstX: offset.dx.toInt(),
+        dstY: offset.dy.toInt(),
+        color: Colors.black,
       );
-
-      return watermarkedBytes;
-    } else {
-      return null;
     }
+
+    return ImageWatermark.addTextWatermark(
+      imgBytes: watermarkedBytes,
+      watermarkText: text,
+      dstX: 1,
+      dstY: 1,
+      color: Colors.white,
+    );
   }
 
   static void camera({
@@ -84,7 +74,7 @@ class Images {
           watermark += " • $placemark";
         }
 
-        Uint8List? watermarkedBytes =  await Images.textWatermark(
+        Uint8List? watermarkedBytes = await Images.textWatermark(
           source: bytesFile,
           text: watermark,
           fontSize: decodedImage.width * 0.03,

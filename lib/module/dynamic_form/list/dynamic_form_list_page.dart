@@ -2,15 +2,14 @@
 
 import "dart:convert";
 import "dart:io";
-import "dart:typed_data";
 
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:collection/collection.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
-import "package:dynamic_of_things/helper/offlines.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
+import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:dynamic_of_things/model/dynamic_form_list_response.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_page.dart";
@@ -109,7 +108,9 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
 
     if (kIsWeb) {
       if (p == "wallpaper_default.jpg") {
-        final String base64Data = Preferences.getInstance().getStringDynamicForm("WEB_WALLPAPER_BYTES") ?? "";
+        final String base64Data = Preferences.getInstance()
+                .getStringDynamicForm("WEB_WALLPAPER_BYTES") ??
+            "";
         if (base64Data.isNotEmpty) {
           try {
             final Uint8List bytes = base64Decode(base64Data);
@@ -136,6 +137,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
   Widget build(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
     final bool glass = isGlass;
+    final double horizontalPadding = DotResponsive.horizontalPadding(context);
 
     return BlocListener<DynamicFormListBloc, DynamicFormListState>(
       listener: (context, state) async {
@@ -223,29 +225,95 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                 SizedBox(height: safe.top),
                 Padding(
                   padding: EdgeInsets.fromLTRB(
-                    Dimensions.size15,
+                    horizontalPadding,
                     Dimensions.size10,
-                    Dimensions.size15,
+                    horizontalPadding,
                     Dimensions.size10,
                   ),
-                  child: Builder(
-                    builder: (context) {
-                      final Widget searchBar = glass
-                          ? GlassContainer(
-                              blur: Dimensions.size15,
-                              borderRadius: Dimensions.size15,
-                              opacity: 0.10,
-                              borderOpacity: 0.18,
-                              padding: EdgeInsets.symmetric(
-                                horizontal: Dimensions.size15,
-                              ),
-                              child: SizedBox(
+                  child: DotResponsive.centered(
+                    context: context,
+                    tablet: 920,
+                    desktop: 1080,
+                    child: Builder(
+                      builder: (context) {
+                        final Widget searchBar = glass
+                            ? GlassContainer(
+                                blur: Dimensions.size15,
+                                borderRadius: Dimensions.size15,
+                                opacity: 0.10,
+                                borderOpacity: 0.18,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: Dimensions.size15,
+                                ),
+                                child: SizedBox(
+                                  height: Dimensions.size50,
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.search,
+                                        color: Colors.white.withOpacity(0.75),
+                                      ),
+                                      SizedBox(width: Dimensions.size10),
+                                      Expanded(
+                                        child: TextField(
+                                          controller: tecSearch,
+                                          onChanged: (value) {
+                                            setState(() {});
+                                          },
+                                          style: TextStyle(
+                                            color:
+                                                Colors.white.withOpacity(0.92),
+                                          ),
+                                          decoration: InputDecoration(
+                                            hintText: "search".tr(),
+                                            hintStyle: TextStyle(
+                                              color: Colors.white.withOpacity(
+                                                0.60,
+                                              ),
+                                            ),
+                                            border: InputBorder.none,
+                                            isDense: true,
+                                          ),
+                                        ),
+                                      ),
+                                      if (StringUtils.isNotNullOrEmpty(
+                                        tecSearch.text,
+                                      ))
+                                        icon(
+                                          iconData: Icons.close,
+                                          onTap: () {
+                                            tecSearch.clear();
+                                            setState(() {});
+                                          },
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            : Container(
                                 height: Dimensions.size50,
+                                decoration: ShapeDecoration(
+                                  color: AppColors.surfaceContainerLowest(),
+                                  shape: SmoothRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      Dimensions.size15,
+                                    ),
+                                    smoothness: Dimensions.size1,
+                                    side: BorderSide(
+                                      color: AppColors.outline()
+                                          .withValues(alpha: 0.22),
+                                    ),
+                                  ),
+                                ),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: Dimensions.size15,
+                                ),
                                 child: Row(
                                   children: [
                                     Icon(
                                       Icons.search,
-                                      color: Colors.white.withOpacity(0.75),
+                                      color: AppColors.onSurface()
+                                          .withValues(alpha: 0.65),
                                     ),
                                     SizedBox(width: Dimensions.size10),
                                     Expanded(
@@ -254,15 +322,8 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                                         onChanged: (value) {
                                           setState(() {});
                                         },
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.92),
-                                        ),
                                         decoration: InputDecoration(
                                           hintText: "search".tr(),
-                                          hintStyle: TextStyle(
-                                            color:
-                                                Colors.white.withOpacity(0.60),
-                                          ),
                                           border: InputBorder.none,
                                           isDense: true,
                                         ),
@@ -280,142 +341,90 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                                       ),
                                   ],
                                 ),
-                              ),
-                            )
-                          : Container(
-                              height: Dimensions.size50,
-                              decoration: ShapeDecoration(
-                                color: AppColors.surfaceContainerLowest(),
-                                shape: SmoothRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    Dimensions.size15,
-                                  ),
-                                  smoothness: Dimensions.size1,
-                                  side: BorderSide(
-                                    color: AppColors.outline()
-                                        .withValues(alpha: 0.22),
-                                  ),
+                              );
+
+                        final Widget headerContent = Column(
+                          children: [
+                            Row(
+                              children: [
+                                iconPill(
+                                  iconData: Icons.turn_left_rounded,
+                                  onTap: () {
+                                    if (BaseSettings.navigatorType ==
+                                        BaseNavigatorType.legacy) {
+                                      Navigators.pop();
+                                    } else {
+                                      context.pop();
+                                    }
+                                  },
                                 ),
-                              ),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: Dimensions.size15,
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.search,
-                                    color: AppColors.onSurface()
-                                        .withValues(alpha: 0.65),
-                                  ),
-                                  SizedBox(width: Dimensions.size10),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: tecSearch,
-                                      onChanged: (value) {
-                                        setState(() {});
-                                      },
-                                      decoration: InputDecoration(
-                                        hintText: "search".tr(),
-                                        border: InputBorder.none,
-                                        isDense: true,
-                                      ),
+                                SizedBox(width: Dimensions.size10),
+                                Expanded(
+                                  child: Text(
+                                    widget.dynamicFormMenuItem.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: Dimensions.text16,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.2,
+                                      color: glass
+                                          ? Colors.white.withOpacity(0.95)
+                                          : AppColors.onSurface(),
                                     ),
                                   ),
-                                  if (StringUtils.isNotNullOrEmpty(
-                                    tecSearch.text,
-                                  ))
-                                    icon(
-                                      iconData: Icons.close,
-                                      onTap: () {
-                                        tecSearch.clear();
-                                        setState(() {});
-                                      },
-                                    ),
-                                ],
-                              ),
-                            );
-
-                      final Widget headerContent = Column(
-                        children: [
-                          Row(
-                            children: [
-                              iconPill(
-                                iconData: Icons.turn_left_rounded,
-                                onTap: () {
-                                  if (BaseSettings.navigatorType ==
-                                      BaseNavigatorType.legacy) {
-                                    Navigators.pop();
-                                  } else {
-                                    context.pop();
-                                  }
-                                },
-                              ),
-                              SizedBox(width: Dimensions.size10),
-                              Expanded(
-                                child: Text(
-                                  widget.dynamicFormMenuItem.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: Dimensions.text16,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 0.2,
-                                    color: glass
-                                        ? Colors.white.withOpacity(0.95)
-                                        : AppColors.onSurface(),
-                                  ),
                                 ),
-                              ),
-                              SizedBox(width: Dimensions.size10),
-                              mapModeButton(),
-                            ],
-                          ),
-                          SizedBox(height: Dimensions.size10),
-                          searchBar,
-                        ],
-                      );
+                                SizedBox(width: Dimensions.size10),
+                                mapModeButton(),
+                              ],
+                            ),
+                            SizedBox(height: Dimensions.size10),
+                            searchBar,
+                          ],
+                        );
 
-                      if (glass) {
-                        return GlassContainer(
-                          blur: Dimensions.size20,
-                          borderRadius: Dimensions.size20,
-                          opacity: 0.12,
-                          borderOpacity: 0.22,
+                        if (glass) {
+                          return GlassContainer(
+                            blur: Dimensions.size20,
+                            borderRadius: Dimensions.size20,
+                            opacity: 0.12,
+                            borderOpacity: 0.22,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: Dimensions.size15,
+                              vertical: Dimensions.size10,
+                            ),
+                            child: headerContent,
+                          );
+                        }
+
+                        return Container(
                           padding: EdgeInsets.symmetric(
                             horizontal: Dimensions.size15,
                             vertical: Dimensions.size10,
                           ),
-                          child: headerContent,
-                        );
-                      }
-
-                      return Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: Dimensions.size15,
-                          vertical: Dimensions.size10,
-                        ),
-                        decoration: ShapeDecoration(
-                          color: AppColors.surface(),
-                          shadows: [
-                            BoxShadow(
-                              blurRadius: Dimensions.size20,
-                              offset: Offset(0, Dimensions.size10),
-                              color: Colors.black.withValues(alpha: 0.10),
-                            ),
-                          ],
-                          shape: SmoothRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(Dimensions.size20),
-                            smoothness: Dimensions.size1,
-                            side: BorderSide(
-                              color:
-                                  AppColors.outline().withValues(alpha: 0.35),
+                          decoration: ShapeDecoration(
+                            color: AppColors.surface(),
+                            shadows: [
+                              BoxShadow(
+                                blurRadius: Dimensions.size20,
+                                offset: Offset(0, Dimensions.size10),
+                                color: Colors.black.withValues(alpha: 0.10),
+                              ),
+                            ],
+                            shape: SmoothRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(Dimensions.size20),
+                              smoothness: Dimensions.size1,
+                              side: BorderSide(
+                                color:
+                                    AppColors.outline().withValues(alpha: 0.35),
+                              ),
                             ),
                           ),
-                        ),
-                        child: headerContent,
-                      );
-                    },
+                          child: headerContent,
+                        );
+                      },
+                    ),
                   ),
                 ),
                 Expanded(child: bodyHost()),
@@ -423,9 +432,21 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
               ],
             ),
             Positioned(
-              right: Dimensions.size15,
+              left: 0,
+              right: 0,
               bottom: safe.bottom + Dimensions.size5,
-              child: bottomFloatingActionBar(),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                child: DotResponsive.centered(
+                  context: context,
+                  tablet: 920,
+                  desktop: 1080,
+                  child: Align(
+                    alignment: Alignment.bottomRight,
+                    child: bottomFloatingActionBar(),
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -573,9 +594,9 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.fromLTRB(
-          Dimensions.size15,
+          DotResponsive.horizontalPadding(context),
           Dimensions.size10,
-          Dimensions.size15,
+          DotResponsive.horizontalPadding(context),
           Dimensions.size10,
         ),
         itemCount: filteredDatas().length,
@@ -659,7 +680,9 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
             children: [
               pendingWidget(),
               Padding(
-                padding: EdgeInsets.all(Dimensions.size20), // Padding dinaikkan agar pas dengan clean UI
+                padding: EdgeInsets.all(
+                  Dimensions.size20,
+                ), // Padding dinaikkan agar pas dengan clean UI
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: widgets,
@@ -668,185 +691,191 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
             ],
           );
 
-          return Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () async {
-                if (primaryKey != null) {
-                  String id = map[primaryKey.name].toString();
+          return DotResponsive.centered(
+            context: context,
+            tablet: 920,
+            desktop: 1080,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () async {
+                  if (primaryKey != null) {
+                    String id = map[primaryKey.name].toString();
 
-                  if (widget.selectorMode) {
-                    if (BaseSettings.navigatorType ==
-                        BaseNavigatorType.legacy) {
-                      Navigators.pop(result: id);
+                    if (widget.selectorMode) {
+                      if (BaseSettings.navigatorType ==
+                          BaseNavigatorType.legacy) {
+                        Navigators.pop(result: id);
+                      } else {
+                        context.pop(id);
+                      }
                     } else {
-                      context.pop(id);
-                    }
-                  } else {
-                    List<MenuItem> menuItems = [];
+                      List<MenuItem> menuItems = [];
 
-                    if (hasViewAccess(id)) {
-                      menuItems.add(
-                        MenuItem(
-                          iconData: Icons.visibility,
-                          title: "Lihat Data",
-                          onTap: hasViewAccess(id)
-                              ? () async {
-                                  await viewData(id);
-                                }
-                              : null,
-                        ),
-                      );
-                    }
-
-                    if (hasEditAccess(id)) {
-                      menuItems.add(
-                        MenuItem(
-                          iconData: Icons.edit,
-                          title: "edit".tr(),
-                          onTap: hasEditAccess(id)
-                              ? () async {
-                                  await editData(id);
-                                }
-                              : null,
-                        ),
-                      );
-                    }
-
-                    listResponse!.actions
-                        .where(
-                          (element) => !StringUtils.inList(
-                        element.resourceId,
-                        [
-                          "BTN_CREATE",
-                          "BTN_EDIT",
-                          "BTN_VIEW",
-                          "BTN_SAVE",
-                          "BTN_ADD_DETAIL",
-                          "BTN_DEL_DETAIL",
-                        ],
-                      ),
-                    )
-                        .forEach((element) {
-                      MenuItem menuItem = MenuItem(
-                        title: element.name,
-                        onTap: () {
-                          if (BaseSettings.navigatorType ==
-                              BaseNavigatorType.legacy) {
-                            Navigators.pop();
-                          } else {
-                            context.pop();
-                          }
-
-                          BaseDialogs.confirmation(
-                            title: "are_you_sure_want_to_proceed".tr(),
-                            positiveCallback: () {
-                              context.read<DynamicFormListBloc>().add(
-                                DynamicFormListCustomAction(
-                                  actionId: element.id,
-                                  formId: widget.dynamicFormMenuItem.id,
-                                  dataId: id,
-                                  customerId: widget.customerId,
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      );
-
-                      menuItems.add(menuItem);
-                    });
-
-                    if (menuItems.isNotEmpty) {
-                      if (menuItems.length == 1) {
-                        if (hasViewAccess(id)) {
-                          await viewData(id);
-                          return;
-                        }
-
-                        if (hasEditAccess(id)) {
-                          await editData(id);
-                          return;
-                        }
-
-                        Action? action =
-                        listResponse!.actions.firstWhereOrNull(
-                              (element) => !StringUtils.inList(
-                            element.resourceId,
-                            [
-                              "BTN_CREATE",
-                              "BTN_EDIT",
-                              "BTN_VIEW",
-                              "BTN_SAVE",
-                              "BTN_ADD_DETAIL",
-                              "BTN_DEL_DETAIL",
-                            ],
+                      if (hasViewAccess(id)) {
+                        menuItems.add(
+                          MenuItem(
+                            iconData: Icons.visibility,
+                            title: "Lihat Data",
+                            onTap: hasViewAccess(id)
+                                ? () async {
+                                    await viewData(id);
+                                  }
+                                : null,
                           ),
                         );
+                      }
 
-                        if (action != null) {
-                          if (BaseSettings.navigatorType ==
-                              BaseNavigatorType.legacy) {
-                            Navigators.pop();
-                          } else {
-                            context.pop();
+                      if (hasEditAccess(id)) {
+                        menuItems.add(
+                          MenuItem(
+                            iconData: Icons.edit,
+                            title: "edit".tr(),
+                            onTap: hasEditAccess(id)
+                                ? () async {
+                                    await editData(id);
+                                  }
+                                : null,
+                          ),
+                        );
+                      }
+
+                      listResponse!.actions
+                          .where(
+                        (element) => !StringUtils.inList(
+                          element.resourceId,
+                          [
+                            "BTN_CREATE",
+                            "BTN_EDIT",
+                            "BTN_VIEW",
+                            "BTN_SAVE",
+                            "BTN_ADD_DETAIL",
+                            "BTN_DEL_DETAIL",
+                          ],
+                        ),
+                      )
+                          .forEach((element) {
+                        MenuItem menuItem = MenuItem(
+                          title: element.name,
+                          onTap: () {
+                            if (BaseSettings.navigatorType ==
+                                BaseNavigatorType.legacy) {
+                              Navigators.pop();
+                            } else {
+                              context.pop();
+                            }
+
+                            BaseDialogs.confirmation(
+                              title: "are_you_sure_want_to_proceed".tr(),
+                              positiveCallback: () {
+                                context.read<DynamicFormListBloc>().add(
+                                      DynamicFormListCustomAction(
+                                        actionId: element.id,
+                                        formId: widget.dynamicFormMenuItem.id,
+                                        dataId: id,
+                                        customerId: widget.customerId,
+                                      ),
+                                    );
+                              },
+                            );
+                          },
+                        );
+
+                        menuItems.add(menuItem);
+                      });
+
+                      if (menuItems.isNotEmpty) {
+                        if (menuItems.length == 1) {
+                          if (hasViewAccess(id)) {
+                            await viewData(id);
+                            return;
                           }
 
-                          BaseDialogs.confirmation(
-                            title: "are_you_sure_want_to_proceed".tr(),
-                            positiveCallback: () {
-                              context.read<DynamicFormListBloc>().add(
-                                DynamicFormListCustomAction(
-                                  actionId: action.id,
-                                  formId: widget.dynamicFormMenuItem.id,
-                                  dataId: id,
-                                  customerId: widget.customerId,
-                                ),
-                              );
-                            },
+                          if (hasEditAccess(id)) {
+                            await editData(id);
+                            return;
+                          }
+
+                          Action? action =
+                              listResponse!.actions.firstWhereOrNull(
+                            (element) => !StringUtils.inList(
+                              element.resourceId,
+                              [
+                                "BTN_CREATE",
+                                "BTN_EDIT",
+                                "BTN_VIEW",
+                                "BTN_SAVE",
+                                "BTN_ADD_DETAIL",
+                                "BTN_DEL_DETAIL",
+                              ],
+                            ),
                           );
+
+                          if (action != null) {
+                            if (BaseSettings.navigatorType ==
+                                BaseNavigatorType.legacy) {
+                              Navigators.pop();
+                            } else {
+                              context.pop();
+                            }
+
+                            BaseDialogs.confirmation(
+                              title: "are_you_sure_want_to_proceed".tr(),
+                              positiveCallback: () {
+                                context.read<DynamicFormListBloc>().add(
+                                      DynamicFormListCustomAction(
+                                        actionId: action.id,
+                                        formId: widget.dynamicFormMenuItem.id,
+                                        dataId: id,
+                                        customerId: widget.customerId,
+                                      ),
+                                    );
+                              },
+                            );
+                          }
+                        } else {
+                          actionBottomSheet(menuItems);
                         }
-                      } else {
-                        actionBottomSheet(menuItems);
                       }
                     }
                   }
-                }
-              },
-              customBorder: SmoothRectangleBorder(
-                borderRadius: BorderRadius.circular(Dimensions.size20),
-                smoothness: Dimensions.size1,
-              ),
-              child: glass
-                  ? GlassContainer(
-                      blur: Dimensions.size20,
-                      borderRadius: Dimensions.size20,
-                      opacity: 0.12,
-                      borderOpacity: 0.22,
-                      padding: EdgeInsets.zero,
-                      child: cardContent,
-                    )
-                  : Ink(
-                      decoration: ShapeDecoration(
-                        color: AppColors.surface(),
-                        shadows: [
-                          BoxShadow(
-                            blurRadius: Dimensions.size20,
-                            offset: Offset(0, Dimensions.size10),
-                            color: Colors.black.withValues(alpha: 0.10),
-                          ),
-                        ],
-                        shape: SmoothRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(Dimensions.size20),
-                          smoothness: Dimensions.size1,
-                          side: BorderSide(
-                            color: AppColors.outline().withValues(alpha: 0.35),
+                },
+                customBorder: SmoothRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.size20),
+                  smoothness: Dimensions.size1,
+                ),
+                child: glass
+                    ? GlassContainer(
+                        blur: Dimensions.size20,
+                        borderRadius: Dimensions.size20,
+                        opacity: 0.12,
+                        borderOpacity: 0.22,
+                        padding: EdgeInsets.zero,
+                        child: cardContent,
+                      )
+                    : Ink(
+                        decoration: ShapeDecoration(
+                          color: AppColors.surface(),
+                          shadows: [
+                            BoxShadow(
+                              blurRadius: Dimensions.size20,
+                              offset: Offset(0, Dimensions.size10),
+                              color: Colors.black.withValues(alpha: 0.10),
+                            ),
+                          ],
+                          shape: SmoothRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(Dimensions.size20),
+                            smoothness: Dimensions.size1,
+                            side: BorderSide(
+                              color:
+                                  AppColors.outline().withValues(alpha: 0.35),
+                            ),
                           ),
                         ),
+                        child: cardContent,
                       ),
-                      child: cardContent,
-                    ),
+              ),
             ),
           );
         },
@@ -934,7 +963,8 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
 
     return Expanded(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, // Format disamakan rata kiri semua agar terlihat bagai Grid Modern
+        crossAxisAlignment: CrossAxisAlignment
+            .start, // Format disamakan rata kiri semua agar terlihat bagai Grid Modern
         children: [
           Text(
             description,
@@ -957,8 +987,9 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
               fontSize: Dimensions.text14,
               fontWeight: FontWeight.w900,
               height: 1.15,
-              color:
-                  glass ? Colors.white.withOpacity(0.95) : AppColors.onSurface(),
+              color: glass
+                  ? Colors.white.withOpacity(0.95)
+                  : AppColors.onSurface(),
             ),
           ),
         ],
@@ -1339,9 +1370,19 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
             );
 
       return ListView(
-        padding: EdgeInsets.all(Dimensions.size15),
+        padding: EdgeInsets.fromLTRB(
+          DotResponsive.horizontalPadding(context),
+          Dimensions.size15,
+          DotResponsive.horizontalPadding(context),
+          Dimensions.size15,
+        ),
         children: [
-          emptyCard,
+          DotResponsive.centered(
+            context: context,
+            tablet: 920,
+            desktop: 1080,
+            child: emptyCard,
+          ),
         ],
       );
     }
@@ -1424,9 +1465,19 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
             );
 
       return ListView(
-        padding: EdgeInsets.all(Dimensions.size15),
+        padding: EdgeInsets.fromLTRB(
+          DotResponsive.horizontalPadding(context),
+          Dimensions.size15,
+          DotResponsive.horizontalPadding(context),
+          Dimensions.size15,
+        ),
         children: [
-          emptyCard,
+          DotResponsive.centered(
+            context: context,
+            tablet: 920,
+            desktop: 1080,
+            child: emptyCard,
+          ),
         ],
       );
     }
@@ -1445,9 +1496,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
       return const SizedBox.shrink();
     }
 
-    return Center(
-      child: fab,
-    );
+    return fab;
   }
 
   void actionBottomSheet(List<MenuItem> menuItems) {

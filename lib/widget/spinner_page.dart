@@ -12,6 +12,7 @@ import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/helper/offlines.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
+import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:dynamic_of_things/model/dynamic_form_resource_response.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:dynamic_of_things/widget/glass_container.dart";
@@ -125,6 +126,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
 
     final EdgeInsets safe = MediaQuery.of(context).padding;
     final bool glass = isGlass;
+    final double horizontalPadding = DotResponsive.horizontalPadding(context);
 
     return Scaffold(
       backgroundColor: glass
@@ -157,22 +159,31 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
               SizedBox(height: safe.top),
               Padding(
                 padding: EdgeInsets.fromLTRB(
-                  Dimensions.size15,
+                  horizontalPadding,
                   Dimensions.size10,
-                  Dimensions.size15,
+                  horizontalPadding,
                   Dimensions.size10,
                 ),
-                child: topBar(),
+                child: centeredContent(
+                  context: context,
+                  child: topBar(),
+                ),
               ),
               Expanded(child: bodyHost()),
               SizedBox(height: safe.bottom),
             ],
           ),
           Positioned(
-            left: Dimensions.size15,
-            right: Dimensions.size15,
+            left: 0,
+            right: 0,
             bottom: safe.bottom + Dimensions.size10,
-            child: floatingActionBar(),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: centeredContent(
+                context: context,
+                child: floatingActionBar(),
+              ),
+            ),
           ),
         ],
       ),
@@ -192,6 +203,40 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
     super.didChangePlatformBrightness();
 
     setState(() {});
+  }
+
+  Widget centeredContent({
+    required BuildContext context,
+    required Widget child,
+  }) {
+    return DotResponsive.centered(
+      context: context,
+      tablet: 920,
+      desktop: 1080,
+      child: child,
+    );
+  }
+
+  Widget stateList({
+    required BuildContext context,
+    required Widget child,
+  }) {
+    final double horizontalPadding = DotResponsive.horizontalPadding(context);
+
+    return ListView(
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        Dimensions.size10,
+        horizontalPadding,
+        Dimensions.size100,
+      ),
+      children: [
+        centeredContent(
+          context: context,
+          child: child,
+        ),
+      ],
+    );
   }
 
   void refresh() async {
@@ -510,7 +555,14 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
           )) {
             MarkerItem? selectedMarkerItem = await Navigators.push(
               MapPage(
-                markerItems: items!.where((element) => element["latitude"] != null && (element["longitude"] != null || element["longtitude"] != null)).map((element) {
+                markerItems: items!
+                    .where(
+                  (element) =>
+                      element["latitude"] != null &&
+                      (element["longitude"] != null ||
+                          element["longtitude"] != null),
+                )
+                    .map((element) {
                   return MarkerItem(
                     point: LatLng(
                       double.parse(element["latitude"]),
@@ -552,20 +604,28 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
 
   Widget bodyHost() {
     if (loading) {
-      return BaseWidgets.shimmer();
+      return Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: DotResponsive.horizontalPadding(context),
+        ),
+        child: centeredContent(
+          context: context,
+          child: BaseWidgets.shimmer(),
+        ),
+      );
     }
 
     if (items == null) {
-      return ListView(
-        padding: EdgeInsets.all(Dimensions.size15),
-        children: [failState()],
+      return stateList(
+        context: context,
+        child: failState(),
       );
     }
 
     if (items != null && items!.isEmpty) {
-      return ListView(
-        padding: EdgeInsets.all(Dimensions.size15),
-        children: [emptyState()],
+      return stateList(
+        context: context,
+        child: emptyState(),
       );
     }
 
@@ -752,9 +812,9 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
       },
       child: ListView.separated(
         padding: EdgeInsets.fromLTRB(
-          Dimensions.size15,
+          DotResponsive.horizontalPadding(context),
           Dimensions.size10,
-          Dimensions.size15,
+          DotResponsive.horizontalPadding(context),
           Dimensions.size100,
         ),
         itemCount: items!.length,
@@ -815,63 +875,67 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
             }
           }
 
-          return Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () async {
-                if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                  Navigators.pop(result: item);
-                } else {
-                  context.pop(item);
-                }
-              },
-              customBorder: SmoothRectangleBorder(
-                borderRadius: BorderRadius.circular(Dimensions.size20),
-                smoothness: Dimensions.size1,
-              ),
-              child: Builder(
-                builder: (context) {
-                  // PERBAIKAN: Padding diperbesar sedikit agar konten di dalamnya bisa bernafas
-                  final Widget content = Padding(
-                    padding: EdgeInsets.all(Dimensions.size20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: widgets,
-                    ),
-                  );
-
-                  if (isGlass) {
-                    return GlassContainer(
-                      blur: Dimensions.size20,
-                      borderRadius: Dimensions.size20,
-                      opacity: 0.12,
-                      borderOpacity: 0.22,
-                      padding: EdgeInsets.zero,
-                      child: content,
-                    );
+          return centeredContent(
+            context: context,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () async {
+                  if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                    Navigators.pop(result: item);
+                  } else {
+                    context.pop(item);
                   }
+                },
+                customBorder: SmoothRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.size20),
+                  smoothness: Dimensions.size1,
+                ),
+                child: Builder(
+                  builder: (context) {
+                    // PERBAIKAN: Padding diperbesar sedikit agar konten di dalamnya bisa bernafas
+                    final Widget content = Padding(
+                      padding: EdgeInsets.all(Dimensions.size20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: widgets,
+                      ),
+                    );
 
-                  return Ink(
-                    decoration: ShapeDecoration(
-                      color: AppColors.surface(),
-                      shadows: [
-                        BoxShadow(
-                          blurRadius: Dimensions.size20,
-                          offset: Offset(0, Dimensions.size10),
-                          color: Colors.black.withValues(alpha: 0.10),
-                        ),
-                      ],
-                      shape: SmoothRectangleBorder(
-                        borderRadius: BorderRadius.circular(Dimensions.size20),
-                        smoothness: Dimensions.size1,
-                        side: BorderSide(
-                          color: AppColors.outline().withValues(alpha: 0.35),
+                    if (isGlass) {
+                      return GlassContainer(
+                        blur: Dimensions.size20,
+                        borderRadius: Dimensions.size20,
+                        opacity: 0.12,
+                        borderOpacity: 0.22,
+                        padding: EdgeInsets.zero,
+                        child: content,
+                      );
+                    }
+
+                    return Ink(
+                      decoration: ShapeDecoration(
+                        color: AppColors.surface(),
+                        shadows: [
+                          BoxShadow(
+                            blurRadius: Dimensions.size20,
+                            offset: Offset(0, Dimensions.size10),
+                            color: Colors.black.withValues(alpha: 0.10),
+                          ),
+                        ],
+                        shape: SmoothRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(Dimensions.size20),
+                          smoothness: Dimensions.size1,
+                          side: BorderSide(
+                            color: AppColors.outline().withValues(alpha: 0.35),
+                          ),
                         ),
                       ),
-                    ),
-                    child: content,
-                  );
-                },
+                      child: content,
+                    );
+                  },
+                ),
               ),
             ),
           );
@@ -889,7 +953,7 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
   }) {
     return Expanded(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, 
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             description,
@@ -1070,7 +1134,7 @@ class NumberPaginationState extends State<CustomPagination> {
     final double l2 = widget.colorSub.computeLuminance();
 
     if (l1 > 0.85 && l2 > 0.85) {
-      return Colors.white.withOpacity(0.18); 
+      return Colors.white.withOpacity(0.18);
     }
 
     return AppColors.outline().withValues(alpha: 0.15);
@@ -1137,7 +1201,8 @@ class NumberPaginationState extends State<CustomPagination> {
                         fontSize: widget.fontSize,
                         fontFamily: widget.fontFamily,
                         color: text,
-                        fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
+                        fontWeight:
+                            selected ? FontWeight.w900 : FontWeight.w600,
                       ),
                     ),
                   );

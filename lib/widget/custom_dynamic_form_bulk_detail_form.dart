@@ -6,6 +6,7 @@ import "dart:ui";
 import "package:base/base.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
+import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_event.dart";
@@ -109,6 +110,7 @@ class CustomDynamicFormBulkDetailFormState
   @override
   Widget build(BuildContext context) {
     final bool glass = isGlass;
+    final double horizontalPadding = DotResponsive.horizontalPadding(context);
 
     if (glass) {
       final EdgeInsets safe = MediaQuery.of(context).padding;
@@ -139,12 +141,17 @@ class CustomDynamicFormBulkDetailFormState
                 SizedBox(height: safe.top),
                 Padding(
                   padding: EdgeInsets.fromLTRB(
-                    Dimensions.size15,
+                    horizontalPadding,
                     Dimensions.size10,
-                    Dimensions.size15,
+                    horizontalPadding,
                     Dimensions.size10,
                   ),
-                  child: appBarGlass(context),
+                  child: DotResponsive.centered(
+                    context: context,
+                    tablet: 900,
+                    desktop: 980,
+                    child: appBarGlass(context),
+                  ),
                 ),
                 Expanded(child: body()),
                 SizedBox(height: safe.bottom),
@@ -389,49 +396,54 @@ class CustomDynamicFormBulkDetailFormState
               Dimensions.size15,
               Dimensions.size15 + Dimensions.size100, // Space aman untuk bottomBar
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                progressHeader(context),
-                SizedBox(height: Dimensions.size20), // Spasi antar header progress dan form
+            child: DotResponsive.centered(
+              context: context,
+              tablet: 900,
+              desktop: 980,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  progressHeader(context),
+                  SizedBox(height: Dimensions.size20), // Spasi antar header progress dan form
 
-                // PERBAIKAN UTAMA: Wrapper `sectionCard` dibuang
-                CustomDynamicForm(
-                  key: ValueKey("Detail-${widget.detailForm.template.id}-$index"),
-                  readOnly: widget.readOnly,
-                  customerId: widget.customerId,
-                  headerForm: widget.headerForm,
-                  template: widget.detailForm.template,
-                  data: rows[index],
-                ),
+                  // PERBAIKAN UTAMA: Wrapper `sectionCard` dibuang
+                  CustomDynamicForm(
+                    key: ValueKey("Detail-${widget.detailForm.template.id}-$index"),
+                    readOnly: widget.readOnly,
+                    customerId: widget.customerId,
+                    headerForm: widget.headerForm,
+                    template: widget.detailForm.template,
+                    data: rows[index],
+                  ),
 
-                ...widget.detailForm.subDetailForms.map((subDetailForm) {
-                  return Padding(
-                    // PERBAIKAN UTAMA: Wrapper `sectionCard` dibuang, gap diperlebar
-                    padding: EdgeInsets.only(top: Dimensions.size25),
-                    child: CustomDynamicFormSubDetailList(
-                      key: ValueKey(
-                        "SubDetailList-${subDetailForm.template.id}-$index",
+                  ...widget.detailForm.subDetailForms.map((subDetailForm) {
+                    return Padding(
+                      // PERBAIKAN UTAMA: Wrapper `sectionCard` dibuang, gap diperlebar
+                      padding: EdgeInsets.only(top: Dimensions.size25),
+                      child: CustomDynamicFormSubDetailList(
+                        key: ValueKey(
+                          "SubDetailList-${subDetailForm.template.id}-$index",
+                        ),
+                        readOnly: widget.readOnly,
+                        customerId: widget.customerId,
+                        headerForm: widget.headerForm,
+                        detailForm: widget.detailForm,
+                        subDetailForm: subDetailForm,
+                        detailData: rows[index],
+                        onRefresh: () {
+                          context.read<DynamicFormBloc>().add(
+                                DynamicFormRefresh(
+                                  formId: widget.headerForm.template.id,
+                                  customerId: widget.customerId,
+                                  headerForm: widget.headerForm,
+                                ),
+                              );
+                        },
                       ),
-                      readOnly: widget.readOnly,
-                      customerId: widget.customerId,
-                      headerForm: widget.headerForm,
-                      detailForm: widget.detailForm,
-                      subDetailForm: subDetailForm,
-                      detailData: rows[index],
-                      onRefresh: () {
-                        context.read<DynamicFormBloc>().add(
-                              DynamicFormRefresh(
-                                formId: widget.headerForm.template.id,
-                                customerId: widget.customerId,
-                                headerForm: widget.headerForm,
-                              ),
-                            );
-                      },
-                    ),
-                  );
-                }),
-              ],
+                    );
+                  }),
+                ],
+              ),
             ),
           ),
         ),
@@ -536,47 +548,52 @@ class CustomDynamicFormBulkDetailFormState
             Dimensions.size15,
             Dimensions.size10 + safe.bottom,
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(Dimensions.size25),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: Dimensions.size15,
-                sigmaY: Dimensions.size15,
-              ),
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: Dimensions.size15,
-                  vertical: Dimensions.size10,
+          child: DotResponsive.centered(
+            context: context,
+            tablet: 900,
+            desktop: 980,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(Dimensions.size25),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: Dimensions.size15,
+                  sigmaY: Dimensions.size15,
                 ),
-                decoration: BoxDecoration(
-                  color: glass
-                      ? Colors.white.withOpacity(0.12)
-                      : AppColors.surface().withValues(alpha: 0.92),
-                  borderRadius: BorderRadius.circular(Dimensions.size25),
-                  border: Border.all(
-                    color: glass
-                        ? Colors.white.withOpacity(0.22)
-                        : Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withValues(alpha: 0.18),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: Dimensions.size15,
+                    vertical: Dimensions.size10,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      blurRadius: Dimensions.size25,
-                      offset: Offset(0, Dimensions.size15),
-                      color: Colors.black.withValues(alpha: 0.12),
+                  decoration: BoxDecoration(
+                    color: glass
+                        ? Colors.white.withOpacity(0.12)
+                        : AppColors.surface().withValues(alpha: 0.92),
+                    borderRadius: BorderRadius.circular(Dimensions.size25),
+                    border: Border.all(
+                      color: glass
+                          ? Colors.white.withOpacity(0.22)
+                          : Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.18),
                     ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    previousButton(),
-                    SizedBox(width: Dimensions.size10),
-                    Expanded(child: labelWidget()),
-                    SizedBox(width: Dimensions.size10),
-                    nextButton(),
-                  ],
+                    boxShadow: [
+                      BoxShadow(
+                        blurRadius: Dimensions.size25,
+                        offset: Offset(0, Dimensions.size15),
+                        color: Colors.black.withValues(alpha: 0.12),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      previousButton(),
+                      SizedBox(width: Dimensions.size10),
+                      Expanded(child: labelWidget()),
+                      SizedBox(width: Dimensions.size10),
+                      nextButton(),
+                    ],
+                  ),
                 ),
               ),
             ),
