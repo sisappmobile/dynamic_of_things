@@ -13,6 +13,7 @@ import "package:dynamic_of_things/model/dynamic_form_list_response.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
 import "package:dynamic_of_things/model/dynamic_form_resource_response.dart";
 import "package:dynamic_of_things/model/header_form.dart" hide Action, Field;
+import "package:flutter/foundation.dart" hide Category;
 import "package:sqflite/sqflite.dart";
 import "package:uuid/uuid.dart";
 
@@ -2411,9 +2412,9 @@ class Offlines {
       String operand = buildOperand(dynamicTableTriggerActionDetailView["operand"]);
 
       if (StringUtils.inList(operation, ["IN", "NOT IN"])) {
-        return "$key $operation ($value) $operand";
+        return "$operand $key $operation ($value)";
       } else {
-        return "$key $operation $value $operand";
+        return "$operand $key $operation $value";
       }
     }
 
@@ -2511,9 +2512,9 @@ class Offlines {
       String operand = buildOperand(dynamicTableTriggerActionDetailView["operand"]);
 
       if (StringUtils.inList(operation, ["IN", "NOT IN"])) {
-        return "$key $operation ($value) $operand";
+        return "$operand $key $operation ($value)";
       } else {
-        return "$key $operation $value $operand";
+        return "$operand $key $operation $value";
       }
     }
 
@@ -2602,9 +2603,9 @@ class Offlines {
       String operand = buildOperand(dynamicTableTriggerActionDetailView["operand"]);
 
       if (StringUtils.inList(operation, ["IN", "NOT IN"])) {
-        return "$key $operation ($value) $operand";
+        return "$operand $key $operation ($value)";
       } else {
-        return "$key $operation $value $operand";
+        return "$operand $key $operation $value";
       }
     }
 
@@ -2931,16 +2932,12 @@ class Offlines {
   static Future<int> nextSequence(String name, [Transaction? transaction]) async {
     DatabaseExecutor databaseExecutor = transaction ?? await Sqlites.get();
 
-    final lastInsertedId = await databaseExecutor.rawInsert(
+    await databaseExecutor.rawInsert(
       "INSERT INTO _sequences (id, value) VALUES (?, 1) ON CONFLICT (id) DO UPDATE SET value = value + 1",
       [name],
     );
 
-    int value = (await databaseExecutor.query(
-      "_sequences",
-      where: "id = ?",
-      whereArgs: [lastInsertedId],
-    ))[0]["value"] as int;
+    int value = (await databaseExecutor.rawQuery("SELECT * FROM _sequences ORDER BY rowid DESC LIMIT 1")).first["value"] as int;
 
     return value;
   }
@@ -2994,7 +2991,12 @@ class Offlines {
       print("Success Generated Number Series Dynamic with prefix $prefix to be : $generatedNumber");
 
       return "$prefix${generatedNumber}_";
-    } catch (e) {
+    } catch (e, s) {
+      if (kDebugMode) {
+        print("Caught Exception: $e");
+        print("Stack Trace:\n$s");
+      }
+
       print("Failed generate Number Series on Dynamic Default Value cause format invalid");
     }
 
