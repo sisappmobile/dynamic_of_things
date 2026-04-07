@@ -20,7 +20,7 @@ class DMLAssemblers {
   int _offset = 0;
   int _limit = 0;
   String? _having;
-  final List<Object> _parameters = [];
+  final List<dynamic> _parameters = [];
 
   DMLAssemblers select(String column, {bool condition = true}) {
     if (condition) {
