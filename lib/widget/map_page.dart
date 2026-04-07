@@ -5,6 +5,7 @@ import "dart:io";
 import "dart:ui";
 
 import "package:base/base.dart";
+import "package:basic_utils/basic_utils.dart";
 import "package:collection/collection.dart";
 import "package:connectivity_plus/connectivity_plus.dart";
 import "package:dynamic_of_things/helper/responsive_layout.dart";
@@ -24,9 +25,15 @@ String get offlineMapBaseFolder => "offline_maps";
 class MarkerItem {
   final LatLng point;
   final Icon icon;
+  final Map<String, dynamic>? info;
   final dynamic extra;
 
-  MarkerItem({required this.point, required this.icon, this.extra});
+  MarkerItem({
+    required this.point,
+    required this.icon,
+    this.info,
+    this.extra,
+  });
 }
 
 class MapPage extends StatefulWidget {
@@ -87,8 +94,7 @@ class MapPageState extends State<MapPage> {
       permission = await Geolocator.requestPermission();
     }
 
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
       return;
     }
 
@@ -160,19 +166,16 @@ class MapPageState extends State<MapPage> {
                     vertical: Dimensions.size10,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.surface()
-                        .withValues(alpha: isDark ? 0.78 : 0.90),
+                    color: AppColors.surface().withValues(alpha: isDark ? 0.78 : 0.90),
                     borderRadius: BorderRadius.circular(Dimensions.size25),
                     border: Border.all(
-                      color: AppColors.outline()
-                          .withValues(alpha: isDark ? 0.22 : 0.18),
+                      color: AppColors.outline().withValues(alpha: isDark ? 0.22 : 0.18),
                     ),
                     boxShadow: [
                       BoxShadow(
                         blurRadius: Dimensions.size25,
                         offset: Offset(0, Dimensions.size15),
-                        color: Colors.black
-                            .withValues(alpha: isDark ? 0.18 : 0.12),
+                        color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.12),
                       ),
                     ],
                   ),
@@ -229,14 +232,12 @@ class MapPageState extends State<MapPage> {
           width: Dimensions.size40,
           height: Dimensions.size40,
           decoration: ShapeDecoration(
-            color: AppColors.surfaceContainerLowest()
-                .withValues(alpha: isDark ? 0.72 : 1),
+            color: AppColors.surfaceContainerLowest().withValues(alpha: isDark ? 0.72 : 1),
             shape: SmoothRectangleBorder(
               borderRadius: BorderRadius.circular(Dimensions.size15),
               smoothness: Dimensions.size1,
               side: BorderSide(
-                color:
-                    AppColors.outline().withValues(alpha: isDark ? 0.22 : 0.18),
+                color: AppColors.outline().withValues(alpha: isDark ? 0.22 : 0.18),
               ),
             ),
           ),
@@ -254,8 +255,7 @@ class MapPageState extends State<MapPage> {
     final Color primary = Theme.of(context).colorScheme.primary;
 
     final String label = isOnline ? "Online" : "Offline";
-    final IconData icon =
-        isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded;
+    final IconData icon = isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded;
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -263,8 +263,7 @@ class MapPageState extends State<MapPage> {
         vertical: Dimensions.size10,
       ),
       decoration: ShapeDecoration(
-        color: AppColors.surfaceContainerLowest()
-            .withValues(alpha: isDark ? 0.72 : 1),
+        color: AppColors.surfaceContainerLowest().withValues(alpha: isDark ? 0.72 : 1),
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size15),
           smoothness: Dimensions.size1,
@@ -337,8 +336,7 @@ class MapPageState extends State<MapPage> {
                       BoxShadow(
                         blurRadius: Dimensions.size20,
                         offset: Offset(0, Dimensions.size10),
-                        color: Colors.black
-                            .withValues(alpha: isDark ? 0.22 : 0.16),
+                        color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.16),
                       ),
                     ],
                     shape: SmoothRectangleBorder(
@@ -385,9 +383,93 @@ class MapPageState extends State<MapPage> {
 
   Widget fabSelectCurrentMarker(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
-    final Color primary = Theme.of(context).colorScheme.secondary;
-    final Color onPrimary = Theme.of(context).colorScheme.onSurface;
     final double horizontalPadding = DotResponsive.horizontalPadding(context);
+
+    Widget childWidget() {
+      if (selectedMarker!.info != null) {
+        List<Widget> widgets = [];
+
+        for (int i = 0; i < selectedMarker!.info!.entries.length; i++) {
+          if (i % 2 == 0) {
+            List<Widget> children = [];
+
+            MapEntry<String, dynamic> dfrfiLeft = selectedMarker!.info!.entries.elementAt(i);
+
+            children.add(
+              childrenWidget(
+                description: dfrfiLeft.key,
+                value: dfrfiLeft.value,
+                left: true,
+              ),
+            );
+
+            if (i + 1 < selectedMarker!.info!.entries.length) {
+              MapEntry<String, dynamic> dfrfiRight = selectedMarker!.info!.entries.elementAt(i + 1);
+
+              children
+                ..add(SizedBox(width: Dimensions.size5))
+                ..add(
+                  childrenWidget(
+                    description: dfrfiRight.key,
+                    value: dfrfiRight.value,
+                    left: false,
+                  ),
+                );
+            }
+
+            widgets.add(
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: children,
+              ),
+            );
+
+            if (i + 2 < selectedMarker!.info!.entries.length) {
+              widgets.add(SizedBox(height: Dimensions.size5));
+            }
+          }
+        }
+
+        return SizedBox(
+          width: 250,
+          child: Card(
+            child: Container(
+              padding: EdgeInsets.all(10),
+              child: Column(
+                children: [
+                  ...widgets,
+                  SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () {
+                        if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                          Navigators.pop(result: selectedMarker);
+                        } else {
+                          context.pop(selectedMarker);
+                        }
+                      },
+                      child: Text("Gunakan marker terpilih"),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      } else {
+        return FloatingActionButton(
+          onPressed: () {
+            if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+              Navigators.pop(result: selectedMarker);
+            } else {
+              context.pop(selectedMarker);
+            }
+          },
+          child: Text("Gunakan marker terpilih"),
+        );
+      }
+    }
 
     return Positioned(
       left: 0,
@@ -399,50 +481,9 @@ class MapPageState extends State<MapPage> {
           context: context,
           tablet: 960,
           desktop: 1120,
-          child: Center(
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                    Navigators.pop(result: selectedMarker);
-                  } else {
-                    context.pop(selectedMarker);
-                  }
-                },
-                borderRadius: BorderRadius.circular(Dimensions.size30),
-                child: Ink(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: Dimensions.size20,
-                    vertical: Dimensions.size10,
-                  ),
-                  decoration: ShapeDecoration(
-                    color: primary,
-                    shadows: [
-                      BoxShadow(
-                        blurRadius: Dimensions.size20,
-                        offset: Offset(0, Dimensions.size10),
-                        color: Colors.black
-                            .withValues(alpha: isDark ? 0.22 : 0.16),
-                      ),
-                    ],
-                    shape: SmoothRectangleBorder(
-                      borderRadius: BorderRadius.circular(Dimensions.size30),
-                      smoothness: Dimensions.size1,
-                    ),
-                  ),
-                  child: Text(
-                    "Gunakan marker terpilih",
-                    style: TextStyle(
-                      color: onPrimary,
-                      fontSize: Dimensions.text14,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: childWidget(),
           ),
         ),
       ),
@@ -456,7 +497,7 @@ class MapPageState extends State<MapPage> {
     return Positioned(
       left: 0,
       right: 0,
-      top: safe.top + 150,
+      top: safe.top + 90,
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
         child: DotResponsive.centered(
@@ -529,40 +570,33 @@ class MapPageState extends State<MapPage> {
         }
 
         double? minZoom;
-        double? maxZoom;
 
-        try {
-          List<double> zoomVarieties =
-              Directory("${snapshot.data!.path}/$offlineMapBaseFolder/$baseMap")
-                  .listSync()
-                  .where(
-                    (element) =>
-                        element is Directory &&
-                        double.tryParse(p.basename(element.path)) != null,
-                  )
-                  .map((element) => double.parse(p.basename(element.path)))
-                  .sorted((a, b) => a.compareTo(b));
+        if (!isOnline) {
+          try {
+            List<double> zoomVarieties = Directory("${snapshot.data!.path}/$offlineMapBaseFolder/$baseMap")
+                .listSync()
+                .where(
+                  (element) => element is Directory && double.tryParse(p.basename(element.path)) != null,
+            )
+                .map((element) => double.parse(p.basename(element.path)))
+                .sorted((a, b) => a.compareTo(b));
 
-          minZoom = zoomVarieties.first;
-          maxZoom = zoomVarieties.last;
-        } catch (_) {}
+            minZoom = zoomVarieties.first;
+          } catch (_) {}
+        }
 
         return FlutterMap(
           options: MapOptions(
             initialZoom: minZoom ?? 14,
-            minZoom: minZoom,
-            maxZoom: maxZoom,
           ),
           children: [
             TileLayer(
-              tileProvider:
-                  isOnline ? NetworkTileProvider() : FileTileProvider(),
+              tileProvider: isOnline ? NetworkTileProvider() : FileTileProvider(),
               urlTemplate: tileUrlTemplate(snapshot.data!.path),
               userAgentPackageName: "com.sisapp.dynamic_of_things",
             ),
             TileLayer(
-              urlTemplate:
-                  "${snapshot.data!.path}/$offlineMapBaseFolder/custom/{z}/{x}/{y}.png",
+              urlTemplate: "${snapshot.data!.path}/$offlineMapBaseFolder/custom/{z}/{x}/{y}.png",
               tileProvider: FileTileProvider(),
               tms: true,
               tileBuilder: (context, tileWidget, tile) {
@@ -652,5 +686,42 @@ class MapPageState extends State<MapPage> {
         color: Colors.blue,
       ),
     ];
+  }
+
+  Widget childrenWidget({
+    required String description,
+    required String value,
+    required bool left,
+  }) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            description,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: Dimensions.text10,
+              fontWeight: FontWeight.w500,
+              color: AppColors.onSurface(),
+              letterSpacing: -0.5,
+            ),
+          ),
+          SizedBox(height: Dimensions.size2),
+          Text(
+            StringUtils.isNotNullOrEmpty(value) ? value : "-",
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: Dimensions.text12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface(),
+              letterSpacing: -0.5,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
