@@ -367,24 +367,37 @@ class Offlines {
     }
 
     if (customFormView["f_user_group"] == "Y") {
-      List<String> userGroupIds = (customFormView["list_user_group"] as String).split(",");
-
-      List<Map<String, dynamic>> userGroups = await DMLAssemblers
+      String? result = (await DMLAssemblers
           .create()
-          .select("user_source")
-          .select("user_id")
+          .select("GROUP_CONCAT(DISTINCT user_group_id, ',') AS result")
           .from("c_user_group_detail")
-          .inn("user_group_id", userGroupIds)
-          .all();
+          .customWhere("user_group_id IN (${customFormView["list_user_group"]})")
+          .and()
+          .customWhere("((user_source = 'VISITQU' AND user_id = ?) OR (user_source = 'WEB' AND user_id = ?))")
+          .parameter(currentSalesUnitId)
+          .parameter(currentUserId)
+          .first())?["result"];
 
-      for (Map<String, dynamic> userGroup in userGroups) {
-        String userSource = userGroup["user_source"];
-        String userId = userGroup["user_id"];
+      if (result != null) {
+        List<String> userGroupIds = result.split(",");
 
-        if (userSource == "VISITQU") {
-          salesUnitIds.add(userId);
-        } else {
-          userIds.add(userId);
+        List<Map<String, dynamic>> userGroups = await DMLAssemblers
+            .create()
+            .select("user_source")
+            .select("user_id")
+            .from("c_user_group_detail")
+            .inn("user_group_id", userGroupIds)
+            .all();
+
+        for (Map<String, dynamic> userGroup in userGroups) {
+          String userSource = userGroup["user_source"];
+          String userId = userGroup["user_id"];
+
+          if (userSource == "VISITQU") {
+            salesUnitIds.add(userId);
+          } else {
+            userIds.add(userId);
+          }
         }
       }
     }
