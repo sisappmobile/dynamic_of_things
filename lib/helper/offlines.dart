@@ -369,7 +369,7 @@ class Offlines {
     if (customFormView["f_user_group"] == "Y") {
       String? result = (await DMLAssemblers
           .create()
-          .select("GROUP_CONCAT(DISTINCT user_group_id, ',') AS result")
+          .select("GROUP_CONCAT(DISTINCT user_group_id) AS result")
           .from("c_user_group_detail")
           .customWhere("user_group_id IN (${customFormView["list_user_group"]})")
           .and()
