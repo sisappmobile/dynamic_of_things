@@ -74,6 +74,34 @@ class DynamicChartPageState extends State<DynamicChartPage>
     context.read<DynamicChartBloc>().add(DynamicChartLoad());
   }
 
+  ButtonStyle desktopToolbarButtonStyle(
+    BuildContext context, {
+    required bool glass,
+  }) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+
+    return OutlinedButton.styleFrom(
+      foregroundColor:
+          glass ? Colors.white.withOpacity(0.94) : colorScheme.onSurface,
+      iconColor: glass ? Colors.white.withOpacity(0.94) : colorScheme.onSurface,
+      backgroundColor:
+          glass ? Colors.white.withOpacity(0.04) : colorScheme.surface,
+      side: BorderSide(
+        color: glass
+            ? Colors.white.withOpacity(0.18)
+            : colorScheme.outlineVariant.withValues(alpha: 0.5),
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: Dimensions.size15,
+        vertical: Dimensions.size15,
+      ),
+      textStyle: TextStyle(
+        fontSize: Dimensions.text12,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+
   Future<void> initPrefs() async {
     try {
       await Preferences.getInstance().init();
@@ -2357,6 +2385,10 @@ class DynamicChartPageState extends State<DynamicChartPage>
                             },
                             icon: const Icon(Icons.open_in_full_rounded),
                             label: const Text("Aktifkan Floating"),
+                            style: desktopToolbarButtonStyle(
+                              context,
+                              glass: glass,
+                            ),
                           ),
                           OutlinedButton.icon(
                             onPressed: () {
@@ -2364,17 +2396,29 @@ class DynamicChartPageState extends State<DynamicChartPage>
                             },
                             icon: const Icon(Icons.save_alt_rounded),
                             label: const Text("Save layout"),
+                            style: desktopToolbarButtonStyle(
+                              context,
+                              glass: glass,
+                            ),
                           ),
                           if (hasSavedLayouts)
                             OutlinedButton.icon(
                               onPressed: _showLoadLayoutDialog,
                               icon: const Icon(Icons.upload_file_rounded),
                               label: const Text("Load layout"),
+                              style: desktopToolbarButtonStyle(
+                                context,
+                                glass: glass,
+                              ),
                             ),
                           OutlinedButton.icon(
                             onPressed: refresh,
                             icon: const Icon(Icons.refresh_rounded),
                             label: const Text("Refresh"),
+                            style: desktopToolbarButtonStyle(
+                              context,
+                              glass: glass,
+                            ),
                           ),
                         ],
                       ),
@@ -2535,6 +2579,10 @@ class DynamicChartPageState extends State<DynamicChartPage>
                             },
                             icon: const Icon(Icons.dashboard_customize_rounded),
                             label: const Text("Mode Fixed"),
+                            style: desktopToolbarButtonStyle(
+                              context,
+                              glass: glass,
+                            ),
                           ),
                           OutlinedButton.icon(
                             onPressed: () {
@@ -2542,17 +2590,29 @@ class DynamicChartPageState extends State<DynamicChartPage>
                             },
                             icon: const Icon(Icons.save_alt_rounded),
                             label: const Text("Save layout"),
+                            style: desktopToolbarButtonStyle(
+                              context,
+                              glass: glass,
+                            ),
                           ),
                           if (hasSavedLayouts)
                             OutlinedButton.icon(
                               onPressed: _showLoadLayoutDialog,
                               icon: const Icon(Icons.upload_file_rounded),
                               label: const Text("Load layout"),
+                              style: desktopToolbarButtonStyle(
+                                context,
+                                glass: glass,
+                              ),
                             ),
                           OutlinedButton.icon(
                             onPressed: refresh,
                             icon: const Icon(Icons.refresh_rounded),
                             label: const Text("Refresh"),
+                            style: desktopToolbarButtonStyle(
+                              context,
+                              glass: glass,
+                            ),
                           ),
                           OutlinedButton.icon(
                             onPressed: () {
@@ -2560,6 +2620,10 @@ class DynamicChartPageState extends State<DynamicChartPage>
                             },
                             icon: const Icon(Icons.restart_alt_rounded),
                             label: const Text("Reset layout"),
+                            style: desktopToolbarButtonStyle(
+                              context,
+                              glass: glass,
+                            ),
                           ),
                           if (hiddenPanels.isNotEmpty)
                             OutlinedButton.icon(
@@ -2571,165 +2635,184 @@ class DynamicChartPageState extends State<DynamicChartPage>
                               },
                               icon: const Icon(Icons.add_rounded),
                               label: const Text("Tambah widget"),
+                              style: desktopToolbarButtonStyle(
+                                context,
+                                glass: glass,
+                              ),
                             ),
                         ],
                       ),
                       SizedBox(height: Dimensions.size15),
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius:
-                              BorderRadius.circular(Dimensions.size20),
-                          color: glass
-                              ? Colors.white.withOpacity(0.03)
-                              : Theme.of(context).colorScheme.surface,
-                          border: Border.all(
-                            color: glass
-                                ? Colors.white.withOpacity(0.08)
-                                : Theme.of(context)
+                      Builder(
+                        builder: (BuildContext context) {
+                          final BorderRadius workspaceBorderRadius =
+                              BorderRadius.circular(Dimensions.size20);
+                          final Widget workspaceWindows = SizedBox(
+                            width: workspaceWidth,
+                            height: workspaceHeight,
+                            child: ValueListenableBuilder<int>(
+                              valueListenable: _desktopDragNotifier,
+                              builder: (context, _, __) {
+                                return Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    for (final _DynamicChartDesktopPanelDescriptor panel
+                                        in orderedPanels)
+                                      DynamicChartDesktopWindowFrame(
+                                        key: ValueKey<String>(panel.id),
+                                        rect: resolveDesktopWindowRect(
+                                          layout: effectiveLayouts[panel.id]!,
+                                          workspaceSize: workspaceSize,
+                                          minWidth: panel.minWidth,
+                                          minHeight: panel.minHeight,
+                                        ),
+                                        glass: glass,
+                                        active: effectiveLayouts[panel.id]!
+                                                .zIndex ==
+                                            maxDesktopZIndex(
+                                              effectiveLayouts,
+                                            ),
+                                        minimized: effectiveLayouts[panel.id]!
+                                            .minimized,
+                                        maximized: effectiveLayouts[panel.id]!
+                                            .maximized,
+                                        floatingEnabled: true,
+                                        title: panel.title,
+                                        icon: panel.icon,
+                                        onFocus: () =>
+                                            bringDesktopWindowToFront(
+                                          panel.id,
+                                          effectiveLayouts,
+                                        ),
+                                        onToggleMinimize: () {
+                                          final DynamicChartDesktopWindowLayout?
+                                              nextLayout =
+                                              toggleDesktopWindowMinimize(
+                                            id: panel.id,
+                                            effectiveLayouts: effectiveLayouts,
+                                          );
+                                          if (nextLayout == null) {
+                                            return;
+                                          }
+
+                                          setState(() {
+                                            desktopWindowLayouts = <String,
+                                                DynamicChartDesktopWindowLayout>{
+                                              ...effectiveLayouts,
+                                              panel.id: nextLayout,
+                                            };
+                                            _desktopDragNotifier.value++;
+                                          });
+                                          persistDesktopWindowLayouts();
+                                        },
+                                        onToggleMaximize: () {
+                                          final DynamicChartDesktopWindowLayout?
+                                              nextLayout =
+                                              toggleDesktopWindowMaximize(
+                                            id: panel.id,
+                                            effectiveLayouts: effectiveLayouts,
+                                            workspaceSize: workspaceSize,
+                                            minWidth: panel.minWidth,
+                                            minHeight: panel.minHeight,
+                                          );
+                                          if (nextLayout == null) {
+                                            return;
+                                          }
+
+                                          setState(() {
+                                            desktopWindowLayouts = <String,
+                                                DynamicChartDesktopWindowLayout>{
+                                              ...effectiveLayouts,
+                                              panel.id: nextLayout,
+                                            };
+                                            _desktopDragNotifier.value++;
+                                          });
+                                          persistDesktopWindowLayouts();
+                                        },
+                                        onClose: () {
+                                          closeDesktopWindow(panel.id);
+                                        },
+                                        onDragDelta: (Offset delta) {
+                                          updateDesktopWindowPosition(
+                                            id: panel.id,
+                                            delta: delta,
+                                            effectiveLayouts: effectiveLayouts,
+                                            workspaceSize: workspaceSize,
+                                            minWidth: panel.minWidth,
+                                            minHeight: panel.minHeight,
+                                          );
+                                        },
+                                        onResizeDelta: (Offset delta) {
+                                          updateDesktopWindowSize(
+                                            id: panel.id,
+                                            delta: delta,
+                                            effectiveLayouts: effectiveLayouts,
+                                            workspaceSize: workspaceSize,
+                                            minWidth: panel.minWidth,
+                                            minHeight: panel.minHeight,
+                                          );
+                                        },
+                                        onEdgeResizeDelta: (
+                                          double dLeft,
+                                          double dTop,
+                                          double dWidth,
+                                          double dHeight,
+                                        ) {
+                                          updateDesktopWindowEdgeResize(
+                                            id: panel.id,
+                                            dLeft: dLeft,
+                                            dTop: dTop,
+                                            dWidth: dWidth,
+                                            dHeight: dHeight,
+                                            effectiveLayouts: effectiveLayouts,
+                                            workspaceSize: workspaceSize,
+                                            minWidth: panel.minWidth,
+                                            minHeight: panel.minHeight,
+                                          );
+                                        },
+                                        onDragEnd: () {
+                                          persistDesktopWindowLayouts();
+                                        },
+                                        onResizeEnd: () {
+                                          persistDesktopWindowLayouts();
+                                        },
+                                        child: SingleChildScrollView(
+                                          physics:
+                                              const BouncingScrollPhysics(),
+                                          padding: EdgeInsets.all(
+                                            Dimensions.size15,
+                                          ),
+                                          child: panel.child,
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              },
+                            ),
+                          );
+
+                          if (glass) {
+                            return workspaceWindows;
+                          }
+
+                          return DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: workspaceBorderRadius,
+                              color: Theme.of(context).colorScheme.surface,
+                              border: Border.all(
+                                color: Theme.of(context)
                                     .colorScheme
                                     .outlineVariant
                                     .withValues(alpha: 0.45),
-                            width: 0.7,
-                          ),
-                        ),
-                        child: SizedBox(
-                          width: workspaceWidth,
-                          height: workspaceHeight,
-                          child: ValueListenableBuilder<int>(
-                            valueListenable: _desktopDragNotifier,
-                            builder: (context, _, __) {
-                              return Stack(
-                                children: [
-                                  for (final _DynamicChartDesktopPanelDescriptor panel
-                                      in orderedPanels)
-                                    DynamicChartDesktopWindowFrame(
-                                      key: ValueKey<String>(panel.id),
-                                      rect: resolveDesktopWindowRect(
-                                        layout: effectiveLayouts[panel.id]!,
-                                        workspaceSize: workspaceSize,
-                                        minWidth: panel.minWidth,
-                                        minHeight: panel.minHeight,
-                                      ),
-                                      glass: glass,
-                                      active: effectiveLayouts[panel.id]!
-                                              .zIndex ==
-                                          maxDesktopZIndex(effectiveLayouts),
-                                      minimized:
-                                          effectiveLayouts[panel.id]!.minimized,
-                                      maximized:
-                                          effectiveLayouts[panel.id]!.maximized,
-                                      floatingEnabled: true,
-                                      title: panel.title,
-                                      icon: panel.icon,
-                                      onFocus: () => bringDesktopWindowToFront(
-                                        panel.id,
-                                        effectiveLayouts,
-                                      ),
-                                      onToggleMinimize: () {
-                                        final DynamicChartDesktopWindowLayout?
-                                            nextLayout =
-                                            toggleDesktopWindowMinimize(
-                                          id: panel.id,
-                                          effectiveLayouts: effectiveLayouts,
-                                        );
-                                        if (nextLayout == null) {
-                                          return;
-                                        }
-
-                                        setState(() {
-                                          desktopWindowLayouts = <String,
-                                              DynamicChartDesktopWindowLayout>{
-                                            ...effectiveLayouts,
-                                            panel.id: nextLayout,
-                                          };
-                                          _desktopDragNotifier.value++;
-                                        });
-                                        persistDesktopWindowLayouts();
-                                      },
-                                      onToggleMaximize: () {
-                                        final DynamicChartDesktopWindowLayout?
-                                            nextLayout =
-                                            toggleDesktopWindowMaximize(
-                                          id: panel.id,
-                                          effectiveLayouts: effectiveLayouts,
-                                          workspaceSize: workspaceSize,
-                                          minWidth: panel.minWidth,
-                                          minHeight: panel.minHeight,
-                                        );
-                                        if (nextLayout == null) {
-                                          return;
-                                        }
-
-                                        setState(() {
-                                          desktopWindowLayouts = <String,
-                                              DynamicChartDesktopWindowLayout>{
-                                            ...effectiveLayouts,
-                                            panel.id: nextLayout,
-                                          };
-                                          _desktopDragNotifier.value++;
-                                        });
-                                        persistDesktopWindowLayouts();
-                                      },
-                                      onClose: () {
-                                        closeDesktopWindow(panel.id);
-                                      },
-                                      onDragDelta: (Offset delta) {
-                                        updateDesktopWindowPosition(
-                                          id: panel.id,
-                                          delta: delta,
-                                          effectiveLayouts: effectiveLayouts,
-                                          workspaceSize: workspaceSize,
-                                          minWidth: panel.minWidth,
-                                          minHeight: panel.minHeight,
-                                        );
-                                      },
-                                      onResizeDelta: (Offset delta) {
-                                        updateDesktopWindowSize(
-                                          id: panel.id,
-                                          delta: delta,
-                                          effectiveLayouts: effectiveLayouts,
-                                          workspaceSize: workspaceSize,
-                                          minWidth: panel.minWidth,
-                                          minHeight: panel.minHeight,
-                                        );
-                                      },
-                                      onEdgeResizeDelta: (
-                                        double dLeft,
-                                        double dTop,
-                                        double dWidth,
-                                        double dHeight,
-                                      ) {
-                                        updateDesktopWindowEdgeResize(
-                                          id: panel.id,
-                                          dLeft: dLeft,
-                                          dTop: dTop,
-                                          dWidth: dWidth,
-                                          dHeight: dHeight,
-                                          effectiveLayouts: effectiveLayouts,
-                                          workspaceSize: workspaceSize,
-                                          minWidth: panel.minWidth,
-                                          minHeight: panel.minHeight,
-                                        );
-                                      },
-                                      onDragEnd: () {
-                                        persistDesktopWindowLayouts();
-                                      },
-                                      onResizeEnd: () {
-                                        persistDesktopWindowLayouts();
-                                      },
-                                      child: SingleChildScrollView(
-                                        physics: const BouncingScrollPhysics(),
-                                        padding: EdgeInsets.all(
-                                          Dimensions.size15,
-                                        ),
-                                        child: panel.child,
-                                      ),
-                                    ),
-                                ],
-                              );
-                            },
-                          ),
-                        ),
+                                width: 0.7,
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: workspaceBorderRadius,
+                              child: workspaceWindows,
+                            ),
+                          );
+                        },
                       ),
                     ],
                   );
@@ -3497,6 +3580,10 @@ String formatChartNumber(num value) {
   return formatter.format(value);
 }
 
+NumberFormat chartAxisNumberFormat() {
+  return NumberFormat("#,##0.##", "id");
+}
+
 String formatChartValue(dynamic value) {
   if (value == null) {
     return "";
@@ -3595,6 +3682,56 @@ DynamicSummarySnapshot? parseSummarySnapshot(dynamic data) {
     label: "Total data",
     value: formatChartNumber(insight.total),
     numericValue: insight.total,
+  );
+}
+
+class DynamicSummaryValuePresentation {
+  final String headline;
+  final String amount;
+
+  const DynamicSummaryValuePresentation({
+    required this.headline,
+    required this.amount,
+  });
+}
+
+DynamicSummaryValuePresentation splitDynamicSummaryValue(
+  DynamicSummarySnapshot snapshot,
+) {
+  final String raw = snapshot.value.trim();
+  if (raw.isEmpty) {
+    return const DynamicSummaryValuePresentation(
+      headline: "",
+      amount: "-",
+    );
+  }
+
+  final RegExpMatch? match = RegExp(r"^(.*?)(-?\d[\d.,]*)$").firstMatch(raw);
+  if (match != null) {
+    final String headline = (match.group(1) ?? "")
+        .replaceAll(RegExp(r"\s+"), " ")
+        .replaceFirst(RegExp(r"[:\-\s]+$"), "")
+        .trim();
+    final String amount = (match.group(2) ?? "").trim();
+
+    if (headline.isNotEmpty && amount.isNotEmpty) {
+      return DynamicSummaryValuePresentation(
+        headline: headline,
+        amount: amount,
+      );
+    }
+  }
+
+  if (snapshot.numericValue != null) {
+    return DynamicSummaryValuePresentation(
+      headline: "",
+      amount: formatChartNumber(snapshot.numericValue!),
+    );
+  }
+
+  return DynamicSummaryValuePresentation(
+    headline: "",
+    amount: raw,
   );
 }
 
@@ -3755,6 +3892,8 @@ class _DynamicSummaryCardState extends State<DynamicSummaryCard> {
 
     final Color accent = summaryAccentColor(widget.summary.color);
     final IconData icon = summaryIcon(widget.summary.icon);
+    final DynamicSummaryValuePresentation valuePresentation =
+        splitDynamicSummaryValue(snapshot!);
     final Color primaryText = widget.isGlass
         ? Colors.white.withOpacity(0.94)
         : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.92);
@@ -3807,8 +3946,8 @@ class _DynamicSummaryCardState extends State<DynamicSummaryCard> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: Dimensions.text13,
-                        fontWeight: FontWeight.w900,
+                        fontSize: Dimensions.text12,
+                        fontWeight: FontWeight.w800,
                         color: primaryText,
                       ),
                     ),
@@ -3827,12 +3966,32 @@ class _DynamicSummaryCardState extends State<DynamicSummaryCard> {
             ],
           ),
           SizedBox(height: Dimensions.size15),
+          if (valuePresentation.headline.isNotEmpty) ...[
+            Text(
+              valuePresentation.headline,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: Dimensions.text18,
+                fontWeight: FontWeight.w800,
+                color: primaryText,
+                height: 1.08,
+              ),
+            ),
+            SizedBox(height: Dimensions.size4),
+          ],
           Text(
-            snapshot!.value,
+            valuePresentation.amount,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: Dimensions.text24,
+              fontSize: valuePresentation.headline.isEmpty
+                  ? Dimensions.text22
+                  : Dimensions.text20,
               fontWeight: FontWeight.w900,
               color: primaryText,
+              letterSpacing: -0.3,
+              height: 1.0,
             ),
           ),
           SizedBox(height: Dimensions.size4),
@@ -4610,6 +4769,46 @@ class ChartCardState extends State<ChartCard> {
         header: "",
         color: cs.surfaceContainerHighest,
         textStyle: TextStyle(color: cs.onSurface),
+        builder: (
+          dynamic value,
+          dynamic point,
+          dynamic series,
+          int pointIndex,
+          int seriesIndex,
+        ) {
+          if (pointIndex < 0 || pointIndex >= slices.length) {
+            return const SizedBox.shrink();
+          }
+
+          final PieSlice item = slices[pointIndex];
+          return Container(
+            padding: EdgeInsets.all(Dimensions.size10),
+            constraints: const BoxConstraints(minWidth: 150),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: cs.onSurface,
+                  ),
+                ),
+                SizedBox(height: Dimensions.size5),
+                Text(
+                  formatChartNumber(item.value),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: cs.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
       series: <CircularSeries<PieSlice, String>>[
         DoughnutSeries<PieSlice, String>(
@@ -4732,6 +4931,7 @@ class ChartCardState extends State<ChartCard> {
         ),
         majorTickLines: const MajorTickLines(width: 0),
         axisLine: const AxisLine(width: 0),
+        numberFormat: chartAxisNumberFormat(),
         labelStyle: TextStyle(
           fontSize: Dimensions.text11,
           fontWeight: FontWeight.w700,
@@ -4823,6 +5023,7 @@ class ChartCardState extends State<ChartCard> {
         maximum: axisExtent,
         majorTickLines: const MajorTickLines(width: 0),
         axisLine: const AxisLine(width: 0),
+        numberFormat: chartAxisNumberFormat(),
         majorGridLines: MajorGridLines(
           width: 1,
           color: widget.isGlass
