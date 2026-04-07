@@ -110,6 +110,7 @@ class Generals {
       isPortrait: isPortrait,
     );
   }
+  
 
   static String getCurrentWallpaperPath(BuildContext context) {
     final bool isPortrait = usePortraitWallpaper(context);

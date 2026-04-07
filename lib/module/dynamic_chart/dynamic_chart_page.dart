@@ -4,26 +4,29 @@ import "dart:convert";
 import "dart:math" as math;
 
 import "package:base/base.dart";
-import "package:collection/collection.dart";
 import "package:dynamic_of_things/enumeration/chart_model.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
+import "package:dynamic_of_things/helper/chart_helper.dart";
 import "package:dynamic_of_things/helper/generals.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:dynamic_of_things/model/dynamic_chart_list_response.dart";
+import "package:dynamic_of_things/model/window_model.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_desktop_window.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_event.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_state.dart";
-import "package:dynamic_of_things/widget/glass_container.dart";
+import "package:dynamic_of_things/module/dynamic_chart/helper/dynamic_chart_data_helper.dart";
+import "package:dynamic_of_things/module/dynamic_chart/widget/chart_card.dart";
+import "package:dynamic_of_things/module/dynamic_chart/widget/dynamic_chart_app_bar.dart";
+import "package:dynamic_of_things/module/dynamic_chart/widget/dynamic_summary_card.dart";
+import "package:dynamic_of_things/widget/loading_card.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:go_router/go_router.dart";
 import "package:jiffy/jiffy.dart";
 import "package:loader_overlay/loader_overlay.dart";
-import "package:shimmer/shimmer.dart";
-import "package:syncfusion_flutter_charts/charts.dart";
 
 class DynamicChartPage extends StatefulWidget {
   const DynamicChartPage({super.key});
@@ -44,7 +47,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
       <String, DynamicChartDesktopWindowLayout>{};
   Set<String> hiddenDesktopPanels = <String>{};
   Map<String, dynamic> chartDataCache = <String, dynamic>{};
-  final ValueNotifier<int> _desktopDragNotifier = ValueNotifier<int>(0);
+  final ValueNotifier<int> desktopDragNotifier = ValueNotifier<int>(0);
 
   final RangePreset preset = RangePreset.last7;
   DateTimeRange? customRange;
@@ -59,7 +62,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
 
   @override
   void dispose() {
-    _desktopDragNotifier.dispose();
+    desktopDragNotifier.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -110,8 +113,8 @@ class DynamicChartPageState extends State<DynamicChartPage>
     }
 
     prefsReady = true;
-    final _DynamicChartSavedLayoutPayload? savedPayload =
-        _readCurrentDesktopLayoutPayload();
+    final DynamicChartSavedLayoutPayload? savedPayload =
+        readCurrentDesktopLayoutPayload();
 
     if (!mounted) {
       return;
@@ -129,57 +132,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
     });
   }
 
-  String chartOrderPreferenceKey() {
-    return "dynamic_chart_layout_order_v1";
-  }
-
-  String desktopWindowLayoutPreferenceKey() {
-    return "dynamic_chart_desktop_window_layout_v1";
-  }
-
-  String floatingDesktopModePreferenceKey() {
-    return "dynamic_chart_desktop_floating_mode_v1";
-  }
-
-  String hiddenDesktopPanelPreferenceKey() {
-    return "dynamic_chart_hidden_panels_v1";
-  }
-
-  String _savedLayoutsListPreferenceKey() {
-    return "dynamic_chart_saved_layouts_${_desktopPreferenceOwner()}";
-  }
-
-  String _desktopPreferenceOwner() {
-    final String base = _currentLayoutUserId().trim();
-    if (base.isEmpty) {
-      return "default";
-    }
-
-    return base.replaceAll(RegExp(r"[^A-Za-z0-9_.-]"), "_");
-  }
-
-  String _currentLayoutUserId() {
-    final String salesId =
-        Preferences.getInstance().getStringDynamicForm("SALES_ID") ?? "";
-    final String username =
-        Preferences.getInstance().getStringDynamicForm("USER_NAME") ?? "";
-
-    if (salesId.isNotEmpty) {
-      return salesId;
-    }
-
-    if (username.isNotEmpty) {
-      return username;
-    }
-
-    return "default";
-  }
-
-  String _currentLayoutUsername() {
-    return Preferences.getInstance().getStringDynamicForm("USER_NAME") ?? "";
-  }
-
-  int _dashboardUiType() {
+  int dashboardUiType() {
     return isGlass ? 2 : 1;
   }
 
@@ -234,55 +187,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
     return false;
   }
 
-  Map<String, DynamicChartDesktopWindowLayout> readSavedDesktopWindowLayouts() {
-    if (!prefsReady) {
-      return <String, DynamicChartDesktopWindowLayout>{};
-    }
-
-    try {
-      final String? raw = Preferences.getInstance().getStringDynamicForm(
-        desktopWindowLayoutPreferenceKey(),
-      );
-      if (raw == null || raw.isEmpty) {
-        return <String, DynamicChartDesktopWindowLayout>{};
-      }
-
-      final dynamic decoded = jsonDecode(raw);
-      if (decoded is List) {
-        final Map<String, DynamicChartDesktopWindowLayout> layouts =
-            <String, DynamicChartDesktopWindowLayout>{};
-
-        for (final dynamic item in decoded) {
-          if (item is! Map) {
-            continue;
-          }
-
-          final DynamicChartDesktopWindowLayout layout =
-              DynamicChartDesktopWindowLayout.fromJson(
-            Map<String, dynamic>.from(item),
-          );
-
-          if (layout.id.isNotEmpty) {
-            layouts[layout.id] = layout;
-          }
-        }
-
-        return layouts;
-      }
-
-      if (decoded is! Map) {
-        return <String, DynamicChartDesktopWindowLayout>{};
-      }
-
-      return _DynamicChartSavedLayoutPayload.fromJson(
-        Map<String, dynamic>.from(decoded),
-      ).layoutsMap;
-    } catch (_) {
-      return <String, DynamicChartDesktopWindowLayout>{};
-    }
-  }
-
-  _DynamicChartSavedLayoutPayload? _readCurrentDesktopLayoutPayload() {
+  DynamicChartSavedLayoutPayload? readCurrentDesktopLayoutPayload() {
     if (!prefsReady) {
       return null;
     }
@@ -295,7 +200,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
     }
 
     try {
-      return _decodeDesktopSavedLayoutPayload(raw);
+      return decodeDesktopSavedLayoutPayload(raw);
     } catch (_) {
       return null;
     }
@@ -404,20 +309,20 @@ class DynamicChartPageState extends State<DynamicChartPage>
     } catch (_) {}
   }
 
-  _DynamicChartSavedLayoutPayload _buildDesktopSavedLayoutPayload({
+  DynamicChartSavedLayoutPayload buildDesktopSavedLayoutPayload({
     required Map<String, DynamicChartDesktopWindowLayout> layouts,
     String? layoutName,
   }) {
     final List<DynamicChartDesktopWindowLayout> ordered =
         layouts.values.toList()..sort((a, b) => a.zIndex.compareTo(b.zIndex));
 
-    return _DynamicChartSavedLayoutPayload(
+    return DynamicChartSavedLayoutPayload(
       version: 3,
       name: layoutName?.trim() ?? "",
-      userId: _currentLayoutUserId(),
-      username: _currentLayoutUsername(),
+      userId: currentLayoutUserId(),
+      username: currentLayoutUsername(),
       savedAt: DateTime.now().toIso8601String(),
-      dashboardUiType: _dashboardUiType(),
+      dashboardUiType: dashboardUiType(),
       floatingMode: floatingDesktopMode,
       desktopNavigationVisible: true,
       widgetOrder: List<String>.from(chartOrder),
@@ -426,7 +331,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
     );
   }
 
-  _DynamicChartSavedLayoutPayload _decodeDesktopSavedLayoutPayload(
+  DynamicChartSavedLayoutPayload decodeDesktopSavedLayoutPayload(
     dynamic source, {
     String? legacyName,
   }) {
@@ -440,10 +345,10 @@ class DynamicChartPageState extends State<DynamicChartPage>
       decoded = <String, dynamic>{
         "version": 3,
         "name": legacyName ?? "",
-        "userId": _currentLayoutUserId(),
-        "username": _currentLayoutUsername(),
+        "userId": currentLayoutUserId(),
+        "username": currentLayoutUsername(),
         "savedAt": DateTime.now().toIso8601String(),
-        "dashboardUiType": _dashboardUiType(),
+        "dashboardUiType": dashboardUiType(),
         "floatingMode": floatingDesktopMode,
         "desktopNavigationVisible": true,
         "widgetOrder": chartOrder,
@@ -460,13 +365,13 @@ class DynamicChartPageState extends State<DynamicChartPage>
     map["version"] ??= 3;
     map["name"] = (map["name"] ?? legacyName ?? "").toString();
     map["userId"] =
-        (map["userId"] ?? map["ownerId"] ?? _currentLayoutUserId()).toString();
+        (map["userId"] ?? map["ownerId"] ?? currentLayoutUserId()).toString();
     map["username"] =
-        (map["username"] ?? map["ownerName"] ?? _currentLayoutUsername())
+        (map["username"] ?? map["ownerName"] ?? currentLayoutUsername())
             .toString();
     map["savedAt"] =
         (map["savedAt"] ?? DateTime.now().toIso8601String()).toString();
-    map["dashboardUiType"] = map["dashboardUiType"] ?? _dashboardUiType();
+    map["dashboardUiType"] = map["dashboardUiType"] ?? dashboardUiType();
     map["floatingMode"] = map["floatingMode"] ?? floatingDesktopMode;
     map["desktopNavigationVisible"] = map["desktopNavigationVisible"] ?? true;
     map["widgetOrder"] =
@@ -477,7 +382,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
     map["windows"] =
         map["windows"] is List ? map["windows"] : const <dynamic>[];
 
-    return _DynamicChartSavedLayoutPayload.fromJson(map);
+    return DynamicChartSavedLayoutPayload.fromJson(map);
   }
 
   Future<void> persistCurrentDesktopLayoutPayload({
@@ -488,8 +393,8 @@ class DynamicChartPageState extends State<DynamicChartPage>
       return;
     }
 
-    final _DynamicChartSavedLayoutPayload payload =
-        _buildDesktopSavedLayoutPayload(
+    final DynamicChartSavedLayoutPayload payload =
+        buildDesktopSavedLayoutPayload(
       layouts: layouts ?? desktopWindowLayouts,
       layoutName: layoutName,
     );
@@ -500,42 +405,42 @@ class DynamicChartPageState extends State<DynamicChartPage>
     );
   }
 
-  List<_DynamicChartSavedLayoutPayload> _readSavedDesktopLayouts() {
+  List<DynamicChartSavedLayoutPayload> readSavedDesktopLayouts() {
     if (!prefsReady) {
-      return <_DynamicChartSavedLayoutPayload>[];
+      return <DynamicChartSavedLayoutPayload>[];
     }
 
     final String? raw = Preferences.getInstance().getStringDynamicForm(
-      _savedLayoutsListPreferenceKey(),
+      savedLayoutsListPreferenceKey(),
     );
     if (raw == null || raw.isEmpty) {
-      return <_DynamicChartSavedLayoutPayload>[];
+      return <DynamicChartSavedLayoutPayload>[];
     }
 
     try {
       final dynamic decoded = jsonDecode(raw);
-      final List<_DynamicChartSavedLayoutPayload> layouts =
-          <_DynamicChartSavedLayoutPayload>[];
+      final List<DynamicChartSavedLayoutPayload> layouts =
+          <DynamicChartSavedLayoutPayload>[];
 
       if (decoded is List) {
         for (final dynamic item in decoded) {
           if (item is! Map) {
             continue;
           }
-          layouts.add(_decodeDesktopSavedLayoutPayload(item));
+          layouts.add(decodeDesktopSavedLayoutPayload(item));
         }
       } else if (decoded is Map && decoded["layouts"] is List) {
         for (final dynamic item in decoded["layouts"] as List<dynamic>) {
           if (item is! Map) {
             continue;
           }
-          layouts.add(_decodeDesktopSavedLayoutPayload(item));
+          layouts.add(decodeDesktopSavedLayoutPayload(item));
         }
       } else if (decoded is Map) {
         for (final MapEntry<dynamic, dynamic> entry in decoded.entries) {
           try {
             layouts.add(
-              _decodeDesktopSavedLayoutPayload(
+              decodeDesktopSavedLayoutPayload(
                 entry.value,
                 legacyName: entry.key.toString(),
               ),
@@ -545,8 +450,8 @@ class DynamicChartPageState extends State<DynamicChartPage>
       }
 
       layouts.sort((
-        _DynamicChartSavedLayoutPayload a,
-        _DynamicChartSavedLayoutPayload b,
+        DynamicChartSavedLayoutPayload a,
+        DynamicChartSavedLayoutPayload b,
       ) {
         final DateTime aTime =
             a.savedAtDateTime ?? DateTime.fromMillisecondsSinceEpoch(0);
@@ -557,25 +462,25 @@ class DynamicChartPageState extends State<DynamicChartPage>
 
       return layouts;
     } catch (_) {
-      return <_DynamicChartSavedLayoutPayload>[];
+      return <DynamicChartSavedLayoutPayload>[];
     }
   }
 
-  Future<void> _writeSavedDesktopLayouts(
-    List<_DynamicChartSavedLayoutPayload> layouts,
+  Future<void> writeSavedDesktopLayouts(
+    List<DynamicChartSavedLayoutPayload> layouts,
   ) async {
     await Preferences.getInstance().setStringDynamicForm(
-      _savedLayoutsListPreferenceKey(),
+      savedLayoutsListPreferenceKey(),
       jsonEncode(<String, dynamic>{
         "version": 1,
-        "layouts": layouts.map((_DynamicChartSavedLayoutPayload item) {
+        "layouts": layouts.map((DynamicChartSavedLayoutPayload item) {
           return item.toJson();
         }).toList(),
       }),
     );
   }
 
-  String _formatSavedLayoutDate(_DynamicChartSavedLayoutPayload payload) {
+  String formatSavedLayoutDate(DynamicChartSavedLayoutPayload payload) {
     final DateTime? savedAt = payload.savedAtDateTime;
     if (savedAt == null) {
       return "-";
@@ -584,7 +489,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
     return Jiffy.parseFromDateTime(savedAt).format(pattern: "d MMM yyyy HH:mm");
   }
 
-  String _savedLayoutMetaLine(_DynamicChartSavedLayoutPayload payload) {
+  String savedLayoutMetaLine(DynamicChartSavedLayoutPayload payload) {
     final List<String> parts = <String>[
       payload.userId,
       payload.floatingMode ? "Floating" : "Fixed",
@@ -594,23 +499,23 @@ class DynamicChartPageState extends State<DynamicChartPage>
     return parts.join(" • ");
   }
 
-  Future<void> _deleteSavedDesktopLayout(String layoutName) async {
-    final List<_DynamicChartSavedLayoutPayload> savedLayouts =
-        _readSavedDesktopLayouts()
-          ..removeWhere((_DynamicChartSavedLayoutPayload item) {
+  Future<void> deleteSavedDesktopLayout(String layoutName) async {
+    final List<DynamicChartSavedLayoutPayload> savedLayouts =
+        readSavedDesktopLayouts()
+          ..removeWhere((DynamicChartSavedLayoutPayload item) {
             return item.name.trim().toLowerCase() ==
                 layoutName.trim().toLowerCase();
           });
 
-    await _writeSavedDesktopLayouts(savedLayouts);
+    await writeSavedDesktopLayouts(savedLayouts);
   }
 
-  Future<void> _saveDesktopWindowLayouts(
+  Future<void> saveDesktopWindowLayouts(
     Map<String, DynamicChartDesktopWindowLayout> layouts, {
     String? layoutName,
   }) async {
-    final _DynamicChartSavedLayoutPayload payload =
-        _buildDesktopSavedLayoutPayload(
+    final DynamicChartSavedLayoutPayload payload =
+        buildDesktopSavedLayoutPayload(
       layouts: layouts,
       layoutName: layoutName,
     );
@@ -619,14 +524,14 @@ class DynamicChartPageState extends State<DynamicChartPage>
         payload.layoutsMap;
 
     if (layoutName != null && layoutName.trim().isNotEmpty) {
-      final List<_DynamicChartSavedLayoutPayload> savedLayouts =
-          _readSavedDesktopLayouts()
-            ..removeWhere((_DynamicChartSavedLayoutPayload item) {
+      final List<DynamicChartSavedLayoutPayload> savedLayouts =
+          readSavedDesktopLayouts()
+            ..removeWhere((DynamicChartSavedLayoutPayload item) {
               return item.name.trim().toLowerCase() ==
                   layoutName.trim().toLowerCase();
             })
             ..insert(0, payload);
-      await _writeSavedDesktopLayouts(savedLayouts);
+      await writeSavedDesktopLayouts(savedLayouts);
     }
 
     await Preferences.getInstance().setStringDynamicForm(
@@ -653,7 +558,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
 
     setState(() {
       desktopWindowLayouts = orderedLayouts;
-      _desktopDragNotifier.value++;
+      desktopDragNotifier.value++;
     });
 
     await BaseOverlays.success(
@@ -663,7 +568,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
     );
   }
 
-  Future<void> _showSaveLayoutDialog(
+  Future<void> showSaveLayoutDialog(
     Map<String, DynamicChartDesktopWindowLayout> layouts,
   ) async {
     final TextEditingController nameController = TextEditingController();
@@ -721,16 +626,16 @@ class DynamicChartPageState extends State<DynamicChartPage>
     );
 
     if (result != null && result.trim().isNotEmpty) {
-      await _saveDesktopWindowLayouts(layouts, layoutName: result);
+      await saveDesktopWindowLayouts(layouts, layoutName: result);
     }
   }
 
-  Future<void> _applyDesktopLayoutJson(
+  Future<void> applyDesktopLayoutJson(
     String layoutJson, {
     String? layoutName,
   }) async {
-    final _DynamicChartSavedLayoutPayload payload =
-        _decodeDesktopSavedLayoutPayload(layoutJson, legacyName: layoutName);
+    final DynamicChartSavedLayoutPayload payload =
+        decodeDesktopSavedLayoutPayload(layoutJson, legacyName: layoutName);
     final Map<String, DynamicChartDesktopWindowLayout> loadedLayouts =
         payload.layoutsMap;
     final Set<String> loadedHiddenPanels = payload.hiddenWidgetIds.toSet();
@@ -759,7 +664,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
         chartOrder = loadedChartOrder;
         hiddenDesktopPanels = loadedHiddenPanels;
         desktopWindowLayouts = loadedLayouts;
-        _desktopDragNotifier.value++;
+        desktopDragNotifier.value++;
       });
     } else {
       floatingDesktopMode = payload.floatingMode;
@@ -775,9 +680,9 @@ class DynamicChartPageState extends State<DynamicChartPage>
     );
   }
 
-  Future<void> _showLoadLayoutDialog() async {
-    final List<_DynamicChartSavedLayoutPayload> savedLayouts =
-        _readSavedDesktopLayouts();
+  Future<void> showLoadLayoutDialog() async {
+    final List<DynamicChartSavedLayoutPayload> savedLayouts =
+        readSavedDesktopLayouts();
     final bool glass = isGlass;
     final bool dark = Theme.of(context).brightness == Brightness.dark;
 
@@ -910,7 +815,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
                         separatorBuilder: (_, __) =>
                             SizedBox(height: Dimensions.size10),
                         itemBuilder: (context, index) {
-                          final _DynamicChartSavedLayoutPayload payload =
+                          final DynamicChartSavedLayoutPayload payload =
                               savedLayouts[index];
                           final String title = payload.name.trim().isEmpty
                               ? "Layout tanpa nama"
@@ -924,7 +829,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
                               ),
                               onTap: () async {
                                 Navigator.of(context).pop();
-                                await _applyDesktopLayoutJson(
+                                await applyDesktopLayoutJson(
                                   jsonEncode(payload.toJson()),
                                   layoutName: payload.name,
                                 );
@@ -962,7 +867,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
                                             height: Dimensions.size5,
                                           ),
                                           Text(
-                                            _savedLayoutMetaLine(payload),
+                                            savedLayoutMetaLine(payload),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
@@ -986,7 +891,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
                                               ),
                                               Expanded(
                                                 child: Text(
-                                                  _formatSavedLayoutDate(
+                                                  formatSavedLayoutDate(
                                                     payload,
                                                   ),
                                                   maxLines: 1,
@@ -1009,7 +914,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
                                       tooltip: "Hapus layout",
                                       onPressed: () async {
                                         Navigator.of(context).pop();
-                                        await _deleteSavedDesktopLayout(
+                                        await deleteSavedDesktopLayout(
                                           payload.name,
                                         );
                                         await BaseOverlays.success(
@@ -1070,8 +975,8 @@ class DynamicChartPageState extends State<DynamicChartPage>
     );
   }
 
-  Future<void> _showHiddenPanelsDialog({
-    required List<_DynamicChartDesktopPanelDescriptor> hiddenPanels,
+  Future<void> showHiddenPanelsDialog({
+    required List<DynamicChartDesktopPanelDescriptor> hiddenPanels,
     required bool glass,
   }) async {
     if (hiddenPanels.isEmpty) {
@@ -1217,7 +1122,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
                               childAspectRatio: 1.15,
                             ),
                             itemBuilder: (context, index) {
-                              final _DynamicChartDesktopPanelDescriptor panel =
+                              final DynamicChartDesktopPanelDescriptor panel =
                                   hiddenPanels[index];
                               return Material(
                                 color: Colors.transparent,
@@ -1384,14 +1289,14 @@ class DynamicChartPageState extends State<DynamicChartPage>
     );
   }
 
-  List<_DynamicChartDesktopPanelDescriptor> _desktopPanelDescriptors(
+  List<DynamicChartDesktopPanelDescriptor> _desktopPanelDescriptors(
     List<Chart> charts,
     bool glass,
   ) {
     return charts.map((chartItem) {
       final bool isSummary = chartItem is Summary;
 
-      return _DynamicChartDesktopPanelDescriptor(
+      return DynamicChartDesktopPanelDescriptor(
         id: chartItem.id,
         title: chartItem.title,
         icon: panelIcon(chartItem),
@@ -1404,7 +1309,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
     }).toList();
   }
 
-  int _desktopFloatingColumnCount(
+  int desktopFloatingColumnCount(
     double workspaceWidth, {
     int panelCount = 0,
   }) {
@@ -1417,7 +1322,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
     return 1;
   }
 
-  double _desktopFloatingPanelWidth({
+  double desktopFloatingPanelWidth({
     required double workspaceWidth,
     required int columnCount,
     required double gap,
@@ -1431,8 +1336,8 @@ class DynamicChartPageState extends State<DynamicChartPage>
         .toDouble();
   }
 
-  double _desktopFloatingPanelHeight(
-    _DynamicChartDesktopPanelDescriptor panel,
+  double desktopFloatingPanelHeight(
+    DynamicChartDesktopPanelDescriptor panel,
     double panelWidth,
   ) {
     final double scaledHeight = panel.height * (panelWidth / panel.width);
@@ -1443,8 +1348,8 @@ class DynamicChartPageState extends State<DynamicChartPage>
         .toDouble();
   }
 
-  double _estimatedDesktopDefaultWorkspaceHeight({
-    required List<_DynamicChartDesktopPanelDescriptor> panels,
+  double estimatedDesktopDefaultWorkspaceHeight({
+    required List<DynamicChartDesktopPanelDescriptor> panels,
     required double workspaceWidth,
     required double minHeight,
   }) {
@@ -1453,11 +1358,11 @@ class DynamicChartPageState extends State<DynamicChartPage>
     }
 
     final double gap = Dimensions.size20;
-    final int columnCount = _desktopFloatingColumnCount(
+    final int columnCount = desktopFloatingColumnCount(
       workspaceWidth,
       panelCount: panels.length,
     );
-    final double panelWidth = _desktopFloatingPanelWidth(
+    final double panelWidth = desktopFloatingPanelWidth(
       workspaceWidth: workspaceWidth,
       columnCount: columnCount,
       gap: gap,
@@ -1466,14 +1371,14 @@ class DynamicChartPageState extends State<DynamicChartPage>
     double totalHeight = gap;
 
     for (int start = 0; start < panels.length; start += columnCount) {
-      final List<_DynamicChartDesktopPanelDescriptor> rowPanels =
+      final List<DynamicChartDesktopPanelDescriptor> rowPanels =
           panels.skip(start).take(columnCount).toList();
 
       double rowHeight = 0;
-      for (final _DynamicChartDesktopPanelDescriptor panel in rowPanels) {
+      for (final DynamicChartDesktopPanelDescriptor panel in rowPanels) {
         rowHeight = math.max(
           rowHeight,
-          _desktopFloatingPanelHeight(panel, panelWidth),
+          desktopFloatingPanelHeight(panel, panelWidth),
         );
       }
 
@@ -1483,7 +1388,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
     return math.max(minHeight, totalHeight);
   }
 
-  double _storedDesktopLayoutBottom({
+  double storedDesktopLayoutBottom({
     required Set<String> visibleIds,
     required double minHeight,
   }) {
@@ -1515,18 +1420,18 @@ class DynamicChartPageState extends State<DynamicChartPage>
     return maxBottom;
   }
 
-  double _resolvedDesktopWorkspaceHeight({
-    required List<_DynamicChartDesktopPanelDescriptor> panels,
+  double resolvedDesktopWorkspaceHeight({
+    required List<DynamicChartDesktopPanelDescriptor> panels,
     required double workspaceWidth,
     required double minHeight,
   }) {
     final Set<String> visibleIds = panels.map((panel) => panel.id).toSet();
-    final double defaultHeight = _estimatedDesktopDefaultWorkspaceHeight(
+    final double defaultHeight = estimatedDesktopDefaultWorkspaceHeight(
       panels: panels,
       workspaceWidth: workspaceWidth,
       minHeight: minHeight,
     );
-    final double storedBottom = _storedDesktopLayoutBottom(
+    final double storedBottom = storedDesktopLayoutBottom(
       visibleIds: visibleIds,
       minHeight: minHeight,
     );
@@ -1534,8 +1439,8 @@ class DynamicChartPageState extends State<DynamicChartPage>
     return math.max(minHeight, math.max(defaultHeight, storedBottom));
   }
 
-  Map<String, DynamicChartDesktopWindowLayout> _defaultDesktopWindowLayouts(
-    List<_DynamicChartDesktopPanelDescriptor> panels,
+  Map<String, DynamicChartDesktopWindowLayout> defaultDesktopWindowLayouts(
+    List<DynamicChartDesktopPanelDescriptor> panels,
     Size workspaceSize,
   ) {
     final Map<String, DynamicChartDesktopWindowLayout> defaults =
@@ -1546,11 +1451,11 @@ class DynamicChartPageState extends State<DynamicChartPage>
     }
 
     final double gap = Dimensions.size20;
-    final int columnCount = _desktopFloatingColumnCount(
+    final int columnCount = desktopFloatingColumnCount(
       workspaceSize.width,
       panelCount: panels.length,
     );
-    final double panelWidth = _desktopFloatingPanelWidth(
+    final double panelWidth = desktopFloatingPanelWidth(
       workspaceWidth: workspaceSize.width,
       columnCount: columnCount,
       gap: gap,
@@ -1559,26 +1464,26 @@ class DynamicChartPageState extends State<DynamicChartPage>
     int nextZIndex = 10;
 
     for (int start = 0; start < panels.length; start += columnCount) {
-      final List<_DynamicChartDesktopPanelDescriptor> rowPanels =
+      final List<DynamicChartDesktopPanelDescriptor> rowPanels =
           panels.skip(start).take(columnCount).toList();
 
       double rowHeight = 0;
-      for (final _DynamicChartDesktopPanelDescriptor panel in rowPanels) {
+      for (final DynamicChartDesktopPanelDescriptor panel in rowPanels) {
         rowHeight = math.max(
           rowHeight,
-          _desktopFloatingPanelHeight(panel, panelWidth),
+          desktopFloatingPanelHeight(panel, panelWidth),
         );
       }
 
       for (int column = 0; column < rowPanels.length; column++) {
-        final _DynamicChartDesktopPanelDescriptor panel = rowPanels[column];
+        final DynamicChartDesktopPanelDescriptor panel = rowPanels[column];
 
         defaults[panel.id] = DynamicChartDesktopWindowLayout(
           id: panel.id,
           left: gap + ((panelWidth + gap) * column),
           top: currentTop,
           width: panelWidth,
-          height: _desktopFloatingPanelHeight(panel, panelWidth),
+          height: desktopFloatingPanelHeight(panel, panelWidth),
           zIndex: nextZIndex++,
         );
       }
@@ -1589,15 +1494,15 @@ class DynamicChartPageState extends State<DynamicChartPage>
     return defaults;
   }
 
-  Map<String, DynamicChartDesktopWindowLayout> _mergedDesktopWindowLayouts(
-    List<_DynamicChartDesktopPanelDescriptor> panels,
+  Map<String, DynamicChartDesktopWindowLayout> mergedDesktopWindowLayouts(
+    List<DynamicChartDesktopPanelDescriptor> panels,
     Size workspaceSize,
   ) {
     final Map<String, DynamicChartDesktopWindowLayout> defaults =
-        _defaultDesktopWindowLayouts(panels, workspaceSize);
+        defaultDesktopWindowLayouts(panels, workspaceSize);
 
     return <String, DynamicChartDesktopWindowLayout>{
-      for (final _DynamicChartDesktopPanelDescriptor panel in panels)
+      for (final DynamicChartDesktopPanelDescriptor panel in panels)
         panel.id: desktopWindowLayouts[panel.id] ??
             defaults[panel.id] ??
             DynamicChartDesktopWindowLayout(
@@ -1694,7 +1599,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
         ...effectiveLayouts,
         id: current.copyWith(zIndex: highestZIndex + 1),
       };
-      _desktopDragNotifier.value++;
+      desktopDragNotifier.value++;
     });
   }
 
@@ -1746,7 +1651,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
           zIndex: maxDesktopZIndex(effectiveLayouts) + 1,
         ),
       };
-      _desktopDragNotifier.value++;
+      desktopDragNotifier.value++;
     });
   }
 
@@ -1790,7 +1695,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
           zIndex: maxDesktopZIndex(effectiveLayouts) + 1,
         ),
       };
-      _desktopDragNotifier.value++;
+      desktopDragNotifier.value++;
     });
   }
 
@@ -1867,7 +1772,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
           zIndex: maxDesktopZIndex(effectiveLayouts) + 1,
         ),
       };
-      _desktopDragNotifier.value++;
+      desktopDragNotifier.value++;
     });
   }
 
@@ -2309,7 +2214,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
     final List<Summary> summaries = charts.whereType<Summary>().toList();
     final List<Chart> regularCharts =
         charts.where((Chart chart) => chart is! Summary).toList();
-    final bool hasSavedLayouts = _readSavedDesktopLayouts().isNotEmpty;
+    final bool hasSavedLayouts = readSavedDesktopLayouts().isNotEmpty;
 
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints viewportConstraints) {
@@ -2392,7 +2297,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
                           ),
                           OutlinedButton.icon(
                             onPressed: () {
-                              _showSaveLayoutDialog(desktopWindowLayouts);
+                              showSaveLayoutDialog(desktopWindowLayouts);
                             },
                             icon: const Icon(Icons.save_alt_rounded),
                             label: const Text("Save layout"),
@@ -2403,7 +2308,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
                           ),
                           if (hasSavedLayouts)
                             OutlinedButton.icon(
-                              onPressed: _showLoadLayoutDialog,
+                              onPressed: showLoadLayoutDialog,
                               icon: const Icon(Icons.upload_file_rounded),
                               label: const Text("Load layout"),
                               style: desktopToolbarButtonStyle(
@@ -2487,15 +2392,15 @@ class DynamicChartPageState extends State<DynamicChartPage>
     required double horizontalPadding,
     required List<Chart> charts,
   }) {
-    final List<_DynamicChartDesktopPanelDescriptor> allPanels =
+    final List<DynamicChartDesktopPanelDescriptor> allPanels =
         _desktopPanelDescriptors(charts, glass);
-    final List<_DynamicChartDesktopPanelDescriptor> hiddenPanels = allPanels
+    final List<DynamicChartDesktopPanelDescriptor> hiddenPanels = allPanels
         .where((panel) => hiddenDesktopPanels.contains(panel.id))
         .toList();
-    final List<_DynamicChartDesktopPanelDescriptor> visiblePanels = allPanels
+    final List<DynamicChartDesktopPanelDescriptor> visiblePanels = allPanels
         .where((panel) => !hiddenDesktopPanels.contains(panel.id))
         .toList();
-    final bool hasSavedLayouts = _readSavedDesktopLayouts().isNotEmpty;
+    final bool hasSavedLayouts = readSavedDesktopLayouts().isNotEmpty;
 
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints viewportConstraints) {
@@ -2519,8 +2424,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
                     760,
                     viewportConstraints.maxHeight - 40,
                   );
-                  final double workspaceHeight =
-                      _resolvedDesktopWorkspaceHeight(
+                  final double workspaceHeight = resolvedDesktopWorkspaceHeight(
                     panels: visiblePanels,
                     workspaceWidth: workspaceWidth,
                     minHeight: minWorkspaceHeight,
@@ -2530,16 +2434,16 @@ class DynamicChartPageState extends State<DynamicChartPage>
                     workspaceHeight,
                   );
                   final Map<String, DynamicChartDesktopWindowLayout>
-                      effectiveLayouts = _mergedDesktopWindowLayouts(
+                      effectiveLayouts = mergedDesktopWindowLayouts(
                     visiblePanels,
                     workspaceSize,
                   );
-                  final List<_DynamicChartDesktopPanelDescriptor>
-                      orderedPanels = visiblePanels.toList()
+                  final List<DynamicChartDesktopPanelDescriptor> orderedPanels =
+                      visiblePanels.toList()
                         ..sort(
                           (
-                            _DynamicChartDesktopPanelDescriptor a,
-                            _DynamicChartDesktopPanelDescriptor b,
+                            DynamicChartDesktopPanelDescriptor a,
+                            DynamicChartDesktopPanelDescriptor b,
                           ) {
                             return (effectiveLayouts[a.id]?.zIndex ?? 0)
                                 .compareTo(
@@ -2586,7 +2490,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
                           ),
                           OutlinedButton.icon(
                             onPressed: () {
-                              _showSaveLayoutDialog(effectiveLayouts);
+                              showSaveLayoutDialog(effectiveLayouts);
                             },
                             icon: const Icon(Icons.save_alt_rounded),
                             label: const Text("Save layout"),
@@ -2597,7 +2501,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
                           ),
                           if (hasSavedLayouts)
                             OutlinedButton.icon(
-                              onPressed: _showLoadLayoutDialog,
+                              onPressed: showLoadLayoutDialog,
                               icon: const Icon(Icons.upload_file_rounded),
                               label: const Text("Load layout"),
                               style: desktopToolbarButtonStyle(
@@ -2628,7 +2532,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
                           if (hiddenPanels.isNotEmpty)
                             OutlinedButton.icon(
                               onPressed: () {
-                                _showHiddenPanelsDialog(
+                                showHiddenPanelsDialog(
                                   hiddenPanels: hiddenPanels,
                                   glass: glass,
                                 );
@@ -2651,12 +2555,12 @@ class DynamicChartPageState extends State<DynamicChartPage>
                             width: workspaceWidth,
                             height: workspaceHeight,
                             child: ValueListenableBuilder<int>(
-                              valueListenable: _desktopDragNotifier,
+                              valueListenable: desktopDragNotifier,
                               builder: (context, _, __) {
                                 return Stack(
                                   clipBehavior: Clip.none,
                                   children: [
-                                    for (final _DynamicChartDesktopPanelDescriptor panel
+                                    for (final DynamicChartDesktopPanelDescriptor panel
                                         in orderedPanels)
                                       DynamicChartDesktopWindowFrame(
                                         key: ValueKey<String>(panel.id),
@@ -2701,7 +2605,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
                                               ...effectiveLayouts,
                                               panel.id: nextLayout,
                                             };
-                                            _desktopDragNotifier.value++;
+                                            desktopDragNotifier.value++;
                                           });
                                           persistDesktopWindowLayouts();
                                         },
@@ -2725,7 +2629,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
                                               ...effectiveLayouts,
                                               panel.id: nextLayout,
                                             };
-                                            _desktopDragNotifier.value++;
+                                            desktopDragNotifier.value++;
                                           });
                                           persistDesktopWindowLayouts();
                                         },
@@ -2822,2784 +2726,6 @@ class DynamicChartPageState extends State<DynamicChartPage>
           ],
         );
       },
-    );
-  }
-}
-
-class _DynamicChartDesktopPanelDescriptor {
-  final String id;
-  final String title;
-  final IconData icon;
-  final double width;
-  final double height;
-  final double minWidth;
-  final double minHeight;
-  final Widget child;
-
-  const _DynamicChartDesktopPanelDescriptor({
-    required this.id,
-    required this.title,
-    required this.icon,
-    required this.width,
-    required this.height,
-    required this.minWidth,
-    required this.minHeight,
-    required this.child,
-  });
-}
-
-class _DynamicChartSavedLayoutPayload {
-  final int version;
-  final String name;
-  final String userId;
-  final String username;
-  final String savedAt;
-  final int dashboardUiType;
-  final bool floatingMode;
-  final bool desktopNavigationVisible;
-  final List<String> widgetOrder;
-  final List<String> hiddenWidgetIds;
-  final List<DynamicChartDesktopWindowLayout> windows;
-
-  const _DynamicChartSavedLayoutPayload({
-    required this.version,
-    required this.name,
-    required this.userId,
-    required this.username,
-    required this.savedAt,
-    required this.dashboardUiType,
-    required this.floatingMode,
-    required this.desktopNavigationVisible,
-    required this.widgetOrder,
-    required this.hiddenWidgetIds,
-    required this.windows,
-  });
-
-  factory _DynamicChartSavedLayoutPayload.fromJson(Map<String, dynamic> json) {
-    final List<dynamic> rawWindows = json["windows"] is List
-        ? json["windows"] as List<dynamic>
-        : const <dynamic>[];
-    final List<DynamicChartDesktopWindowLayout> parsedWindows =
-        <DynamicChartDesktopWindowLayout>[];
-
-    for (final dynamic item in rawWindows) {
-      if (item is! Map) {
-        continue;
-      }
-
-      final DynamicChartDesktopWindowLayout layout =
-          DynamicChartDesktopWindowLayout.fromJson(
-        Map<String, dynamic>.from(item),
-      );
-      if (layout.id.isEmpty) {
-        continue;
-      }
-
-      parsedWindows.add(layout);
-    }
-
-    return _DynamicChartSavedLayoutPayload(
-      version: _readInt(json["version"], fallback: 3),
-      name: (json["name"] ?? json["layoutName"] ?? "").toString(),
-      userId: (json["userId"] ?? json["ownerId"] ?? "").toString(),
-      username: (json["username"] ?? json["ownerName"] ?? "").toString(),
-      savedAt: (json["savedAt"] ?? "").toString(),
-      dashboardUiType: _readInt(json["dashboardUiType"], fallback: 1),
-      floatingMode: _readBool(json["floatingMode"], fallback: true),
-      desktopNavigationVisible:
-          _readBool(json["desktopNavigationVisible"], fallback: true),
-      widgetOrder: _readStringList(json["widgetOrder"]),
-      hiddenWidgetIds: _readStringList(json["hiddenWidgetIds"]),
-      windows: parsedWindows,
-    );
-  }
-
-  DateTime? get savedAtDateTime {
-    if (savedAt.trim().isEmpty) {
-      return null;
-    }
-
-    return DateTime.tryParse(savedAt);
-  }
-
-  String get themeLabel => dashboardUiType == 2 ? "Glass" : "Solid";
-
-  Map<String, DynamicChartDesktopWindowLayout> get layoutsMap {
-    return <String, DynamicChartDesktopWindowLayout>{
-      for (final DynamicChartDesktopWindowLayout layout in windows)
-        layout.id: layout,
-    };
-  }
-
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      "version": version,
-      "name": name,
-      "userId": userId,
-      "username": username,
-      "savedAt": savedAt,
-      "dashboardUiType": dashboardUiType,
-      "floatingMode": floatingMode,
-      "desktopNavigationVisible": desktopNavigationVisible,
-      "widgetOrder": widgetOrder,
-      "hiddenWidgetIds": hiddenWidgetIds,
-      "windows": windows.map((DynamicChartDesktopWindowLayout item) {
-        return item.toJson();
-      }).toList(),
-    };
-  }
-
-  static List<String> _readStringList(dynamic value) {
-    if (value is! List) {
-      return <String>[];
-    }
-
-    return value.map((dynamic item) => item.toString()).toList();
-  }
-
-  static int _readInt(dynamic value, {required int fallback}) {
-    if (value is int) {
-      return value;
-    }
-
-    if (value is num) {
-      return value.toInt();
-    }
-
-    if (value is String) {
-      return int.tryParse(value) ?? fallback;
-    }
-
-    return fallback;
-  }
-
-  static bool _readBool(dynamic value, {required bool fallback}) {
-    if (value is bool) {
-      return value;
-    }
-
-    if (value is num) {
-      return value != 0;
-    }
-
-    if (value is String) {
-      final String normalized = value.trim().toLowerCase();
-      if (normalized == "true" || normalized == "1") {
-        return true;
-      }
-      if (normalized == "false" || normalized == "0") {
-        return false;
-      }
-    }
-
-    return fallback;
-  }
-}
-
-class AppBarDynamicChart extends StatelessWidget {
-  final String title;
-  final String rangeLabel;
-  final VoidCallback onPickRange;
-  final VoidCallback onBack;
-  final bool isGlass;
-  final bool showBackButton;
-  final bool isMobile;
-
-  const AppBarDynamicChart({
-    required this.title,
-    required this.rangeLabel,
-    required this.onPickRange,
-    required this.onBack,
-    required this.isGlass,
-    required this.showBackButton,
-    required this.isMobile,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (isGlass) {
-      return Container(
-        height: Dimensions.size50,
-        padding: EdgeInsets.symmetric(horizontal: Dimensions.size15),
-        child: Row(
-          children: [
-            if (showBackButton) ...[
-              GlassContainer(
-                blur: Dimensions.size20,
-                borderRadius: Dimensions.size20,
-                opacity: 0.12,
-                borderOpacity: 0.22,
-                padding: EdgeInsets.zero,
-                child: SizedBox(
-                  width: Dimensions.size45,
-                  height: Dimensions.size45,
-                  child: IconButton(
-                    onPressed: onBack,
-                    padding: EdgeInsets.zero,
-                    icon: Icon(
-                      isMobile
-                          ? Icons.arrow_back_ios_new_rounded
-                          : Icons.arrow_back_rounded,
-                      color: Colors.white.withOpacity(0.95),
-                      size: Dimensions.size20,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: Dimensions.size10),
-            ],
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: Dimensions.text14,
-                  fontWeight: FontWeight.w900,
-                  color: isGlass
-                      ? Colors.white.withOpacity(0.95)
-                      : (Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.black87),
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            SizedBox(width: Dimensions.size10),
-            InkWell(
-              borderRadius: BorderRadius.circular(Dimensions.size15),
-              onTap: onPickRange,
-              child: GlassContainer(
-                blur: Dimensions.size20,
-                borderRadius: Dimensions.size15,
-                opacity: 0.12,
-                borderOpacity: 0.22,
-                padding: EdgeInsets.symmetric(horizontal: Dimensions.size10),
-                child: SizedBox(
-                  height: Dimensions.size40,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.date_range_rounded,
-                        size: Dimensions.size20,
-                        color: Colors.white.withOpacity(0.92),
-                      ),
-                      SizedBox(width: Dimensions.size10),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 180),
-                        child: Text(
-                          rangeLabel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: Dimensions.text12,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white.withOpacity(0.92),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: Dimensions.size5),
-                      Icon(
-                        Icons.expand_more_rounded,
-                        size: Dimensions.size20,
-                        color: Colors.white.withOpacity(0.90),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      height: Dimensions.size55,
-      padding: EdgeInsets.symmetric(horizontal: Dimensions.size15),
-      child: Row(
-        children: [
-          if (showBackButton) ...[
-            InkWell(
-              borderRadius: BorderRadius.circular(Dimensions.size100),
-              onTap: onBack,
-              child: Padding(
-                padding: EdgeInsets.all(Dimensions.size10),
-                child: Icon(
-                  isMobile
-                      ? Icons.arrow_back_ios_new_rounded
-                      : Icons.arrow_back_rounded,
-                  size: Dimensions.size20,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.90),
-                ),
-              ),
-            ),
-            SizedBox(width: Dimensions.size5),
-          ],
-          Expanded(
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: Dimensions.text14,
-                fontWeight: FontWeight.w900,
-                color: isGlass
-                    ? Colors.white.withOpacity(0.95)
-                    : (Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white
-                        : Colors.black87),
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          SizedBox(width: Dimensions.size10),
-          InkWell(
-            borderRadius: BorderRadius.circular(Dimensions.size10),
-            onTap: onPickRange,
-            child: Container(
-              height: Dimensions.size35,
-              padding: EdgeInsets.symmetric(horizontal: Dimensions.size10),
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
-                borderRadius: BorderRadius.circular(Dimensions.size10),
-                border: Border.all(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .outlineVariant
-                      .withValues(
-                        alpha: Theme.of(context).brightness == Brightness.dark
-                            ? 0.35
-                            : 0.55,
-                      ),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.date_range_rounded,
-                    size: Dimensions.size15,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.88),
-                  ),
-                  SizedBox(width: Dimensions.size5),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 180),
-                    child: Text(
-                      rangeLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: Dimensions.text12,
-                        fontWeight: FontWeight.w800,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.88),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class Insight extends StatelessWidget {
-  final num total;
-  final int rows;
-  final String rangeLabel;
-
-  final List<MapEntry<String, num>> compositionByVariable;
-  final List<MapEntry<String, num>> compositionByCategory;
-
-  final bool isGlass;
-
-  const Insight({
-    required this.total,
-    required this.rows,
-    required this.rangeLabel,
-    required this.compositionByVariable,
-    required this.compositionByCategory,
-    required this.isGlass,
-    super.key,
-  });
-
-  String persentText(num v) {
-    if (total <= 0) {
-      return "0%";
-    }
-    final double p = (v / total) * 100.0;
-    final String s = p >= 10 ? p.toStringAsFixed(0) : p.toStringAsFixed(1);
-    return "$s% dari total";
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final MapEntry<String, num>? topVariable =
-        compositionByVariable.firstOrNull;
-    final MapEntry<String, num>? topCategory =
-        compositionByCategory.firstOrNull;
-    final Color primaryText = isGlass
-        ? Colors.white.withOpacity(0.92)
-        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.90);
-    final Color secondaryText = isGlass
-        ? Colors.white.withOpacity(0.74)
-        : Theme.of(context)
-            .colorScheme
-            .onSurfaceVariant
-            .withValues(alpha: 0.86);
-    final Color tileFill = isGlass
-        ? Colors.white.withOpacity(0.08)
-        : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(
-              alpha: 0.55,
-            );
-    final Color tileBorder = isGlass
-        ? Colors.white.withOpacity(0.14)
-        : Theme.of(context).colorScheme.outlineVariant.withValues(
-              alpha:
-                  Theme.of(context).brightness == Brightness.dark ? 0.35 : 0.55,
-            );
-
-    Widget metricTile(String label, String value, String helper) {
-      return Container(
-        constraints: const BoxConstraints(minWidth: 150),
-        padding: EdgeInsets.all(Dimensions.size10),
-        decoration: BoxDecoration(
-          color: tileFill,
-          borderRadius: BorderRadius.circular(Dimensions.size15),
-          border: Border.all(color: tileBorder),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: Dimensions.text11,
-                fontWeight: FontWeight.w800,
-                color: secondaryText,
-              ),
-            ),
-            SizedBox(height: Dimensions.size4),
-            Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: Dimensions.text16,
-                fontWeight: FontWeight.w900,
-                color: primaryText,
-              ),
-            ),
-            SizedBox(height: Dimensions.size2),
-            Text(
-              helper,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: Dimensions.text10,
-                fontWeight: FontWeight.w700,
-                color: secondaryText,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    Widget highlightRow(String label, MapEntry<String, num>? item) {
-      final String name = item?.key.isNotEmpty == true ? item!.key : "-";
-      final String helper = item == null ? "-" : persentText(item.value);
-
-      return Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: Dimensions.size10,
-          vertical: Dimensions.size10,
-        ),
-        decoration: BoxDecoration(
-          color: tileFill,
-          borderRadius: BorderRadius.circular(Dimensions.size15),
-          border: Border.all(color: tileBorder),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: Dimensions.text11,
-                      fontWeight: FontWeight.w800,
-                      color: secondaryText,
-                    ),
-                  ),
-                  SizedBox(height: Dimensions.size2),
-                  Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: Dimensions.text13,
-                      fontWeight: FontWeight.w900,
-                      color: primaryText,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: Dimensions.size10),
-            Text(
-              helper,
-              style: TextStyle(
-                fontSize: Dimensions.text11,
-                fontWeight: FontWeight.w800,
-                color: secondaryText,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final Widget inner = Padding(
-      padding: EdgeInsets.fromLTRB(
-        Dimensions.size20,
-        Dimensions.size15,
-        Dimensions.size20,
-        Dimensions.size15,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Ringkasan cepat",
-            style: TextStyle(
-              fontSize: Dimensions.text12,
-              fontWeight: FontWeight.w900,
-              color: primaryText,
-            ),
-          ),
-          SizedBox(height: Dimensions.size4),
-          Text(
-            rangeLabel,
-            style: TextStyle(
-              fontSize: Dimensions.text11,
-              fontWeight: FontWeight.w700,
-              color: secondaryText,
-            ),
-          ),
-          SizedBox(height: Dimensions.size10),
-          Wrap(
-            spacing: Dimensions.size10,
-            runSpacing: Dimensions.size10,
-            children: [
-              metricTile("Total", formatChartNumber(total), "Akumulasi nilai"),
-              metricTile("Data", rows.toString(), "Baris tercatat"),
-              metricTile(
-                "Tipe dominan",
-                topVariable?.key ?? "-",
-                topVariable == null ? "-" : persentText(topVariable.value),
-              ),
-            ],
-          ),
-          SizedBox(height: Dimensions.size10),
-          highlightRow("Kategori teratas", topCategory),
-          SizedBox(height: Dimensions.size10),
-          highlightRow("Variabel teratas", topVariable),
-        ],
-      ),
-    );
-
-    if (isGlass) {
-      return GlassContainer(
-        blur: Dimensions.size20,
-        borderRadius: Dimensions.size20,
-        opacity: 0.10,
-        borderOpacity: 0.18,
-        padding: EdgeInsets.zero,
-        child: inner,
-      );
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(Dimensions.size15),
-        border: Border.all(
-          color: isGlass
-              ? Colors.white.withOpacity(0.18)
-              : Theme.of(context).colorScheme.outlineVariant.withValues(
-                    alpha: Theme.of(context).brightness == Brightness.dark
-                        ? 0.35
-                        : 0.55,
-                  ),
-        ),
-        boxShadow: [
-          if (Theme.of(context).brightness == Brightness.dark)
-            BoxShadow(
-              blurRadius: Dimensions.size25,
-              offset: Offset(0, Dimensions.size10),
-              color: Colors.black.withValues(alpha: 0.06),
-            ),
-        ],
-      ),
-      child: inner,
-    );
-  }
-}
-
-class InsightWidget {
-  final num total;
-  final int rows;
-  final List<MapEntry<String, num>> compositionByVariable;
-  final List<MapEntry<String, num>> compositionByCategory;
-
-  const InsightWidget({
-    required this.total,
-    required this.rows,
-    required this.compositionByVariable,
-    required this.compositionByCategory,
-  });
-}
-
-List<MapEntry<String, num>> topWithOther(
-  Map<String, num> map, {
-  int take = 5,
-  String othersLabel = "Lainnya",
-}) {
-  final List<MapEntry<String, num>> sorted = map.entries.toList()
-    ..sort((a, b) => b.value.compareTo(a.value));
-
-  if (sorted.length <= take) {
-    return sorted;
-  }
-
-  final List<MapEntry<String, num>> head = sorted.take(take).toList();
-  final num tailSum = sorted.skip(take).fold<num>(0, (p, e) => p + e.value);
-
-  return <MapEntry<String, num>>[
-    ...head,
-    MapEntry<String, num>(othersLabel, tailSum),
-  ];
-}
-
-InsightWidget buildInsight(List<Map<String, dynamic>> src) {
-  final Map<String, num> byCategory = {};
-  final Map<String, num> byVariable = {};
-
-  num total = 0;
-  int rows = 0;
-
-  for (final Map<String, dynamic> e in src) {
-    rows += 1;
-
-    final String category = (e["category"] ?? "").toString().trim();
-    final String variable = (e["variable"] ?? "").toString().trim();
-    final num value = parseChartNumber(e["value"]);
-
-    total += value;
-
-    final String safeCategory = category.isEmpty ? "-" : category;
-    final String safeVariable = variable.isEmpty ? "-" : variable;
-
-    byCategory[safeCategory] = (byCategory[safeCategory] ?? 0) + value;
-    byVariable[safeVariable] = (byVariable[safeVariable] ?? 0) + value;
-  }
-
-  return InsightWidget(
-    total: total,
-    rows: rows,
-    compositionByVariable: topWithOther(
-      byVariable,
-      take: 5,
-      othersLabel: "other".tr(),
-    ),
-    compositionByCategory: topWithOther(
-      byCategory,
-      take: 5,
-      othersLabel: "other".tr(),
-    ),
-  );
-}
-
-num parseChartNumber(dynamic value) {
-  if (value is num) {
-    return value;
-  }
-
-  final String raw = (value ?? "").toString().trim();
-  if (raw.isEmpty) {
-    return 0;
-  }
-
-  String normalized = raw.replaceAll(RegExp(r"[^0-9,.\-]"), "");
-  if (normalized.isEmpty ||
-      normalized == "-" ||
-      normalized == "." ||
-      normalized == ",") {
-    return 0;
-  }
-
-  if (normalized.contains(",") && normalized.contains(".")) {
-    if (normalized.lastIndexOf(",") > normalized.lastIndexOf(".")) {
-      normalized = normalized.replaceAll(".", "").replaceAll(",", ".");
-    } else {
-      normalized = normalized.replaceAll(",", "");
-    }
-  } else if (normalized.contains(",")) {
-    if (RegExp(r",\d{1,2}$").hasMatch(normalized)) {
-      normalized = normalized.replaceAll(".", "").replaceAll(",", ".");
-    } else {
-      normalized = normalized.replaceAll(",", "");
-    }
-  } else if (normalized.contains(".") &&
-      !RegExp(r"\.\d{1,2}$").hasMatch(normalized)) {
-    normalized = normalized.replaceAll(".", "");
-  }
-
-  return num.tryParse(normalized) ?? 0;
-}
-
-String formatChartNumber(num value) {
-  final bool wholeNumber = value == value.roundToDouble();
-  final NumberFormat formatter = wholeNumber
-      ? NumberFormat.decimalPattern("id")
-      : NumberFormat("#,##0.##", "id");
-  return formatter.format(value);
-}
-
-NumberFormat chartAxisNumberFormat() {
-  return NumberFormat("#,##0.##", "id");
-}
-
-String formatChartValue(dynamic value) {
-  if (value == null) {
-    return "";
-  }
-
-  if (value is num) {
-    return formatChartNumber(value);
-  }
-
-  final String raw = value.toString().trim();
-  if (raw.isEmpty) {
-    return "";
-  }
-
-  final RegExpMatch? match = RegExp(r"-?[\d.,]+").firstMatch(raw);
-  if (match == null) {
-    return raw;
-  }
-
-  final String token = match.group(0) ?? "";
-  if (token.isEmpty) {
-    return raw;
-  }
-
-  final String formatted = formatChartNumber(parseChartNumber(token));
-  return raw.replaceRange(match.start, match.end, formatted);
-}
-
-List<Map<String, dynamic>> normalizeChartRows(dynamic data) {
-  if (data is! List) {
-    if (data is Map) {
-      final Map<String, dynamic> map = Map<String, dynamic>.from(data);
-      final bool looksLikePoint = map.containsKey("value") &&
-          (map.containsKey("category") || map.containsKey("variable"));
-      if (looksLikePoint) {
-        return <Map<String, dynamic>>[
-          <String, dynamic>{
-            "variable": (map["variable"] ?? "").toString().trim(),
-            "category": (map["category"] ?? "").toString().trim(),
-            "value": parseChartNumber(map["value"]),
-          },
-        ];
-      }
-    }
-    return <Map<String, dynamic>>[];
-  }
-
-  return data.whereType<Map>().map((dynamic item) {
-    final Map<String, dynamic> map = Map<String, dynamic>.from(item as Map);
-    return <String, dynamic>{
-      "variable": (map["variable"] ?? "").toString().trim(),
-      "category": (map["category"] ?? "").toString().trim(),
-      "value": parseChartNumber(map["value"]),
-    };
-  }).toList();
-}
-
-class DynamicSummarySnapshot {
-  final String label;
-  final String value;
-  final num? numericValue;
-
-  const DynamicSummarySnapshot({
-    required this.label,
-    required this.value,
-    required this.numericValue,
-  });
-}
-
-DynamicSummarySnapshot? parseSummarySnapshot(dynamic data) {
-  if (data is Map) {
-    final Map<String, dynamic> map = Map<String, dynamic>.from(data);
-    final String label = (map["label"] ?? "").toString().trim();
-    final dynamic rawValue = map["value"];
-    final String value = formatChartValue(rawValue);
-    final bool hasUsableValue = value.trim().isNotEmpty;
-
-    if (!hasUsableValue) {
-      return null;
-    }
-
-    return DynamicSummarySnapshot(
-      label: label,
-      value: hasUsableValue ? value : "-",
-      numericValue: rawValue == null ? null : parseChartNumber(rawValue),
-    );
-  }
-
-  final List<Map<String, dynamic>> rows = normalizeChartRows(data);
-  if (rows.isEmpty) {
-    return null;
-  }
-
-  final InsightWidget insight = buildInsight(rows);
-  return DynamicSummarySnapshot(
-    label: "Total data",
-    value: formatChartNumber(insight.total),
-    numericValue: insight.total,
-  );
-}
-
-class DynamicSummaryValuePresentation {
-  final String headline;
-  final String amount;
-
-  const DynamicSummaryValuePresentation({
-    required this.headline,
-    required this.amount,
-  });
-}
-
-DynamicSummaryValuePresentation splitDynamicSummaryValue(
-  DynamicSummarySnapshot snapshot,
-) {
-  final String raw = snapshot.value.trim();
-  if (raw.isEmpty) {
-    return const DynamicSummaryValuePresentation(
-      headline: "",
-      amount: "-",
-    );
-  }
-
-  final RegExpMatch? match = RegExp(r"^(.*?)(-?\d[\d.,]*)$").firstMatch(raw);
-  if (match != null) {
-    final String headline = (match.group(1) ?? "")
-        .replaceAll(RegExp(r"\s+"), " ")
-        .replaceFirst(RegExp(r"[:\-\s]+$"), "")
-        .trim();
-    final String amount = (match.group(2) ?? "").trim();
-
-    if (headline.isNotEmpty && amount.isNotEmpty) {
-      return DynamicSummaryValuePresentation(
-        headline: headline,
-        amount: amount,
-      );
-    }
-  }
-
-  if (snapshot.numericValue != null) {
-    return DynamicSummaryValuePresentation(
-      headline: "",
-      amount: formatChartNumber(snapshot.numericValue!),
-    );
-  }
-
-  return DynamicSummaryValuePresentation(
-    headline: "",
-    amount: raw,
-  );
-}
-
-Color summaryAccentColor(String? raw) {
-  final String value = (raw ?? "").trim().toLowerCase();
-  if (value.isEmpty) {
-    return const Color(0xFF4C6FFF);
-  }
-  if (value.contains("red")) {
-    return const Color(0xFFE03131);
-  }
-  if (value.contains("green")) {
-    return const Color(0xFF2F9E44);
-  }
-  if (value.contains("orange")) {
-    return const Color(0xFFF08C00);
-  }
-  if (value.contains("purple")) {
-    return const Color(0xFF7B61FF);
-  }
-  if (value.contains("blue")) {
-    return const Color(0xFF1971C2);
-  }
-
-  final String hex = value.replaceAll("#", "");
-  if (hex.length == 6 || hex.length == 8) {
-    final String normalized = hex.length == 6 ? "FF$hex" : hex;
-    final int? parsed = int.tryParse(normalized, radix: 16);
-    if (parsed != null) {
-      return Color(parsed);
-    }
-  }
-
-  return const Color(0xFF4C6FFF);
-}
-
-IconData summaryIcon(String? raw) {
-  final String value = (raw ?? "").trim().toLowerCase();
-
-  if (value.contains("money") || value.contains("cash")) {
-    return Icons.payments_rounded;
-  }
-  if (value.contains("person") || value.contains("user")) {
-    return Icons.person_rounded;
-  }
-  if (value.contains("cart") || value.contains("bag")) {
-    return Icons.shopping_bag_rounded;
-  }
-  if (value.contains("box") || value.contains("inventory")) {
-    return Icons.inventory_2_rounded;
-  }
-  if (value.contains("trend") || value.contains("chart")) {
-    return Icons.trending_up_rounded;
-  }
-
-  return Icons.auto_graph_rounded;
-}
-
-class DynamicSummaryCard extends StatefulWidget {
-  final Summary summary;
-  final Jiffy begin;
-  final Jiffy until;
-  final bool isGlass;
-  final dynamic initialData;
-
-  const DynamicSummaryCard({
-    required this.summary,
-    required this.begin,
-    required this.until,
-    required this.isGlass,
-    this.initialData,
-    super.key,
-  });
-
-  @override
-  State<DynamicSummaryCard> createState() => _DynamicSummaryCardState();
-}
-
-class _DynamicSummaryCardState extends State<DynamicSummaryCard> {
-  bool loading = true;
-  DynamicSummarySnapshot? snapshot;
-
-  bool _sameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    snapshot = parseSummarySnapshot(widget.initialData);
-    loading = widget.initialData == null;
-    if (widget.initialData == null) {
-      fetch();
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant DynamicSummaryCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    if (oldWidget.initialData != widget.initialData &&
-        widget.initialData != null) {
-      snapshot = parseSummarySnapshot(widget.initialData);
-      loading = false;
-    }
-
-    final bool changed =
-        !_sameDay(oldWidget.begin.dateTime, widget.begin.dateTime) ||
-            !_sameDay(oldWidget.until.dateTime, widget.until.dateTime);
-
-    if (changed) {
-      fetch();
-    }
-  }
-
-  void fetch() {
-    context.read<DynamicChartBloc>().add(
-          DynamicChartData(
-            id: widget.summary.id,
-            begin: widget.begin,
-            until: widget.until,
-          ),
-        );
-  }
-
-  String rangeLabel() {
-    final String a = widget.begin.format(pattern: "d MMM yyyy");
-    final String z = widget.until.format(pattern: "d MMM yyyy");
-    return "$a - $z";
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocListener<DynamicChartBloc, DynamicChartState>(
-      listener: (context, state) async {
-        if (state is DynamicChartDataLoading && state.id == widget.summary.id) {
-          setState(() {
-            loading = true;
-          });
-        } else if (state is DynamicChartDataSuccess &&
-            state.id == widget.summary.id) {
-          setState(() {
-            snapshot = parseSummarySnapshot(state.data);
-          });
-        } else if (state is DynamicChartDataFinished &&
-            state.id == widget.summary.id) {
-          setState(() => loading = false);
-        }
-      },
-      child: loading ? LoadingCard(isGlass: widget.isGlass) : content(),
-    );
-  }
-
-  Widget content() {
-    if (snapshot == null) {
-      return const SizedBox.shrink();
-    }
-
-    final Color accent = summaryAccentColor(widget.summary.color);
-    final IconData icon = summaryIcon(widget.summary.icon);
-    final DynamicSummaryValuePresentation valuePresentation =
-        splitDynamicSummaryValue(snapshot!);
-    final Color primaryText = widget.isGlass
-        ? Colors.white.withOpacity(0.94)
-        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.92);
-    final Color secondaryText = widget.isGlass
-        ? Colors.white.withOpacity(0.74)
-        : Theme.of(context)
-            .colorScheme
-            .onSurfaceVariant
-            .withValues(alpha: 0.86);
-
-    final Widget inner = Container(
-      padding: EdgeInsets.all(Dimensions.size20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: widget.isGlass
-              ? <Color>[
-                  accent.withValues(alpha: 0.18),
-                  Colors.white.withOpacity(0.03),
-                ]
-              : <Color>[
-                  accent.withValues(alpha: 0.12),
-                  Theme.of(context).colorScheme.surface,
-                ],
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: Dimensions.size40,
-                height: Dimensions.size40,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(Dimensions.size15),
-                ),
-                alignment: Alignment.center,
-                child: Icon(icon, color: accent, size: Dimensions.size20),
-              ),
-              SizedBox(width: Dimensions.size10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.summary.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: Dimensions.text12,
-                        fontWeight: FontWeight.w800,
-                        color: primaryText,
-                      ),
-                    ),
-                    SizedBox(height: Dimensions.size2),
-                    Text(
-                      rangeLabel(),
-                      style: TextStyle(
-                        fontSize: Dimensions.text10,
-                        fontWeight: FontWeight.w700,
-                        color: secondaryText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: Dimensions.size15),
-          if (valuePresentation.headline.isNotEmpty) ...[
-            Text(
-              valuePresentation.headline,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: Dimensions.text18,
-                fontWeight: FontWeight.w800,
-                color: primaryText,
-                height: 1.08,
-              ),
-            ),
-            SizedBox(height: Dimensions.size4),
-          ],
-          Text(
-            valuePresentation.amount,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: valuePresentation.headline.isEmpty
-                  ? Dimensions.text22
-                  : Dimensions.text20,
-              fontWeight: FontWeight.w900,
-              color: primaryText,
-              letterSpacing: -0.3,
-              height: 1.0,
-            ),
-          ),
-          SizedBox(height: Dimensions.size4),
-          Text(
-            snapshot!.label.isEmpty
-                ? "Ringkasan cepat siap dipakai untuk sales."
-                : snapshot!.label,
-            style: TextStyle(
-              fontSize: Dimensions.text11,
-              fontWeight: FontWeight.w700,
-              color: secondaryText,
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (widget.isGlass) {
-      return GlassContainer(
-        blur: Dimensions.size20,
-        borderRadius: Dimensions.size20,
-        opacity: 0.10,
-        borderOpacity: 0.18,
-        padding: EdgeInsets.zero,
-        child: inner,
-      );
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(Dimensions.size15),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(
-                alpha: Theme.of(context).brightness == Brightness.dark
-                    ? 0.35
-                    : 0.55,
-              ),
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(Dimensions.size15),
-        child: inner,
-      ),
-    );
-  }
-}
-
-extension ChartModelX on ChartModel {
-  String label() {
-    switch (this) {
-      case ChartModel.stackedColumn:
-        return "Stacked Column";
-      case ChartModel.groupedColumn:
-        return "Diverging Bar Chart";
-      case ChartModel.line:
-        return "Line";
-      case ChartModel.stackedArea:
-        return "Stacked Area";
-      case ChartModel.stackedBar:
-        return "Stacked Bar";
-      case ChartModel.pie:
-        return "Pie";
-    }
-  }
-
-  IconData icon() {
-    switch (this) {
-      case ChartModel.stackedColumn:
-        return Icons.stacked_bar_chart_rounded;
-      case ChartModel.groupedColumn:
-        return Icons.compare_arrows_rounded;
-      case ChartModel.line:
-        return Icons.show_chart_rounded;
-      case ChartModel.stackedArea:
-        return Icons.area_chart_rounded;
-      case ChartModel.stackedBar:
-        return Icons.view_week_rounded;
-      case ChartModel.pie:
-        return Icons.pie_chart_rounded;
-    }
-  }
-
-  bool isStacked() {
-    switch (this) {
-      case ChartModel.stackedColumn:
-      case ChartModel.stackedArea:
-      case ChartModel.stackedBar:
-        return true;
-      case ChartModel.groupedColumn:
-      case ChartModel.line:
-      case ChartModel.pie:
-        return false;
-    }
-  }
-
-  bool isCircular() => this == ChartModel.pie;
-}
-
-class ChartCard extends StatefulWidget {
-  final Chart chart;
-  final Jiffy begin;
-  final Jiffy until;
-  final bool isGlass;
-  final bool compact;
-  final dynamic initialData;
-
-  const ChartCard({
-    required this.chart,
-    required this.begin,
-    required this.until,
-    required this.isGlass,
-    this.compact = false,
-    this.initialData,
-    super.key,
-  });
-
-  @override
-  State<ChartCard> createState() => ChartCardState();
-}
-
-class ChartCardState extends State<ChartCard> {
-  bool loading = true;
-  List<Map<String, dynamic>>? raw;
-
-  late ZoomPanBehavior zoom;
-
-  ChartModel model = ChartModel.stackedColumn;
-
-  bool _sameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
-  }
-
-  static const List<Color> basePalette = [
-    Color(0xFFB9A7FF),
-    Color(0xFFFFC08A),
-    Color(0xFF9BE7FF),
-    Color(0xFFA8F0D5),
-    Color(0xFFFFA7C2),
-    Color(0xFFB8C7FF),
-    Color(0xFFFFE3B6),
-    Color(0xFFE7B6FF),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-
-    zoom = ZoomPanBehavior(
-      enablePanning: true,
-      enablePinching: true,
-      zoomMode: ZoomMode.x,
-    );
-
-    raw = normalizeChartRows(widget.initialData);
-    loading = widget.initialData == null;
-    if (widget.initialData == null) {
-      fetch();
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant ChartCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    if (oldWidget.initialData != widget.initialData &&
-        widget.initialData != null) {
-      setState(() {
-        raw = normalizeChartRows(widget.initialData);
-        loading = false;
-      });
-    }
-
-    final bool changed =
-        !_sameDay(oldWidget.begin.dateTime, widget.begin.dateTime) ||
-            !_sameDay(oldWidget.until.dateTime, widget.until.dateTime);
-
-    if (changed) {
-      fetch();
-    }
-  }
-
-  void fetch() {
-    context.read<DynamicChartBloc>().add(
-          DynamicChartData(
-            id: widget.chart.id,
-            begin: widget.begin,
-            until: widget.until,
-          ),
-        );
-  }
-
-  Future<void> selectModel() async {
-    final ChartModel? selected = await showModalBottomSheet<ChartModel>(
-      context: context,
-      useSafeArea: false,
-      isScrollControlled: false,
-      showDragHandle: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(Dimensions.size20),
-        ),
-        side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(
-                alpha: Theme.of(context).brightness == Brightness.dark
-                    ? 0.35
-                    : 0.55,
-              ),
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      builder: (context) {
-        final ColorScheme cs = Theme.of(context).colorScheme;
-
-        final List<ChartModel> models = <ChartModel>[
-          ChartModel.stackedColumn,
-          ChartModel.groupedColumn,
-          ChartModel.line,
-          ChartModel.stackedArea,
-          ChartModel.stackedBar,
-          ChartModel.pie,
-        ];
-
-        final double bottomInset = MediaQuery.of(context).padding.bottom;
-        final double screenH = MediaQuery.of(context).size.height;
-        final double maxH = screenH * 0.30;
-
-        const int crossAxisCount = 3;
-        final double gap = Dimensions.size10;
-        final double cardPadding = Dimensions.size10;
-        final double headerH = Dimensions.size20;
-
-        final double tileH = math.max(92.0, Dimensions.size100.toDouble());
-
-        final int rows = (models.length / crossAxisCount).ceil();
-        final double gridH = (rows * tileH) + ((rows - 1) * gap);
-
-        final double estimatedH = headerH +
-            Dimensions.size10 +
-            gridH +
-            (cardPadding * 2) +
-            bottomInset +
-            Dimensions.size10;
-
-        final bool needsScroll = estimatedH > maxH;
-
-        Color modelColor(ChartModel m) {
-          switch (m) {
-            case ChartModel.stackedColumn:
-              return const Color.fromARGB(255, 157, 162, 0);
-            case ChartModel.groupedColumn:
-              return const Color.fromARGB(255, 19, 96, 0);
-            case ChartModel.line:
-              return const Color.fromARGB(255, 255, 152, 63);
-            case ChartModel.stackedArea:
-              return const Color.fromARGB(255, 0, 0, 0);
-            case ChartModel.stackedBar:
-              return const Color.fromARGB(255, 0, 27, 125);
-            case ChartModel.pie:
-              return const Color.fromARGB(255, 255, 0, 0);
-          }
-        }
-
-        Widget gridItem(ChartModel m) {
-          final bool active = m == model;
-
-          final Color accent = modelColor(m);
-
-          return InkWell(
-            borderRadius: BorderRadius.circular(Dimensions.size15),
-            onTap: () => Navigator.of(context).pop(m),
-            child: Container(
-              height: tileH,
-              padding: EdgeInsets.all(Dimensions.size10),
-              decoration: BoxDecoration(
-                color: active
-                    ? Color.alphaBlend(
-                        accent.withValues(alpha: 0.10),
-                        cs.surface,
-                      )
-                    : cs.surface,
-                borderRadius: BorderRadius.circular(Dimensions.size15),
-                border: Border.all(
-                  color: active
-                      ? Color.alphaBlend(
-                          accent.withValues(alpha: 0.35),
-                          cs.outlineVariant.withValues(
-                            alpha:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? 0.35
-                                    : 0.55,
-                          ),
-                        )
-                      : cs.outlineVariant.withValues(
-                          alpha: Theme.of(context).brightness == Brightness.dark
-                              ? 0.35
-                              : 0.55,
-                        ),
-                ),
-              ),
-              child: LayoutBuilder(
-                builder: (context, c) {
-                  final bool compact = c.maxHeight < 84;
-
-                  return Column(
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      SizedBox(height: compact ? 2 : 4),
-                      Container(
-                        width: Dimensions.size35,
-                        height: Dimensions.size35,
-                        decoration: BoxDecoration(
-                          color: Color.alphaBlend(
-                            accent.withValues(alpha: active ? 0.18 : 0.12),
-                            cs.surface,
-                          ),
-                          borderRadius: BorderRadius.circular(
-                            Dimensions.size15,
-                          ),
-                          border: Border.all(
-                            color: accent.withValues(
-                              alpha: active ? 0.35 : 0.22,
-                            ),
-                          ),
-                        ),
-                        child: Icon(
-                          m.icon(),
-                          size: Dimensions.size20,
-                          color: active
-                              ? accent.withValues(alpha: 1.0)
-                              : accent.withValues(alpha: 0.85),
-                        ),
-                      ),
-                      SizedBox(height: compact ? 6 : 10),
-                      Expanded(
-                        child: Center(
-                          child: Text(
-                            m.label(),
-                            textAlign: TextAlign.center,
-                            maxLines: compact ? 2 : 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: compact
-                                  ? Dimensions.text11
-                                  : Dimensions.text12,
-                              fontWeight: FontWeight.w900,
-                              color: cs.onSurface.withValues(alpha: 0.92),
-                              height: 1.05,
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (!compact) ...[
-                        SizedBox(height: Dimensions.size2),
-                        Text(
-                          m.isCircular()
-                              ? "Circular"
-                              : (m.isStacked() ? "Stacked" : "Non-stacked"),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize:
-                                compact ? Dimensions.text9 : Dimensions.text10,
-                            fontWeight: FontWeight.w700,
-                            color: cs.onSurfaceVariant.withValues(alpha: 0.85),
-                            height: 1.05,
-                          ),
-                        ),
-                      ],
-                      SizedBox(height: compact ? 4 : 8),
-                      Container(
-                        width: Dimensions.size20,
-                        height: Dimensions.size20,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: active ? accent : Colors.transparent,
-                          border: Border.all(
-                            color: active
-                                ? accent
-                                : cs.onSurfaceVariant
-                                    .withValues(alpha: 0.85)
-                                    .withValues(alpha: 0.65),
-                            width: 1.6,
-                          ),
-                        ),
-                        child: active
-                            ? Icon(
-                                Icons.check,
-                                size: Dimensions.size10,
-                                color: cs.surface,
-                              )
-                            : null,
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          );
-        }
-
-        final Widget inner = SafeArea(
-          top: false,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              cardPadding,
-              Dimensions.size10,
-              cardPadding,
-              bottomInset + Dimensions.size10,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  height: headerH,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "select_chartmodel".tr(),
-                      style: TextStyle(
-                        fontSize: Dimensions.text16,
-                        fontWeight: FontWeight.w900,
-                        color: cs.onSurface,
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: Dimensions.size15),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: models.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: gap,
-                    mainAxisSpacing: gap,
-                    mainAxisExtent: tileH,
-                  ),
-                  itemBuilder: (_, i) => gridItem(models[i]),
-                ),
-              ],
-            ),
-          ),
-        );
-
-        final Widget body = needsScroll
-            ? ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: maxH),
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: inner,
-                ),
-              )
-            : inner;
-
-        return body;
-      },
-    );
-
-    if (selected == null) {
-      return;
-    }
-    setState(() => model = selected);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocListener<DynamicChartBloc, DynamicChartState>(
-      listener: (context, state) async {
-        if (state is DynamicChartDataLoading && state.id == widget.chart.id) {
-          setState(() {
-            loading = true;
-            raw = null;
-          });
-        } else if (state is DynamicChartDataSuccess &&
-            state.id == widget.chart.id) {
-          setState(() {
-            raw = normalizeChartRows(state.data);
-          });
-        } else if (state is DynamicChartDataFinished &&
-            state.id == widget.chart.id) {
-          setState(() => loading = false);
-        }
-      },
-      child: loading ? LoadingCard(isGlass: widget.isGlass) : content(),
-    );
-  }
-
-  List<String> allVariableSorted(List<Map<String, dynamic>> src) {
-    final Map<String, num> totals = {};
-    for (final e in src) {
-      final String v = e["variable"].toString();
-      final num val = parseChartNumber(e["value"]);
-      totals[v] = (totals[v] ?? 0) + val;
-    }
-
-    final List<MapEntry<String, num>> sorted = totals.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-
-    return sorted.map((e) => e.key).toList();
-  }
-
-  Color colorIndex(int i) {
-    if (i < basePalette.length) {
-      return basePalette[i];
-    }
-
-    final double h = (i * 0.61803398875) % 1.0;
-    final HSVColor hsv = HSVColor.fromAHSV(1, 360 * h, 0.38, 0.95);
-    return hsv.toColor();
-  }
-
-  String rangeLabel() {
-    final String a = widget.begin.format(pattern: "d MMM yyyy");
-    final String z = widget.until.format(pattern: "d MMM yyyy");
-    return "$a - $z";
-  }
-
-  Widget content() {
-    final bool hasData = raw != null && raw!.isNotEmpty;
-
-    final List<String> variables =
-        hasData ? allVariableSorted(raw!) : <String>[];
-
-    final List<PieSlice> pieSlices = hasData
-        ? pieChartSlices(raw!, maxSlices: 7, minPct: 2.5)
-        : <PieSlice>[];
-
-    final List<String> pieCats = pieSlices.map((e) => e.label).toList();
-    final bool showDivergingLegend = model == ChartModel.groupedColumn;
-    final List<String> divergingLegend = const <String>[
-      "Above average",
-      "Below average",
-    ];
-
-    final Widget innerChartCard = Padding(
-      padding: EdgeInsets.fromLTRB(
-        Dimensions.size20,
-        Dimensions.size15,
-        Dimensions.size20,
-        Dimensions.size15,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  widget.chart.title,
-                  style: TextStyle(
-                    fontSize: Dimensions.text13,
-                    fontWeight: FontWeight.w800,
-                    color: widget.isGlass
-                        ? Colors.white.withOpacity(0.95)
-                        : Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.92),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              SizedBox(width: Dimensions.size10),
-              ChartModelPill(
-                isGlass: widget.isGlass,
-                model: model,
-                onTap: selectModel,
-              ),
-            ],
-          ),
-          SizedBox(height: Dimensions.size10),
-          if (model == ChartModel.pie && pieCats.isNotEmpty)
-            ScroolLegend(
-              isGlass: widget.isGlass,
-              variables: pieCats,
-              colorForIndex: colorIndex,
-            )
-          else if (showDivergingLegend)
-            ScroolLegend(
-              isGlass: widget.isGlass,
-              variables: divergingLegend,
-              colorForIndex: (int index) {
-                return index == 0
-                    ? const Color(0xFF2F9E44)
-                    : const Color(0xFFE03131);
-              },
-            )
-          else if (model != ChartModel.pie && variables.isNotEmpty)
-            ScroolLegend(
-              isGlass: widget.isGlass,
-              variables: variables,
-              colorForIndex: colorIndex,
-            ),
-          if ((model == ChartModel.pie && pieCats.isNotEmpty) ||
-              (model != ChartModel.pie && variables.isNotEmpty))
-            SizedBox(height: Dimensions.size10),
-          SizedBox(
-            height: widget.compact ? 300 : 320,
-            child: hasData ? anyChart(variables) : empthy(),
-          ),
-        ],
-      ),
-    );
-
-    final Widget chartCard = widget.isGlass
-        ? GlassContainer(
-            blur: Dimensions.size20,
-            borderRadius: Dimensions.size20,
-            opacity: 0.10,
-            borderOpacity: 0.18,
-            padding: EdgeInsets.zero,
-            child: innerChartCard,
-          )
-        : Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(Dimensions.size15),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant.withValues(
-                      alpha: Theme.of(context).brightness == Brightness.dark
-                          ? 0.35
-                          : 0.55,
-                    ),
-              ),
-              boxShadow: [
-                if (Theme.of(context).brightness == Brightness.dark)
-                  BoxShadow(
-                    blurRadius: Dimensions.size25,
-                    offset: Offset(0, Dimensions.size15),
-                    color: Colors.black.withValues(alpha: 0.06),
-                  ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(Dimensions.size15),
-              child: innerChartCard,
-            ),
-          );
-
-    final Widget insightCard = hasData
-        ? Builder(
-            builder: (_) {
-              final InsightWidget ins = buildInsight(raw!);
-              return Insight(
-                isGlass: widget.isGlass,
-                total: ins.total,
-                rows: ins.rows,
-                rangeLabel: rangeLabel(),
-                compositionByVariable: ins.compositionByVariable,
-                compositionByCategory: ins.compositionByCategory,
-              );
-            },
-          )
-        : const SizedBox.shrink();
-
-    return Column(
-      children: [
-        chartCard,
-        if (hasData) SizedBox(height: Dimensions.size15),
-        if (hasData) insightCard,
-      ],
-    );
-  }
-
-  Widget empthy() {
-    return Center(
-      child: Text(
-        raw == null ? "failed_to_load_data".tr() : "no_data".tr(),
-        style: TextStyle(
-          fontSize: Dimensions.text13,
-          fontWeight: FontWeight.w800,
-          color: widget.isGlass
-              ? Colors.white.withOpacity(0.80)
-              : Theme.of(
-                  context,
-                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.85),
-        ),
-      ),
-    );
-  }
-
-  Widget anyChart(List<String> variables) {
-    if (model == ChartModel.pie) {
-      return KeyedSubtree(
-        key: ValueKey<String>("${widget.chart.id}_${model.name}"),
-        child: pieChart(),
-      );
-    }
-    return KeyedSubtree(
-      key: ValueKey<String>("${widget.chart.id}_${model.name}"),
-      child: cartesianChart(variables),
-    );
-  }
-
-  List<PieSlice> pieChartSlices(
-    List<Map<String, dynamic>> src, {
-    int maxSlices = 8,
-    double minPct = 2.5,
-  }) {
-    final Map<String, num> sums = {};
-    num grand = 0;
-
-    for (final e in src) {
-      final String cat = (e["category"] ?? "").toString().trim();
-      final num v = parseChartNumber(e["value"]);
-
-      if (v <= 0) {
-        continue;
-      }
-      final String safe = cat.isEmpty ? "-" : cat;
-
-      sums[safe] = (sums[safe] ?? 0) + v;
-      grand += v;
-    }
-
-    final List<MapEntry<String, num>> sorted = sums.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-
-    if (sorted.isEmpty || grand <= 0) {
-      return <PieSlice>[];
-    }
-
-    final List<PieSlice> out = [];
-    num other = 0;
-
-    for (final e in sorted) {
-      final double pct = (e.value / grand) * 100.0;
-
-      if (out.length >= maxSlices || pct < minPct) {
-        other += e.value;
-      } else {
-        out.add(PieSlice(label: e.key, value: e.value));
-      }
-    }
-
-    if (other > 0) {
-      out.add(PieSlice(label: "other".tr(), value: other));
-    }
-
-    return out;
-  }
-
-  Widget pieChart() {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final bool dark = Theme.of(context).brightness == Brightness.dark;
-
-    final List<PieSlice> slices = pieChartSlices(
-      raw!,
-      maxSlices: 7,
-      minPct: 2.5,
-    );
-
-    if (slices.isEmpty) {
-      return empthy();
-    }
-
-    final num total = slices.fold<num>(0, (p, e) => p + e.value);
-
-    double pctVal(num v) => total <= 0 ? 0 : (v / total) * 100.0;
-    String pctText(num v) {
-      final double p = pctVal(v);
-      return p >= 10 ? "${p.toStringAsFixed(0)}%" : "${p.toStringAsFixed(1)}%";
-    }
-
-    return SfCircularChart(
-      backgroundColor: Colors.transparent,
-      margin: EdgeInsets.zero,
-      legend: const Legend(isVisible: false),
-      tooltipBehavior: TooltipBehavior(
-        enable: true,
-        header: "",
-        color: cs.surfaceContainerHighest,
-        textStyle: TextStyle(color: cs.onSurface),
-        builder: (
-          dynamic value,
-          dynamic point,
-          dynamic series,
-          int pointIndex,
-          int seriesIndex,
-        ) {
-          if (pointIndex < 0 || pointIndex >= slices.length) {
-            return const SizedBox.shrink();
-          }
-
-          final PieSlice item = slices[pointIndex];
-          return Container(
-            padding: EdgeInsets.all(Dimensions.size10),
-            constraints: const BoxConstraints(minWidth: 150),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: cs.onSurface,
-                  ),
-                ),
-                SizedBox(height: Dimensions.size5),
-                Text(
-                  formatChartNumber(item.value),
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: cs.onSurface,
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-      series: <CircularSeries<PieSlice, String>>[
-        DoughnutSeries<PieSlice, String>(
-          dataSource: slices,
-          xValueMapper: (PieSlice s, _) => s.label,
-          yValueMapper: (PieSlice s, _) => s.value.toDouble(),
-          pointColorMapper: (PieSlice s, int i) => colorIndex(i),
-          cornerStyle: CornerStyle.endCurve,
-          innerRadius: "66%",
-          radius: "92%",
-          strokeColor: cs.surface,
-          strokeWidth: 2,
-          dataLabelSettings: DataLabelSettings(
-            isVisible: true,
-            labelPosition: ChartDataLabelPosition.outside,
-            connectorLineSettings: ConnectorLineSettings(
-              color: widget.isGlass
-                  ? Colors.white.withOpacity(0.18)
-                  : cs.outlineVariant.withValues(alpha: dark ? 0.35 : 0.55),
-              length: "10%",
-              width: 1,
-            ),
-            builder:
-                (dynamic data, dynamic point, dynamic series, int i, int s) {
-              final PieSlice sl = slices[i];
-              final double p = pctVal(sl.value);
-              if (p < 5) {
-                return const SizedBox.shrink();
-              }
-              return Text(
-                pctText(sl.value),
-                style: TextStyle(
-                  fontSize: Dimensions.text11,
-                  fontWeight: FontWeight.w800,
-                  color: widget.isGlass
-                      ? Colors.white.withOpacity(0.88)
-                      : cs.onSurface.withValues(alpha: 0.88),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget cartesianChart(List<String> variables) {
-    if (model == ChartModel.groupedColumn) {
-      return divergingBarChart();
-    }
-
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final bool dark = Theme.of(context).brightness == Brightness.dark;
-
-    final Agg agg = aggregate(raw!);
-    final List<CatPoint> points = agg.points;
-
-    num maxYForStacked() {
-      return points.fold<num>(0, (p, e) {
-        final num sum = e.values.values.fold<num>(0, (pp, vv) => pp + vv);
-        return math.max(p, sum);
-      });
-    }
-
-    num maxYForNonStacked() {
-      return points.fold<num>(0, (p, e) {
-        final num m = e.values.values.fold<num>(
-          0,
-          (pp, vv) => math.max(pp, vv),
-        );
-        return math.max(p, m);
-      });
-    }
-
-    final num maxY = model.isStacked() ? maxYForStacked() : maxYForNonStacked();
-
-    final double maxAxis = maxY <= 0 ? 0 : (maxY * 1.10).ceilToDouble();
-
-    return SfCartesianChart(
-      backgroundColor: Colors.transparent,
-      margin: EdgeInsets.zero,
-      plotAreaBorderWidth: 0,
-      plotAreaBackgroundColor: Colors.transparent,
-      primaryXAxis: CategoryAxis(
-        majorGridLines: const MajorGridLines(width: 0),
-        majorTickLines: const MajorTickLines(width: 0),
-        axisLine: const AxisLine(width: 0),
-        labelIntersectAction: AxisLabelIntersectAction.hide,
-        labelStyle: TextStyle(
-          fontSize: Dimensions.text11,
-          fontWeight: FontWeight.w700,
-          color: widget.isGlass
-              ? Colors.white.withOpacity(0.85)
-              : cs.onSurfaceVariant.withValues(alpha: 0.90),
-        ),
-        autoScrollingDelta: 7,
-        autoScrollingMode: AutoScrollingMode.start,
-        axisLabelFormatter: (AxisLabelRenderDetails d) {
-          final String full = d.text;
-          final CatPoint? p = points.firstWhereOrNull(
-            (e) => e.category == full,
-          );
-          return ChartAxisLabel(p?.shortLabel ?? full, d.textStyle);
-        },
-      ),
-      primaryYAxis: NumericAxis(
-        minimum: 0,
-        maximum: maxAxis == 0 ? null : maxAxis,
-        interval: maxAxis == 0
-            ? null
-            : maxAxis <= 0
-                ? 1
-                : (maxAxis / 4).ceilToDouble(),
-        rangePadding: ChartRangePadding.none,
-        majorGridLines: MajorGridLines(
-          width: 1,
-          color: widget.isGlass
-              ? Colors.white.withOpacity(0.10)
-              : cs.onSurface.withValues(alpha: dark ? 0.10 : 0.08),
-        ),
-        majorTickLines: const MajorTickLines(width: 0),
-        axisLine: const AxisLine(width: 0),
-        numberFormat: chartAxisNumberFormat(),
-        labelStyle: TextStyle(
-          fontSize: Dimensions.text11,
-          fontWeight: FontWeight.w700,
-          color: widget.isGlass
-              ? Colors.white.withOpacity(0.80)
-              : cs.onSurfaceVariant.withValues(alpha: 0.80),
-        ),
-      ),
-      legend: const Legend(isVisible: false),
-      tooltipBehavior: toolTip(points),
-      zoomPanBehavior: zoom,
-      series: series(points, variables),
-    );
-  }
-
-  List<DivergingPoint> divergingPoints() {
-    final Agg agg = aggregate(raw!);
-    if (agg.points.isEmpty) {
-      return <DivergingPoint>[];
-    }
-
-    final List<MapEntry<String, double>> totals =
-        agg.points.map((CatPoint point) {
-      final double total = point.values.values.fold<double>(
-        0,
-        (double previous, num value) => previous + value.toDouble(),
-      );
-      return MapEntry<String, double>(point.category, total);
-    }).toList();
-
-    final double baseline = totals.fold<double>(
-          0,
-          (double previous, item) => previous + item.value,
-        ) /
-        totals.length;
-
-    return totals.map((MapEntry<String, double> item) {
-      return DivergingPoint(
-        category: item.key,
-        total: item.value,
-        delta: item.value - baseline,
-        baseline: baseline,
-      );
-    }).toList()
-      ..sort(
-        (
-          DivergingPoint a,
-          DivergingPoint b,
-        ) =>
-            b.delta.compareTo(a.delta),
-      );
-  }
-
-  Widget divergingBarChart() {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final bool dark = Theme.of(context).brightness == Brightness.dark;
-    final List<DivergingPoint> points = divergingPoints();
-
-    if (points.isEmpty) {
-      return empthy();
-    }
-
-    final double maxAbs = points
-        .map((DivergingPoint point) => point.delta.abs())
-        .fold<double>(0, math.max);
-    final double axisExtent = maxAbs <= 0 ? 1 : (maxAbs * 1.20);
-
-    return SfCartesianChart(
-      isTransposed: true,
-      backgroundColor: Colors.transparent,
-      margin: EdgeInsets.zero,
-      plotAreaBorderWidth: 0,
-      plotAreaBackgroundColor: Colors.transparent,
-      primaryXAxis: CategoryAxis(
-        majorGridLines: const MajorGridLines(width: 0),
-        majorTickLines: const MajorTickLines(width: 0),
-        axisLine: const AxisLine(width: 0),
-        labelIntersectAction: AxisLabelIntersectAction.wrap,
-        labelStyle: TextStyle(
-          fontSize: Dimensions.text11,
-          fontWeight: FontWeight.w700,
-          color: widget.isGlass
-              ? Colors.white.withOpacity(0.85)
-              : cs.onSurfaceVariant.withValues(alpha: 0.90),
-        ),
-      ),
-      primaryYAxis: NumericAxis(
-        minimum: -axisExtent,
-        maximum: axisExtent,
-        majorTickLines: const MajorTickLines(width: 0),
-        axisLine: const AxisLine(width: 0),
-        numberFormat: chartAxisNumberFormat(),
-        majorGridLines: MajorGridLines(
-          width: 1,
-          color: widget.isGlass
-              ? Colors.white.withOpacity(0.10)
-              : cs.onSurface.withValues(alpha: dark ? 0.10 : 0.08),
-        ),
-        labelStyle: TextStyle(
-          fontSize: Dimensions.text11,
-          fontWeight: FontWeight.w700,
-          color: widget.isGlass
-              ? Colors.white.withOpacity(0.80)
-              : cs.onSurfaceVariant.withValues(alpha: 0.80),
-        ),
-      ),
-      tooltipBehavior: TooltipBehavior(
-        enable: true,
-        header: "",
-        color: cs.surfaceContainerHighest,
-        textStyle: TextStyle(color: cs.onSurface),
-        builder: (
-          dynamic value,
-          dynamic point,
-          dynamic series,
-          int pointIndex,
-          int seriesIndex,
-        ) {
-          if (pointIndex < 0 || pointIndex >= points.length) {
-            return const SizedBox.shrink();
-          }
-
-          final DivergingPoint item = points[pointIndex];
-          final String direction =
-              item.delta >= 0 ? "Above average" : "Below average";
-
-          return Container(
-            padding: EdgeInsets.all(Dimensions.size10),
-            constraints: const BoxConstraints(minWidth: 200),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.category,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: cs.onSurface,
-                  ),
-                ),
-                SizedBox(height: Dimensions.size10),
-                Text("Total: ${formatChartNumber(item.total)}"),
-                Text(
-                  "$direction ${formatChartNumber(item.delta.abs())} dari rata-rata ${formatChartNumber(item.baseline)}",
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-      series: <CartesianSeries<DivergingPoint, String>>[
-        ColumnSeries<DivergingPoint, String>(
-          dataSource: points,
-          xValueMapper: (DivergingPoint point, _) => point.category,
-          yValueMapper: (DivergingPoint point, _) => point.delta,
-          pointColorMapper: (DivergingPoint point, _) {
-            return point.delta >= 0
-                ? const Color(0xFF2F9E44)
-                : const Color(0xFFE03131);
-          },
-          width: 0.62,
-          borderRadius: BorderRadius.circular(Dimensions.size10),
-        ),
-      ],
-    );
-  }
-
-  List<CartesianSeries<CatPoint, String>> series(
-    List<CatPoint> points,
-    List<String> variables,
-  ) {
-    switch (model) {
-      case ChartModel.stackedColumn:
-        return variables.mapIndexed((index, variable) {
-          final Color c = colorIndex(index);
-          return StackedColumnSeries<CatPoint, String>(
-            dataSource: points,
-            xValueMapper: (CatPoint p, _) => p.category,
-            yValueMapper: (CatPoint p, _) =>
-                (p.values[variable] ?? 0).toDouble(),
-            name: variable,
-            color: c,
-            width: 0.60,
-            spacing: 0.16,
-            borderRadius: BorderRadius.circular(Dimensions.size5),
-          );
-        }).toList();
-
-      case ChartModel.groupedColumn:
-        return variables.mapIndexed((index, variable) {
-          final Color c = colorIndex(index);
-          return ColumnSeries<CatPoint, String>(
-            dataSource: points,
-            xValueMapper: (CatPoint p, _) => p.category,
-            yValueMapper: (CatPoint p, _) =>
-                (p.values[variable] ?? 0).toDouble(),
-            name: variable,
-            color: c,
-            width: 0.60,
-            spacing: 0.16,
-            borderRadius: BorderRadius.circular(Dimensions.size5),
-          );
-        }).toList();
-
-      case ChartModel.line:
-        return variables.mapIndexed((index, variable) {
-          final Color c = colorIndex(index);
-          return LineSeries<CatPoint, String>(
-            dataSource: points,
-            xValueMapper: (CatPoint p, _) => p.category,
-            yValueMapper: (CatPoint p, _) =>
-                (p.values[variable] ?? 0).toDouble(),
-            name: variable,
-            color: c,
-            width: 2,
-            markerSettings: const MarkerSettings(isVisible: false),
-          );
-        }).toList();
-
-      case ChartModel.stackedArea:
-        return variables.mapIndexed((index, variable) {
-          final Color c = colorIndex(index);
-          return StackedAreaSeries<CatPoint, String>(
-            dataSource: points,
-            xValueMapper: (CatPoint p, _) => p.category,
-            yValueMapper: (CatPoint p, _) =>
-                (p.values[variable] ?? 0).toDouble(),
-            name: variable,
-            color: c.withValues(alpha: 0.80),
-            borderColor: c.withValues(alpha: 0.95),
-            borderWidth: 1.2,
-          );
-        }).toList();
-
-      case ChartModel.stackedBar:
-        return variables.mapIndexed((index, variable) {
-          final Color c = colorIndex(index);
-          return StackedBarSeries<CatPoint, String>(
-            dataSource: points,
-            xValueMapper: (CatPoint p, _) => p.category,
-            yValueMapper: (CatPoint p, _) =>
-                (p.values[variable] ?? 0).toDouble(),
-            name: variable,
-            color: c,
-            width: 0.60,
-            spacing: 0.16,
-            borderRadius: BorderRadius.circular(Dimensions.size5),
-          );
-        }).toList();
-
-      case ChartModel.pie:
-        return <CartesianSeries<CatPoint, String>>[];
-    }
-  }
-
-  TooltipBehavior toolTip(List<CatPoint> points) {
-    return TooltipBehavior(
-      enable: true,
-      header: "",
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      textStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-      builder: (
-        dynamic value,
-        dynamic point,
-        dynamic series,
-        int pointIndex,
-        int seriesIndex,
-      ) {
-        if (pointIndex < 0 || pointIndex >= points.length) {
-          return const SizedBox.shrink();
-        }
-
-        final CatPoint p = points[pointIndex];
-        final String cat = p.category;
-
-        final List<MapEntry<String, num>> entries = p.values.entries.toList()
-          ..sort((a, b) => b.value.compareTo(a.value));
-
-        return Container(
-          padding: EdgeInsets.all(Dimensions.size10),
-          constraints: const BoxConstraints(minWidth: 190),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                cat,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
-              SizedBox(height: Dimensions.size10),
-              ...entries.take(10).mapIndexed((i, e) {
-                final Color c = colorIndex(i);
-                return Padding(
-                  padding: EdgeInsets.only(bottom: Dimensions.size5),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: Dimensions.size10,
-                        height: Dimensions.size10,
-                        decoration: BoxDecoration(
-                          color: c,
-                          borderRadius: BorderRadius.circular(
-                            Dimensions.size3,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: Dimensions.size10),
-                      Expanded(
-                        child: Text(
-                          e.key,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: Dimensions.size10),
-                      Text(
-                        formatChartNumber(e.value),
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Agg aggregate(List<Map<String, dynamic>> src) {
-    final Map<String, Map<String, num>> map = {};
-
-    for (final Map<String, dynamic> e in src) {
-      final String variable = e["variable"].toString();
-      final String category = e["category"].toString();
-      final num value = parseChartNumber(e["value"]);
-
-      map.putIfAbsent(category, () => {});
-      map[category]![variable] = (map[category]![variable] ?? 0) + value;
-    }
-
-    final List<CatPoint> points = map.entries.map((entry) {
-      return CatPoint(category: entry.key, values: entry.value);
-    }).toList()
-      ..sort((a, b) {
-        final num ta = a.values.values.fold<num>(0, (p, v) => p + v);
-        final num tb = b.values.values.fold<num>(0, (p, v) => p + v);
-        return tb.compareTo(ta);
-      });
-
-    return Agg(points: points);
-  }
-}
-
-class PieSlice {
-  final String label;
-  final num value;
-  const PieSlice({required this.label, required this.value});
-}
-
-class DivergingPoint {
-  final String category;
-  final double total;
-  final double delta;
-  final double baseline;
-
-  const DivergingPoint({
-    required this.category,
-    required this.total,
-    required this.delta,
-    required this.baseline,
-  });
-}
-
-class Agg {
-  final List<CatPoint> points;
-  Agg({required this.points});
-}
-
-class CatPoint {
-  final String category;
-  final Map<String, num> values;
-
-  CatPoint({required this.category, required this.values});
-
-  String get shortLabel {
-    if (category.trim().isEmpty) {
-      return "-";
-    }
-    if (category.length <= 3) {
-      return category.toUpperCase();
-    }
-
-    final List<String> parts = category.trim().split(RegExp(r"\s+"));
-    if (parts.length >= 2) {
-      final String a = parts.first;
-      final String b = parts.last;
-      final String aa = a.characters.take(1).toString().toUpperCase();
-      final String bb = b.characters.take(1).toString().toUpperCase();
-      return "$aa$bb";
-    }
-    return category.characters.take(2).toString().toUpperCase();
-  }
-}
-
-class ScroolLegend extends StatelessWidget {
-  final List<String> variables;
-  final Color Function(int index) colorForIndex;
-  final bool isGlass;
-
-  const ScroolLegend({
-    required this.variables,
-    required this.colorForIndex,
-    required this.isGlass,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: Dimensions.size25,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Row(
-          children: variables.mapIndexed((i, v) {
-            return Padding(
-              padding: EdgeInsets.only(
-                right: i == variables.length - 1 ? 0 : 14,
-              ),
-              child: DotLegend(
-                isGlass: isGlass,
-                label: v,
-                color: colorForIndex(i),
-              ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-}
-
-class ChartModelPill extends StatelessWidget {
-  final ChartModel model;
-  final VoidCallback onTap;
-  final bool isGlass;
-
-  const ChartModelPill({
-    required this.model,
-    required this.onTap,
-    required this.isGlass,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (isGlass) {
-      return InkWell(
-        borderRadius: BorderRadius.circular(Dimensions.size15),
-        onTap: onTap,
-        child: GlassContainer(
-          blur: Dimensions.size20,
-          borderRadius: Dimensions.size15,
-          opacity: 0.10,
-          borderOpacity: 0.18,
-          padding: EdgeInsets.symmetric(horizontal: Dimensions.size10),
-          child: SizedBox(
-            height: Dimensions.size30,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  model.icon(),
-                  size: Dimensions.size15,
-                  color: Colors.white.withOpacity(0.92),
-                ),
-                SizedBox(width: Dimensions.size5),
-                Text(
-                  model.label(),
-                  style: TextStyle(
-                    fontSize: Dimensions.text12,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white.withOpacity(0.92),
-                  ),
-                ),
-                SizedBox(width: Dimensions.size5),
-                Icon(
-                  Icons.expand_more_rounded,
-                  size: Dimensions.size20,
-                  color: Colors.white.withOpacity(0.90),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(Dimensions.size10),
-      onTap: onTap,
-      child: Container(
-        height: Dimensions.size30,
-        padding: EdgeInsets.symmetric(horizontal: Dimensions.size10),
-        decoration: BoxDecoration(
-          color: Theme.of(
-            context,
-          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(Dimensions.size10),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outlineVariant.withValues(
-                  alpha: Theme.of(context).brightness == Brightness.dark
-                      ? 0.35
-                      : 0.55,
-                ),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              model.icon(),
-              size: Dimensions.size15,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.88),
-            ),
-            SizedBox(width: Dimensions.size5),
-            Text(
-              model.label(),
-              style: TextStyle(
-                fontSize: Dimensions.text12,
-                fontWeight: FontWeight.w900,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.88),
-              ),
-            ),
-            SizedBox(width: Dimensions.size5),
-            Icon(
-              Icons.expand_more_rounded,
-              size: Dimensions.size20,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.88),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class DotLegend extends StatelessWidget {
-  final String label;
-  final Color color;
-  final bool isGlass;
-
-  const DotLegend({
-    required this.label,
-    required this.color,
-    required this.isGlass,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: Dimensions.size10,
-          height: Dimensions.size10,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(Dimensions.size3),
-            border: Border.all(
-              color: isGlass
-                  ? Colors.white.withOpacity(0.25)
-                  : Theme.of(
-                      context,
-                    ).colorScheme.outlineVariant.withValues(alpha: 0.55),
-            ),
-          ),
-        ),
-        SizedBox(width: Dimensions.size10),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 220),
-          child: Text(
-            label,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: Dimensions.text12,
-              fontWeight: FontWeight.w700,
-              color: isGlass
-                  ? Colors.white.withOpacity(0.88)
-                  : Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.88),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class LoadingCard extends StatelessWidget {
-  final bool isGlass;
-
-  const LoadingCard({required this.isGlass, super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final Widget inner = Shimmer.fromColors(
-      baseColor: isGlass
-          ? Colors.white.withOpacity(0.10)
-          : (Theme.of(context).brightness == Brightness.dark
-              ? Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.10)
-              : Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.06)),
-      highlightColor: isGlass
-          ? Colors.white.withOpacity(0.06)
-          : (Theme.of(context).brightness == Brightness.dark
-              ? Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.06)
-              : Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.02)),
-      child: Container(
-        height: 380,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(isGlass ? 0.06 : 1),
-          borderRadius: BorderRadius.circular(Dimensions.size15),
-        ),
-      ),
-    );
-
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 640),
-        child: isGlass
-            ? GlassContainer(
-                blur: Dimensions.size20,
-                borderRadius: Dimensions.size20,
-                opacity: 0.10,
-                borderOpacity: 0.18,
-                padding: EdgeInsets.zero,
-                child: inner,
-              )
-            : inner,
-      ),
     );
   }
 }
