@@ -39,12 +39,10 @@ class CustomDynamicFormLocationField extends StatefulWidget {
   });
 
   @override
-  State<CustomDynamicFormLocationField> createState() =>
-      CustomDynamicFormLocationFieldState();
+  State<CustomDynamicFormLocationField> createState() => CustomDynamicFormLocationFieldState();
 }
 
-class CustomDynamicFormLocationFieldState
-    extends State<CustomDynamicFormLocationField> {
+class CustomDynamicFormLocationFieldState extends State<CustomDynamicFormLocationField> {
   ll.LatLng? latLng;
 
   bool isOnline = true;
@@ -106,10 +104,7 @@ class CustomDynamicFormLocationFieldState
 
   bool get isGlass {
     try {
-      return (Preferences.getInstance()
-                  .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
-              1) ==
-          2;
+      return (Preferences.getInstance().getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ?? 1) == 2;
     } catch (_) {
       return false;
     }
@@ -162,8 +157,7 @@ class CustomDynamicFormLocationFieldState
           smoothness: Dimensions.size1,
           side: BorderSide(
             color: AppColors.outline().withValues(
-              alpha:
-                  Theme.of(context).brightness == Brightness.dark ? 0.15 : 0.10,
+              alpha: Theme.of(context).brightness == Brightness.dark ? 0.15 : 0.10,
             ),
           ),
         ),
@@ -174,8 +168,7 @@ class CustomDynamicFormLocationFieldState
 
   Widget headerRow(BuildContext context) {
     final Color primary = Theme.of(context).colorScheme.primary;
-    final Color fg =
-        isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
+    final Color fg = isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
 
     return Row(
       children: [
@@ -213,10 +206,8 @@ class CustomDynamicFormLocationFieldState
   }
 
   Widget statusBadge(BuildContext context) {
-    final Color fg =
-        isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
-    final Color outline =
-        isGlass ? Colors.white.withOpacity(0.18) : AppColors.outline();
+    final Color fg = isGlass ? Colors.white.withOpacity(0.92) : AppColors.onSurface();
+    final Color outline = isGlass ? Colors.white.withOpacity(0.18) : AppColors.outline();
 
     final Color ok = Colors.green;
     final Color warn = Colors.orange;
@@ -293,16 +284,12 @@ class CustomDynamicFormLocationFieldState
             return Container(
               height: 180,
               decoration: ShapeDecoration(
-                color: isGlass
-                    ? Colors.white.withOpacity(0.05)
-                    : AppColors.surfaceContainerLowest(),
+                color: isGlass ? Colors.white.withOpacity(0.05) : AppColors.surfaceContainerLowest(),
                 shape: SmoothRectangleBorder(
                   borderRadius: BorderRadius.circular(Dimensions.size15),
                   smoothness: Dimensions.size1,
                   side: BorderSide(
-                    color: isGlass
-                        ? Colors.white.withOpacity(0.12)
-                        : AppColors.outline().withValues(alpha: 0.10),
+                    color: isGlass ? Colors.white.withOpacity(0.12) : AppColors.outline().withValues(alpha: 0.10),
                   ),
                 ),
               ),
@@ -311,38 +298,32 @@ class CustomDynamicFormLocationFieldState
           }
 
           double? minZoom;
-          double? maxZoom;
 
-          try {
-            List<double> zoomVarieties = Directory(
-              "${snapshot.data!.path}/$offlineMapBaseFolder/$baseMap",
-            )
-                .listSync()
-                .where(
-                  (element) =>
-                      element is Directory &&
-                      double.tryParse(p.basename(element.path)) != null,
-                )
-                .map((element) => double.parse(p.basename(element.path)))
-                .sorted((a, b) => a.compareTo(b));
+          if (!isOnline) {
+            try {
+              List<double> zoomVarieties = Directory(
+                "${snapshot.data!.path}/$offlineMapBaseFolder/$baseMap",
+              )
+                  .listSync()
+                  .where(
+                    (element) => element is Directory && double.tryParse(p.basename(element.path)) != null,
+              )
+                  .map((element) => double.parse(p.basename(element.path)))
+                  .sorted((a, b) => a.compareTo(b));
 
-            minZoom = zoomVarieties.first;
-            maxZoom = zoomVarieties.last;
-          } catch (_) {}
+              minZoom = zoomVarieties.first;
+            } catch (_) {}
+          }
 
           return ClipRRect(
             borderRadius: BorderRadius.circular(Dimensions.size15),
             child: Container(
               height: 180,
               decoration: BoxDecoration(
-                color: isGlass
-                    ? Colors.white.withOpacity(0.06)
-                    : AppColors.surfaceContainerLowest(),
+                color: isGlass ? Colors.white.withOpacity(0.06) : AppColors.surfaceContainerLowest(),
                 borderRadius: BorderRadius.circular(Dimensions.size15),
                 border: Border.all(
-                  color: isGlass
-                      ? Colors.white.withOpacity(0.18)
-                      : AppColors.outline().withValues(alpha: 0.15),
+                  color: isGlass ? Colors.white.withOpacity(0.18) : AppColors.outline().withValues(alpha: 0.15),
                   width: Dimensions.size1,
                 ),
               ),
@@ -351,15 +332,11 @@ class CustomDynamicFormLocationFieldState
                   FlutterMap(
                     options: MapOptions(
                       initialZoom: minZoom ?? 14,
-                      minZoom: minZoom,
-                      maxZoom: maxZoom,
                       initialCenter: latLng!,
                     ),
                     children: [
                       TileLayer(
-                        tileProvider: isOnline
-                            ? NetworkTileProvider()
-                            : FileTileProvider(),
+                        tileProvider: isOnline ? NetworkTileProvider() : FileTileProvider(),
                         urlTemplate: tileUrlTemplate(snapshot.data!.path),
                         userAgentPackageName: "com.sisapp.dynamic_of_things",
                       ),
@@ -408,8 +385,7 @@ class CustomDynamicFormLocationFieldState
                           ),
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.40),
-                            borderRadius:
-                                BorderRadius.circular(Dimensions.size100),
+                            borderRadius: BorderRadius.circular(Dimensions.size100),
                             border: Border.all(
                               color: Colors.white.withValues(alpha: 0.16),
                             ),
@@ -453,10 +429,8 @@ class CustomDynamicFormLocationFieldState
               useRootNavigator: true,
               builder: (context) {
                 return GetLocationPage(
-                  locationAccuracyInMeters:
-                      widget.template.locationAccuracyInMeters,
-                  locationAccuracyEfectiveDurationInSeconds:
-                      widget.template.locationAccuracyEfectiveDurationInSeconds,
+                  locationAccuracyInMeters: widget.template.locationAccuracyInMeters,
+                  locationAccuracyEfectiveDurationInSeconds: widget.template.locationAccuracyEfectiveDurationInSeconds,
                 );
               },
             );
@@ -490,16 +464,12 @@ class CustomDynamicFormLocationFieldState
           child: Ink(
             height: Dimensions.size45,
             decoration: ShapeDecoration(
-              color: isGlass
-                  ? Colors.white.withOpacity(0.08)
-                  : primary.withOpacity(0.12),
+              color: isGlass ? Colors.white.withOpacity(0.08) : primary.withOpacity(0.12),
               shape: SmoothRectangleBorder(
                 borderRadius: BorderRadius.circular(Dimensions.size15),
                 smoothness: Dimensions.size1,
                 side: BorderSide(
-                  color: isGlass
-                      ? Colors.white.withOpacity(0.18)
-                      : primary.withOpacity(0.20),
+                  color: isGlass ? Colors.white.withOpacity(0.18) : primary.withOpacity(0.20),
                 ),
               ),
             ),
@@ -579,16 +549,13 @@ class GetLocationPageState extends State<GetLocationPage> {
     if (!prefsReady) {
       return false;
     }
-    final int t = Preferences.getInstance()
-            .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
-        1;
+    final int t = Preferences.getInstance().getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ?? 1;
     return t == 2;
   }
 
   Future<void> startListening() async {
     final permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
       setState(() {
         status = "Location permission denied";
       });
@@ -605,8 +572,7 @@ class GetLocationPageState extends State<GetLocationPage> {
 
   void onLocationUpdate(Position position) {
     final accuracyThreshold = widget.locationAccuracyInMeters ?? 20;
-    final requiredSeconds =
-        widget.locationAccuracyEfectiveDurationInSeconds ?? 1;
+    final requiredSeconds = widget.locationAccuracyEfectiveDurationInSeconds ?? 1;
     final accuracy = position.accuracy;
 
     if (accuracy <= accuracyThreshold) {
@@ -645,12 +611,9 @@ class GetLocationPageState extends State<GetLocationPage> {
   @override
   Widget build(BuildContext context) {
     final bool glass = isGlass;
-    final Color fg =
-        glass ? Colors.white.withOpacity(0.95) : AppColors.onSurface();
-    final Color outline =
-        glass ? Colors.white.withOpacity(0.22) : AppColors.outline();
-    final Color card =
-        glass ? Colors.white.withOpacity(0.12) : AppColors.surface();
+    final Color fg = glass ? Colors.white.withOpacity(0.95) : AppColors.onSurface();
+    final Color outline = glass ? Colors.white.withOpacity(0.22) : AppColors.outline();
+    final Color card = glass ? Colors.white.withOpacity(0.12) : AppColors.surface();
     final Color primary = Theme.of(context).colorScheme.primary;
 
     final Widget dialogContent = Column(
@@ -706,9 +669,7 @@ class GetLocationPageState extends State<GetLocationPage> {
                     width: Dimensions.size40,
                     height: Dimensions.size40,
                     decoration: BoxDecoration(
-                      color: glass
-                          ? Colors.white.withOpacity(0.10)
-                          : AppColors.surfaceContainerLowest(),
+                      color: glass ? Colors.white.withOpacity(0.10) : AppColors.surfaceContainerLowest(),
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: outline.withValues(alpha: 0.18),
@@ -777,35 +738,34 @@ class GetLocationPageState extends State<GetLocationPage> {
               margin: EdgeInsets.all(Dimensions.size20),
               child: glass
                   ? GlassContainer(
-                      blur: Dimensions.size25,
-                      borderRadius: Dimensions.size25,
-                      opacity: 0.15,
-                      borderOpacity: 0.25,
-                      padding: EdgeInsets.zero,
-                      child: dialogContent,
-                    )
+                blur: Dimensions.size25,
+                borderRadius: Dimensions.size25,
+                opacity: 0.15,
+                borderOpacity: 0.25,
+                padding: EdgeInsets.zero,
+                child: dialogContent,
+              )
                   : Container(
-                      decoration: ShapeDecoration(
-                        color: card,
-                        shadows: [
-                          BoxShadow(
-                            blurRadius: Dimensions.size30,
-                            offset: Offset(0, Dimensions.size20),
-                            color: Colors.black.withValues(alpha: 0.18),
-                          ),
-                        ],
-                        shape: SmoothRectangleBorder(
-                          smoothness: Dimensions.size1,
-                          borderRadius:
-                              BorderRadius.circular(Dimensions.size25),
-                          side: BorderSide(
-                            color: outline.withValues(alpha: 0.18),
-                          ),
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: dialogContent,
+                decoration: ShapeDecoration(
+                  color: card,
+                  shadows: [
+                    BoxShadow(
+                      blurRadius: Dimensions.size30,
+                      offset: Offset(0, Dimensions.size20),
+                      color: Colors.black.withValues(alpha: 0.18),
                     ),
+                  ],
+                  shape: SmoothRectangleBorder(
+                    smoothness: Dimensions.size1,
+                    borderRadius: BorderRadius.circular(Dimensions.size25),
+                    side: BorderSide(
+                      color: outline.withValues(alpha: 0.18),
+                    ),
+                  ),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: dialogContent,
+              ),
             ),
           ),
         ],
