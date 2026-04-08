@@ -56,6 +56,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
   // PERBAIKAN: Spacing disesuaikan agar rapi dan tidak terlalu renggang
   static const double gapcard = 16;
   static const double gapInner = 12;
+  static const double _cardRadius = 20;
 
   @override
   void initState() {
@@ -92,6 +93,37 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
             .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
         1;
     return t == 2;
+  }
+
+  SmoothRectangleBorder modernCardShape({
+    Color? borderColor,
+  }) {
+    return SmoothRectangleBorder(
+      borderRadius: BorderRadius.circular(Dimensions.size20),
+      smoothness: Dimensions.size1,
+      side: BorderSide(
+        color: borderColor ?? AppColors.outline().withValues(alpha: 0.35),
+      ),
+    );
+  }
+
+  Widget modernSurfaceCard({
+    required Widget child,
+    EdgeInsetsGeometry? padding,
+    double elevation = 8,
+    double shadowAlpha = 0.10,
+    Color? color,
+    Color? borderColor,
+  }) {
+    return Material(
+      color: color ?? AppColors.surface(),
+      elevation: elevation,
+      shadowColor: Colors.black.withValues(alpha: shadowAlpha),
+      surfaceTintColor: Colors.transparent,
+      shape: modernCardShape(borderColor: borderColor),
+      clipBehavior: Clip.antiAlias,
+      child: padding == null ? child : Padding(padding: padding, child: child),
+    );
   }
 
   Widget glassBackground() {
@@ -204,7 +236,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                         final Widget searchBar = glass
                             ? GlassContainer(
                                 blur: Dimensions.size15,
-                                borderRadius: Dimensions.size15,
+                                borderRadius: Dimensions.size20,
                                 opacity: 0.10,
                                 borderOpacity: 0.18,
                                 padding: EdgeInsets.symmetric(
@@ -261,7 +293,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                                   color: AppColors.surfaceContainerLowest(),
                                   shape: SmoothRectangleBorder(
                                     borderRadius: BorderRadius.circular(
-                                      Dimensions.size15,
+                                      Dimensions.size20,
                                     ),
                                     smoothness: Dimensions.size1,
                                     side: BorderSide(
@@ -362,29 +394,10 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                           );
                         }
 
-                        return Container(
+                        return modernSurfaceCard(
                           padding: EdgeInsets.symmetric(
                             horizontal: Dimensions.size15,
                             vertical: Dimensions.size10,
-                          ),
-                          decoration: ShapeDecoration(
-                            color: AppColors.surface(),
-                            shadows: [
-                              BoxShadow(
-                                blurRadius: Dimensions.size20,
-                                offset: Offset(0, Dimensions.size10),
-                                color: Colors.black.withValues(alpha: 0.10),
-                              ),
-                            ],
-                            shape: SmoothRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(Dimensions.size20),
-                              smoothness: Dimensions.size1,
-                              side: BorderSide(
-                                color:
-                                    AppColors.outline().withValues(alpha: 0.35),
-                              ),
-                            ),
                           ),
                           child: headerContent,
                         );
@@ -656,192 +669,182 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
             ],
           );
 
+          Future<void> handleTap() async {
+            if (primaryKey != null) {
+              String id = map[primaryKey.name].toString();
+
+              if (widget.selectorMode) {
+                if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                  Navigators.pop(result: id);
+                } else {
+                  context.pop(id);
+                }
+              } else {
+                List<MenuItem> menuItems = [];
+
+                if (hasViewAccess(id)) {
+                  menuItems.add(
+                    MenuItem(
+                      iconData: Icons.visibility,
+                      title: "Lihat Data",
+                      onTap: hasViewAccess(id)
+                          ? () async {
+                              await viewData(id);
+                            }
+                          : null,
+                    ),
+                  );
+                }
+
+                if (hasEditAccess(id)) {
+                  menuItems.add(
+                    MenuItem(
+                      iconData: Icons.edit,
+                      title: "edit".tr(),
+                      onTap: hasEditAccess(id)
+                          ? () async {
+                              await editData(id);
+                            }
+                          : null,
+                    ),
+                  );
+                }
+
+                listResponse!.actions
+                    .where(
+                  (element) => !StringUtils.inList(
+                    element.resourceId,
+                    [
+                      "BTN_CREATE",
+                      "BTN_EDIT",
+                      "BTN_VIEW",
+                      "BTN_SAVE",
+                      "BTN_ADD_DETAIL",
+                      "BTN_DEL_DETAIL",
+                    ],
+                  ),
+                )
+                    .forEach((element) {
+                  MenuItem menuItem = MenuItem(
+                    title: element.name,
+                    onTap: () {
+                      if (BaseSettings.navigatorType ==
+                          BaseNavigatorType.legacy) {
+                        Navigators.pop();
+                      } else {
+                        context.pop();
+                      }
+
+                      BaseDialogs.confirmation(
+                        title: "are_you_sure_want_to_proceed".tr(),
+                        positiveCallback: () {
+                          context.read<DynamicFormListBloc>().add(
+                                DynamicFormListCustomAction(
+                                  actionId: element.id,
+                                  formId: widget.dynamicFormMenuItem.id,
+                                  dataId: id,
+                                  customerId: widget.customerId,
+                                ),
+                              );
+                        },
+                      );
+                    },
+                  );
+
+                  menuItems.add(menuItem);
+                });
+
+                if (menuItems.isNotEmpty) {
+                  if (menuItems.length == 1) {
+                    if (hasViewAccess(id)) {
+                      await viewData(id);
+                      return;
+                    }
+
+                    if (hasEditAccess(id)) {
+                      await editData(id);
+                      return;
+                    }
+
+                    Action? action = listResponse!.actions.firstWhereOrNull(
+                      (element) => !StringUtils.inList(
+                        element.resourceId,
+                        [
+                          "BTN_CREATE",
+                          "BTN_EDIT",
+                          "BTN_VIEW",
+                          "BTN_SAVE",
+                          "BTN_ADD_DETAIL",
+                          "BTN_DEL_DETAIL",
+                        ],
+                      ),
+                    );
+
+                    if (action != null) {
+                      if (BaseSettings.navigatorType ==
+                          BaseNavigatorType.legacy) {
+                        Navigators.pop();
+                      } else {
+                        context.pop();
+                      }
+
+                      BaseDialogs.confirmation(
+                        title: "are_you_sure_want_to_proceed".tr(),
+                        positiveCallback: () {
+                          context.read<DynamicFormListBloc>().add(
+                                DynamicFormListCustomAction(
+                                  actionId: action.id,
+                                  formId: widget.dynamicFormMenuItem.id,
+                                  dataId: id,
+                                  customerId: widget.customerId,
+                                ),
+                              );
+                        },
+                      );
+                    }
+                  } else {
+                    actionBottomSheet(menuItems);
+                  }
+                }
+              }
+            }
+          }
+
+          final ShapeBorder cardShape = modernCardShape();
+
           return DotResponsive.centered(
             context: context,
             tablet: 920,
             desktop: 1080,
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () async {
-                  if (primaryKey != null) {
-                    String id = map[primaryKey.name].toString();
-
-                    if (widget.selectorMode) {
-                      if (BaseSettings.navigatorType ==
-                          BaseNavigatorType.legacy) {
-                        Navigators.pop(result: id);
-                      } else {
-                        context.pop(id);
-                      }
-                    } else {
-                      List<MenuItem> menuItems = [];
-
-                      if (hasViewAccess(id)) {
-                        menuItems.add(
-                          MenuItem(
-                            iconData: Icons.visibility,
-                            title: "Lihat Data",
-                            onTap: hasViewAccess(id)
-                                ? () async {
-                                    await viewData(id);
-                                  }
-                                : null,
-                          ),
-                        );
-                      }
-
-                      if (hasEditAccess(id)) {
-                        menuItems.add(
-                          MenuItem(
-                            iconData: Icons.edit,
-                            title: "edit".tr(),
-                            onTap: hasEditAccess(id)
-                                ? () async {
-                                    await editData(id);
-                                  }
-                                : null,
-                          ),
-                        );
-                      }
-
-                      listResponse!.actions
-                          .where(
-                        (element) => !StringUtils.inList(
-                          element.resourceId,
-                          [
-                            "BTN_CREATE",
-                            "BTN_EDIT",
-                            "BTN_VIEW",
-                            "BTN_SAVE",
-                            "BTN_ADD_DETAIL",
-                            "BTN_DEL_DETAIL",
-                          ],
-                        ),
-                      )
-                          .forEach((element) {
-                        MenuItem menuItem = MenuItem(
-                          title: element.name,
-                          onTap: () {
-                            if (BaseSettings.navigatorType ==
-                                BaseNavigatorType.legacy) {
-                              Navigators.pop();
-                            } else {
-                              context.pop();
-                            }
-
-                            BaseDialogs.confirmation(
-                              title: "are_you_sure_want_to_proceed".tr(),
-                              positiveCallback: () {
-                                context.read<DynamicFormListBloc>().add(
-                                      DynamicFormListCustomAction(
-                                        actionId: element.id,
-                                        formId: widget.dynamicFormMenuItem.id,
-                                        dataId: id,
-                                        customerId: widget.customerId,
-                                      ),
-                                    );
-                              },
-                            );
-                          },
-                        );
-
-                        menuItems.add(menuItem);
-                      });
-
-                      if (menuItems.isNotEmpty) {
-                        if (menuItems.length == 1) {
-                          if (hasViewAccess(id)) {
-                            await viewData(id);
-                            return;
-                          }
-
-                          if (hasEditAccess(id)) {
-                            await editData(id);
-                            return;
-                          }
-
-                          Action? action =
-                              listResponse!.actions.firstWhereOrNull(
-                            (element) => !StringUtils.inList(
-                              element.resourceId,
-                              [
-                                "BTN_CREATE",
-                                "BTN_EDIT",
-                                "BTN_VIEW",
-                                "BTN_SAVE",
-                                "BTN_ADD_DETAIL",
-                                "BTN_DEL_DETAIL",
-                              ],
-                            ),
-                          );
-
-                          if (action != null) {
-                            if (BaseSettings.navigatorType ==
-                                BaseNavigatorType.legacy) {
-                              Navigators.pop();
-                            } else {
-                              context.pop();
-                            }
-
-                            BaseDialogs.confirmation(
-                              title: "are_you_sure_want_to_proceed".tr(),
-                              positiveCallback: () {
-                                context.read<DynamicFormListBloc>().add(
-                                      DynamicFormListCustomAction(
-                                        actionId: action.id,
-                                        formId: widget.dynamicFormMenuItem.id,
-                                        dataId: id,
-                                        customerId: widget.customerId,
-                                      ),
-                                    );
-                              },
-                            );
-                          }
-                        } else {
-                          actionBottomSheet(menuItems);
-                        }
-                      }
-                    }
-                  }
-                },
-                customBorder: SmoothRectangleBorder(
-                  borderRadius: BorderRadius.circular(Dimensions.size20),
-                  smoothness: Dimensions.size1,
-                ),
-                child: glass
-                    ? GlassContainer(
+            child: glass
+                ? Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: handleTap,
+                      customBorder: cardShape,
+                      child: GlassContainer(
                         blur: Dimensions.size20,
-                        borderRadius: Dimensions.size20,
+                        borderRadius: _cardRadius,
                         opacity: 0.12,
                         borderOpacity: 0.22,
                         padding: EdgeInsets.zero,
                         child: cardContent,
-                      )
-                    : Ink(
-                        decoration: ShapeDecoration(
-                          color: AppColors.surface(),
-                          shadows: [
-                            BoxShadow(
-                              blurRadius: Dimensions.size20,
-                              offset: Offset(0, Dimensions.size10),
-                              color: Colors.black.withValues(alpha: 0.10),
-                            ),
-                          ],
-                          shape: SmoothRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(Dimensions.size20),
-                            smoothness: Dimensions.size1,
-                            side: BorderSide(
-                              color:
-                                  AppColors.outline().withValues(alpha: 0.35),
-                            ),
-                          ),
-                        ),
-                        child: cardContent,
                       ),
-              ),
-            ),
+                    ),
+                  )
+                : Material(
+                    color: AppColors.surface(),
+                    elevation: 8,
+                    shadowColor: Colors.black.withValues(alpha: 0.10),
+                    surfaceTintColor: Colors.transparent,
+                    shape: cardShape,
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: handleTap,
+                      customBorder: cardShape,
+                      child: cardContent,
+                    ),
+                  ),
           );
         },
       ),
@@ -986,10 +989,10 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
               color: Colors.transparent,
               child: InkWell(
                 onTap: handleCreate,
-                borderRadius: BorderRadius.circular(Dimensions.size30),
+                borderRadius: BorderRadius.circular(Dimensions.size20),
                 child: GlassContainer(
                   blur: Dimensions.size25,
-                  borderRadius: Dimensions.size30,
+                  borderRadius: Dimensions.size20,
                   opacity: 0.18,
                   borderOpacity: 0.30,
                   padding: EdgeInsets.zero,
@@ -1007,7 +1010,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                         ),
                       ],
                       shape: SmoothRectangleBorder(
-                        borderRadius: BorderRadius.circular(Dimensions.size30),
+                        borderRadius: BorderRadius.circular(Dimensions.size20),
                         smoothness: Dimensions.size1,
                         side: BorderSide(
                           color: const Color(0xFF2ACB9A).withOpacity(0.30),
@@ -1056,7 +1059,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
             color: Colors.transparent,
             child: InkWell(
               onTap: handleCreate,
-              borderRadius: BorderRadius.circular(Dimensions.size30),
+              borderRadius: BorderRadius.circular(Dimensions.size20),
               child: Ink(
                 height: Dimensions.size55,
                 padding: EdgeInsets.symmetric(
@@ -1065,7 +1068,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                 decoration: ShapeDecoration(
                   color: Theme.of(context).colorScheme.primary,
                   shape: SmoothRectangleBorder(
-                    borderRadius: BorderRadius.circular(Dimensions.size30),
+                    borderRadius: BorderRadius.circular(Dimensions.size20),
                     smoothness: Dimensions.size1,
                   ),
                 ),
@@ -1199,13 +1202,13 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
       child: InkWell(
         onTap: onTap,
         customBorder: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimensions.size15),
+          borderRadius: BorderRadius.circular(Dimensions.size20),
           smoothness: Dimensions.size1,
         ),
         child: isGlass
             ? GlassContainer(
                 blur: Dimensions.size15,
-                borderRadius: Dimensions.size15,
+                borderRadius: Dimensions.size20,
                 opacity: 0.10,
                 borderOpacity: 0.18,
                 padding: EdgeInsets.zero,
@@ -1227,7 +1230,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                 decoration: ShapeDecoration(
                   color: AppColors.surfaceContainerLowest(),
                   shape: SmoothRectangleBorder(
-                    borderRadius: BorderRadius.circular(Dimensions.size15),
+                    borderRadius: BorderRadius.circular(Dimensions.size20),
                     smoothness: Dimensions.size1,
                     side: BorderSide(
                       color: AppColors.outline().withValues(alpha: 0.25),
@@ -1519,7 +1522,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                         color: glass
                             ? Colors.white.withOpacity(0.92)
                             : AppColors.onSurface().withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(Dimensions.size15),
+                        borderRadius: BorderRadius.circular(Dimensions.size20),
                       ),
                     ),
                     SizedBox(height: Dimensions.size15),
@@ -1786,7 +1789,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                 if (glass) {
                   return GlassContainer(
                     blur: Dimensions.size25,
-                    borderRadius: Dimensions.size30,
+                    borderRadius: Dimensions.size20,
                     opacity: 0.14,
                     borderOpacity: 0.22,
                     padding: sheetPadding,
@@ -1802,13 +1805,13 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                         : AppColors.surface(),
                     shadows: [
                       BoxShadow(
-                        blurRadius: Dimensions.size30,
+                        blurRadius: Dimensions.size20,
                         offset: Offset(0, Dimensions.size20),
                         color: Colors.black.withValues(alpha: 0.16),
                       ),
                     ],
                     shape: SmoothRectangleBorder(
-                      borderRadius: BorderRadius.circular(Dimensions.size30),
+                      borderRadius: BorderRadius.circular(Dimensions.size20),
                       smoothness: Dimensions.size1,
                       side: BorderSide(color: outline.withValues(alpha: 0.16)),
                     ),

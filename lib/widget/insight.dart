@@ -1,5 +1,6 @@
 import "package:base/base.dart";
-import "package:dynamic_of_things/module/dynamic_chart/helper/dynamic_chart_data_helper.dart";
+import "package:dynamic_of_things/helper/dynamic_chart_data_helper.dart";
+
 import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:flutter/material.dart";
 

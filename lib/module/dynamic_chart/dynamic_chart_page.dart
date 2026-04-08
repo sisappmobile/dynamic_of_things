@@ -7,6 +7,7 @@ import "package:base/base.dart";
 import "package:dynamic_of_things/enumeration/chart_model.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/chart_helper.dart";
+import "package:dynamic_of_things/helper/dynamic_chart_data_helper.dart";
 import "package:dynamic_of_things/helper/generals.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/helper/responsive_layout.dart";
@@ -16,10 +17,9 @@ import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_desktop_window.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_event.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_state.dart";
-import "package:dynamic_of_things/module/dynamic_chart/helper/dynamic_chart_data_helper.dart";
-import "package:dynamic_of_things/module/dynamic_chart/widget/chart_card.dart";
-import "package:dynamic_of_things/module/dynamic_chart/widget/dynamic_chart_app_bar.dart";
-import "package:dynamic_of_things/module/dynamic_chart/widget/dynamic_summary_card.dart";
+import "package:dynamic_of_things/widget/chart_card.dart";
+import "package:dynamic_of_things/widget/dynamic_chart_app_bar.dart";
+import "package:dynamic_of_things/widget/dynamic_summary_card.dart";
 import "package:dynamic_of_things/widget/loading_card.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
@@ -2075,6 +2075,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
                         desktop: 1080,
                         child: AppBarDynamicChart(
                           isGlass: isGlass && isMobile,
+                          useWhiteForeground: isGlass,
                           showBackButton: true,
                           isMobile: isMobile,
                           title: "dynamic_chart".tr(),

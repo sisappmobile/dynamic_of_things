@@ -8,6 +8,7 @@ class AppBarDynamicChart extends StatelessWidget {
   final VoidCallback onPickRange;
   final VoidCallback onBack;
   final bool isGlass;
+  final bool useWhiteForeground;
   final bool showBackButton;
   final bool isMobile;
 
@@ -17,6 +18,7 @@ class AppBarDynamicChart extends StatelessWidget {
     required this.onPickRange,
     required this.onBack,
     required this.isGlass,
+    required this.useWhiteForeground,
     required this.showBackButton,
     required this.isMobile,
     super.key,
@@ -47,7 +49,12 @@ class AppBarDynamicChart extends StatelessWidget {
                       isMobile
                           ? Icons.arrow_back_ios_new_rounded
                           : Icons.arrow_back_rounded,
-                      color: Colors.white.withOpacity(0.95),
+                      color: useWhiteForeground
+                          ? Colors.white.withOpacity(0.95)
+                          : Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.90),
                       size: Dimensions.size20,
                     ),
                   ),
@@ -61,7 +68,7 @@ class AppBarDynamicChart extends StatelessWidget {
                 style: TextStyle(
                   fontSize: Dimensions.text14,
                   fontWeight: FontWeight.w900,
-                  color: isGlass
+                  color: useWhiteForeground
                       ? Colors.white.withOpacity(0.95)
                       : (Theme.of(context).brightness == Brightness.dark
                           ? Colors.white
@@ -137,9 +144,11 @@ class AppBarDynamicChart extends StatelessWidget {
                       ? Icons.arrow_back_ios_new_rounded
                       : Icons.arrow_back_rounded,
                   size: Dimensions.size20,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.90),
+                  color: useWhiteForeground
+                      ? Colors.white.withOpacity(0.95)
+                      : Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.90),
                 ),
               ),
             ),
@@ -151,7 +160,7 @@ class AppBarDynamicChart extends StatelessWidget {
               style: TextStyle(
                 fontSize: Dimensions.text14,
                 fontWeight: FontWeight.w900,
-                color: isGlass
+                color: useWhiteForeground
                     ? Colors.white.withOpacity(0.95)
                     : (Theme.of(context).brightness == Brightness.dark
                         ? Colors.white

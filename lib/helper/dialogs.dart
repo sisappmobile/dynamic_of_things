@@ -114,7 +114,7 @@ class Dialogs {
                                 bytes,
                                 name:
                                     "${DateTime.now().millisecondsSinceEpoch.toString()}.png",
-                                mimeType: "png",
+                                mimeType: "image/png",
                               ),
                             ]);
                           },
@@ -152,7 +152,7 @@ class Dialogs {
             XFile.fromData(
               bytes,
               name: "${DateTime.now().millisecondsSinceEpoch.toString()}.png",
-              mimeType: "png",
+              mimeType: "image/png",
             ),
           ]);
         },

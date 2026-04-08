@@ -3,10 +3,10 @@ import "dart:convert";
 import "package:base/base.dart";
 import "package:collection/collection.dart";
 import "package:dynamic_of_things/enumeration/chart_model.dart";
+import "package:dynamic_of_things/helper/dynamic_chart_data_helper.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/model/window_model.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_desktop_window.dart";
-import "package:dynamic_of_things/module/dynamic_chart/helper/dynamic_chart_data_helper.dart";
 import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:flutter/material.dart";
 
