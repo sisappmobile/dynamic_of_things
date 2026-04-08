@@ -166,41 +166,31 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage> {
     final bool isMobile = screenType == DotScreenType.mobile;
 
     if (isMobile) {
-      return FrostPanel(
-        radius: Dimensions.size25,
-        padding: EdgeInsets.symmetric(
-          horizontal: Dimensions.size10,
-          vertical: 8,
-        ),
-        opacity: 0.14,
-        borderOpacity: 0.14,
-        blur: 22,
-        child: SizedBox(
-          height: 42,
-          child: Row(
-            children: [
-              chromeButton(
-                icon: Icons.turn_left_rounded,
-                onTap: popHandle,
-              ),
-              SizedBox(width: Dimensions.size10),
-              Expanded(
-                child: Text(
-                  "Barcode Scanner".tr(),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                    color: Colors.white.withOpacity(0.97),
-                    letterSpacing: 0.1,
-                  ),
+      return SizedBox(
+        height: 42,
+        child: Row(
+          children: [
+            chromeButton(
+              icon: Icons.turn_left_rounded,
+              onTap: popHandle,
+            ),
+            SizedBox(width: Dimensions.size10),
+            Expanded(
+              child: Text(
+                "Barcode Scanner".tr(),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                  color: Colors.white.withOpacity(0.97),
+                  letterSpacing: 0.1,
                 ),
               ),
-              const SizedBox(width: 42),
-            ],
-          ),
+            ),
+            const SizedBox(width: 42),
+          ],
         ),
       );
     }
@@ -515,15 +505,15 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  scannerStage(
-                                    screenType,
-                                    compactHeight: compactHeight,
-                                  ),
-                                  SizedBox(height: spacing),
-                                  instructionCard(
-                                    screenType,
-                                    compactHeight: compactHeight,
-                                  ),
+                                  // scannerStage(
+                                  //   screenType,
+                                  //   compactHeight: compactHeight,
+                                  // ),
+                                  // SizedBox(height: spacing),
+                                  // instructionCard(
+                                  //   screenType,
+                                  //   compactHeight: compactHeight,
+                                  // ),
                                 ],
                               ),
                             ),
