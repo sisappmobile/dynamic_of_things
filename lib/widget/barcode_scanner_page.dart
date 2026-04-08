@@ -249,86 +249,6 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage> {
     );
   }
 
-  Widget scannerStage(
-    DotScreenType screenType, {
-    bool compactHeight = false,
-  }) {
-    final bool isMobile = screenType == DotScreenType.mobile;
-    final double maxWidth = compactHeight && !isMobile
-        ? scannerMaxWidth(screenType) - 40
-        : scannerMaxWidth(screenType);
-
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: maxWidth,
-      ),
-      child: FrostPanel(
-        radius: isMobile ? Dimensions.size30 : Dimensions.size35,
-        padding:
-            EdgeInsets.all(isMobile ? Dimensions.size10 : Dimensions.size15),
-        opacity: 0.08,
-        borderOpacity: 0.14,
-        blur: Dimensions.size25,
-        child: AspectRatio(
-          aspectRatio: scannerAspectRatio(screenType),
-          child: ScanFrame(
-            isActive: isScanning,
-            wide: screenType != DotScreenType.mobile,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget instructionCard(
-    DotScreenType screenType, {
-    bool compactHeight = false,
-  }) {
-    final bool isMobile = screenType == DotScreenType.mobile;
-
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: isMobile ? 320 : 380,
-      ),
-      child: FrostPanel(
-        radius: isMobile ? Dimensions.size20 : 24,
-        padding: EdgeInsets.symmetric(
-          horizontal: isMobile ? Dimensions.size15 : Dimensions.size20,
-          vertical: compactHeight ? Dimensions.size10 : 12,
-        ),
-        opacity: 0.16,
-        borderOpacity: 0.12,
-        blur: Dimensions.size20,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              "point_the_camera_at_a_barcode".tr(),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.94),
-                fontSize: isMobile ? Dimensions.text13 : Dimensions.text13,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.1,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              "use_the_buttons_below_for_case_flash_and_camera".tr(),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.68),
-                fontSize: isMobile ? Dimensions.text11 : Dimensions.text12,
-                fontWeight: FontWeight.w500,
-                height: 1.25,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget controlDivider() {
     return Container(
       width: 1,
@@ -490,11 +410,6 @@ class BarcodeScannerPageState extends State<BarcodeScannerPage> {
                     Expanded(
                       child: LayoutBuilder(
                         builder: (context, constraints) {
-                          final bool compactHeight =
-                              constraints.maxHeight < 560;
-                          final double spacing = compactHeight
-                              ? Dimensions.size10
-                              : Dimensions.size20;
 
                           return SingleChildScrollView(
                             physics: const BouncingScrollPhysics(),
