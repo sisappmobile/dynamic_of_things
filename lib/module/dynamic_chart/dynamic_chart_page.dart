@@ -1,5 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
+import "dart:async";
 import "dart:convert";
 import "dart:math" as math;
 
@@ -43,6 +44,8 @@ class DynamicChartPageState extends State<DynamicChartPage>
   String? draggingChartId;
   String? dragTargetChartId;
   bool floatingDesktopMode = false;
+  bool desktopWindowInteractionActive = false;
+  String? desktopWindowInteractionId;
   Map<String, DynamicChartDesktopWindowLayout> desktopWindowLayouts =
       <String, DynamicChartDesktopWindowLayout>{};
   Set<String> hiddenDesktopPanels = <String>{};
@@ -75,6 +78,27 @@ class DynamicChartPageState extends State<DynamicChartPage>
 
   void refresh() {
     context.read<DynamicChartBloc>().add(DynamicChartLoad());
+  }
+
+  void setDesktopWindowInteractionActive(
+    bool value, {
+    String? id,
+  }) {
+    if (desktopWindowInteractionActive == value &&
+        desktopWindowInteractionId == id) {
+      return;
+    }
+
+    if (!mounted) {
+      desktopWindowInteractionActive = value;
+      desktopWindowInteractionId = value ? id : null;
+      return;
+    }
+
+    setState(() {
+      desktopWindowInteractionActive = value;
+      desktopWindowInteractionId = value ? id : null;
+    });
   }
 
   ButtonStyle desktopToolbarButtonStyle(
@@ -113,6 +137,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
     }
 
     prefsReady = true;
+    await loadDynamicChartLayoutFromServer();
     final DynamicChartSavedLayoutPayload? savedPayload =
         readCurrentDesktopLayoutPayload();
 
@@ -403,6 +428,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
       desktopWindowLayoutPreferenceKey(),
       jsonEncode(payload.toJson()),
     );
+    unawaited(syncDynamicChartLayoutToServer(payload));
   }
 
   List<DynamicChartSavedLayoutPayload> readSavedDesktopLayouts() {
@@ -551,6 +577,8 @@ class DynamicChartPageState extends State<DynamicChartPage>
       jsonEncode(hiddenDesktopPanels.toList()..sort()),
     );
 
+    unawaited(syncDynamicChartLayoutToServer(payload));
+
     if (!mounted) {
       desktopWindowLayouts = orderedLayouts;
       return;
@@ -633,6 +661,8 @@ class DynamicChartPageState extends State<DynamicChartPage>
   Future<void> applyDesktopLayoutJson(
     String layoutJson, {
     String? layoutName,
+    bool syncToServer = true,
+    bool showMessage = true,
   }) async {
     final DynamicChartSavedLayoutPayload payload =
         decodeDesktopSavedLayoutPayload(layoutJson, legacyName: layoutName);
@@ -673,11 +703,17 @@ class DynamicChartPageState extends State<DynamicChartPage>
       desktopWindowLayouts = loadedLayouts;
     }
 
-    await BaseOverlays.success(
-      message: layoutName != null && layoutName.isNotEmpty
-          ? "Layout '$layoutName' dimuat."
-          : "Layout desktop dimuat.",
-    );
+    if (syncToServer) {
+      unawaited(syncDynamicChartLayoutToServer(payload));
+    }
+
+    if (showMessage) {
+      await BaseOverlays.success(
+        message: layoutName != null && layoutName.isNotEmpty
+            ? "Layout '$layoutName' dimuat."
+            : "Layout desktop dimuat.",
+      );
+    }
   }
 
   Future<void> showLoadLayoutDialog() async {
@@ -1883,6 +1919,8 @@ class DynamicChartPageState extends State<DynamicChartPage>
         hiddenDesktopPanelPreferenceKey(),
       );
     }
+
+    await persistCurrentDesktopLayoutPayload();
   }
 
   double desktopWorkspaceHeight(
@@ -2582,14 +2620,27 @@ class DynamicChartPageState extends State<DynamicChartPage>
                                         maximized: effectiveLayouts[panel.id]!
                                             .maximized,
                                         floatingEnabled: true,
+                                        disableGlassBlur:
+                                            desktopWindowInteractionActive &&
+                                                desktopWindowInteractionId ==
+                                                    panel.id,
                                         title: panel.title,
                                         icon: panel.icon,
+                                        onInteractionStart: () {
+                                          setDesktopWindowInteractionActive(
+                                            true,
+                                            id: panel.id,
+                                          );
+                                        },
                                         onFocus: () =>
                                             bringDesktopWindowToFront(
                                           panel.id,
                                           effectiveLayouts,
                                         ),
                                         onToggleMinimize: () {
+                                          setDesktopWindowInteractionActive(
+                                            false,
+                                          );
                                           final DynamicChartDesktopWindowLayout?
                                               nextLayout =
                                               toggleDesktopWindowMinimize(
@@ -2611,6 +2662,9 @@ class DynamicChartPageState extends State<DynamicChartPage>
                                           persistDesktopWindowLayouts();
                                         },
                                         onToggleMaximize: () {
+                                          setDesktopWindowInteractionActive(
+                                            false,
+                                          );
                                           final DynamicChartDesktopWindowLayout?
                                               nextLayout =
                                               toggleDesktopWindowMaximize(
@@ -2635,6 +2689,9 @@ class DynamicChartPageState extends State<DynamicChartPage>
                                           persistDesktopWindowLayouts();
                                         },
                                         onClose: () {
+                                          setDesktopWindowInteractionActive(
+                                            false,
+                                          );
                                           closeDesktopWindow(panel.id);
                                         },
                                         onDragDelta: (Offset delta) {
@@ -2676,9 +2733,15 @@ class DynamicChartPageState extends State<DynamicChartPage>
                                           );
                                         },
                                         onDragEnd: () {
+                                          setDesktopWindowInteractionActive(
+                                            false,
+                                          );
                                           persistDesktopWindowLayouts();
                                         },
                                         onResizeEnd: () {
+                                          setDesktopWindowInteractionActive(
+                                            false,
+                                          );
                                           persistDesktopWindowLayouts();
                                         },
                                         child: SingleChildScrollView(
@@ -2697,7 +2760,7 @@ class DynamicChartPageState extends State<DynamicChartPage>
                           );
 
                           if (glass) {
-                            return workspaceWindows;
+                            return BackdropGroup(child: workspaceWindows);
                           }
 
                           return DecoratedBox(

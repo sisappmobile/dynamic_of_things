@@ -2,7 +2,10 @@ import "dart:convert";
 
 import "package:base/base.dart";
 import "package:collection/collection.dart";
+import "package:dio/dio.dart";
 import "package:dynamic_of_things/enumeration/chart_model.dart";
+import "package:dynamic_of_things/enumeration/constant.dart";
+import "package:dynamic_of_things/helper/dot_apis.dart";
 import "package:dynamic_of_things/helper/dynamic_chart_data_helper.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/model/window_model.dart";
@@ -11,6 +14,11 @@ import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:flutter/material.dart";
 
 bool prefsReady = false;
+
+const String _widgetLayoutGetUrl =
+    "https://posdemo.sisapp.com:8443/salesforce/api/v2/widget/get";
+const String _widgetLayoutStoreUrl =
+    "https://posdemo.sisapp.com:8443/salesforce/api/v2/widget/store";
 
 class PieSlice {
   final String label;
@@ -338,6 +346,192 @@ String currentLayoutUserId() {
 
 String currentLayoutUsername() {
   return Preferences.getInstance().getStringDynamicForm("USER_NAME") ?? "";
+}
+
+Future<Map<String, dynamic>?> fetchWidgetLayoutServerPayload() async {
+  try {
+    final Response<dynamic> response = await DotApis.getInstance().dio.get(
+          _widgetLayoutGetUrl,
+          options:
+              Options(headers: <String, dynamic>{"sfa-background": "true"}),
+        );
+
+    if (response.statusCode == null ||
+        response.statusCode! < 200 ||
+        response.statusCode! >= 300 ||
+        response.data is! Map) {
+      return null;
+    }
+
+    return Map<String, dynamic>.from(response.data as Map);
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<DynamicChartSavedLayoutPayload?>
+    loadDynamicChartLayoutFromServer() async {
+  final Map<String, dynamic>? payload = await fetchWidgetLayoutServerPayload();
+  if (payload == null) {
+    return null;
+  }
+
+  final Map<String, dynamic>? layout = _readLayoutObject(
+    payload["dynamicChartLayout"],
+  );
+  if (layout == null) {
+    return null;
+  }
+
+  final int dashboardUiType = _readDashboardUiType(
+    payload["themeStyle"] ??
+        payload["themeStyleId"] ??
+        payload["dashboardUiType"],
+    fallback: Preferences.getInstance().getInt(
+          SharedPreferenceKey.DASHBOARD_UI_TYPE,
+        ) ??
+        1,
+  );
+  final int themeMode = _readThemeMode(
+    payload["themeMode"],
+    fallback: Preferences.getInstance().getInt(
+          SharedPreferenceKey.THEME_MODE,
+        ) ??
+        0,
+  );
+
+  layout["dashboardUiType"] = layout["dashboardUiType"] ?? dashboardUiType;
+  layout["themeStyle"] =
+      layout["themeStyle"] ?? (dashboardUiType == 2 ? "glass" : "solid");
+  layout["themeMode"] = layout["themeMode"] ?? themeMode;
+
+  final DynamicChartSavedLayoutPayload parsed =
+      DynamicChartSavedLayoutPayload.fromJson(layout);
+
+  await Preferences.getInstance().setInt(
+    SharedPreferenceKey.DASHBOARD_UI_TYPE,
+    dashboardUiType,
+  );
+  await Preferences.getInstance().setInt(
+    SharedPreferenceKey.THEME_MODE,
+    themeMode,
+  );
+  await Preferences.getInstance().setStringDynamicForm(
+    desktopWindowLayoutPreferenceKey(),
+    jsonEncode(parsed.toJson()),
+  );
+  await Preferences.getInstance().setStringDynamicForm(
+    chartOrderPreferenceKey(),
+    jsonEncode(parsed.widgetOrder),
+  );
+  await Preferences.getInstance().setStringDynamicForm(
+    floatingDesktopModePreferenceKey(),
+    jsonEncode(parsed.floatingMode),
+  );
+  await Preferences.getInstance().setStringDynamicForm(
+    hiddenDesktopPanelPreferenceKey(),
+    jsonEncode(parsed.hiddenWidgetIds),
+  );
+
+  return parsed;
+}
+
+Future<void> syncDynamicChartLayoutToServer(
+  DynamicChartSavedLayoutPayload payload,
+) async {
+  try {
+    final Map<String, dynamic>? serverPayload =
+        await fetchWidgetLayoutServerPayload();
+    if (serverPayload == null) {
+      return;
+    }
+
+    final Map<String, dynamic> requestPayload =
+        Map<String, dynamic>.from(serverPayload);
+
+    requestPayload["version"] = serverPayload["version"] ?? 1;
+    requestPayload["generatedAt"] = DateTime.now().toUtc().toIso8601String();
+    requestPayload["userId"] = payload.userId;
+    requestPayload["username"] = payload.username;
+    requestPayload["dynamicChartLayout"] = payload.toJson();
+    requestPayload["themeStyle"] ??=
+        payload.dashboardUiType == 2 ? "glass" : "solid";
+    requestPayload["themeStyleId"] ??= payload.dashboardUiType;
+    requestPayload["themeMode"] ??=
+        Preferences.getInstance().getInt(SharedPreferenceKey.THEME_MODE) ?? 0;
+    requestPayload["themeModeLabel"] ??= _themeModeLabelForMode(
+      Preferences.getInstance().getInt(SharedPreferenceKey.THEME_MODE) ?? 0,
+    );
+
+    await DotApis.getInstance().dio.post(
+          _widgetLayoutStoreUrl,
+          data: requestPayload,
+          options:
+              Options(headers: <String, dynamic>{"sfa-background": "true"}),
+        );
+  } catch (_) {}
+}
+
+int _readDashboardUiType(
+  dynamic value, {
+  required int fallback,
+}) {
+  if (value is bool) {
+    return value ? 2 : 1;
+  }
+
+  if (value is String) {
+    final String normalized = value.trim().toLowerCase();
+    if (normalized == "glass" || normalized == "2") {
+      return 2;
+    }
+    if (normalized == "solid" || normalized == "1") {
+      return 1;
+    }
+  }
+
+  final int parsed = _readInt(value, fallback: fallback);
+  return parsed <= 1 ? 1 : 2;
+}
+
+int _readThemeMode(
+  dynamic value, {
+  required int fallback,
+}) {
+  final int parsed = _readInt(value, fallback: fallback);
+  return parsed < 0 ? fallback : parsed;
+}
+
+String _themeModeLabelForMode(int mode) {
+  switch (mode) {
+    case 1:
+      return "Light";
+    case 2:
+      return "Dark";
+    default:
+      return "System";
+  }
+}
+
+Map<String, dynamic>? _readLayoutObject(dynamic value) {
+  if (value is! Map) {
+    return null;
+  }
+
+  return Map<String, dynamic>.from(value);
+}
+
+int _readInt(dynamic value, {required int fallback}) {
+  if (value is int) {
+    return value;
+  }
+  if (value is num) {
+    return value.toInt();
+  }
+  if (value is String) {
+    return int.tryParse(value) ?? fallback;
+  }
+  return fallback;
 }
 
 Map<String, DynamicChartDesktopWindowLayout> readSavedDesktopWindowLayouts() {
