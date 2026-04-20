@@ -1,8 +1,12 @@
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
+import "dart:io";
+
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
+import "package:dio/dio.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
+import "package:dynamic_of_things/helper/dot_apis.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/generals.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
@@ -15,10 +19,13 @@ import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_state.da
 import "package:dynamic_of_things/widget/custom_dynamic_form.dart";
 import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:easy_localization/easy_localization.dart";
+import "package:file_picker/file_picker.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:go_router/go_router.dart";
 import "package:loader_overlay/loader_overlay.dart";
+import "package:path/path.dart" as path;
 import "package:smooth_corner/smooth_corner.dart";
 
 class DynamicFormPage extends StatefulWidget {
@@ -100,7 +107,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
     }
 
     final int t = Preferences.getInstance()
-            .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
+        .getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ??
         1;
     return t == 2;
   }
@@ -192,8 +199,8 @@ class DynamicFormPageState extends State<DynamicFormPage>
         backgroundColor: glass
             ? Colors.transparent
             : Theme.of(context).brightness == Brightness.dark
-                ? AppColors.surfaceContainerLowest()
-                : AppColors.surfaceContainerLowest(),
+            ? AppColors.surfaceContainerLowest()
+            : AppColors.surfaceContainerLowest(),
         body: Stack(
           children: [
             if (glass) ...[
@@ -245,7 +252,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
                     bottom: safe.bottom + Dimensions.size10,
                     child: Padding(
                       padding:
-                          EdgeInsets.symmetric(horizontal: horizontalPadding),
+                      EdgeInsets.symmetric(horizontal: horizontalPadding),
                       child: DotResponsive.centered(
                         context: context,
                         tablet: 900,
@@ -285,30 +292,30 @@ class DynamicFormPageState extends State<DynamicFormPage>
       if (widget.dataId != null) {
         if (widget.readOnly) {
           context.read<DynamicFormBloc>().add(
-                DynamicFormView(
-                  formId: widget.dynamicFormMenuItem.id,
-                  dataId: widget.dataId!,
-                  customerId: widget.customerId,
-                ),
-              );
+            DynamicFormView(
+              formId: widget.dynamicFormMenuItem.id,
+              dataId: widget.dataId!,
+              customerId: widget.customerId,
+            ),
+          );
         } else {
           context.read<DynamicFormBloc>().add(
-                DynamicFormEdit(
-                  formId: widget.dynamicFormMenuItem.id,
-                  dataId: widget.dataId!,
-                  customerId: widget.customerId,
-                ),
-              );
+            DynamicFormEdit(
+              formId: widget.dynamicFormMenuItem.id,
+              dataId: widget.dataId!,
+              customerId: widget.customerId,
+            ),
+          );
         }
       } else {
         context.read<DynamicFormBloc>().add(
-              DynamicFormCreate(
-                formId: widget.dynamicFormMenuItem.id,
-                customerId: widget.customerId,
-                extra: widget.extra,
-                referenceId: widget.referenceId,
-              ),
-            );
+          DynamicFormCreate(
+            formId: widget.dynamicFormMenuItem.id,
+            customerId: widget.customerId,
+            extra: widget.extra,
+            referenceId: widget.referenceId,
+          ),
+        );
       }
     }
   }
@@ -365,12 +372,12 @@ class DynamicFormPageState extends State<DynamicFormPage>
             globalKey.currentState!.save();
 
             context.read<DynamicFormBloc>().add(
-                  DynamicFormSave(
-                    formId: widget.dynamicFormMenuItem.id,
-                    customerId: widget.customerId,
-                    headerForm: headerForm!,
-                  ),
-                );
+              DynamicFormSave(
+                formId: widget.dynamicFormMenuItem.id,
+                customerId: widget.customerId,
+                headerForm: headerForm!,
+              ),
+            );
           },
         );
       }
@@ -458,6 +465,20 @@ class DynamicFormPageState extends State<DynamicFormPage>
 
     final bool glass = isGlass;
 
+    List<PopupMenuItem<String>> popupMenuItems = [];
+
+    if (headerForm != null && widget.readOnly) {
+      popupMenuItems.addAll(
+        headerForm!.printYourTemplates.map((e) {
+          return PopupMenuItem(
+            enabled: true,
+            value: e.id,
+            child: Text(e.label),
+          );
+        }).toList(),
+      );
+    }
+
     final Widget content = Row(
       children: [
         iconPill(
@@ -504,24 +525,49 @@ class DynamicFormPageState extends State<DynamicFormPage>
             ],
           ),
         ),
-        SizedBox(width: Dimensions.size10),
-        iconPill(
-          icon: Icons.cloud_sync,
-          onTap: () {
-            if (headerForm == null) {
-              refresh();
-              return;
-            }
+        if (!widget.readOnly)
+          Container(
+            margin: EdgeInsets.only(left: Dimensions.size10),
+            child: iconPill(
+              icon: Icons.cloud_sync,
+              onTap: () {
+                if (headerForm == null) {
+                  refresh();
+                  return;
+                }
 
-            context.read<DynamicFormBloc>().add(
+                context.read<DynamicFormBloc>().add(
                   DynamicFormRefresh(
                     formId: headerForm!.template.id,
                     customerId: widget.customerId,
                     headerForm: headerForm!,
                   ),
                 );
-          },
-        ),
+              },
+            ),
+          ),
+        if (popupMenuItems.isNotEmpty)
+          Container(
+            margin: EdgeInsets.only(left: Dimensions.size10),
+            child: Builder(
+              builder: (targetContext) {
+                return iconPill(
+                  icon: Icons.more_horiz,
+                  onTap: () async {
+                    String? selectedValue = await BasePopupMenus.show(
+                      context: context,
+                      targetContext: targetContext,
+                      items: popupMenuItems,
+                    );
+
+                    if (selectedValue != null) {
+                      await downloadPrintYourTemplate(selectedValue);
+                    }
+                  },
+                );
+              },
+            ),
+          ),
       ],
     );
 
@@ -552,7 +598,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
           side: BorderSide(
             color: AppColors.outline().withValues(
               alpha:
-                  Theme.of(context).brightness == Brightness.dark ? 0.28 : 0.22,
+              Theme.of(context).brightness == Brightness.dark ? 0.28 : 0.22,
             ),
           ),
         ),
@@ -577,48 +623,48 @@ class DynamicFormPageState extends State<DynamicFormPage>
         ),
         child: glass
             ? GlassContainer(
-                blur: Dimensions.size15,
-                borderRadius: Dimensions.size15,
-                opacity: 0.10,
-                borderOpacity: 0.18,
-                padding: EdgeInsets.zero,
-                child: SizedBox(
-                  width: Dimensions.size40,
-                  height: Dimensions.size40,
-                  child: Icon(
-                    icon,
-                    color: glass
-                        ? Colors.white.withOpacity(0.92)
-                        : AppColors.onSurface(),
-                    size: Dimensions.size25,
-                  ),
-                ),
-              )
+          blur: Dimensions.size15,
+          borderRadius: Dimensions.size15,
+          opacity: 0.10,
+          borderOpacity: 0.18,
+          padding: EdgeInsets.zero,
+          child: SizedBox(
+            width: Dimensions.size40,
+            height: Dimensions.size40,
+            child: Icon(
+              icon,
+              color: glass
+                  ? Colors.white.withOpacity(0.92)
+                  : AppColors.onSurface(),
+              size: Dimensions.size25,
+            ),
+          ),
+        )
             : Ink(
-                width: Dimensions.size40,
-                height: Dimensions.size40,
-                decoration: ShapeDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? AppColors.surfaceContainerLow()
-                      : AppColors.surfaceContainerLowest(),
-                  shape: SmoothRectangleBorder(
-                    borderRadius: BorderRadius.circular(Dimensions.size15),
-                    smoothness: Dimensions.size1,
-                    side: BorderSide(
-                      color: AppColors.outline().withValues(
-                        alpha: Theme.of(context).brightness == Brightness.dark
-                            ? 0.26
-                            : 0.18,
-                      ),
-                    ),
-                  ),
-                ),
-                child: Icon(
-                  icon,
-                  color: AppColors.onSurface(),
-                  size: Dimensions.size25,
+          width: Dimensions.size40,
+          height: Dimensions.size40,
+          decoration: ShapeDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.surfaceContainerLow()
+                : AppColors.surfaceContainerLowest(),
+            shape: SmoothRectangleBorder(
+              borderRadius: BorderRadius.circular(Dimensions.size15),
+              smoothness: Dimensions.size1,
+              side: BorderSide(
+                color: AppColors.outline().withValues(
+                  alpha: Theme.of(context).brightness == Brightness.dark
+                      ? 0.26
+                      : 0.18,
                 ),
               ),
+            ),
+          ),
+          child: Icon(
+            icon,
+            color: AppColors.onSurface(),
+            size: Dimensions.size25,
+          ),
+        ),
       ),
     );
   }
@@ -632,107 +678,107 @@ class DynamicFormPageState extends State<DynamicFormPage>
       final bool glass = isGlass;
       final Widget errorCard = glass
           ? GlassContainer(
-              blur: Dimensions.size20,
-              borderRadius: Dimensions.size20,
-              opacity: 0.12,
-              borderOpacity: 0.22,
-              padding: EdgeInsets.all(Dimensions.size20),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: Dimensions.size45,
-                    color: Colors.white.withOpacity(0.80),
-                  ),
-                  SizedBox(height: Dimensions.size10),
-                  Text(
-                    "common_something_wrong".tr(),
-                    style: TextStyle(
-                      fontSize: Dimensions.text16,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white.withOpacity(0.92),
-                    ),
-                  ),
-                  SizedBox(height: Dimensions.size5),
-                  Text(
-                    "pull_to_refresh_or_try_again".tr(),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.75),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(height: Dimensions.size15),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => refresh(),
-                          icon: const Icon(Icons.refresh),
-                          label: Text("refresh".tr()),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+        blur: Dimensions.size20,
+        borderRadius: Dimensions.size20,
+        opacity: 0.12,
+        borderOpacity: 0.22,
+        padding: EdgeInsets.all(Dimensions.size20),
+        child: Column(
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: Dimensions.size45,
+              color: Colors.white.withOpacity(0.80),
+            ),
+            SizedBox(height: Dimensions.size10),
+            Text(
+              "common_something_wrong".tr(),
+              style: TextStyle(
+                fontSize: Dimensions.text16,
+                fontWeight: FontWeight.w900,
+                color: Colors.white.withOpacity(0.92),
               ),
-            )
-          : Container(
-              padding: EdgeInsets.all(Dimensions.size20),
-              decoration: ShapeDecoration(
-                color: AppColors.surface(),
-                shape: SmoothRectangleBorder(
-                  borderRadius: BorderRadius.circular(Dimensions.size20),
-                  smoothness: Dimensions.size1,
-                  side: BorderSide(
-                    color: AppColors.outline().withValues(
-                      alpha: Theme.of(context).brightness == Brightness.dark
-                          ? 0.28
-                          : 0.22,
-                    ),
+            ),
+            SizedBox(height: Dimensions.size5),
+            Text(
+              "pull_to_refresh_or_try_again".tr(),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.75),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: Dimensions.size15),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => refresh(),
+                    icon: const Icon(Icons.refresh),
+                    label: Text("refresh".tr()),
                   ),
                 ),
+              ],
+            ),
+          ],
+        ),
+      )
+          : Container(
+        padding: EdgeInsets.all(Dimensions.size20),
+        decoration: ShapeDecoration(
+          color: AppColors.surface(),
+          shape: SmoothRectangleBorder(
+            borderRadius: BorderRadius.circular(Dimensions.size20),
+            smoothness: Dimensions.size1,
+            side: BorderSide(
+              color: AppColors.outline().withValues(
+                alpha: Theme.of(context).brightness == Brightness.dark
+                    ? 0.28
+                    : 0.22,
               ),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: Dimensions.size45,
-                    color: AppColors.onSurface().withValues(alpha: 0.65),
-                  ),
-                  SizedBox(height: Dimensions.size10),
-                  Text(
-                    "common_something_wrong".tr(),
-                    style: TextStyle(
-                      fontSize: Dimensions.text16,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.onSurface(),
-                    ),
-                  ),
-                  SizedBox(height: Dimensions.size5),
-                  Text(
-                    "pull_to_refresh_or_try_again".tr(),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppColors.onSurface().withValues(alpha: 0.70),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(height: Dimensions.size15),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => refresh(),
-                          icon: const Icon(Icons.refresh),
-                          label: Text("refresh".tr()),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+            ),
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: Dimensions.size45,
+              color: AppColors.onSurface().withValues(alpha: 0.65),
+            ),
+            SizedBox(height: Dimensions.size10),
+            Text(
+              "common_something_wrong".tr(),
+              style: TextStyle(
+                fontSize: Dimensions.text16,
+                fontWeight: FontWeight.w900,
+                color: AppColors.onSurface(),
               ),
-            );
+            ),
+            SizedBox(height: Dimensions.size5),
+            Text(
+              "pull_to_refresh_or_try_again".tr(),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.onSurface().withValues(alpha: 0.70),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: Dimensions.size15),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => refresh(),
+                    icon: const Icon(Icons.refresh),
+                    label: Text("refresh".tr()),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
 
       return ListView(
         padding: EdgeInsets.fromLTRB(
@@ -760,12 +806,12 @@ class DynamicFormPageState extends State<DynamicFormPage>
         }
 
         context.read<DynamicFormBloc>().add(
-              DynamicFormRefresh(
-                formId: headerForm!.template.id,
-                customerId: widget.customerId,
-                headerForm: headerForm!,
-              ),
-            );
+          DynamicFormRefresh(
+            formId: headerForm!.template.id,
+            customerId: widget.customerId,
+            headerForm: headerForm!,
+          ),
+        );
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -925,5 +971,115 @@ class DynamicFormPageState extends State<DynamicFormPage>
     }
 
     return fab;
+  }
+
+  Future<void> downloadPrintYourTemplate(String id) async {
+    context.loaderOverlay.show();
+
+    try {
+      Response response = await DotApis.getInstance().printYourTemplate(
+        formId: widget.dynamicFormMenuItem.id,
+        templateId: id,
+        dataId: widget.dataId!,
+      );
+
+      if (response.statusCode == 200) {
+        Uint8List bytes = response.data;
+
+        String fileName = response.headers["Content-Disposition"]![0].toString();
+
+        fileName = fileName.substring(fileName.lastIndexOf(";") + 1);
+        fileName = fileName.trim();
+        fileName = fileName.replaceAll(" ", "_");
+        fileName = fileName.toLowerCase();
+
+        if (kIsWeb) {
+          await FilePicker.platform.saveFile(
+            fileName: fileName,
+            bytes: bytes,
+            type: FileType.any,
+          );
+
+          if (!mounted) {
+            return;
+          }
+
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (!mounted) {
+              return;
+            }
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text("file_has_been_successfully_downloaded".tr()),
+                    Text(fileName),
+                  ],
+                ),
+                duration: const Duration(milliseconds: 2000),
+              ),
+            );
+          });
+
+          return;
+        }
+
+        String? directoryPath = await FilePicker.platform.getDirectoryPath();
+
+        if (directoryPath != null) {
+          String filePath = path.join(directoryPath, fileName);
+
+          bool fileExists = await File(filePath).exists();
+
+          if (fileExists) {
+            int count = 1;
+            String newFileName = "1-$fileName";
+
+            while (await File(path.join(directoryPath, newFileName)).exists()) {
+              count++;
+              newFileName = "$count-$fileName";
+            }
+
+            fileName = newFileName;
+            filePath = path.join(directoryPath, fileName);
+          }
+
+          await File(filePath).writeAsBytes(bytes);
+
+          if (!mounted) {
+            return;
+          }
+
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (!mounted) {
+              return;
+            }
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text("file_has_been_successfully_downloaded".tr()),
+                    Text(filePath),
+                  ],
+                ),
+                duration: const Duration(milliseconds: 2000),
+              ),
+            );
+          });
+        }
+      }
+    } catch (_) {
+      BaseOverlays.error(message: "common_something_wrong".tr());
+
+      return;
+    } finally {
+      context.loaderOverlay.hide();
+    }
   }
 }

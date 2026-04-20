@@ -534,4 +534,18 @@ class DotApis {
       data: changes,
     );
   }
+
+  Future<Response> printYourTemplate({
+    required String formId,
+    required String templateId,
+    required String dataId,
+  }) async {
+    return await dio.get(
+      "v2/dynamic-forms/templates/$formId/print-your-templates/$templateId",
+      queryParameters: {
+        "dataId": dataId,
+      },
+      options: Options(responseType: ResponseType.bytes),
+    );
+  }
 }
