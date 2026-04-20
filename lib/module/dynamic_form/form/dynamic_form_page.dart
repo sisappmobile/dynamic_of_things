@@ -988,7 +988,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
 
         String fileName = response.headers["Content-Disposition"]![0].toString();
 
-        fileName = fileName.substring(fileName.lastIndexOf(";") + 1);
+        fileName = fileName.substring(fileName.lastIndexOf("=") + 1);
         fileName = fileName.trim();
         fileName = fileName.replaceAll(" ", "_");
         fileName = fileName.toLowerCase();
