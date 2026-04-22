@@ -91,7 +91,9 @@ Future<void> main() async {
   DynamicForms.offline = false;
 
   DotApis.getInstance().init(
+    salt,
     baseUrl,
+    sessionIdKey,
     InterceptorsWrapper(
       onRequest: (options, handler) {
         options.headers["sfa-session-id"] = BasePreferences.getInstance().getString(sessionIdKey);

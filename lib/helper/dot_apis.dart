@@ -24,10 +24,14 @@ class DotApis {
   }
 
   late Dio dio;
+  late String salt;
   late String baseUrl;
+  late String sessionIdKey;
 
-  void init(String baseUrl, Interceptor interceptor) async {
+  void init(String salt, String baseUrl, String sessionIdKey, Interceptor interceptor) async {
+    this.salt = salt;
     this.baseUrl = baseUrl;
+    this.sessionIdKey = sessionIdKey;
 
     dio = Dio(
       BaseOptions(

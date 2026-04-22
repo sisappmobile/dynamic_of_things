@@ -577,9 +577,9 @@ class DynamicFormPageState extends State<DynamicFormPage>
                       if (selectedValue is PrintYourTemplate) {
                         await downloadPrintYourTemplate(selectedValue.id);
                       } else if (selectedValue is ReportLayout) {
-                        String sessionId = BasePreferences.getInstance().getString("sessionId")!;
+                        String sessionId = BasePreferences.getInstance().getString(DotApis.getInstance().sessionIdKey)!;
                         String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-                        String salt = "72e4425c484016c95677d1a2513681ff8e2b2459b11e68c8b67cc7b7fe60c422b629eb45d1a5b236c3df0031860c98f4b0f58c2497212ee20d58a833b9a3ea1d";
+                        String salt = DotApis.getInstance().salt;
                         String securityCode = crypto.sha256.convert(utf8.encode("$salt$sessionId$timestamp")).toString();
                         String url = "${DotApis.getInstance().baseUrl.substring(0, DotApis.getInstance().baseUrl.length - 15)}ctl.ctl?EVENT=VISITQU_DYNAMIC_REPORT&s=$sessionId&t=$timestamp&c=$securityCode&menu=${widget.dynamicFormMenuItem.id}&dataid=${widget.dataId}&rl=${selectedValue.id}&fname=dynamicreport";
 
