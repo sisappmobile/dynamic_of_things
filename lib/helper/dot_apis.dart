@@ -24,8 +24,11 @@ class DotApis {
   }
 
   late Dio dio;
+  late String baseUrl;
 
   void init(String baseUrl, Interceptor interceptor) async {
+    this.baseUrl = baseUrl;
+
     dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,

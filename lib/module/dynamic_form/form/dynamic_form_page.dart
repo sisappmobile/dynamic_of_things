@@ -1,9 +1,11 @@
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
+import "dart:convert";
 import "dart:io";
 
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
+import "package:crypto/crypto.dart" as crypto;
 import "package:dio/dio.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
@@ -27,6 +29,7 @@ import "package:go_router/go_router.dart";
 import "package:loader_overlay/loader_overlay.dart";
 import "package:path/path.dart" as path;
 import "package:smooth_corner/smooth_corner.dart";
+import "package:url_launcher/url_launcher_string.dart";
 
 class DynamicFormPage extends StatefulWidget {
   final DynamicFormMenuItem dynamicFormMenuItem;
@@ -465,18 +468,28 @@ class DynamicFormPageState extends State<DynamicFormPage>
 
     final bool glass = isGlass;
 
-    List<PopupMenuItem<String>> popupMenuItems = [];
+    List<PopupMenuItem<dynamic>> popupMenuItems = [];
 
     if (headerForm != null && widget.readOnly) {
-      popupMenuItems.addAll(
-        headerForm!.printYourTemplates.map((e) {
-          return PopupMenuItem(
-            enabled: true,
-            value: e.id,
-            child: Text(e.label),
-          );
-        }).toList(),
-      );
+      popupMenuItems
+        ..addAll(
+          headerForm!.printYourTemplates.map((e) {
+            return PopupMenuItem(
+              enabled: true,
+              value: e,
+              child: Text(e.label),
+            );
+          }).toList(),
+        )
+        ..addAll(
+          headerForm!.reportLayouts.map((e) {
+            return PopupMenuItem(
+              enabled: true,
+              value: e,
+              child: Text(e.label),
+            );
+          }).toList(),
+        );
     }
 
     final Widget content = Row(
@@ -554,14 +567,30 @@ class DynamicFormPageState extends State<DynamicFormPage>
                 return iconPill(
                   icon: Icons.more_horiz,
                   onTap: () async {
-                    String? selectedValue = await BasePopupMenus.show(
+                    dynamic selectedValue = await BasePopupMenus.show(
                       context: context,
                       targetContext: targetContext,
                       items: popupMenuItems,
                     );
 
                     if (selectedValue != null) {
-                      await downloadPrintYourTemplate(selectedValue);
+                      if (selectedValue is PrintYourTemplate) {
+                        await downloadPrintYourTemplate(selectedValue.id);
+                      } else if (selectedValue is ReportLayout) {
+                        String sessionId = BasePreferences.getInstance().getString("sessionId")!;
+                        String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+                        String salt = "72e4425c484016c95677d1a2513681ff8e2b2459b11e68c8b67cc7b7fe60c422b629eb45d1a5b236c3df0031860c98f4b0f58c2497212ee20d58a833b9a3ea1d";
+                        String securityCode = crypto.sha256.convert(utf8.encode("$salt$sessionId$timestamp")).toString();
+                        String url = "${DotApis.getInstance().baseUrl.substring(0, DotApis.getInstance().baseUrl.length - 15)}ctl.ctl?EVENT=VISITQU_DYNAMIC_REPORT&s=$sessionId&t=$timestamp&c=$securityCode&menu=${widget.dynamicFormMenuItem.id}&dataid=${widget.dataId}&rl=${selectedValue.id}&fname=dynamicreport";
+
+                        try {
+                          if (!await launchUrlString(url, mode: LaunchMode.externalApplication)) {
+                            throw Exception("Could not launch $url");
+                          }
+                        } catch (e) {
+                          BaseOverlays.error(message: e.toString());
+                        }
+                      }
                     }
                   },
                 );
