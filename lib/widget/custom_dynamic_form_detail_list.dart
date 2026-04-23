@@ -265,8 +265,6 @@ class CustomDynamicFormDetailListState
                               onTap: () async {
                                 if (BaseSettings.navigatorType ==
                                     BaseNavigatorType.legacy) {
-                                  Navigators.pop();
-
                                   await Navigators.push(
                                     CustomDynamicFormDetailForm(
                                       customerId: widget.customerId,
@@ -278,8 +276,6 @@ class CustomDynamicFormDetailListState
                                     ),
                                   );
                                 } else {
-                                  context.pop();
-
                                   await context.push(
                                     "/dynamic-form-details",
                                     extra: {
@@ -303,8 +299,6 @@ class CustomDynamicFormDetailListState
 
                                       if (BaseSettings.navigatorType ==
                                           BaseNavigatorType.legacy) {
-                                        Navigators.pop();
-
                                         result = await Navigators.push(
                                           CustomDynamicFormDetailForm(
                                             customerId: widget.customerId,
@@ -318,8 +312,6 @@ class CustomDynamicFormDetailListState
                                           ),
                                         );
                                       } else {
-                                        context.pop();
-
                                         result = await context.push(
                                           "/dynamic-form-details",
                                           extra: {
@@ -361,13 +353,6 @@ class CustomDynamicFormDetailListState
                                         title:
                                             "are_you_sure_want_to_proceed".tr(),
                                         positiveCallback: () {
-                                          if (BaseSettings.navigatorType ==
-                                              BaseNavigatorType.legacy) {
-                                            Navigators.pop();
-                                          } else {
-                                            context.pop();
-                                          }
-
                                           widget.detailForm.deleteRow(
                                             widget.headerForm,
                                             index,
@@ -450,7 +435,10 @@ class CustomDynamicFormDetailListState
                               borderRadius: Dimensions.size20,
                               opacity: 0.12,
                               borderOpacity: 0.22,
-                              padding: EdgeInsets.all(Dimensions.size20), // Padding diperbesar agar lega
+                              // Padding diperbesar agar lega.
+                              padding: EdgeInsets.all(
+                                Dimensions.size20,
+                              ),
                               child: SizedBox(
                                 width: double.infinity,
                                 child: content,
@@ -460,7 +448,10 @@ class CustomDynamicFormDetailListState
 
                           return Ink(
                             width: double.infinity,
-                            padding: EdgeInsets.all(Dimensions.size20), // Padding diperbesar agar lega
+                            // Padding diperbesar agar lega.
+                            padding: EdgeInsets.all(
+                              Dimensions.size20,
+                            ),
                             decoration: ShapeDecoration(
                               color: isGlass
                                   ? Colors.white.withOpacity(0.10)

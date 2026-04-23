@@ -35,7 +35,6 @@ import "package:flutter_bloc/flutter_bloc.dart";
 import "package:flutter_image_compress/flutter_image_compress.dart";
 import "package:get/get_utils/src/extensions/internacionalization.dart"
     hide Trans;
-import "package:go_router/go_router.dart";
 import "package:loader_overlay/loader_overlay.dart";
 import "package:material_symbols_icons/material_symbols_icons.dart";
 import "package:mime/mime.dart";
@@ -621,12 +620,6 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 iconData: Icons.backspace,
                 title: "clear_text".tr(),
                 onTap: () async {
-                  if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                    Navigators.pop();
-                  } else {
-                    context.pop();
-                  }
-
                   widget.field.setValue(widget.data, null);
                 },
               ),
@@ -634,12 +627,6 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 iconData: Icons.qr_code_scanner,
                 title: "scan_barcode".tr(),
                 onTap: () async {
-                  if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                    Navigators.pop();
-                  } else {
-                    context.pop();
-                  }
-
                   Navigators.push(
                     BarcodeScannerPage(
                       silent: false,

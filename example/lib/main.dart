@@ -370,12 +370,12 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
   final GlobalKey<FormState> formState = GlobalKey<FormState>(debugLabel: "formState");
 
   bool obscurePassword = true;
-  String deviceId = kIsWeb ? "b29d6a48d10ed383" : "90eb74775d909ea1";
+  String deviceId = kIsWeb ? "90eb74775d909ea1" : "90eb74775d909ea1";
   // String deviceId = "2c49b31455f471db";
-  // String deviceId = "b29d6a48d10ed383";
+  // String deviceId = "90eb74775d909ea1";
   // String deviceId = "2c49b31455f471db";
   // String deviceId = "0000000000000000";
-  // String deviceId = "b29d6a48d10ed383";
+  // String deviceId = "90eb74775d909ea1";
 
   @override
   void initState() {
@@ -557,7 +557,7 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
 
   Future<String> _getDeviceId() async {
     if (kIsWeb) {
-      const String hardcodedWebDeviceId = "b29d6a48d10ed383";
+      const String hardcodedWebDeviceId = "90eb74775d909ea1";
 
       if (hardcodedWebDeviceId.trim().isNotEmpty) {
         return hardcodedWebDeviceId;

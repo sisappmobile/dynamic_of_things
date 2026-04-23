@@ -74,7 +74,11 @@ class Pulls {
         print("Stack Trace:\n$s");
       }
     } finally {
-      updateStatus(result ? 101 : -1, autoCloseAfter: Duration(seconds: 3));
+      updateStatus(
+        result ? 101 : -1,
+        autoCloseAfter:
+            result ? Duration.zero : const Duration(milliseconds: 1200),
+      );
     }
   }
 
@@ -337,44 +341,67 @@ class _OverlayContent extends StatefulWidget {
 }
 
 class _OverlayContentState extends State<_OverlayContent>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+    with TickerProviderStateMixin {
+  late AnimationController _visibilityController;
+  late AnimationController _pulseController;
   late Animation<double> _fade;
   late Animation<double> _scale;
+  late Animation<double> _pulseFade;
+  late Animation<double> _pulseScale;
 
   @override
   void initState() {
     super.initState();
 
-    _controller = AnimationController(
+    _visibilityController = AnimationController(
       duration: const Duration(milliseconds: 500),
       reverseDuration: const Duration(milliseconds: 500),
       vsync: this,
     );
 
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 850),
+      vsync: this,
+    )..repeat(reverse: true);
+
     _fade = CurvedAnimation(
-      parent: _controller,
+      parent: _visibilityController,
       curve: Curves.easeOut,
       reverseCurve: Curves.easeIn,
     );
 
     _scale = Tween(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(
-        parent: _controller,
+        parent: _visibilityController,
         curve: Curves.easeOutBack,
         reverseCurve: Curves.easeIn,
       ),
     );
 
+    _pulseFade = Tween(begin: 0.28, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _pulseScale = Tween(begin: 0.92, end: 1.06).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
     widget.onHideReady(_hideWithAnimation);
 
-    _controller.forward();
+    _visibilityController.forward();
   }
 
   void _hideWithAnimation() async {
-    await _controller.reverse();
+    await _visibilityController.reverse();
 
     Pulls.instance._removeOverlay();
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _visibilityController.dispose();
+    super.dispose();
   }
 
   @override
@@ -385,21 +412,20 @@ class _OverlayContentState extends State<_OverlayContent>
         Positioned(
           left: Dimensions.size15,
           bottom: Dimensions.size15,
-          child: FadeTransition(
-            opacity: _fade,
-            child: ScaleTransition(
-              scale: _scale,
-              child: Card(
-                elevation: 6,
-                shape: const CircleBorder(),
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: ValueListenableBuilder<int?>(
-                    valueListenable: widget.statusNotifier,
-                    builder: (context, value, child) {
-                      return _AnimatedStatusIcon(status: value);
-                    },
-                  ),
+          child: IgnorePointer(
+            child: FadeTransition(
+              opacity: _fade,
+              child: ScaleTransition(
+                scale: _scale,
+                child: ValueListenableBuilder<int?>(
+                  valueListenable: widget.statusNotifier,
+                  builder: (context, value, child) {
+                    return _AnimatedStatusDot(
+                      status: value,
+                      pulseFade: _pulseFade,
+                      pulseScale: _pulseScale,
+                    );
+                  },
                 ),
               ),
             ),
@@ -410,22 +436,28 @@ class _OverlayContentState extends State<_OverlayContent>
   }
 }
 
-class _AnimatedStatusIcon extends StatelessWidget {
+class _AnimatedStatusDot extends StatelessWidget {
   final int? status;
+  final Animation<double> pulseFade;
+  final Animation<double> pulseScale;
 
-  const _AnimatedStatusIcon({required this.status});
+  const _AnimatedStatusDot({
+    required this.status,
+    required this.pulseFade,
+    required this.pulseScale,
+  });
 
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 250),
       transitionBuilder: (child, animation) {
         return FadeTransition(
           opacity: animation,
           child: ScaleTransition(
             scale: CurvedAnimation(
               parent: animation,
-              curve: Curves.easeOutBack,
+              curve: Curves.easeOut,
             ),
             child: child,
           ),
@@ -436,36 +468,34 @@ class _AnimatedStatusIcon extends StatelessWidget {
   }
 
   Widget _buildChild(int? status) {
-    if (status == null) {
-      return const SizedBox(
-        key: ValueKey("loading"),
-        width: 36,
-        height: 36,
-        child: CircularProgressIndicator(),
-      );
-    } else {
-      if (status == -1) {
-        return const Icon(
-          Icons.cancel,
-          key: ValueKey("error"),
-          color: Colors.red,
-          size: 36,
-        );
-      } else if (status == 101) {
-        return const Icon(
-          Icons.check_circle,
-          key: ValueKey("success"),
-          color: Colors.green,
-          size: 36,
-        );
-      } else {
-        return SizedBox(
-          key: ValueKey("loading"),
-          width: 36,
-          height: 36,
-          child: CircularProgressIndicator(value: status / 100),
-        );
-      }
+    if (status == 101) {
+      return const SizedBox.shrink(key: ValueKey("completed"));
     }
+
+    final bool isError = status == -1;
+    final Color dotColor =
+        isError ? const Color(0xFFD64545) : const Color(0xFF14B8A6);
+
+    return FadeTransition(
+      key: ValueKey(isError ? "error-dot" : "loading-dot"),
+      opacity: isError ? const AlwaysStoppedAnimation(1) : pulseFade,
+      child: ScaleTransition(
+        scale: isError ? const AlwaysStoppedAnimation(1) : pulseScale,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: dotColor,
+            boxShadow: [
+              BoxShadow(
+                color: dotColor.withValues(alpha: 0.35),
+                blurRadius: 10,
+                spreadRadius: 1.5,
+              ),
+            ],
+          ),
+          child: const SizedBox(width: 12, height: 12),
+        ),
+      ),
+    );
   }
 }

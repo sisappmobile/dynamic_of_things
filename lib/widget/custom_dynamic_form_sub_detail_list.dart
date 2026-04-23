@@ -70,7 +70,10 @@ class CustomDynamicFormSubDetailListState
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              headerSection(context), // PERBAIKAN: Diubah jadi section (tanpa bungkus card tebal)
+              // PERBAIKAN: Diubah jadi section (tanpa bungkus card tebal).
+              headerSection(
+                context,
+              ),
               SizedBox(height: Dimensions.size15),
               listHost(context, columns),
             ],
@@ -94,7 +97,7 @@ class CustomDynamicFormSubDetailListState
     }
   }
 
-  // PERBAIKAN UTAMA: Dihapuskannya bungkus Container/GlassContainer global 
+  // PERBAIKAN UTAMA: Dihapuskannya bungkus Container/GlassContainer global
   // agar sub-detail bisa langsung bernafas di latar belakang utamanya
   Widget headerSection(BuildContext context) {
     final Color primary = Theme.of(context).colorScheme.primary;
@@ -295,8 +298,6 @@ class CustomDynamicFormSubDetailListState
                     onTap: () async {
                       if (BaseSettings.navigatorType ==
                           BaseNavigatorType.legacy) {
-                        Navigators.pop();
-
                         await Navigators.push(
                           CustomDynamicFormSubDetailForm(
                             customerId: widget.customerId,
@@ -309,8 +310,6 @@ class CustomDynamicFormSubDetailListState
                           ),
                         );
                       } else {
-                        context.pop();
-
                         await context.push(
                           "/dynamic-form-sub-details",
                           extra: {
@@ -335,8 +334,6 @@ class CustomDynamicFormSubDetailListState
 
                             if (BaseSettings.navigatorType ==
                                 BaseNavigatorType.legacy) {
-                              Navigators.pop();
-
                               result = await Navigators.push(
                                 CustomDynamicFormSubDetailForm(
                                   customerId: widget.customerId,
@@ -349,8 +346,6 @@ class CustomDynamicFormSubDetailListState
                                 ),
                               );
                             } else {
-                              context.pop();
-
                               result = await context.push(
                                 "/dynamic-form-sub-details",
                                 extra: {
@@ -386,13 +381,6 @@ class CustomDynamicFormSubDetailListState
                             BaseDialogs.confirmation(
                               title: "are_you_sure_want_to_proceed".tr(),
                               positiveCallback: () {
-                                if (BaseSettings.navigatorType ==
-                                    BaseNavigatorType.legacy) {
-                                  Navigators.pop();
-                                } else {
-                                  context.pop();
-                                }
-
                                 widget.subDetailForm
                                     .deleteRow(detailData, index);
 
@@ -416,7 +404,10 @@ class CustomDynamicFormSubDetailListState
             child: Builder(
               builder: (context) {
                 final Widget content = Padding(
-                  padding: EdgeInsets.all(Dimensions.size20), // Padding diperbesar agar nyaman dilihat
+                  // Padding diperbesar agar nyaman dilihat.
+                  padding: EdgeInsets.all(
+                    Dimensions.size20,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -458,8 +449,7 @@ class CustomDynamicFormSubDetailListState
                             Icons.more_horiz_rounded,
                             color: isGlass
                                 ? Colors.white.withOpacity(0.92)
-                                : AppColors.onSurface()
-                                    .withValues(alpha: 0.45),
+                                : AppColors.onSurface().withValues(alpha: 0.45),
                           ),
                         ],
                       ),
@@ -516,7 +506,7 @@ class CustomDynamicFormSubDetailListState
     );
   }
 
-  // PERBAIKAN UTAMA: Format teks disamakan, rata kiri, dan box border dibuang 
+  // PERBAIKAN UTAMA: Format teks disamakan, rata kiri, dan box border dibuang
   // agar tampil murni seperti grid/tabel minimalis di atas card utamanya.
   Widget childrenWidget({
     required String description,
@@ -527,7 +517,8 @@ class CustomDynamicFormSubDetailListState
 
     return Expanded(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, // Format rata kiri semua untuk kerapian
+        crossAxisAlignment:
+            CrossAxisAlignment.start, // Format rata kiri semua untuk kerapian
         children: [
           Text(
             description,
