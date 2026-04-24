@@ -451,6 +451,13 @@ class BottomSheets {
                 canShowScrollHead: true,
                 canShowPaginationDialog: true,
                 enableTextSelection: true,
+                onDocumentLoadFailed: (details) {
+                  BaseOverlays.error(
+                    message: details.description.isNotEmpty
+                        ? details.description
+                        : details.error,
+                  );
+                },
               ),
             ),
           ),

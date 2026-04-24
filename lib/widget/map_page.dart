@@ -1,13 +1,12 @@
 // ignore_for_file: unrelated_type_equality_checks
 
 import "dart:async";
-import "dart:io";
 import "dart:ui";
 
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
-import "package:collection/collection.dart";
 import "package:connectivity_plus/connectivity_plus.dart";
+import "package:dynamic_of_things/helper/map_tile_storage.dart";
 import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
@@ -16,11 +15,7 @@ import "package:flutter_map_location_marker/flutter_map_location_marker.dart";
 import "package:geolocator/geolocator.dart";
 import "package:go_router/go_router.dart";
 import "package:latlong2/latlong.dart";
-import "package:path/path.dart" as p;
-import "package:path_provider/path_provider.dart";
 import "package:smooth_corner/smooth_corner.dart";
-
-String get offlineMapBaseFolder => "offline_maps";
 
 class MarkerItem {
   final LatLng point;
@@ -52,6 +47,8 @@ class MapPageState extends State<MapPage> {
   bool isOnline = true;
 
   StreamSubscription? connectivitySub;
+  final MapController mapController = MapController();
+  final TextEditingController tecSearch = TextEditingController();
 
   late AlignOnUpdate alignPositionOnUpdate;
   late final StreamController<double?> alignPositionStreamController;
@@ -60,6 +57,7 @@ class MapPageState extends State<MapPage> {
 
   LatLng? currentPosition;
   MarkerItem? selectedMarker;
+  String? lastFocusedMarkerSignature;
 
   String baseMap = "satellite";
 
@@ -72,6 +70,10 @@ class MapPageState extends State<MapPage> {
 
     alignPositionOnUpdate = AlignOnUpdate.once;
     alignPositionStreamController = StreamController<double?>();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      focusSingleVisibleMarkerIfNeeded(markerItems);
+    });
   }
 
   void onLocationUpdate(Position position) {
@@ -94,7 +96,8 @@ class MapPageState extends State<MapPage> {
       permission = await Geolocator.requestPermission();
     }
 
-    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
       return;
     }
 
@@ -132,6 +135,132 @@ class MapPageState extends State<MapPage> {
 
   bool get isDark => Theme.of(context).brightness == Brightness.dark;
 
+  List<MarkerItem> get markerItems => widget.markerItems ?? <MarkerItem>[];
+
+  double topFloatingActionsOffset(BuildContext context) {
+    final EdgeInsets safe = MediaQuery.of(context).padding;
+
+    return safe.top + 145;
+  }
+
+  List<MarkerItem> filteredMarkerItems({
+    String? query,
+  }) {
+    final String normalizedQuery =
+        (query ?? tecSearch.text).trim().toLowerCase();
+
+    if (normalizedQuery.isEmpty) {
+      return markerItems;
+    }
+
+    return markerItems.where((markerItem) {
+      return markerSearchText(markerItem).contains(normalizedQuery);
+    }).toList();
+  }
+
+  String markerSearchText(MarkerItem markerItem) {
+    return [
+      ...collectSearchTokens(markerItem.info),
+      ...collectSearchTokens(markerItem.extra),
+      markerItem.point.latitude.toString(),
+      markerItem.point.longitude.toString(),
+    ].join(" ").toLowerCase();
+  }
+
+  String markerSignature(MarkerItem markerItem) {
+    return "${markerItem.point.latitude}|${markerItem.point.longitude}|${markerSearchText(markerItem)}";
+  }
+
+  List<String> collectSearchTokens(dynamic value) {
+    if (value == null) {
+      return <String>[];
+    }
+
+    if (value is Map) {
+      final List<String> items = <String>[];
+
+      for (final MapEntry<dynamic, dynamic> entry in value.entries) {
+        final String key = entry.key.toString().trim();
+
+        if (key.isNotEmpty) {
+          items.add(key);
+        }
+
+        items.addAll(collectSearchTokens(entry.value));
+      }
+
+      return items;
+    }
+
+    if (value is Iterable) {
+      return value.expand(collectSearchTokens).toList();
+    }
+
+    final String text = value.toString().trim();
+
+    if (text.isEmpty || text.toLowerCase() == "null") {
+      return <String>[];
+    }
+
+    return <String>[text];
+  }
+
+  void onSearchChanged(String value) {
+    final List<MarkerItem> visibleMarkers = filteredMarkerItems(query: value);
+
+    setState(() {
+      if (visibleMarkers.length != 1) {
+        lastFocusedMarkerSignature = null;
+      }
+
+      if (selectedMarker != null && !visibleMarkers.contains(selectedMarker)) {
+        selectedMarker = null;
+      }
+    });
+
+    focusSingleVisibleMarkerIfNeeded(visibleMarkers);
+  }
+
+  void clearSearch() {
+    tecSearch.clear();
+    onSearchChanged("");
+  }
+
+  void focusSingleVisibleMarkerIfNeeded(List<MarkerItem> visibleMarkers) {
+    if (visibleMarkers.length != 1) {
+      lastFocusedMarkerSignature = null;
+      return;
+    }
+
+    final MarkerItem markerItem = visibleMarkers.first;
+    final String signature = markerSignature(markerItem);
+
+    if (lastFocusedMarkerSignature == signature) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      try {
+        final double currentZoom = mapController.camera.zoom;
+        final double targetZoom = currentZoom < 16 ? 16 : currentZoom;
+
+        final bool moved = mapController.move(
+          markerItem.point,
+          targetZoom,
+          id: "search-focus",
+        );
+
+        if (moved) {
+          lastFocusedMarkerSignature = signature;
+        }
+      } catch (_) {}
+    });
+  }
+
   Widget glassTopBar(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
     final double horizontalPadding = DotResponsive.horizontalPadding(context);
@@ -166,44 +295,54 @@ class MapPageState extends State<MapPage> {
                     vertical: Dimensions.size10,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.surface().withValues(alpha: isDark ? 0.78 : 0.90),
+                    color: AppColors.surface()
+                        .withValues(alpha: isDark ? 0.78 : 0.90),
                     borderRadius: BorderRadius.circular(Dimensions.size25),
                     border: Border.all(
-                      color: AppColors.outline().withValues(alpha: isDark ? 0.22 : 0.18),
+                      color: AppColors.outline()
+                          .withValues(alpha: isDark ? 0.22 : 0.18),
                     ),
                     boxShadow: [
                       BoxShadow(
                         blurRadius: Dimensions.size25,
                         offset: Offset(0, Dimensions.size15),
-                        color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.12),
+                        color: Colors.black
+                            .withValues(alpha: isDark ? 0.18 : 0.12),
                       ),
                     ],
                   ),
-                  child: Row(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      iconPill(
-                        context: context,
-                        icon: Icons.turn_left_rounded,
-                        onTap: () {
-                          Navigator.of(context).maybePop();
-                        },
-                      ),
-                      SizedBox(width: Dimensions.size10),
-                      Expanded(
-                        child: Text(
-                          "map".tr(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: Dimensions.text16,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.2,
-                            color: AppColors.onSurface(),
+                      Row(
+                        children: [
+                          iconPill(
+                            context: context,
+                            icon: Icons.turn_left_rounded,
+                            onTap: () {
+                              Navigator.of(context).maybePop();
+                            },
                           ),
-                        ),
+                          SizedBox(width: Dimensions.size10),
+                          Expanded(
+                            child: Text(
+                              "map".tr(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: Dimensions.text16,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.2,
+                                color: AppColors.onSurface(),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: Dimensions.size10),
+                          statusChip(context),
+                        ],
                       ),
-                      SizedBox(width: Dimensions.size10),
-                      statusChip(context),
+                      SizedBox(height: Dimensions.size10),
+                      searchBox(),
                     ],
                   ),
                 ),
@@ -232,12 +371,14 @@ class MapPageState extends State<MapPage> {
           width: Dimensions.size40,
           height: Dimensions.size40,
           decoration: ShapeDecoration(
-            color: AppColors.surfaceContainerLowest().withValues(alpha: isDark ? 0.72 : 1),
+            color: AppColors.surfaceContainerLowest()
+                .withValues(alpha: isDark ? 0.72 : 1),
             shape: SmoothRectangleBorder(
               borderRadius: BorderRadius.circular(Dimensions.size15),
               smoothness: Dimensions.size1,
               side: BorderSide(
-                color: AppColors.outline().withValues(alpha: isDark ? 0.22 : 0.18),
+                color:
+                    AppColors.outline().withValues(alpha: isDark ? 0.22 : 0.18),
               ),
             ),
           ),
@@ -255,7 +396,8 @@ class MapPageState extends State<MapPage> {
     final Color primary = Theme.of(context).colorScheme.primary;
 
     final String label = isOnline ? "Online" : "Offline";
-    final IconData icon = isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded;
+    final IconData icon =
+        isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded;
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -263,7 +405,8 @@ class MapPageState extends State<MapPage> {
         vertical: Dimensions.size10,
       ),
       decoration: ShapeDecoration(
-        color: AppColors.surfaceContainerLowest().withValues(alpha: isDark ? 0.72 : 1),
+        color: AppColors.surfaceContainerLowest()
+            .withValues(alpha: isDark ? 0.72 : 1),
         shape: SmoothRectangleBorder(
           borderRadius: BorderRadius.circular(Dimensions.size15),
           smoothness: Dimensions.size1,
@@ -293,6 +436,89 @@ class MapPageState extends State<MapPage> {
               fontWeight: FontWeight.w900,
               letterSpacing: 0.2,
               color: AppColors.onSurface(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget searchBox() {
+    final List<MarkerItem> visibleMarkers = filteredMarkerItems();
+
+    return Container(
+      height: Dimensions.size50,
+      decoration: ShapeDecoration(
+        color: AppColors.surfaceContainerLowest()
+            .withValues(alpha: isDark ? 0.72 : 1),
+        shape: SmoothRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimensions.size15),
+          smoothness: Dimensions.size1,
+          side: BorderSide(
+            color: AppColors.outline().withValues(alpha: isDark ? 0.22 : 0.18),
+          ),
+        ),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: Dimensions.size15),
+      child: Row(
+        children: [
+          Icon(
+            Icons.search_rounded,
+            color: AppColors.onSurface().withValues(alpha: 0.70),
+          ),
+          SizedBox(width: Dimensions.size10),
+          Expanded(
+            child: TextField(
+              controller: tecSearch,
+              textInputAction: TextInputAction.search,
+              onChanged: onSearchChanged,
+              decoration: InputDecoration(
+                hintText: "search".tr(),
+                border: InputBorder.none,
+                isDense: true,
+              ),
+            ),
+          ),
+          if (StringUtils.isNotNullOrEmpty(tecSearch.text))
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: clearSearch,
+                customBorder: const CircleBorder(),
+                child: Padding(
+                  padding: EdgeInsets.all(Dimensions.size5),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: Dimensions.size20,
+                    color: AppColors.onSurface().withValues(alpha: 0.75),
+                  ),
+                ),
+              ),
+            ),
+          SizedBox(width: Dimensions.size5),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: Dimensions.size10,
+              vertical: Dimensions.size5,
+            ),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withValues(
+                    alpha: 0.10,
+                  ),
+              borderRadius: BorderRadius.circular(Dimensions.size100),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.primary.withValues(
+                      alpha: 0.18,
+                    ),
+              ),
+            ),
+            child: Text(
+              "${visibleMarkers.length}/${markerItems.length}",
+              style: TextStyle(
+                fontSize: Dimensions.text11,
+                fontWeight: FontWeight.w900,
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
           ),
         ],
@@ -336,7 +562,8 @@ class MapPageState extends State<MapPage> {
                       BoxShadow(
                         blurRadius: Dimensions.size20,
                         offset: Offset(0, Dimensions.size10),
-                        color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.16),
+                        color: Colors.black
+                            .withValues(alpha: isDark ? 0.22 : 0.16),
                       ),
                     ],
                     shape: SmoothRectangleBorder(
@@ -362,7 +589,7 @@ class MapPageState extends State<MapPage> {
                       ),
                       SizedBox(width: Dimensions.size10),
                       Text(
-                        "Lokasi Saya",
+                        "my_location".tr(),
                         style: TextStyle(
                           color: onPrimary,
                           fontSize: Dimensions.text14,
@@ -382,7 +609,6 @@ class MapPageState extends State<MapPage> {
   }
 
   Widget fabSelectCurrentMarker(BuildContext context) {
-    final EdgeInsets safe = MediaQuery.of(context).padding;
     final double horizontalPadding = DotResponsive.horizontalPadding(context);
 
     Widget childWidget() {
@@ -393,7 +619,8 @@ class MapPageState extends State<MapPage> {
           if (i % 2 == 0) {
             List<Widget> children = [];
 
-            MapEntry<String, dynamic> dfrfiLeft = selectedMarker!.info!.entries.elementAt(i);
+            MapEntry<String, dynamic> dfrfiLeft =
+                selectedMarker!.info!.entries.elementAt(i);
 
             children.add(
               childrenWidget(
@@ -404,7 +631,8 @@ class MapPageState extends State<MapPage> {
             );
 
             if (i + 1 < selectedMarker!.info!.entries.length) {
-              MapEntry<String, dynamic> dfrfiRight = selectedMarker!.info!.entries.elementAt(i + 1);
+              MapEntry<String, dynamic> dfrfiRight =
+                  selectedMarker!.info!.entries.elementAt(i + 1);
 
               children
                 ..add(SizedBox(width: Dimensions.size5))
@@ -434,22 +662,23 @@ class MapPageState extends State<MapPage> {
           width: 250,
           child: Card(
             child: Container(
-              padding: EdgeInsets.all(10),
+              padding: EdgeInsets.all(Dimensions.size10),
               child: Column(
                 children: [
                   ...widgets,
-                  SizedBox(height: 10),
+                  SizedBox(height: Dimensions.size10),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
                       onPressed: () {
-                        if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                        if (BaseSettings.navigatorType ==
+                            BaseNavigatorType.legacy) {
                           Navigators.pop(result: selectedMarker);
                         } else {
                           context.pop(selectedMarker);
                         }
                       },
-                      child: Text("Gunakan marker terpilih"),
+                      child: Text("use_selected_marker".tr()),
                     ),
                   ),
                 ],
@@ -466,7 +695,7 @@ class MapPageState extends State<MapPage> {
               context.pop(selectedMarker);
             }
           },
-          child: Text("Gunakan marker terpilih"),
+          child: Text("use_selected_marker".tr()),
         );
       }
     }
@@ -474,7 +703,7 @@ class MapPageState extends State<MapPage> {
     return Positioned(
       left: 0,
       right: 0,
-      top: safe.top + 90,
+      top: topFloatingActionsOffset(context),
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
         child: DotResponsive.centered(
@@ -491,13 +720,12 @@ class MapPageState extends State<MapPage> {
   }
 
   Widget selectLayer(BuildContext context) {
-    final EdgeInsets safe = MediaQuery.of(context).padding;
     final double horizontalPadding = DotResponsive.horizontalPadding(context);
 
     return Positioned(
       left: 0,
       right: 0,
-      top: safe.top + 90,
+      top: topFloatingActionsOffset(context),
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
         child: DotResponsive.centered(
@@ -545,7 +773,12 @@ class MapPageState extends State<MapPage> {
                     }
                   },
                   style: FilledButton.styleFrom(
-                    padding: EdgeInsets.fromLTRB(5, 5, 10, 5),
+                    padding: EdgeInsets.fromLTRB(
+                      Dimensions.size5,
+                      Dimensions.size5,
+                      Dimensions.size10,
+                      Dimensions.size5,
+                    ),
                     backgroundColor: AppColors.tertiary(),
                     foregroundColor: AppColors.onTertiary(),
                     iconColor: AppColors.onTertiary(),
@@ -561,76 +794,164 @@ class MapPageState extends State<MapPage> {
     );
   }
 
+  Future<({String? storagePath, double? minZoom})> loadMapSource() async {
+    final String? storagePath = await getOfflineMapStoragePath();
+    final bool canUseOfflineTiles =
+        !isOnline && supportsOfflineMapStorage && storagePath != null;
+
+    final double? minZoom = canUseOfflineTiles
+        ? await getOfflineMapMinZoom(baseMap: baseMap)
+        : null;
+
+    return (
+      storagePath: storagePath,
+      minZoom: minZoom,
+    );
+  }
+
+  Widget offlineUnavailableNotice() {
+    return IgnorePointer(
+      child: Center(
+        child: Container(
+          margin: EdgeInsets.symmetric(horizontal: Dimensions.size20),
+          padding: EdgeInsets.symmetric(
+            horizontal: Dimensions.size15,
+            vertical: Dimensions.size10,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.surface().withValues(alpha: isDark ? 0.92 : 0.95),
+            borderRadius: BorderRadius.circular(Dimensions.size15),
+            border: Border.all(
+              color:
+                  AppColors.outline().withValues(alpha: isDark ? 0.22 : 0.18),
+            ),
+          ),
+          child: Text(
+            "offline_map_unavailable".tr(),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: Dimensions.text12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface(),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget mapHost() {
-    return FutureBuilder<Directory>(
-      future: getApplicationDocumentsDirectory(),
+    final List<MarkerItem> visibleMarkers = filteredMarkerItems();
+
+    if (visibleMarkers.length == 1) {
+      focusSingleVisibleMarkerIfNeeded(visibleMarkers);
+    }
+
+    return FutureBuilder<({String? storagePath, double? minZoom})>(
+      future: loadMapSource(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (snapshot.connectionState != ConnectionState.done) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        double? minZoom;
+        final String? storagePath = snapshot.data?.storagePath;
+        final bool canUseOfflineTiles =
+            !isOnline && supportsOfflineMapStorage && storagePath != null;
+        final bool canShowCustomOverlay =
+            supportsOfflineMapStorage && storagePath != null;
 
-        if (!isOnline) {
-          try {
-            List<double> zoomVarieties = Directory("${snapshot.data!.path}/$offlineMapBaseFolder/$baseMap")
-                .listSync()
-                .where(
-                  (element) => element is Directory && double.tryParse(p.basename(element.path)) != null,
-            )
-                .map((element) => double.parse(p.basename(element.path)))
-                .sorted((a, b) => a.compareTo(b));
-
-            minZoom = zoomVarieties.first;
-          } catch (_) {}
-        }
-
-        return FlutterMap(
-          options: MapOptions(
-            initialZoom: minZoom ?? 14,
-          ),
+        return Stack(
           children: [
-            TileLayer(
-              tileProvider: isOnline ? NetworkTileProvider() : FileTileProvider(),
-              urlTemplate: tileUrlTemplate(snapshot.data!.path),
-              userAgentPackageName: "com.sisapp.dynamic_of_things",
-            ),
-            TileLayer(
-              urlTemplate: "${snapshot.data!.path}/$offlineMapBaseFolder/custom/{z}/{x}/{y}.png",
-              tileProvider: FileTileProvider(),
-              tms: true,
-              tileBuilder: (context, tileWidget, tile) {
-                return Opacity(
-                  opacity: 0.7,
-                  child: tileWidget,
-                );
-              },
-            ),
-            CurrentLocationLayer(
-              alignPositionStream: alignPositionStreamController.stream,
-              alignPositionOnUpdate: alignPositionOnUpdate,
-            ),
-            PolylineLayer(
-              polylines: buildPolylines(),
-            ),
-            MarkerLayer(
-              markers: (widget.markerItems ?? []).map((e) {
-                return Marker(
-                  point: e.point,
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        selectedMarker = e;
-                      });
-                    },
-                    child: e.icon,
+            FlutterMap(
+              mapController: mapController,
+              options: MapOptions(
+                initialZoom: snapshot.data?.minZoom ?? 14,
+              ),
+              children: [
+                TileLayer(
+                  tileProvider: canUseOfflineTiles
+                      ? FileTileProvider()
+                      : NetworkTileProvider(),
+                  urlTemplate: tileUrlTemplate(
+                    storagePath: storagePath,
+                    useOfflineTiles: canUseOfflineTiles,
                   ),
-                );
-              }).toList(),
+                  userAgentPackageName: "com.sisapp.dynamic_of_things",
+                ),
+                if (canShowCustomOverlay)
+                  TileLayer(
+                    urlTemplate:
+                        "$storagePath/$offlineMapBaseFolder/custom/{z}/{x}/{y}.png",
+                    tileProvider: FileTileProvider(),
+                    tms: true,
+                    tileBuilder: (context, tileWidget, tile) {
+                      return Opacity(
+                        opacity: 0.7,
+                        child: tileWidget,
+                      );
+                    },
+                  ),
+                CurrentLocationLayer(
+                  alignPositionStream: alignPositionStreamController.stream,
+                  alignPositionOnUpdate: alignPositionOnUpdate,
+                ),
+                PolylineLayer(
+                  polylines: buildPolylines(),
+                ),
+                MarkerLayer(
+                  markers: visibleMarkers.map((e) {
+                    return Marker(
+                      point: e.point,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedMarker = e;
+                          });
+                        },
+                        child: e.icon,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ),
+            if (!isOnline && !canUseOfflineTiles) offlineUnavailableNotice(),
+            if (tecSearch.text.trim().isNotEmpty && visibleMarkers.isEmpty)
+              searchEmptyNotice(),
           ],
         );
       },
+    );
+  }
+
+  Widget searchEmptyNotice() {
+    return IgnorePointer(
+      child: Center(
+        child: Container(
+          margin: EdgeInsets.symmetric(horizontal: Dimensions.size20),
+          padding: EdgeInsets.symmetric(
+            horizontal: Dimensions.size15,
+            vertical: Dimensions.size10,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.surface().withValues(alpha: isDark ? 0.92 : 0.95),
+            borderRadius: BorderRadius.circular(Dimensions.size15),
+            border: Border.all(
+              color:
+                  AppColors.outline().withValues(alpha: isDark ? 0.22 : 0.18),
+            ),
+          ),
+          child: Text(
+            "search_empty_notice".tr(),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: Dimensions.text12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface(),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -655,20 +976,26 @@ class MapPageState extends State<MapPage> {
   @override
   void dispose() {
     connectivitySub?.cancel();
+    positionSubscription?.cancel();
     alignPositionStreamController.close();
+    tecSearch.dispose();
+    mapController.dispose();
     super.dispose();
   }
 
-  String tileUrlTemplate(String path) {
-    if (isOnline) {
+  String tileUrlTemplate({
+    required String? storagePath,
+    required bool useOfflineTiles,
+  }) {
+    if (!useOfflineTiles) {
       if (baseMap == "satellite") {
         return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
       } else {
         return "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
       }
-    } else {
-      return "$path/$offlineMapBaseFolder/$baseMap/{z}/{x}/{y}.png";
     }
+
+    return "$storagePath/$offlineMapBaseFolder/$baseMap/{z}/{x}/{y}.png";
   }
 
   List<Polyline> buildPolylines() {
