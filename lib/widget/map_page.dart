@@ -6,7 +6,8 @@ import "dart:ui";
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:connectivity_plus/connectivity_plus.dart";
-import "package:dynamic_of_things/helper/map_tile_storage.dart";
+import "package:dynamic_of_things/helper/map_tile_storage.dart"
+    hide offlineMapBaseFolder;
 import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
@@ -30,6 +31,8 @@ class MarkerItem {
     this.extra,
   });
 }
+
+String get offlineMapBaseFolder => "offline_maps";
 
 class MapPage extends StatefulWidget {
   final List<MarkerItem>? markerItems;
