@@ -13,6 +13,7 @@ import "package:flutter/material.dart";
 import "package:go_router/go_router.dart";
 import "package:photo_view/photo_view.dart";
 import "package:smooth_corner/smooth_corner.dart";
+import "package:syncfusion_flutter_pdfviewer/pdfviewer.dart";
 import "package:video_player/video_player.dart";
 
 class BottomSheets {
@@ -398,5 +399,63 @@ class BottomSheets {
     );
 
     await videoPlayerController.dispose();
+  }
+
+  static Future<void> pdfPreview({
+    required BuildContext context,
+    required Uint8List bytes,
+    String? title,
+  }) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Scaffold(
+          backgroundColor: Colors.black,
+          extendBodyBehindAppBar: true,
+          appBar: AppBar(
+            backgroundColor: Colors.black.withOpacity(0.4),
+            elevation: 0,
+            centerTitle: true,
+            title: Text(
+              title?.trim().isNotEmpty == true ? title! : '${"view".tr()} PDF',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: Dimensions.text16,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.2,
+              ),
+            ),
+            leading: IconButton(
+              icon: const Icon(Icons.close_rounded, color: Colors.white),
+              onPressed: () {
+                if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                  Navigators.pop();
+                } else {
+                  context.pop();
+                }
+              },
+            ),
+          ),
+          body: SafeArea(
+            top: false,
+            child: Container(
+              color: Colors.white,
+              child: SfPdfViewer.memory(
+                bytes,
+                canShowScrollHead: true,
+                canShowPaginationDialog: true,
+                enableTextSelection: true,
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }

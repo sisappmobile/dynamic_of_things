@@ -60,7 +60,7 @@ class Insight extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _MetricCard(
+                child: MetricCard(
                   isGlass: isGlass,
                   label: "Total",
                   value: formatChartNumber(total),
@@ -68,7 +68,7 @@ class Insight extends StatelessWidget {
               ),
               SizedBox(width: Dimensions.size10),
               Expanded(
-                child: _MetricCard(
+                child: MetricCard(
                   isGlass: isGlass,
                   label: "Rows",
                   value: rows.toString(),
@@ -77,13 +77,13 @@ class Insight extends StatelessWidget {
             ],
           ),
           SizedBox(height: Dimensions.size15),
-          _InsightSection(
+          InsightSection(
             isGlass: isGlass,
             title: "By variable",
             items: compositionByVariable,
           ),
           SizedBox(height: Dimensions.size10),
-          _InsightSection(
+          InsightSection(
             isGlass: isGlass,
             title: "By category",
             items: compositionByCategory,
@@ -123,15 +123,16 @@ class Insight extends StatelessWidget {
   }
 }
 
-class _MetricCard extends StatelessWidget {
+class MetricCard extends StatelessWidget {
   final bool isGlass;
   final String label;
   final String value;
 
-  const _MetricCard({
+  const MetricCard({
     required this.isGlass,
     required this.label,
     required this.value,
+    super.key,
   });
 
   @override
@@ -190,15 +191,16 @@ class _MetricCard extends StatelessWidget {
   }
 }
 
-class _InsightSection extends StatelessWidget {
+class InsightSection extends StatelessWidget {
   final bool isGlass;
   final String title;
   final List<MapEntry<String, num>> items;
 
-  const _InsightSection({
+  const InsightSection({
     required this.isGlass,
     required this.title,
     required this.items,
+    super.key,
   });
 
   @override

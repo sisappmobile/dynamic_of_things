@@ -1749,6 +1749,11 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         ]);
   }
 
+  bool isPdfAttachment(Attachment attachment) {
+    return attachment.mime?.toLowerCase() == "application/pdf" ||
+        attachment.name?.toLowerCase().endsWith(".pdf") == true;
+  }
+
   Widget attachmentPlaceholder({
     required Attachment attachment,
     required IconData icon,
@@ -1854,10 +1859,16 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
       Attachment attachment = widget.field.getValue(widget.data);
       final bool isVideo = isVideoAttachment(attachment);
+      final bool isPdf = isPdfAttachment(attachment);
       final bool isImage = attachment.thumbnail != null ||
           isImageAttachmentMime(attachment.mime);
       final Uint8List? previewBytes =
           attachment.thumbnail ?? (isImage ? attachment.bytes : null);
+      final IconData previewIcon = isVideo
+          ? Icons.play_circle_fill_rounded
+          : isPdf
+              ? Icons.picture_as_pdf_rounded
+              : Icons.insert_drive_file_rounded;
 
       Widget thumbnailWidget = ClipRRect(
         borderRadius: BorderRadius.circular(Dimensions.size10),
@@ -1873,17 +1884,13 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                       errorBuilder: (context, error, stackTrace) {
                         return attachmentPlaceholder(
                           attachment: attachment,
-                          icon: isVideo
-                              ? Icons.play_circle_fill_rounded
-                              : Icons.insert_drive_file_rounded,
+                          icon: previewIcon,
                         );
                       },
                     )
                   : attachmentPlaceholder(
                       attachment: attachment,
-                      icon: isVideo
-                          ? Icons.play_circle_fill_rounded
-                          : Icons.insert_drive_file_rounded,
+                      icon: previewIcon,
                     ),
             ),
             Positioned.fill(
@@ -1900,6 +1907,12 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                         context: context,
                         bytes: attachment.bytes!,
                         mime: attachment.mime,
+                      );
+                    } else if (isPdf) {
+                      BottomSheets.pdfPreview(
+                        context: context,
+                        bytes: attachment.bytes!,
+                        title: attachment.name,
                       );
                     } else if (isImage) {
                       BottomSheets.imagePreview(
@@ -1929,9 +1942,11 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                     Icon(
                       isVideo
                           ? Icons.play_arrow_rounded
-                          : isImage
-                              ? Icons.open_in_full_rounded
-                              : Icons.insert_drive_file_rounded,
+                          : isPdf
+                              ? Icons.picture_as_pdf_rounded
+                              : isImage
+                                  ? Icons.open_in_full_rounded
+                                  : Icons.insert_drive_file_rounded,
                       size: Dimensions.size10,
                       color: Colors.white,
                     ),
@@ -1939,9 +1954,11 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                     Text(
                       isVideo
                           ? "Preview"
-                          : isImage
-                              ? "Open"
-                              : "File",
+                          : isPdf
+                              ? "PDF"
+                              : isImage
+                                  ? "Open"
+                                  : "File",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: Dimensions.text10,

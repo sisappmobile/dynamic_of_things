@@ -19,10 +19,10 @@ class Pulls {
 
   Pulls._internal();
 
-  bool _shouldShowProgress = false;
-  OverlayEntry? _overlayEntry;
-  ValueNotifier<int?>? _statusNotifier;
-  VoidCallback? _hideAnimation;
+  bool shouldShowProgress = false;
+  OverlayEntry? overlayEntry;
+  ValueNotifier<int?>? statusNotifier;
+  VoidCallback? hideAnimation;
 
   Future<void> execute() async {
     if (!Sqlites.supported) {
@@ -33,10 +33,10 @@ class Pulls {
       return;
     }
 
-    _shouldShowProgress = true;
+    shouldShowProgress = true;
 
     Future.delayed(Duration(seconds: 1), () {
-      if (_shouldShowProgress) {
+      if (shouldShowProgress) {
         show();
       }
     });
@@ -271,7 +271,7 @@ class Pulls {
   }
 
   void show() {
-    if (_overlayEntry != null) {
+    if (overlayEntry != null) {
       return;
     }
 
@@ -281,45 +281,45 @@ class Pulls {
       return;
     }
 
-    _statusNotifier = ValueNotifier(null);
+    statusNotifier = ValueNotifier(null);
 
-    _overlayEntry = OverlayEntry(
+    overlayEntry = OverlayEntry(
       builder: (context) {
-        return _OverlayContent(
-          statusNotifier: _statusNotifier!,
+        return OverlayContent(
+          statusNotifier: statusNotifier!,
           onHideReady: (hideFn) {
-            _hideAnimation = hideFn;
+            hideAnimation = hideFn;
           },
         );
       },
     );
 
-    overlay.insert(_overlayEntry!);
+    overlay.insert(overlayEntry!);
   }
 
   void hide() {
-    if (_overlayEntry == null) {
+    if (overlayEntry == null) {
       return;
     }
 
-    _hideAnimation?.call();
+    hideAnimation?.call();
   }
 
-  void _removeOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    _statusNotifier = null;
-    _hideAnimation = null;
+  void removeOverlay() {
+    overlayEntry?.remove();
+    overlayEntry = null;
+    statusNotifier = null;
+    hideAnimation = null;
   }
 
   void updateStatus(int? status, {Duration? autoCloseAfter}) {
-    _shouldShowProgress = false;
+    shouldShowProgress = false;
 
-    if (_statusNotifier == null) {
+    if (statusNotifier == null) {
       return;
     }
 
-    _statusNotifier!.value = status;
+    statusNotifier!.value = status;
 
     if (autoCloseAfter != null) {
       Future.delayed(autoCloseAfter, () => hide());
@@ -327,80 +327,81 @@ class Pulls {
   }
 }
 
-class _OverlayContent extends StatefulWidget {
+class OverlayContent extends StatefulWidget {
   final ValueNotifier<int?> statusNotifier;
   final Function(VoidCallback hideFn) onHideReady;
 
-  const _OverlayContent({
+  const OverlayContent({
     required this.statusNotifier,
     required this.onHideReady,
+    super.key,
   });
 
   @override
-  State<_OverlayContent> createState() => _OverlayContentState();
+  State<OverlayContent> createState() => OverlayContentState();
 }
 
-class _OverlayContentState extends State<_OverlayContent>
+class OverlayContentState extends State<OverlayContent>
     with TickerProviderStateMixin {
-  late AnimationController _visibilityController;
-  late AnimationController _pulseController;
-  late Animation<double> _fade;
-  late Animation<double> _scale;
-  late Animation<double> _pulseFade;
-  late Animation<double> _pulseScale;
+  late AnimationController visibilityController;
+  late AnimationController pulseController;
+  late Animation<double> fade;
+  late Animation<double> scale;
+  late Animation<double> pulseFade;
+  late Animation<double> pulseScale;
 
   @override
   void initState() {
     super.initState();
 
-    _visibilityController = AnimationController(
+    visibilityController = AnimationController(
       duration: const Duration(milliseconds: 500),
       reverseDuration: const Duration(milliseconds: 500),
       vsync: this,
     );
 
-    _pulseController = AnimationController(
+    pulseController = AnimationController(
       duration: const Duration(milliseconds: 850),
       vsync: this,
     )..repeat(reverse: true);
 
-    _fade = CurvedAnimation(
-      parent: _visibilityController,
+    fade = CurvedAnimation(
+      parent: visibilityController,
       curve: Curves.easeOut,
       reverseCurve: Curves.easeIn,
     );
 
-    _scale = Tween(begin: 0.8, end: 1.0).animate(
+    scale = Tween(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(
-        parent: _visibilityController,
+        parent: visibilityController,
         curve: Curves.easeOutBack,
         reverseCurve: Curves.easeIn,
       ),
     );
 
-    _pulseFade = Tween(begin: 0.28, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    pulseFade = Tween(begin: 0.28, end: 1.0).animate(
+      CurvedAnimation(parent: pulseController, curve: Curves.easeInOut),
     );
 
-    _pulseScale = Tween(begin: 0.92, end: 1.06).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    pulseScale = Tween(begin: 0.92, end: 1.06).animate(
+      CurvedAnimation(parent: pulseController, curve: Curves.easeInOut),
     );
 
-    widget.onHideReady(_hideWithAnimation);
+    widget.onHideReady(hideWithAnimation);
 
-    _visibilityController.forward();
+    visibilityController.forward();
   }
 
-  void _hideWithAnimation() async {
-    await _visibilityController.reverse();
+  void hideWithAnimation() async {
+    await visibilityController.reverse();
 
-    Pulls.instance._removeOverlay();
+    Pulls.instance.removeOverlay();
   }
 
   @override
   void dispose() {
-    _pulseController.dispose();
-    _visibilityController.dispose();
+    pulseController.dispose();
+    visibilityController.dispose();
     super.dispose();
   }
 
@@ -414,16 +415,16 @@ class _OverlayContentState extends State<_OverlayContent>
           bottom: Dimensions.size15,
           child: IgnorePointer(
             child: FadeTransition(
-              opacity: _fade,
+              opacity: fade,
               child: ScaleTransition(
-                scale: _scale,
+                scale: scale,
                 child: ValueListenableBuilder<int?>(
                   valueListenable: widget.statusNotifier,
                   builder: (context, value, child) {
-                    return _AnimatedStatusDot(
+                    return AnimatedStatusDot(
                       status: value,
-                      pulseFade: _pulseFade,
-                      pulseScale: _pulseScale,
+                      pulseFade: pulseFade,
+                      pulseScale: pulseScale,
                     );
                   },
                 ),
@@ -436,15 +437,16 @@ class _OverlayContentState extends State<_OverlayContent>
   }
 }
 
-class _AnimatedStatusDot extends StatelessWidget {
+class AnimatedStatusDot extends StatelessWidget {
   final int? status;
   final Animation<double> pulseFade;
   final Animation<double> pulseScale;
 
-  const _AnimatedStatusDot({
+  const AnimatedStatusDot({
     required this.status,
     required this.pulseFade,
     required this.pulseScale,
+    super.key,
   });
 
   @override
@@ -463,11 +465,11 @@ class _AnimatedStatusDot extends StatelessWidget {
           ),
         );
       },
-      child: _buildChild(status),
+      child: buildChild(status),
     );
   }
 
-  Widget _buildChild(int? status) {
+  Widget buildChild(int? status) {
     if (status == 101) {
       return const SizedBox.shrink(key: ValueKey("completed"));
     }
@@ -488,12 +490,12 @@ class _AnimatedStatusDot extends StatelessWidget {
             boxShadow: [
               BoxShadow(
                 color: dotColor.withValues(alpha: 0.35),
-                blurRadius: 10,
+                blurRadius: Dimensions.size10,
                 spreadRadius: 1.5,
               ),
             ],
           ),
-          child: const SizedBox(width: 12, height: 12),
+          child: SizedBox(width: Dimensions.size10, height: Dimensions.size10),
         ),
       ),
     );

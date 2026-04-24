@@ -370,12 +370,12 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
   final GlobalKey<FormState> formState = GlobalKey<FormState>(debugLabel: "formState");
 
   bool obscurePassword = true;
-  String deviceId = kIsWeb ? "90eb74775d909ea1" : "90eb74775d909ea1";
-  // String deviceId = "2c49b31455f471db";
-  // String deviceId = "90eb74775d909ea1";
+  String deviceId = kIsWeb ? "0000000000000000" : "0000000000000000";
   // String deviceId = "2c49b31455f471db";
   // String deviceId = "0000000000000000";
-  // String deviceId = "90eb74775d909ea1";
+  // String deviceId = "2c49b31455f471db";
+  // String deviceId = "0000000000000000";
+  // String deviceId = "0000000000000000";
 
   @override
   void initState() {
@@ -383,7 +383,7 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
 
     WidgetsBinding.instance.addObserver(this);
 
-    _initDeviceId();
+    initDeviceId();
   }
 
   @override
@@ -543,7 +543,7 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
   }
 
-  Future<void> _initDeviceId() async {
+  Future<void> initDeviceId() async {
     final String resolvedDeviceId = await _getDeviceId();
 
     if (!mounted) {
@@ -557,7 +557,7 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
 
   Future<String> _getDeviceId() async {
     if (kIsWeb) {
-      const String hardcodedWebDeviceId = "90eb74775d909ea1";
+      const String hardcodedWebDeviceId = "0000000000000000";
 
       if (hardcodedWebDeviceId.trim().isNotEmpty) {
         return hardcodedWebDeviceId;

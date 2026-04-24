@@ -1,6 +1,5 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
-
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:collection/collection.dart";
@@ -728,25 +727,9 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                   MenuItem menuItem = MenuItem(
                     title: element.name,
                     onTap: () {
-                      if (BaseSettings.navigatorType ==
-                          BaseNavigatorType.legacy) {
-                        Navigators.pop();
-                      } else {
-                        context.pop();
-                      }
-
-                      BaseDialogs.confirmation(
-                        title: "are_you_sure_want_to_proceed".tr(),
-                        positiveCallback: () {
-                          context.read<DynamicFormListBloc>().add(
-                                DynamicFormListCustomAction(
-                                  actionId: element.id,
-                                  formId: widget.dynamicFormMenuItem.id,
-                                  dataId: id,
-                                  customerId: widget.customerId,
-                                ),
-                              );
-                        },
+                      confirmCustomAction(
+                        actionId: element.id,
+                        dataId: id,
                       );
                     },
                   );
@@ -781,25 +764,9 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                     );
 
                     if (action != null) {
-                      if (BaseSettings.navigatorType ==
-                          BaseNavigatorType.legacy) {
-                        Navigators.pop();
-                      } else {
-                        context.pop();
-                      }
-
-                      BaseDialogs.confirmation(
-                        title: "are_you_sure_want_to_proceed".tr(),
-                        positiveCallback: () {
-                          context.read<DynamicFormListBloc>().add(
-                                DynamicFormListCustomAction(
-                                  actionId: action.id,
-                                  formId: widget.dynamicFormMenuItem.id,
-                                  dataId: id,
-                                  customerId: widget.customerId,
-                                ),
-                              );
-                        },
+                      confirmCustomAction(
+                        actionId: action.id,
+                        dataId: id,
                       );
                     }
                   } else {
@@ -852,28 +819,35 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
   }
 
   Future<void> viewData(String id) async {
+    await openDataForm(id: id, readOnly: true);
+  }
+
+  Future<void> editData(String id) async {
+    await openDataForm(id: id, readOnly: false);
+  }
+
+  Future<void> openDataForm({
+    required String id,
+    required bool readOnly,
+  }) async {
     bool result = false;
 
     if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-      Navigators.pop();
-
       result = await Navigators.push(
             DynamicFormPage(
               dynamicFormMenuItem: widget.dynamicFormMenuItem,
-              readOnly: true,
+              readOnly: readOnly,
               dataId: id,
               customerId: widget.customerId,
             ),
           ) ??
           false;
     } else {
-      context.pop();
-
       result = await context.push(
             "/dynamic-forms",
             extra: {
               "dynamicFormMenuItem": widget.dynamicFormMenuItem,
-              "readOnly": true,
+              "readOnly": readOnly,
               "dataId": id,
               "customerId": widget.customerId,
             },
@@ -886,39 +860,23 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
     }
   }
 
-  Future<void> editData(String id) async {
-    bool result = false;
-
-    if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-      Navigators.pop();
-
-      result = await Navigators.push(
-            DynamicFormPage(
-              dynamicFormMenuItem: widget.dynamicFormMenuItem,
-              readOnly: false,
-              dataId: id,
-              customerId: widget.customerId,
-            ),
-          ) ??
-          false;
-    } else {
-      context.pop();
-
-      result = await context.push(
-            "/dynamic-forms",
-            extra: {
-              "dynamicFormMenuItem": widget.dynamicFormMenuItem,
-              "readOnly": false,
-              "dataId": id,
-              "customerId": widget.customerId,
-            },
-          ) ??
-          false;
-    }
-
-    if (result) {
-      refresh();
-    }
+  void confirmCustomAction({
+    required String actionId,
+    required String dataId,
+  }) {
+    BaseDialogs.confirmation(
+      title: "are_you_sure_want_to_proceed".tr(),
+      positiveCallback: () {
+        context.read<DynamicFormListBloc>().add(
+              DynamicFormListCustomAction(
+                actionId: actionId,
+                formId: widget.dynamicFormMenuItem.id,
+                dataId: dataId,
+                customerId: widget.customerId,
+              ),
+            );
+      },
+    );
   }
 
   // PERBAIKAN UTAMA: Menghilangkan card / kontainer berlapis di childrenWidget
@@ -1700,7 +1658,12 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                         return Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: enabled ? item.onTap : null,
+                            onTap: enabled
+                                ? () {
+                                    Navigator.pop(ctx);
+                                    item.onTap?.call();
+                                  }
+                                : null,
                             borderRadius:
                                 BorderRadius.circular(Dimensions.size20),
                             child: Ink(
