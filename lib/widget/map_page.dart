@@ -53,14 +53,14 @@ class MapPageState extends State<MapPage> {
   final MapController mapController = MapController();
   final TextEditingController tecSearch = TextEditingController();
 
-  late AlignOnUpdate alignPositionOnUpdate;
-  late final StreamController<double?> alignPositionStreamController;
+  late Future<({String? storagePath, double? minZoom})> mapSourceFuture;
 
   StreamSubscription<Position>? positionSubscription;
 
   LatLng? currentPosition;
   MarkerItem? selectedMarker;
   String? lastFocusedMarkerSignature;
+  bool followCurrentLocation = true;
 
   String baseMap = "satellite";
 
@@ -71,8 +71,7 @@ class MapPageState extends State<MapPage> {
     watchConnectivity();
     checkLocationPermission();
 
-    alignPositionOnUpdate = AlignOnUpdate.once;
-    alignPositionStreamController = StreamController<double?>();
+    mapSourceFuture = loadMapSource();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       focusSingleVisibleMarkerIfNeeded(markerItems);
@@ -80,9 +79,31 @@ class MapPageState extends State<MapPage> {
   }
 
   void onLocationUpdate(Position position) {
-    setState(() {
-      currentPosition = LatLng(position.latitude, position.longitude);
-    });
+    final LatLng nextPosition = LatLng(position.latitude, position.longitude);
+    final LatLng? previousPosition = currentPosition;
+    final bool isFirstLocationFix = previousPosition == null;
+
+    currentPosition = nextPosition;
+
+    if (followCurrentLocation) {
+      focusMapOnPoint(
+        nextPosition,
+        zoom: isFirstLocationFix ? 18 : null,
+        id: isFirstLocationFix ? "initial-location-focus" : "follow-location",
+      );
+    }
+
+    if (!mounted || selectedMarker == null) {
+      return;
+    }
+
+    if (previousPosition != null &&
+        previousPosition.latitude == nextPosition.latitude &&
+        previousPosition.longitude == nextPosition.longitude) {
+      return;
+    }
+
+    setState(() {});
   }
 
   Future<void> checkLocationPermission() async {
@@ -120,9 +141,17 @@ class MapPageState extends State<MapPage> {
         return;
       }
 
-      isOnline = result.any((element) => element != ConnectivityResult.none);
+      final bool nextIsOnline =
+          result.any((element) => element != ConnectivityResult.none);
 
-      setState(() {});
+      if (isOnline == nextIsOnline) {
+        return;
+      }
+
+      setState(() {
+        isOnline = nextIsOnline;
+        mapSourceFuture = loadMapSource();
+      });
     });
 
     connectivity.checkConnectivity().then((result) {
@@ -130,9 +159,17 @@ class MapPageState extends State<MapPage> {
         return;
       }
 
-      isOnline = result.any((element) => element != ConnectivityResult.none);
+      final bool nextIsOnline =
+          result.any((element) => element != ConnectivityResult.none);
 
-      setState(() {});
+      if (isOnline == nextIsOnline) {
+        return;
+      }
+
+      setState(() {
+        isOnline = nextIsOnline;
+        mapSourceFuture = loadMapSource();
+      });
     });
   }
 
@@ -208,7 +245,7 @@ class MapPageState extends State<MapPage> {
     return <String>[text];
   }
 
-  void onSearchChanged(String value) {
+  void updateVisibleMarkerState(String value) {
     final List<MarkerItem> visibleMarkers = filteredMarkerItems(query: value);
 
     setState(() {
@@ -220,16 +257,65 @@ class MapPageState extends State<MapPage> {
         selectedMarker = null;
       }
     });
-
-    focusSingleVisibleMarkerIfNeeded(visibleMarkers);
   }
 
   void clearSearch() {
     tecSearch.clear();
-    onSearchChanged("");
+    updateVisibleMarkerState("");
   }
 
-  void focusSingleVisibleMarkerIfNeeded(List<MarkerItem> visibleMarkers) {
+  void onSearchChanged(String value) {
+    updateVisibleMarkerState(value);
+  }
+
+  void onSearchSubmitted(String value) {
+    final List<MarkerItem> visibleMarkers = filteredMarkerItems(query: value);
+
+    FocusScope.of(context).unfocus();
+
+    setState(() {
+      followCurrentLocation = false;
+
+      if (visibleMarkers.length != 1) {
+        lastFocusedMarkerSignature = null;
+      }
+
+      if (selectedMarker != null && !visibleMarkers.contains(selectedMarker)) {
+        selectedMarker = null;
+      }
+    });
+
+    focusSingleVisibleMarkerIfNeeded(visibleMarkers, force: true);
+  }
+
+  double currentMapZoom({double fallback = 18}) {
+    try {
+      return mapController.camera.zoom;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  void focusMapOnPoint(
+    LatLng point, {
+    required String id,
+    double? zoom,
+  }) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      try {
+        mapController.move(point, zoom ?? currentMapZoom(), id: id);
+      } catch (_) {}
+    });
+  }
+
+  void focusSingleVisibleMarkerIfNeeded(
+    List<MarkerItem> visibleMarkers, {
+    bool force = false,
+  }) {
     if (visibleMarkers.length != 1) {
       lastFocusedMarkerSignature = null;
       return;
@@ -238,7 +324,7 @@ class MapPageState extends State<MapPage> {
     final MarkerItem markerItem = visibleMarkers.first;
     final String signature = markerSignature(markerItem);
 
-    if (lastFocusedMarkerSignature == signature) {
+    if (!force && lastFocusedMarkerSignature == signature) {
       return;
     }
 
@@ -248,7 +334,7 @@ class MapPageState extends State<MapPage> {
       }
 
       try {
-        final double currentZoom = mapController.camera.zoom;
+        final double currentZoom = currentMapZoom(fallback: 16);
         final double targetZoom = currentZoom < 16 ? 16 : currentZoom;
 
         final bool moved = mapController.move(
@@ -262,6 +348,51 @@ class MapPageState extends State<MapPage> {
         }
       } catch (_) {}
     });
+  }
+
+  Future<LatLng?> resolveCurrentLocation() async {
+    if (currentPosition != null) {
+      return currentPosition;
+    }
+
+    try {
+      final Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.best,
+        ),
+      );
+      final LatLng nextPosition = LatLng(position.latitude, position.longitude);
+
+      currentPosition = nextPosition;
+      return nextPosition;
+    } catch (_) {
+      return currentPosition;
+    }
+  }
+
+  Future<void> focusCurrentLocation() async {
+    final double currentZoom = currentMapZoom();
+    final double targetZoom = currentZoom < 18 ? 18 : currentZoom;
+
+    final LatLng? targetPosition = await resolveCurrentLocation();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      followCurrentLocation = true;
+      lastFocusedMarkerSignature = null;
+      selectedMarker = null;
+    });
+
+    if (targetPosition != null) {
+      focusMapOnPoint(
+        targetPosition,
+        zoom: targetZoom,
+        id: "my-location-focus",
+      );
+    }
   }
 
   Widget glassTopBar(BuildContext context) {
@@ -475,6 +606,7 @@ class MapPageState extends State<MapPage> {
               controller: tecSearch,
               textInputAction: TextInputAction.search,
               onChanged: onSearchChanged,
+              onSubmitted: onSearchSubmitted,
               decoration: InputDecoration(
                 hintText: "search".tr(),
                 border: InputBorder.none,
@@ -550,11 +682,7 @@ class MapPageState extends State<MapPage> {
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () {
-                  alignPositionOnUpdate = AlignOnUpdate.always;
-                  alignPositionStreamController.add(18);
-                  setState(() {});
-                },
+                onTap: focusCurrentLocation,
                 borderRadius: BorderRadius.circular(Dimensions.size30),
                 child: Ink(
                   height: Dimensions.size55,
@@ -772,6 +900,7 @@ class MapPageState extends State<MapPage> {
                     if (selectedValue != null) {
                       setState(() {
                         baseMap = selectedValue;
+                        mapSourceFuture = loadMapSource();
                       });
                     }
                   },
@@ -846,12 +975,8 @@ class MapPageState extends State<MapPage> {
   Widget mapHost() {
     final List<MarkerItem> visibleMarkers = filteredMarkerItems();
 
-    if (visibleMarkers.length == 1) {
-      focusSingleVisibleMarkerIfNeeded(visibleMarkers);
-    }
-
     return FutureBuilder<({String? storagePath, double? minZoom})>(
-      future: loadMapSource(),
+      future: mapSourceFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Center(child: CircularProgressIndicator());
@@ -869,6 +994,15 @@ class MapPageState extends State<MapPage> {
               mapController: mapController,
               options: MapOptions(
                 initialZoom: snapshot.data?.minZoom ?? 14,
+                onPositionChanged: (_, hasGesture) {
+                  if (!hasGesture || !followCurrentLocation) {
+                    return;
+                  }
+
+                  setState(() {
+                    followCurrentLocation = false;
+                  });
+                },
               ),
               children: [
                 TileLayer(
@@ -895,8 +1029,7 @@ class MapPageState extends State<MapPage> {
                     },
                   ),
                 CurrentLocationLayer(
-                  alignPositionStream: alignPositionStreamController.stream,
-                  alignPositionOnUpdate: alignPositionOnUpdate,
+                  alignPositionOnUpdate: AlignOnUpdate.never,
                 ),
                 PolylineLayer(
                   polylines: buildPolylines(),
@@ -980,7 +1113,6 @@ class MapPageState extends State<MapPage> {
   void dispose() {
     connectivitySub?.cancel();
     positionSubscription?.cancel();
-    alignPositionStreamController.close();
     tecSearch.dispose();
     mapController.dispose();
     super.dispose();
