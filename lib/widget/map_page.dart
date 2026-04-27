@@ -48,10 +48,12 @@ class MapPage extends StatefulWidget {
 
 class MapPageState extends State<MapPage> {
   bool isOnline = true;
+  bool isLocateButtonVisible = true;
 
   StreamSubscription? connectivitySub;
   final MapController mapController = MapController();
   final TextEditingController tecSearch = TextEditingController();
+  Timer? locateButtonRestoreTimer;
 
   late Future<({String? storagePath, double? minZoom})> mapSourceFuture;
 
@@ -176,6 +178,13 @@ class MapPageState extends State<MapPage> {
   bool get isDark => Theme.of(context).brightness == Brightness.dark;
 
   List<MarkerItem> get markerItems => widget.markerItems ?? <MarkerItem>[];
+
+  bool get isSatelliteMap => baseMap == "satellite";
+
+  String get mapTypeLabel => isSatelliteMap ? "Satelit" : "Peta";
+
+  IconData get mapTypeIcon =>
+      isSatelliteMap ? Icons.satellite_alt_rounded : Icons.map_rounded;
 
   double topFloatingActionsOffset(BuildContext context) {
     final EdgeInsets safe = MediaQuery.of(context).padding;
@@ -310,6 +319,67 @@ class MapPageState extends State<MapPage> {
         mapController.move(point, zoom ?? currentMapZoom(), id: id);
       } catch (_) {}
     });
+  }
+
+  void hideLocateButton() {
+    locateButtonRestoreTimer?.cancel();
+
+    if (!mounted || !isLocateButtonVisible) {
+      return;
+    }
+
+    setState(() {
+      isLocateButtonVisible = false;
+    });
+  }
+
+  void showLocateButton() {
+    locateButtonRestoreTimer?.cancel();
+
+    if (!mounted || isLocateButtonVisible) {
+      return;
+    }
+
+    setState(() {
+      isLocateButtonVisible = true;
+    });
+  }
+
+  void scheduleShowLocateButton({
+    Duration delay = const Duration(milliseconds: 180),
+  }) {
+    locateButtonRestoreTimer?.cancel();
+    locateButtonRestoreTimer = Timer(delay, showLocateButton);
+  }
+
+  void handleMapInteractionEvent(MapEvent event) {
+    if (event is MapEventMoveStart) {
+      if (event.source == MapEventSource.dragStart ||
+          event.source == MapEventSource.multiFingerGestureStart) {
+        hideLocateButton();
+      }
+
+      return;
+    }
+
+    if (event is MapEventFlingAnimationStart) {
+      hideLocateButton();
+      return;
+    }
+
+    if (event is MapEventMoveEnd) {
+      if (event.source == MapEventSource.dragEnd ||
+          event.source == MapEventSource.multiFingerEnd) {
+        scheduleShowLocateButton();
+      }
+
+      return;
+    }
+
+    if (event is MapEventFlingAnimationEnd ||
+        event is MapEventFlingAnimationNotStarted) {
+      showLocateButton();
+    }
   }
 
   void focusSingleVisibleMarkerIfNeeded(
@@ -472,7 +542,14 @@ class MapPageState extends State<MapPage> {
                             ),
                           ),
                           SizedBox(width: Dimensions.size10),
-                          statusChip(context),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              mapTypeChip(context),
+                              SizedBox(width: Dimensions.size5),
+                              statusChip(context),
+                            ],
+                          ),
                         ],
                       ),
                       SizedBox(height: Dimensions.size10),
@@ -535,8 +612,8 @@ class MapPageState extends State<MapPage> {
 
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: Dimensions.size15,
-        vertical: Dimensions.size10,
+        horizontal: Dimensions.size10,
+        vertical: Dimensions.size5,
       ),
       decoration: ShapeDecoration(
         color: AppColors.surfaceContainerLowest()
@@ -553,28 +630,184 @@ class MapPageState extends State<MapPage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: Dimensions.size25,
-            height: Dimensions.size25,
+            width: Dimensions.size20,
+            height: Dimensions.size20,
             decoration: BoxDecoration(
               color: primary.withValues(alpha: 0.12),
               shape: BoxShape.circle,
               border: Border.all(color: primary.withValues(alpha: 0.25)),
             ),
-            child: Icon(icon, size: Dimensions.size15, color: primary),
+            child: Icon(icon, size: 12, color: primary),
           ),
-          SizedBox(width: Dimensions.size10),
+          SizedBox(width: Dimensions.size5),
           Text(
             label,
             style: TextStyle(
-              fontSize: Dimensions.text12,
+              fontSize: Dimensions.text11,
               fontWeight: FontWeight.w900,
-              letterSpacing: 0.2,
+              letterSpacing: 0,
               color: AppColors.onSurface(),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget mapTypeChip(BuildContext context) {
+    return Builder(
+      builder: (targetContext) {
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () async {
+              String? selectedValue = await BasePopupMenus.show(
+                context: context,
+                targetContext: targetContext,
+                items: [
+                  PopupMenuItem<String>(
+                    enabled: true,
+                    value: "nonsatellite",
+                    child: mapTypeMenuItem(
+                      label: "Peta",
+                      icon: Icons.map_rounded,
+                      selected: baseMap == "nonsatellite",
+                    ),
+                  ),
+                  PopupMenuItem<String>(
+                    enabled: true,
+                    value: "satellite",
+                    child: mapTypeMenuItem(
+                      label: "Satelit",
+                      icon: Icons.satellite_alt_rounded,
+                      selected: baseMap == "satellite",
+                    ),
+                  ),
+                ],
+                value: baseMap,
+              );
+
+              if (selectedValue == null || selectedValue == baseMap) {
+                return;
+              }
+
+              setState(() {
+                baseMap = selectedValue;
+                mapSourceFuture = loadMapSource();
+              });
+            },
+            borderRadius: BorderRadius.circular(Dimensions.size15),
+            child: Ink(
+              padding: EdgeInsets.symmetric(
+                horizontal: Dimensions.size10,
+                vertical: Dimensions.size5,
+              ),
+              decoration: ShapeDecoration(
+                color: AppColors.surfaceContainerLowest()
+                    .withValues(alpha: isDark ? 0.72 : 1),
+                shape: SmoothRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.size15),
+                  smoothness: Dimensions.size1,
+                  side: BorderSide(
+                    color: AppColors.outline()
+                        .withValues(alpha: isDark ? 0.22 : 0.18),
+                  ),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: Dimensions.size20,
+                    height: Dimensions.size20,
+                    decoration: BoxDecoration(
+                      color:
+                          mapTypeAccentColor(context).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(Dimensions.size100),
+                      border: Border.all(
+                        color:
+                            mapTypeAccentColor(context).withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Icon(
+                      mapTypeIcon,
+                      size: 12,
+                      color: mapTypeAccentColor(context),
+                    ),
+                  ),
+                  SizedBox(width: Dimensions.size5),
+                  Text(
+                    mapTypeLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: Dimensions.text11,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0,
+                      color: AppColors.onSurface(),
+                    ),
+                  ),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 18,
+                    color: AppColors.onSurface().withValues(alpha: 0.72),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget mapTypeMenuItem({
+    required String label,
+    required IconData icon,
+    required bool selected,
+  }) {
+    final Color accent = icon == Icons.satellite_alt_rounded
+        ? Colors.orange.shade700
+        : Colors.green.shade700;
+
+    return Row(
+      children: [
+        Container(
+          width: Dimensions.size25,
+          height: Dimensions.size25,
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(Dimensions.size100),
+            border: Border.all(color: accent.withValues(alpha: 0.25)),
+          ),
+          child: Icon(icon, size: 15, color: accent),
+        ),
+        SizedBox(width: Dimensions.size10),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: AppColors.onTertiaryContainer(),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        if (selected)
+          Icon(
+            Icons.check_rounded,
+            size: 18,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+      ],
+    );
+  }
+
+  Color mapTypeAccentColor(BuildContext context) {
+    if (isSatelliteMap) {
+      return Colors.orange.shade700;
+    }
+
+    return Colors.green.shade700;
   }
 
   Widget searchBox() {
@@ -679,56 +912,72 @@ class MapPageState extends State<MapPage> {
           desktop: 1120,
           child: Align(
             alignment: Alignment.centerRight,
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: focusCurrentLocation,
-                borderRadius: BorderRadius.circular(Dimensions.size30),
-                child: Ink(
-                  height: Dimensions.size55,
-                  padding: EdgeInsets.symmetric(horizontal: Dimensions.size20),
-                  decoration: ShapeDecoration(
-                    color: primary,
-                    shadows: [
-                      BoxShadow(
-                        blurRadius: Dimensions.size20,
-                        offset: Offset(0, Dimensions.size10),
-                        color: Colors.black
-                            .withValues(alpha: isDark ? 0.22 : 0.16),
-                      ),
-                    ],
-                    shape: SmoothRectangleBorder(
+            child: IgnorePointer(
+              ignoring: !isLocateButtonVisible,
+              child: AnimatedSlide(
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                offset: Offset(0, isLocateButtonVisible ? 0 : 1.35),
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  opacity: isLocateButtonVisible ? 1 : 0,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: focusCurrentLocation,
                       borderRadius: BorderRadius.circular(Dimensions.size30),
-                      smoothness: Dimensions.size1,
+                      child: Ink(
+                        height: Dimensions.size55,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: Dimensions.size20,
+                        ),
+                        decoration: ShapeDecoration(
+                          color: primary,
+                          shadows: [
+                            BoxShadow(
+                              blurRadius: Dimensions.size20,
+                              offset: Offset(0, Dimensions.size10),
+                              color: Colors.black
+                                  .withValues(alpha: isDark ? 0.22 : 0.16),
+                            ),
+                          ],
+                          shape: SmoothRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(Dimensions.size30),
+                            smoothness: Dimensions.size1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: Dimensions.size35,
+                              height: Dimensions.size35,
+                              decoration: BoxDecoration(
+                                color: onPrimary.withValues(alpha: 0.18),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.my_location_rounded,
+                                color: onPrimary,
+                                size: Dimensions.size20,
+                              ),
+                            ),
+                            SizedBox(width: Dimensions.size10),
+                            Text(
+                              "my_location".tr(),
+                              style: TextStyle(
+                                color: onPrimary,
+                                fontSize: Dimensions.text14,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: Dimensions.size35,
-                        height: Dimensions.size35,
-                        decoration: BoxDecoration(
-                          color: onPrimary.withValues(alpha: 0.18),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.my_location_rounded,
-                          color: onPrimary,
-                          size: Dimensions.size20,
-                        ),
-                      ),
-                      SizedBox(width: Dimensions.size10),
-                      Text(
-                        "my_location".tr(),
-                        style: TextStyle(
-                          color: onPrimary,
-                          fontSize: Dimensions.text14,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ],
                   ),
                 ),
               ),
@@ -850,82 +1099,6 @@ class MapPageState extends State<MapPage> {
     );
   }
 
-  Widget selectLayer(BuildContext context) {
-    final double horizontalPadding = DotResponsive.horizontalPadding(context);
-
-    return Positioned(
-      left: 0,
-      right: 0,
-      top: topFloatingActionsOffset(context),
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-        child: DotResponsive.centered(
-          context: context,
-          tablet: 960,
-          desktop: 1120,
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: Builder(
-              builder: (targetContext) {
-                return FilledButton.icon(
-                  onPressed: () async {
-                    String? selectedValue = await BasePopupMenus.show(
-                      context: context,
-                      targetContext: targetContext,
-                      items: [
-                        PopupMenuItem<String>(
-                          enabled: true,
-                          value: "nonsatellite",
-                          child: Text(
-                            "Non-satellite",
-                            style: TextStyle(
-                              color: AppColors.onTertiaryContainer(),
-                            ),
-                          ),
-                        ),
-                        PopupMenuItem<String>(
-                          enabled: true,
-                          value: "satellite",
-                          child: Text(
-                            "Satellite",
-                            style: TextStyle(
-                              color: AppColors.onTertiaryContainer(),
-                            ),
-                          ),
-                        ),
-                      ],
-                      value: baseMap,
-                    );
-
-                    if (selectedValue != null) {
-                      setState(() {
-                        baseMap = selectedValue;
-                        mapSourceFuture = loadMapSource();
-                      });
-                    }
-                  },
-                  style: FilledButton.styleFrom(
-                    padding: EdgeInsets.fromLTRB(
-                      Dimensions.size5,
-                      Dimensions.size5,
-                      Dimensions.size10,
-                      Dimensions.size5,
-                    ),
-                    backgroundColor: AppColors.tertiary(),
-                    foregroundColor: AppColors.onTertiary(),
-                    iconColor: AppColors.onTertiary(),
-                  ),
-                  label: Text(baseMap),
-                  icon: Icon(Icons.arrow_drop_down),
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Future<({String? storagePath, double? minZoom})> loadMapSource() async {
     final String? storagePath = await getOfflineMapStoragePath();
     final bool canUseOfflineTiles =
@@ -1003,6 +1176,7 @@ class MapPageState extends State<MapPage> {
                     followCurrentLocation = false;
                   });
                 },
+                onMapEvent: handleMapInteractionEvent,
               ),
               children: [
                 TileLayer(
@@ -1102,7 +1276,6 @@ class MapPageState extends State<MapPage> {
             glassTopBar(context),
             fabLocate(context),
             if (selectedMarker != null) fabSelectCurrentMarker(context),
-            selectLayer(context),
           ],
         );
       },
@@ -1112,6 +1285,7 @@ class MapPageState extends State<MapPage> {
   @override
   void dispose() {
     connectivitySub?.cancel();
+    locateButtonRestoreTimer?.cancel();
     positionSubscription?.cancel();
     tecSearch.dispose();
     mapController.dispose();
