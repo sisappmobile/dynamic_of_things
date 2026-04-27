@@ -18,6 +18,7 @@ dependencies:
   get: 4.7.2
   dio: 5.8.0+1
   basic_utils: 5.8.2
+  crypto: 3.0.7
   image: 4.8.0
   intl: 0.20.2
   jiffy: 6.4.3

@@ -1,6 +1,5 @@
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use, constant_identifier_names, depend_on_referenced_packages
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use, constant_identifier_names
 
-import "dart:io";
 import "dart:typed_data";
 
 import "package:base/base.dart";
@@ -8,6 +7,7 @@ import "package:basic_utils/basic_utils.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
+import "package:dynamic_of_things/helper/file_downloads.dart";
 import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/helper/generals.dart";
 import "package:dynamic_of_things/helper/offline_reports.dart";
@@ -23,14 +23,12 @@ import "package:dynamic_of_things/widget/custom_pagination.dart";
 import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:dynamic_of_things/widget/simple_spinner_page.dart";
 import "package:easy_localization/easy_localization.dart";
-import "package:file_picker/file_picker.dart";
-import "package:flutter/foundation.dart" show kIsWeb, kDebugMode;
+import "package:flutter/foundation.dart" show kDebugMode;
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:go_router/go_router.dart";
 import "package:jiffy/jiffy.dart";
 import "package:loader_overlay/loader_overlay.dart";
-import "package:path/path.dart" as path;
 import "package:pattern_formatter/pattern_formatter.dart";
 import "package:smooth_corner/smooth_corner.dart";
 
@@ -260,86 +258,16 @@ class DynamicReportPageState extends State<DynamicReportPage>
     required String fileName,
   }) async {
     try {
-      if (kIsWeb) {
-        await FilePicker.platform.saveFile(
-          fileName: fileName,
-          bytes: bytes,
-          type: FileType.any,
-        );
+      final String? savedLocation = await FileDownloads.save(
+        bytes: bytes,
+        fileName: fileName,
+      );
 
-        if (!mounted) {
-          return;
-        }
-
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (!mounted) {
-            return;
-          }
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text("file_has_been_successfully_downloaded".tr()),
-                  Text(fileName),
-                ],
-              ),
-              duration: const Duration(milliseconds: 2000),
-            ),
-          );
-        });
-
+      if (!mounted || savedLocation == null) {
         return;
       }
 
-      String? directoryPath = await FilePicker.platform.getDirectoryPath();
-
-      if (directoryPath != null) {
-        String filePath = path.join(directoryPath, fileName);
-
-        bool fileExists = await File(filePath).exists();
-
-        if (fileExists) {
-          int count = 1;
-          String newFileName = "1-$fileName";
-
-          while (await File(path.join(directoryPath, newFileName)).exists()) {
-            count++;
-            newFileName = "$count-$fileName";
-          }
-
-          fileName = newFileName;
-          filePath = path.join(directoryPath, fileName);
-        }
-
-        await File(filePath).writeAsBytes(bytes);
-
-        if (!mounted) {
-          return;
-        }
-
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!mounted) {
-            return;
-          }
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text("file_has_been_successfully_downloaded".tr()),
-                  Text(filePath),
-                ],
-              ),
-              duration: const Duration(milliseconds: 2000),
-            ),
-          );
-        });
-      }
+      FileDownloads.showSuccessSnackBar(context, location: savedLocation);
     } catch (_) {
       BaseOverlays.error(message: "error_occured_when_saving_file".tr());
     }
