@@ -145,7 +145,8 @@ Future<void> setCompanyId(String value) async {
   if (!BasePreferences.getInstance().contain("dot-company-id") || currentCompanyId != value) {
     await BasePreferences.getInstance().remove("dot-company-id");
     await Sqlites.delete();
-    await Pulls.instance.execute();
+
+    Pulls.instance.execute();
   }
 
   await BasePreferences.getInstance().setString("dot-company-id", value);
