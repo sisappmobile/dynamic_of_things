@@ -8,6 +8,7 @@ import "package:collection/collection.dart";
 import "package:dynamic_of_things/enumeration/dynamic_form_field_type.dart";
 import "package:dynamic_of_things/helper/dml_assemblers.dart";
 import "package:dynamic_of_things/helper/json_script_engine.dart";
+import "package:dynamic_of_things/helper/pulls.dart";
 import "package:dynamic_of_things/helper/sqlites.dart";
 import "package:dynamic_of_things/model/dynamic_form_list_response.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
@@ -143,6 +144,8 @@ String? get currentUserId => BasePreferences.getInstance().getString("dot-user-i
 Future<void> setCompanyId(String value) async {
   if (currentCompanyId != value) {
     await Sqlites.delete();
+
+    Pulls.instance.execute();
   }
 
   await BasePreferences.getInstance().setString("dot-company-id", value);
