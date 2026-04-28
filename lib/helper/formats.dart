@@ -1,4 +1,5 @@
 import "package:base/base.dart";
+import "package:dynamic_of_things/model/attachment.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:jiffy/jiffy.dart";
@@ -123,6 +124,8 @@ class Formats {
           }
         } else if (value is Map<String, dynamic>) {
           convert(value);
+        } else if (value is Attachment) {
+          map[key] = null;
         }
       }
     });
