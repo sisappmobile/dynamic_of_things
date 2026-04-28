@@ -327,7 +327,7 @@ class Offlines {
 
     DMLAssemblers dmlAssemblers = DMLAssemblers
         .create()
-        .select("*")
+        .select(listResponse.fields.map((e) => e.name).join(","))
         .from(customFormView["table_name"])
         .equalTo("company_id", currentCompanyId);
 
