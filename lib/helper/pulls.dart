@@ -84,10 +84,8 @@ class Pulls {
             result ? Duration.zero : const Duration(milliseconds: 1200),
           );
         }
-      } catch (_) {
+      } finally {
         onProgress = false;
-
-        rethrow;
       }
     }
   }
