@@ -86,6 +86,8 @@ class Pulls {
         }
       } catch (_) {
         onProgress = false;
+
+        rethrow;
       }
     }
   }
