@@ -116,9 +116,8 @@ class Pulls {
 
           updateStatus(((i + 1) / changes.length * 100).toInt());
         }
-      }).then((value) async {
-        await BasePreferences.getInstance()
-            .setInt("dot-sync-current-version", currentVersion);
+
+        await BasePreferences.getInstance().setInt("dot-sync-current-version", currentVersion);
 
         return true;
       }).onError((error, stackTrace) async {
