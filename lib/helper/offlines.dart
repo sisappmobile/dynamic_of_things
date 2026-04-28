@@ -142,10 +142,10 @@ Future<void> setUserId(String? value) async {
 String? get currentUserId => BasePreferences.getInstance().getString("dot-user-id");
 
 Future<void> setCompanyId(String value) async {
-  if (currentCompanyId != value) {
+  if (!BasePreferences.getInstance().contain("dot-company-id") || currentCompanyId != value) {
+    await BasePreferences.getInstance().remove("dot-company-id");
     await Sqlites.delete();
-
-    Pulls.instance.execute();
+    await Pulls.instance.execute();
   }
 
   await BasePreferences.getInstance().setString("dot-company-id", value);
