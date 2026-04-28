@@ -179,6 +179,8 @@ class Sqlites {
     } else {
       database = null;
     }
+
+    await BasePreferences.getInstance().remove("dot-sync-current-version");
   }
 
   static String dataType(String value) {
