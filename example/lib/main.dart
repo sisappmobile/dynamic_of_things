@@ -886,10 +886,6 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   await BaseDialogs.confirmation(
                     title: "Are you sure want to proceed?",
                     positiveCallback: () async {
-                      await BasePreferences.getInstance().clear();
-
-                      await Sqlites.delete();
-
                       context.go("/");
                     },
                   );

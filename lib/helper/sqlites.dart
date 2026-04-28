@@ -179,14 +179,6 @@ class Sqlites {
     } else {
       database = null;
     }
-
-    await BasePreferences.getInstance().remove("dot-sales-unit-id");
-    await BasePreferences.getInstance().remove("dot-username");
-    await BasePreferences.getInstance().remove("dot-business-unit-id");
-    await BasePreferences.getInstance().remove("dot-business-unit-code");
-    await BasePreferences.getInstance().remove("dot-user-id");
-    await BasePreferences.getInstance().remove("dot-company-id");
-    await BasePreferences.getInstance().remove("dot-sync-current-version");
   }
 
   static String dataType(String value) {
