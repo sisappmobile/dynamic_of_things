@@ -19,66 +19,74 @@ class Pulls {
 
   Pulls._internal();
 
+  bool onProgress = false;
   bool shouldShowProgress = false;
   OverlayEntry? overlayEntry;
   ValueNotifier<int?>? statusNotifier;
   VoidCallback? hideAnimation;
 
   Future<void> execute() async {
-    if (!Sqlites.supported) {
-      if (kDebugMode) {
-        print("Pulls skipped: SQLite offline storage is not available on web.");
-      }
+    if (!onProgress) {
+      try {
+        if (!Sqlites.supported) {
+          if (kDebugMode) {
+            print("Pulls skipped: SQLite offline storage is not available on web.");
+          }
 
-      return;
-    }
+          return;
+        }
 
-    shouldShowProgress = true;
+        onProgress = true;
+        shouldShowProgress = true;
 
-    Future.delayed(Duration(seconds: 1), () {
-      if (shouldShowProgress) {
-        show();
-      }
-    });
+        Future.delayed(Duration(seconds: 1), () {
+          if (shouldShowProgress) {
+            show();
+          }
+        });
 
-    int? currentVersion =
+        int? currentVersion =
         BasePreferences.getInstance().getInt("dot-sync-current-version");
 
-    if (currentVersion == null) {
-      try {
-        Response response =
+        if (currentVersion == null) {
+          try {
+            Response response =
             await DotApis.getInstance().synchronizationSnapshot();
 
-        await consume(response, true);
-      } catch (e, s) {
-        if (kDebugMode) {
-          print("Caught Exception: $e");
-          print("Stack Trace:\n$s");
+            await consume(response, true);
+          } catch (e, s) {
+            if (kDebugMode) {
+              print("Caught Exception: $e");
+              print("Stack Trace:\n$s");
+            }
+          }
+
+          currentVersion =
+              BasePreferences.getInstance().getInt("dot-sync-current-version") ?? 0;
         }
-      }
 
-      currentVersion =
-          BasePreferences.getInstance().getInt("dot-sync-current-version") ?? 0;
-    }
+        bool result = false;
 
-    bool result = false;
-
-    try {
-      Response response =
+        try {
+          Response response =
           await DotApis.getInstance().synchronizationPull(currentVersion);
 
-      result = await consume(response);
-    } catch (e, s) {
-      if (kDebugMode) {
-        print("Caught Exception: $e");
-        print("Stack Trace:\n$s");
-      }
-    } finally {
-      updateStatus(
-        result ? 101 : -1,
-        autoCloseAfter:
+          result = await consume(response);
+        } catch (e, s) {
+          if (kDebugMode) {
+            print("Caught Exception: $e");
+            print("Stack Trace:\n$s");
+          }
+        } finally {
+          updateStatus(
+            result ? 101 : -1,
+            autoCloseAfter:
             result ? Duration.zero : const Duration(milliseconds: 1200),
-      );
+          );
+        }
+      } catch (_) {
+        onProgress = false;
+      }
     }
   }
 
