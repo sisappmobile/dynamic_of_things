@@ -115,7 +115,7 @@ class Template {
     ..actions = json["actions"] != null ? List<Action>.from(json["actions"].map((e) => Action.fromJson(e))) : []
     ..sections = json["sections"] != null ? List<Section>.from(json["sections"].map((e) => Section.fromJson(e))) : [];
 
-  static Future<Template> loadTemplate(int mode, Map<String, dynamic> customFormView, List<Map<String, dynamic>> fields, {
+  static Future<Template> loadTemplate(int mode, Map<String, dynamic> customFormView, List<Map<String, dynamic>> fields, Map<String, dynamic> data, {
     Transaction? transaction,
   }) async {
     Template template = Template();
@@ -287,6 +287,28 @@ class Template {
                 field.validations.add(validation);
               }
 
+              if (data.containsKey("_fields")) {
+                // ignore: no_leading_underscores_for_local_identifiers
+                Map<String, dynamic> _fields = Map<String, dynamic>.from(data["_fields"]);
+
+                if (_fields.containsKey(field.name)) {
+                  // ignore: no_leading_underscores_for_local_identifiers
+                  Map<String, dynamic> _field = Map<String, dynamic>.from(_fields[field.name]);
+
+                  if (_field.containsKey("required")) {
+                    field.required = _field["required"];
+                  }
+
+                  if (_field.containsKey("readOnly")) {
+                    field.readOnly = _field["readOnly"];
+                  }
+
+                  if (_field.containsKey("title")) {
+                    field.title = _field["title"];
+                  }
+                }
+              }
+
               section.fields.add(field);
             }
           }
@@ -389,12 +411,13 @@ class DetailForm with ChangeNotifier {
   static Future<DetailForm> load({
     required int mode,
     required DetailCarrier detailCarrier,
+    required Map<String, dynamic> data,
     Transaction? transaction,
   }) async {
     DetailForm detailForm = DetailForm();
 
     detailForm.single = detailCarrier.customFormView["template_mode"] == "CARD";
-    detailForm.template = await Template.loadTemplate(mode, detailCarrier.customFormView, detailCarrier.fields, transaction: transaction);
+    detailForm.template = await Template.loadTemplate(mode, detailCarrier.customFormView, detailCarrier.fields, data, transaction: transaction);
     detailForm.hasOnChangeEvent = detailCarrier.fields.any((element) => StringUtils.isNotNullOrEmpty(element["pseudo_code"]));
 
     if (!detailForm.single) {
@@ -417,7 +440,7 @@ class DetailForm with ChangeNotifier {
       }
 
       for (SubDetailCarrier subDetailCarrier in detailCarrier.subDetailCarriers) {
-        detailForm.subDetailForms.add(await SubDetailForm.load(mode: mode, subDetailCarrier: subDetailCarrier));
+        detailForm.subDetailForms.add(await SubDetailForm.load(mode: mode, subDetailCarrier: subDetailCarrier, data: data));
       }
     }
 
@@ -482,11 +505,12 @@ class SubDetailForm with ChangeNotifier {
   static Future<SubDetailForm> load({
     required int mode,
     required SubDetailCarrier subDetailCarrier,
+    required Map<String, dynamic> data,
     Transaction? transaction,
   }) async {
     SubDetailForm subDetailForm = SubDetailForm();
 
-    subDetailForm.template = await Template.loadTemplate(mode, subDetailCarrier.customFormView, subDetailCarrier.fields, transaction: transaction);
+    subDetailForm.template = await Template.loadTemplate(mode, subDetailCarrier.customFormView, subDetailCarrier.fields, data, transaction: transaction);
     subDetailForm.hasOnChangeEvent = subDetailCarrier.fields.any((element) => StringUtils.isNotNullOrEmpty(element["pseudo_code"]));
 
     for (Map<String, dynamic> fieldCustomFormView in subDetailCarrier.fields) {

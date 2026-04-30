@@ -40,6 +40,7 @@ const String usernameKey = "username";
 // const String baseUrl = "https://demo-murti.sisapp.com:13443/salesforce/api/";
 const String baseUrl = "https://posdemo.sisapp.com:6443/salesforce/api/";
 const String salt = "72e4425c484016c95677d1a2513681ff8e2b2459b11e68c8b67cc7b7fe60c422b629eb45d1a5b236c3df0031860c98f4b0f58c2497212ee20d58a833b9a3ea1d";
+const String serverCode = "NICO";
 
 final GoRouter goRouter = GoRouter(
   routes: [
@@ -481,6 +482,7 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
                               "TD": "",
                               "OS": "",
                               "FT": "",
+                              "serverCode": serverCode,
                             },
                           );
 

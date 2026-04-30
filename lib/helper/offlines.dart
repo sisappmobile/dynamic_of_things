@@ -45,55 +45,37 @@ class FormContainer {
     outerLoop:
     for (MapEntry<String, dynamic> mapEntry in data.entries) {
       if (mapEntry.value != null) {
-        if (!(mapEntry.value is List || mapEntry.value is Map)) {
-          Map<String, dynamic>? fieldCustomFormView =
-              carrier.fields.firstWhereOrNull(
-            (element) => element["field_name"] == mapEntry.key,
-          );
+        if (!(mapEntry.value is List || mapEntry.value is Map) || ((mapEntry.value is Map) && ((mapEntry.value as Map).containsKey("name")) && ((mapEntry.value as Map).containsKey("mime")) && ((mapEntry.value as Map).containsKey("bytes")))) {
+          Map<String, dynamic>? fieldCustomFormView = carrier.fields.firstWhereOrNull((element) => element["field_name"] == mapEntry.key);
 
-          hashMap[mapEntry.key] =
-              Offlines.convert(mapEntry.value, fieldCustomFormView);
+          hashMap[mapEntry.key] = Offlines.convert(mapEntry.value, fieldCustomFormView);
         } else {
           for (DetailCarrier detailCarrier in carrier.detailCarriers) {
             if (mapEntry.key == detailCarrier.customFormView["table_name"]) {
               if (mapEntry.value is Map) {
-                Map<String, dynamic> detailData =
-                    Map<String, dynamic>.from(mapEntry.value);
+                Map<String, dynamic> detailData = Map<String, dynamic>.from(mapEntry.value);
 
-                hashMap[mapEntry.key] =
-                    Offlines.hashDTOToMap(detailData, detailCarrier.fields);
+                hashMap[mapEntry.key] = Offlines.hashDTOToMap(detailData, detailCarrier.fields);
               } else {
-                List<Map<String, dynamic>> details =
-                    List<Map<String, dynamic>>.from(mapEntry.value);
+                List<Map<String, dynamic>> details = List<Map<String, dynamic>>.from(mapEntry.value);
 
                 List<Map<String, dynamic>> detailMaps = [];
 
                 for (Map<String, dynamic> detailDTO in details) {
                   Map<String, dynamic> detailMap = {};
 
-                  for (MapEntry<String, dynamic> detailMapEntry
-                      in detailDTO.entries) {
+                  for (MapEntry<String, dynamic> detailMapEntry in detailDTO.entries) {
                     if (detailMapEntry.value != null) {
                       if (detailMapEntry.value is List) {
-                        for (SubDetailCarrier subDetailCarrier
-                            in detailCarrier.subDetailCarriers) {
-                          if (detailMapEntry.key ==
-                              subDetailCarrier.customFormView["table_name"]) {
-                            List<Map<String, dynamic>> subDetails =
-                                detailMapEntry.value
-                                    as List<Map<String, dynamic>>;
+                        for (SubDetailCarrier subDetailCarrier in detailCarrier.subDetailCarriers) {
+                          if (detailMapEntry.key == subDetailCarrier.customFormView["table_name"]) {
+                            List<Map<String, dynamic>> subDetails = detailMapEntry.value as List<Map<String, dynamic>>;
 
                             List<Map<String, dynamic>> subDetailMaps = [];
 
-                            for (Map<String, dynamic> subDetailDTO
-                                in subDetails) {
-                              if (subDetailDTO["header_id"] ==
-                                  detailDTO["id"]) {
-                                Map<String, dynamic> subDetailMap =
-                                    Offlines.hashDTOToMap(
-                                  subDetailDTO,
-                                  subDetailCarrier.fields,
-                                );
+                            for (Map<String, dynamic> subDetailDTO in subDetails) {
+                              if (subDetailDTO["header_id"] == detailDTO["id"]) {
+                                Map<String, dynamic> subDetailMap = Offlines.hashDTOToMap(subDetailDTO, subDetailCarrier.fields);
 
                                 subDetailMaps.add(subDetailMap);
                               }
@@ -103,16 +85,9 @@ class FormContainer {
                           }
                         }
                       } else {
-                        Map<String, dynamic>? fieldCustomFormView =
-                            detailCarrier.fields.firstWhereOrNull(
-                          (element) =>
-                              element["field_name"] == detailMapEntry.key,
-                        );
+                        Map<String, dynamic>? fieldCustomFormView = detailCarrier.fields.firstWhereOrNull((element) => element["field_name"] == detailMapEntry.key);
 
-                        detailMap[detailMapEntry.key] = Offlines.convert(
-                          detailMapEntry.value,
-                          fieldCustomFormView,
-                        );
+                        detailMap[detailMapEntry.key] = Offlines.convert(detailMapEntry.value, fieldCustomFormView);
                       }
                     }
                   }
@@ -134,55 +109,29 @@ class FormContainer {
   }
 }
 
-Future<List<Map<String, dynamic>>> executeRawQuery(
-  String sql, [
-  List<Object?>? arguments,
-]) async {
-  try {
-    final db = await Sqlites.get();
-    // Mencegah query destruktif dari AI (hanya diizinkan SELECT)
-    if (!sql.trim().toUpperCase().startsWith("SELECT")) {
-      throw Exception(
-        "Hanya query SELECT yang diizinkan untuk eksekusi dinamis AI.",
-      );
-    }
-    return await db.rawQuery(sql, arguments);
-  } catch (e) {
-    if (kDebugMode) {
-      print("executeRawQuery error: $e");
-    }
-    return [];
-  }
-}
-
 Future<void> setSalesUnitId(String value) async {
   await BasePreferences.getInstance().setString("dot-sales-unit-id", value);
 }
 
-String get currentSalesUnitId =>
-    BasePreferences.getInstance().getString("dot-sales-unit-id")!;
+String get currentSalesUnitId => BasePreferences.getInstance().getString("dot-sales-unit-id")!;
 
 Future<void> setUsername(String value) async {
   await BasePreferences.getInstance().setString("dot-username", value);
 }
 
-String get currentUsername =>
-    BasePreferences.getInstance().getString("dot-username")!;
+String get currentUsername => BasePreferences.getInstance().getString("dot-username")!;
 
 Future<void> setBusinessUnitId(String value) async {
   await BasePreferences.getInstance().setString("dot-business-unit-id", value);
 }
 
-String get currentBusinessUnitId =>
-    BasePreferences.getInstance().getString("dot-business-unit-id")!;
+String get currentBusinessUnitId => BasePreferences.getInstance().getString("dot-business-unit-id")!;
 
 Future<void> setBusinessUnitCode(String value) async {
-  await BasePreferences.getInstance()
-      .setString("dot-business-unit-code", value);
+  await BasePreferences.getInstance().setString("dot-business-unit-code", value);
 }
 
-String get currentBusinessUnitCode =>
-    BasePreferences.getInstance().getString("dot-business-unit-code")!;
+String get currentBusinessUnitCode => BasePreferences.getInstance().getString("dot-business-unit-code")!;
 
 Future<void> setUserId(String? value) async {
   if (StringUtils.isNotNullOrEmpty(value)) {
@@ -190,12 +139,10 @@ Future<void> setUserId(String? value) async {
   }
 }
 
-String? get currentUserId =>
-    BasePreferences.getInstance().getString("dot-user-id");
+String? get currentUserId => BasePreferences.getInstance().getString("dot-user-id");
 
 Future<void> setCompanyId(String value) async {
-  if (!BasePreferences.getInstance().contain("dot-company-id") ||
-      currentCompanyId != value) {
+  if (!BasePreferences.getInstance().contain("dot-company-id") || currentCompanyId != value) {
     await BasePreferences.getInstance().remove("dot-company-id");
     await Sqlites.delete();
 
@@ -205,56 +152,38 @@ Future<void> setCompanyId(String value) async {
   await BasePreferences.getInstance().setString("dot-company-id", value);
 }
 
-String get currentCompanyId =>
-    BasePreferences.getInstance().getString("dot-company-id")!;
+String get currentCompanyId => BasePreferences.getInstance().getString("dot-company-id")!;
 
 class Offlines {
   static Future<DynamicFormMenuResponse> menus(bool journey) async {
-    List<Map<String, dynamic>> rows = await DMLAssemblers.create()
-        .select(
-          "DISTINCT CAST(COALESCE(d.category_id, c.category_id) AS TEXT) AS category_id",
-        )
+    List<Map<String, dynamic>> rows = await DMLAssemblers
+        .create()
+        .select("DISTINCT CAST(COALESCE(d.category_id, c.category_id) AS TEXT) AS category_id")
         .select("CAST(COALESCE(d.id, c.id) AS TEXT) AS id")
         .select("COALESCE(d.report_name, c.form_desc) AS name")
         .select('COALESCE(d."index", c."index") AS "index"')
-        .select(
-          "(CASE WHEN COALESCE(a.custom_type, 'FORM') = 'FORM' THEN (CASE WHEN c.template_mode = 'SCHEDULE' THEN 'SCHEDULE' ELSE 'FORM' END) ELSE 'REPORT' END) AS type",
-        )
-        .select(
-          "(CASE WHEN COALESCE(a.custom_type, 'FORM') = 'FORM' THEN c.base_path_icon END) AS icon",
-        )
-        .select(
-          "(CASE WHEN COALESCE(a.custom_type, 'FORM') = 'FORM' THEN (SELECT CAST(z.id AS TEXT) FROM c_custom_form z WHERE z.table_header_id = c.source_table_reference_id) END) AS reference_id",
-        )
-        .select(
-          "(CASE WHEN COALESCE(a.custom_type, 'FORM') = 'FORM' THEN (SELECT z.form_desc FROM c_custom_form z WHERE z.table_header_id = c.source_table_reference_id) END) AS reference_name",
-        )
+        .select("(CASE WHEN COALESCE(a.custom_type, 'FORM') = 'FORM' THEN (CASE WHEN c.template_mode = 'SCHEDULE' THEN 'SCHEDULE' ELSE 'FORM' END) ELSE 'REPORT' END) AS type")
+        .select("(CASE WHEN COALESCE(a.custom_type, 'FORM') = 'FORM' THEN c.base_path_icon END) AS icon")
+        .select("(CASE WHEN COALESCE(a.custom_type, 'FORM') = 'FORM' THEN (SELECT CAST(z.id AS TEXT) FROM c_custom_form z WHERE z.table_header_id = c.source_table_reference_id) END) AS reference_id")
+        .select("(CASE WHEN COALESCE(a.custom_type, 'FORM') = 'FORM' THEN (SELECT z.form_desc FROM c_custom_form z WHERE z.table_header_id = c.source_table_reference_id) END) AS reference_name")
         .from("c_sales_access_custom_form a")
-        .join(
-          "INNER JOIN c_group_access_sales_unit_custom_form_detail b ON b.group_id = a.group_id",
-        )
-        .join(
-          "LEFT JOIN c_custom_form c ON c.id = a.custom_id AND COALESCE(a.custom_type, 'FORM') = 'FORM' AND c.company_id = ? AND COALESCE(c.f_visit, 'N') = 'Y' AND COALESCE(c.f_journey, 'N') = ? and coalesce(c.f_active,'N') = 'Y'",
-        )
+        .join("INNER JOIN c_group_access_sales_unit_custom_form_detail b ON b.group_id = a.group_id")
+        .join("LEFT JOIN c_custom_form c ON c.id = a.custom_id AND COALESCE(a.custom_type, 'FORM') = 'FORM' AND c.company_id = ? AND COALESCE(c.f_visit, 'N') = 'Y' AND COALESCE(c.f_journey, 'N') = ? and coalesce(c.f_active,'N') = 'Y'")
         .parameter(currentCompanyId)
         .parameter(journey ? "Y" : "N")
-        .join(
-          "LEFT JOIN c_custom_report d ON d.id = a.custom_id AND COALESCE(a.custom_type, 'FORM') = 'REPORT' AND d.company_id = ?",
-        )
+        .join("LEFT JOIN c_custom_report d ON d.id = a.custom_id AND COALESCE(a.custom_type, 'FORM') = 'REPORT' AND d.company_id = ?")
         .parameter(currentCompanyId)
         .equalTo("b.user_id", currentSalesUnitId)
         .and()
         .customWhere("(d.id IS NOT NULL OR c.id IS NOT NULL)")
         .all();
 
-    DynamicFormMenuResponse dynamicFormMenuResponse =
-        DynamicFormMenuResponse(categories: []);
+    DynamicFormMenuResponse dynamicFormMenuResponse = DynamicFormMenuResponse(categories: []);
 
     for (Map<String, dynamic> row in rows) {
       DynamicFormCategoryItem? dynamicFormCategoryItem;
 
-      for (DynamicFormCategoryItem dynamicFormCategoryItemCheck
-          in dynamicFormMenuResponse.categories) {
+      for (DynamicFormCategoryItem dynamicFormCategoryItemCheck in dynamicFormMenuResponse.categories) {
         if (dynamicFormCategoryItemCheck.id == row["category_id"]) {
           dynamicFormCategoryItem = dynamicFormCategoryItemCheck;
 
@@ -263,7 +192,8 @@ class Offlines {
       }
 
       if (dynamicFormCategoryItem == null) {
-        Map<String, dynamic>? category = await DMLAssemblers.create()
+        Map<String, dynamic>? category = await DMLAssemblers
+            .create()
             .select("*")
             .from("c_custom_form_category")
             .equalTo("id", row["category_id"])
@@ -288,8 +218,7 @@ class Offlines {
 
         // 2. Definisi Regex
         // Di Dart, kita menggunakan raw string (r'...') agar tidak perlu double escape backslash
-        final regex =
-            RegExp(r"<svg[^>]*?>\s*(<svg.*?</svg>)\s*</svg>", dotAll: true);
+        final regex = RegExp(r"<svg[^>]*?>\s*(<svg.*?</svg>)\s*</svg>", dotAll: true);
 
         // 3. Pencocokan pola
         final match = regex.firstMatch(icon);
@@ -320,7 +249,8 @@ class Offlines {
     required String id,
     String? customerId,
   }) async {
-    Map<String, dynamic>? customFormView = await DMLAssemblers.create()
+    Map<String, dynamic>? customFormView = await DMLAssemblers
+        .create()
         .select("a.*")
         .select("b.table_name")
         .from("c_custom_form a")
@@ -339,28 +269,21 @@ class Offlines {
       data: [],
     );
 
-    List<Map<String, dynamic>> actions = await DMLAssemblers.create()
+    List<Map<String, dynamic>> actions = await DMLAssemblers
+        .create()
         .select("DISTINCT CAST(e.function_id AS TEXT) AS id")
         .select("e.resource_id AS resource_id")
         .select("e.function_name AS name")
         .from("c_group_access_sales_unit_custom_form a")
-        .join(
-          "INNER JOIN c_group_access_sales_unit_custom_form_detail b ON b.group_id = a.id",
-        )
+        .join("INNER JOIN c_group_access_sales_unit_custom_form_detail b ON b.group_id = a.id")
         .join("INNER JOIN c_sales_access_custom_form c ON c.group_id = a.id")
-        .join(
-          "INNER JOIN c_sales_access_function_custom_form d ON d.access_id = c.id",
-        )
-        .join(
-          "INNER JOIN c_custom_functions e ON e.resource_id = d.resource_id AND e.custom_id = c.custom_id",
-        )
+        .join("INNER JOIN c_sales_access_function_custom_form d ON d.access_id = c.id")
+        .join("INNER JOIN c_custom_functions e ON e.resource_id = d.resource_id AND e.custom_id = c.custom_id")
         .equalTo("b.user_id", currentSalesUnitId)
         .and()
         .equalTo("c.custom_id", id)
         .and()
-        .customWhere(
-          "(COALESCE(e.f_show_inlist, 'N') = 'Y' OR e.resource_id IN ('BTN_CREATE', 'BTN_EDIT', 'BTN_VIEW'))",
-        )
+        .customWhere("(COALESCE(e.f_show_inlist, 'N') = 'Y' OR e.resource_id IN ('BTN_CREATE', 'BTN_EDIT', 'BTN_VIEW'))")
         .all();
 
     for (Map<String, dynamic> action in actions) {
@@ -373,14 +296,13 @@ class Offlines {
       );
     }
 
-    List<Map<String, dynamic>> fields = await DMLAssemblers.create()
+    List<Map<String, dynamic>> fields = await DMLAssemblers
+        .create()
         .select("*")
         .from("c_field_custom_form")
         .equalTo("custom_id", id)
         .and()
-        .customWhere(
-          "(COALESCE(f_show_list, 'N') = 'Y' OR COALESCE(f_pk, 'N') = 'Y')",
-        )
+        .customWhere("(COALESCE(f_show_list, 'N') = 'Y' OR COALESCE(f_pk, 'N') = 'Y')")
         .desc("COALESCE(f_pk, 'N')")
         .asc("COALESCE(index_field, 0)")
         .all();
@@ -403,16 +325,20 @@ class Offlines {
       );
     }
 
-    DMLAssemblers dmlAssemblers = DMLAssemblers.create()
+    DMLAssemblers dmlAssemblers = DMLAssemblers
+        .create()
         .select(listResponse.fields.map((e) => e.name).join(","))
         .from(customFormView["table_name"])
         .equalTo("company_id", currentCompanyId);
 
     if (customerId != null) {
-      dmlAssemblers.and().equalTo("customer_id", customerId);
+      dmlAssemblers
+          .and()
+          .equalTo("customer_id", customerId);
     }
 
-    List<Map<String, dynamic>> filterFields = await DMLAssemblers.create()
+    List<Map<String, dynamic>> filterFields = await DMLAssemblers
+        .create()
         .select("a.*")
         .select("b.column_name")
         .from("c_custom_filter_field a")
@@ -422,13 +348,12 @@ class Offlines {
 
     for (Map<String, dynamic> filterField in filterFields) {
       String _ = filterField["field_type"];
-      String? filterValue =
-          filterField["value"] ?? filterField["default_value"];
+      String? filterValue = filterField["value"] ?? filterField["default_value"];
 
       if (filterValue != null) {
-        dmlAssemblers.and().customWhere(
-              "${filterField["column_name"]} ${filterField["field_operator"]} ?",
-            );
+        dmlAssemblers
+            .and()
+            .customWhere("${filterField["column_name"]} ${filterField["field_operator"]} ?");
 
         if (filterField["field_operator"] == "LIKE") {
           if (filterValue == "\$selector") {
@@ -445,22 +370,18 @@ class Offlines {
     List<String> userIds = [];
     List<String> salesUnitIds = [];
 
-    if (customFormView["f_visit"] == "Y" &&
-        customFormView["f_creator"] == "Y") {
+    if (customFormView["f_visit"] == "Y" && customFormView["f_creator"] == "Y") {
       salesUnitIds.add(currentSalesUnitId);
     }
 
     if (customFormView["f_user_group"] == "Y") {
-      String? result = (await DMLAssemblers.create()
+      String? result = (await DMLAssemblers
+          .create()
           .select("GROUP_CONCAT(DISTINCT user_group_id) AS result")
           .from("c_user_group_detail")
-          .customWhere(
-            "user_group_id IN (${customFormView["list_user_group"]})",
-          )
+          .customWhere("user_group_id IN (${customFormView["list_user_group"]})")
           .and()
-          .customWhere(
-            "((user_source = 'VISITQU' AND user_id = ?) OR (user_source = 'WEB' AND user_id = ?))",
-          )
+          .customWhere("((user_source = 'VISITQU' AND user_id = ?) OR (user_source = 'WEB' AND user_id = ?))")
           .parameter(currentSalesUnitId)
           .parameter(currentUserId)
           .first())?["result"];
@@ -468,7 +389,8 @@ class Offlines {
       if (result != null) {
         List<String> userGroupIds = result.split(",");
 
-        List<Map<String, dynamic>> userGroups = await DMLAssemblers.create()
+        List<Map<String, dynamic>> userGroups = await DMLAssemblers
+            .create()
             .select("user_source")
             .select("user_id")
             .from("c_user_group_detail")
@@ -489,15 +411,12 @@ class Offlines {
     }
 
     if (customFormView["f_structure"] == "Y") {
-      List<Map<String, dynamic>> childSalesUnits = await DMLAssemblers.create()
+      List<Map<String, dynamic>> childSalesUnits = await DMLAssemblers
+          .create()
           .select("CAST(c.salesunit_id AS TEXT) AS salesunit_id")
           .from("m_salesunit a")
-          .join(
-            "INNER JOIN m_sales_structure_detail b ON b.sales_structure_upper_id = a.sales_structure_id",
-          )
-          .join(
-            "INNER JOIN m_salesunit c ON c.sales_structure_id = b.sales_structure_lower_id",
-          )
+          .join("INNER JOIN m_sales_structure_detail b ON b.sales_structure_upper_id = a.sales_structure_id")
+          .join("INNER JOIN m_salesunit c ON c.sales_structure_id = b.sales_structure_lower_id")
           .equalTo("a.salesunit_id", currentSalesUnitId)
           .all();
 
@@ -509,8 +428,7 @@ class Offlines {
     String dataFilterClauseBuilder = "";
 
     if (userIds.isNotEmpty) {
-      dataFilterClauseBuilder +=
-          "create_who IN (${List.generate(userIds.length, (index) => "?").join(", ")})";
+      dataFilterClauseBuilder += "create_who IN (${List.generate(userIds.length, (index) => "?").join(", ")})";
 
       for (String userId in userIds) {
         dmlAssemblers.parameter(userId);
@@ -522,8 +440,7 @@ class Offlines {
         dataFilterClauseBuilder += " OR ";
       }
 
-      dataFilterClauseBuilder +=
-          "salesunit_id IN (${List.generate(salesUnitIds.length, (index) => "?").join(", ")})";
+      dataFilterClauseBuilder += "salesunit_id IN (${List.generate(salesUnitIds.length, (index) => "?").join(", ")})";
 
       for (String salesUnitId in salesUnitIds) {
         dmlAssemblers.parameter(salesUnitId);
@@ -531,7 +448,8 @@ class Offlines {
     }
 
     if (customFormView["f_by_field_value"] == "Y") {
-      String? columnName = (await DMLAssemblers.create()
+      String? columnName = (await DMLAssemblers
+          .create()
           .select("column_name")
           .from("f_dynamic_table_detail")
           .equalTo("id", customFormView["by_field_value_id"])
@@ -552,18 +470,22 @@ class Offlines {
     }
 
     if (dataFilterClauseBuilder.isNotEmpty) {
-      dmlAssemblers.and().customWhere("($dataFilterClauseBuilder)");
+      dmlAssemblers
+          .and()
+          .customWhere("($dataFilterClauseBuilder)");
     }
 
     List<Map<String, dynamic>> rows = await dmlAssemblers.all();
 
     for (Map<String, dynamic> row in rows) {
       if (row.containsKey("salesunit_id")) {
-        row["salesunit_id"] = (await DMLAssemblers.create()
+        row["salesunit_id"] = (await DMLAssemblers
+            .create()
             .select("salesunit_name")
             .from("m_salesunit")
             .equalTo("salesunit_id", row["salesunit_id"])
-            .first())?["salesunit_name"];
+            .first()
+        )?["salesunit_name"];
       }
     }
 
@@ -573,7 +495,8 @@ class Offlines {
   }
 
   static Future<Map<String, dynamic>?> loadCustomFormView(String formId) async {
-    return await DMLAssemblers.create()
+    return await DMLAssemblers
+        .create()
         .select("a.*")
         .select("b.table_name")
         .from("c_custom_form a")
@@ -593,7 +516,8 @@ class Offlines {
     if (customFormView != null) {
       FormContainer container = await loadContainer(customFormView);
 
-      Map<String, dynamic>? customFunctionsView = await DMLAssemblers.create()
+      Map<String, dynamic>? customFunctionsView = await DMLAssemblers
+          .create()
           .select("*")
           .from("c_custom_functions")
           .equalTo("custom_id", customFormView["id"])
@@ -628,128 +552,106 @@ class Offlines {
       HeaderForm headerForm = await Offlines.loadHeaderForm(0, container);
 
       if (StringUtils.isNotNullOrEmpty(referenceId)) {
-        String? tableName = (await DMLAssemblers.create()
+        String? tableName = (await DMLAssemblers
+            .create()
             .select("b.table_name")
             .from("c_custom_form a")
-            .join(
-              "INNER JOIN f_dynamic_table b ON b.id = a.source_table_reference_id",
-            )
+            .join("INNER JOIN f_dynamic_table b ON b.id = a.source_table_reference_id")
             .equalTo("a.id", formId)
             .and()
             .customWhere("COALESCE(a.f_create_from_reference, 'N') = 'Y'")
             .first())?["table_name"];
 
         if (tableName != null) {
-          Map<String, dynamic>? referenceRow = await DMLAssemblers.create()
+          Map<String, dynamic>? referenceRow = await DMLAssemblers
+              .create()
               .select("*")
               .from(tableName)
               .equalTo("id", referenceId)
               .first();
 
           if (referenceRow != null) {
-            List<Map<String, dynamic>> createFromReferenceViews =
-                await DMLAssemblers.create()
-                    .select("*")
-                    .from("c_create_from_reference")
-                    .equalTo("custom_id", customFormView["id"])
-                    .asc("create_date")
-                    .all();
+            List<Map<String, dynamic>> createFromReferenceViews = await DMLAssemblers
+                .create()
+                .select("*")
+                .from("c_create_from_reference")
+                .equalTo("custom_id", customFormView["id"])
+                .asc("create_date")
+                .all();
 
-            for (Map<String, dynamic> createFromReferenceView
-                in createFromReferenceViews) {
-              headerForm.data[createFromReferenceView["dst_key"]] =
-                  referenceRow[createFromReferenceView["src_key"]];
+            for (Map<String, dynamic> createFromReferenceView in createFromReferenceViews) {
+              headerForm.data[createFromReferenceView["dst_key"]] = referenceRow[createFromReferenceView["src_key"]];
             }
           }
         }
       }
 
       if (StringUtils.isNotNullOrEmpty(extra)) {
-        Map<String, dynamic>? qrMetaData = await DMLAssemblers.create()
+        Map<String, dynamic>? qrMetaData = await DMLAssemblers
+            .create()
             .select("b.table_name")
             .select("c.column_name")
             .from("c_custom_form a")
             .join("INNER JOIN f_dynamic_table b ON b.id = a.source_table_qr_id")
-            .join(
-              "INNER JOIN f_dynamic_table_detail c ON c.id = a.source_field_qr_id",
-            )
+            .join("INNER JOIN f_dynamic_table_detail c ON c.id = a.source_field_qr_id")
             .equalTo("a.id", formId)
             .and()
             .equalTo("a.using_qr_type", "LOAD_ON_FIELD")
             .first();
 
         if (qrMetaData != null) {
-          Map<String, dynamic>? qrRow = await DMLAssemblers.create()
+          Map<String, dynamic>? qrRow = await DMLAssemblers
+              .create()
               .select("*")
               .from(qrMetaData["table_name"])
               .equalTo(qrMetaData["column_name"], extra)
               .first();
 
           if (qrRow != null) {
-            List<Map<String, dynamic>> createUsingScanQrViews =
-                await DMLAssemblers.create()
-                    .select("*")
-                    .from("c_create_using_scan_qr")
-                    .equalTo("custom_id", customFormView["id"])
-                    .asc("create_date")
-                    .all();
+            List<Map<String, dynamic>> createUsingScanQrViews = await DMLAssemblers
+                .create()
+                .select("*")
+                .from("c_create_using_scan_qr")
+                .equalTo("custom_id", customFormView["id"])
+                .asc("create_date")
+                .all();
 
-            for (Map<String, dynamic> createUsingScanQrView
-                in createUsingScanQrViews) {
-              if (headerForm.data
-                  .containsKey(createUsingScanQrView["dst_key"])) {
-                if (headerForm.data[createUsingScanQrView["dst_key"]] !=
-                    qrRow[createUsingScanQrView["src_key"]]) {
-                  BaseOverlays.error(
-                    message: "Data QR tidak sama dengan data referensi",
-                  );
+            for (Map<String, dynamic> createUsingScanQrView in createUsingScanQrViews) {
+              if (headerForm.data.containsKey(createUsingScanQrView["dst_key"])) {
+                if (headerForm.data[createUsingScanQrView["dst_key"]] != qrRow[createUsingScanQrView["src_key"]]) {
+                  BaseOverlays.error(message: "Data QR tidak sama dengan data referensi");
 
                   return null;
                 }
               }
 
-              headerForm.data[createUsingScanQrView["dst_key"]] =
-                  qrRow[createUsingScanQrView["src_key"]];
+              headerForm.data[createUsingScanQrView["dst_key"]] = qrRow[createUsingScanQrView["src_key"]];
             }
           }
 
-          for (Map<String, dynamic> fieldCustomFormView
-              in container.carrier.fields) {
-            if (StringUtils.inList(
-              fieldCustomFormView["field_data_type"],
-              ["DATA", "MULTIDATA"],
-            )) {
-              List<Map<String, dynamic>> selectedFields =
-                  await DMLAssemblers.create()
-                      .select("column_name")
-                      .from("f_dynamic_table_detail")
-                      .customWhere(
-                        "id IN (${fieldCustomFormView["column_data_select"]})",
-                      )
-                      .all();
+          for (Map<String, dynamic> fieldCustomFormView in container.carrier.fields) {
+            if (StringUtils.inList(fieldCustomFormView["field_data_type"], ["DATA", "MULTIDATA"])) {
+              List<Map<String, dynamic>> selectedFields = await DMLAssemblers
+                  .create()
+                  .select("column_name")
+                  .from("f_dynamic_table_detail")
+                  .customWhere("id IN (${fieldCustomFormView["column_data_select"]})")
+                  .all();
 
-              if (selectedFields.any(
-                (selectedField) =>
-                    selectedField["column_name"] == qrMetaData["column_name"],
-              )) {
-                String? keyColumnName = (await DMLAssemblers.create()
+              if (selectedFields.any((selectedField) => selectedField["column_name"] == qrMetaData["column_name"])) {
+                String? keyColumnName = (await DMLAssemblers
+                    .create()
                     .select("d.column_name AS key_column_name")
                     .from("c_field_custom_form a")
-                    .join(
-                      "INNER JOIN f_dynamic_table_detail b ON b.id = a.column_id",
-                    )
-                    .join(
-                      "INNER JOIN f_dynamic_table c ON c.id = b.src_table_id",
-                    )
-                    .join(
-                      "INNER JOIN f_dynamic_table_detail d ON d.id = b.src_column_id",
-                    )
+                    .join("INNER JOIN f_dynamic_table_detail b ON b.id = a.column_id")
+                    .join("INNER JOIN f_dynamic_table c ON c.id = b.src_table_id")
+                    .join("INNER JOIN f_dynamic_table_detail d ON d.id = b.src_column_id")
                     .equalTo("a.id", fieldCustomFormView["id"])
-                    .first())?["key_column_name"];
+                    .first()
+                )?["key_column_name"];
 
                 if (keyColumnName != null) {
-                  Map<String, dynamic>? resourceData =
-                      await dynamicFormResourceData(
+                  Map<String, dynamic>? resourceData = await dynamicFormResourceData(
                     formId: formId,
                     name: fieldCustomFormView["field_name"],
                     dataMap: {},
@@ -764,55 +666,43 @@ class Offlines {
 
                     for (Map<String, dynamic> item in items) {
                       if (extra == item[qrMetaData["column_name"]]) {
-                        headerForm.data[fieldCustomFormView["field_name"]] =
-                            item[keyColumnName];
+                        headerForm.data[fieldCustomFormView["field_name"]] = item[keyColumnName];
 
-                        List<Map<String, dynamic>> fieldLoadOnFieldViews =
-                            await DMLAssemblers.create()
-                                .select("*")
-                                .from("c_field_load_on_field")
-                                .equalTo("field_id", fieldCustomFormView["id"])
-                                .all();
+                        List<Map<String, dynamic>> fieldLoadOnFieldViews = await DMLAssemblers
+                            .create()
+                            .select("*")
+                            .from("c_field_load_on_field")
+                            .equalTo("field_id", fieldCustomFormView["id"])
+                            .all();
 
-                        for (Map<String, dynamic> fieldLoadOnFieldView
-                            in fieldLoadOnFieldViews) {
-                          headerForm.data[fieldLoadOnFieldView["dst_key"]] =
-                              item[fieldLoadOnFieldView["src_key"]];
+                        for (Map<String, dynamic> fieldLoadOnFieldView in fieldLoadOnFieldViews) {
+                          headerForm.data[fieldLoadOnFieldView["dst_key"]] = item[fieldLoadOnFieldView["src_key"]];
                         }
 
-                        List<Map<String, dynamic>> fieldLoadOnFieldDetailViews =
-                            await DMLAssemblers.create()
-                                .select("*")
-                                .from("c_field_load_on_field_detail")
-                                .equalTo("field_id", fieldCustomFormView["id"])
-                                .all();
+                        List<Map<String, dynamic>> fieldLoadOnFieldDetailViews = await DMLAssemblers
+                            .create()
+                            .select("*")
+                            .from("c_field_load_on_field_detail")
+                            .equalTo("field_id", fieldCustomFormView["id"])
+                            .all();
 
-                        if (fieldLoadOnFieldDetailViews.isNotEmpty &&
-                            container.carrier.detailCarriers.isNotEmpty) {
-                          List<Map<String, dynamic>>? detailItems =
-                              item["details"];
+                        if (fieldLoadOnFieldDetailViews.isNotEmpty && container.carrier.detailCarriers.isNotEmpty) {
+                          List<Map<String, dynamic>>? detailItems = item["details"];
                           List<Map<String, dynamic>> detailDatas = [];
 
                           if (detailItems != null) {
-                            for (Map<String, dynamic> detailItem
-                                in detailItems) {
+                            for (Map<String, dynamic> detailItem in detailItems) {
                               Map<String, dynamic> detailData = {};
 
-                              for (Map<String,
-                                      dynamic> fieldLoadOnFieldDetailView
-                                  in fieldLoadOnFieldDetailViews) {
-                                detailData[
-                                        fieldLoadOnFieldDetailView["src_key"]] =
-                                    detailItem[
-                                        fieldLoadOnFieldDetailView["dst_key"]];
+                              for (Map<String, dynamic> fieldLoadOnFieldDetailView in fieldLoadOnFieldDetailViews) {
+                                detailData[fieldLoadOnFieldDetailView["src_key"]] = detailItem[fieldLoadOnFieldDetailView["dst_key"]];
                               }
 
                               detailDatas.add(detailData);
                             }
                           }
 
-                          headerForm.data[container.carrier.detailCarriers[0]
-                              .customFormView["table_name"]] = detailDatas;
+                          headerForm.data[container.carrier.detailCarriers[0].customFormView["table_name"]] = detailDatas;
                         }
                       }
                     }
@@ -856,7 +746,8 @@ class Offlines {
     if (customFormView != null) {
       FormContainer container = await loadContainer(customFormView, dataId);
 
-      Map<String, dynamic>? customFunctionsView = await DMLAssemblers.create()
+      Map<String, dynamic>? customFunctionsView = await DMLAssemblers
+          .create()
           .select("*")
           .from("c_custom_functions")
           .equalTo("custom_id", customFormView["id"])
@@ -896,10 +787,7 @@ class Offlines {
     return null;
   }
 
-  static Future<FormContainer> loadContainer(
-    Map<String, dynamic> customFormView, [
-    dynamic variable,
-  ]) async {
+  static Future<FormContainer> loadContainer(Map<String, dynamic> customFormView, [dynamic variable]) async {
     FormContainer container = FormContainer();
 
     {
@@ -908,15 +796,13 @@ class Offlines {
       carrier.customFormView = customFormView;
       carrier.fields = await loadFields(customFormView);
 
-      for (Map<String, dynamic> cfvDetail
-          in await loadDetailForms(customFormView)) {
+      for (Map<String, dynamic> cfvDetail in await loadDetailForms(customFormView)) {
         DetailCarrier detailCarrier = DetailCarrier();
 
         detailCarrier.customFormView = cfvDetail;
         detailCarrier.fields = await loadFields(cfvDetail);
 
-        for (Map<String, dynamic> cfvSubDetail
-            in await loadSubDetailForms(cfvDetail)) {
+        for (Map<String, dynamic> cfvSubDetail in await loadSubDetailForms(cfvDetail)) {
           SubDetailCarrier subDetailCarrier = SubDetailCarrier();
 
           subDetailCarrier.customFormView = cfvSubDetail;
@@ -936,104 +822,89 @@ class Offlines {
 
       if (variable != null) {
         if (variable is Map) {
-          Map<String, dynamic> sourceHeader =
-              Map<String, dynamic>.from(variable);
+          Map<String, dynamic> sourceHeader = Map<String, dynamic>.from(variable);
 
           targetHeader = mapToHashDTO(sourceHeader);
 
-          for (DetailCarrier detailCarrier
-              in container.carrier.detailCarriers) {
+          for (DetailCarrier detailCarrier in container.carrier.detailCarriers) {
             if (detailCarrier.customFormView["template_mode"] == "LIST") {
-              List<Map<String, dynamic>> sourceDetails =
-                  sourceHeader[detailCarrier.customFormView["table_name"]];
+              List<Map<String, dynamic>> sourceDetails = sourceHeader[detailCarrier.customFormView["table_name"]];
 
               List<Map<String, dynamic>> targetDetails = [];
 
               for (Map<String, dynamic> sourceDetail in sourceDetails) {
                 Map<String, dynamic> targetDetail = mapToHashDTO(sourceDetail);
 
-                for (SubDetailCarrier subDetailCarrier
-                    in detailCarrier.subDetailCarriers) {
-                  List<Map<String, dynamic>> sourceSubDetails = sourceDetail[
-                      subDetailCarrier.customFormView["table_name"]];
+                for (SubDetailCarrier subDetailCarrier in detailCarrier.subDetailCarriers) {
+                  List<Map<String, dynamic>> sourceSubDetails = sourceDetail[subDetailCarrier.customFormView["table_name"]];
 
                   List<Map<String, dynamic>> targetSubDetails = [];
 
-                  for (Map<String, dynamic> sourceSubDetail
-                      in sourceSubDetails) {
-                    Map<String, dynamic> targetSubDetail =
-                        mapToHashDTO(sourceSubDetail);
+                  for (Map<String, dynamic> sourceSubDetail in sourceSubDetails) {
+                    Map<String, dynamic> targetSubDetail = mapToHashDTO(sourceSubDetail);
 
                     targetSubDetails.add(targetSubDetail);
                   }
 
-                  targetDetail[subDetailCarrier.customFormView["table_name"]] =
-                      targetSubDetails;
+                  targetDetail[subDetailCarrier.customFormView["table_name"]] = targetSubDetails;
                 }
 
                 targetDetails.add(targetDetail);
               }
 
-              targetHeader[detailCarrier.customFormView["table_name"]] =
-                  targetDetails;
+              targetHeader[detailCarrier.customFormView["table_name"]] = targetDetails;
             } else {
-              Map<String, dynamic> sourceDetail =
-                  sourceHeader[detailCarrier.customFormView["table_name"]];
+              Map<String, dynamic> sourceDetail = sourceHeader[detailCarrier.customFormView["table_name"]];
 
-              targetHeader[detailCarrier.customFormView["table_name"]] =
-                  mapToHashDTO(sourceDetail);
+              targetHeader[detailCarrier.customFormView["table_name"]] = mapToHashDTO(sourceDetail);
             }
           }
         } else {
-          targetHeader = (await DMLAssemblers.create()
+          targetHeader = (await DMLAssemblers
+              .create()
               .select("*")
               .from(container.carrier.customFormView["table_name"])
               .equalTo("id", variable)
               .first())!;
 
-          for (DetailCarrier detailCarrier
-              in container.carrier.detailCarriers) {
+          for (DetailCarrier detailCarrier in container.carrier.detailCarriers) {
             if (detailCarrier.customFormView["template_mode"] == "LIST") {
-              List<Map<String, dynamic>> targetDetails =
-                  await DMLAssemblers.create()
+              List<Map<String, dynamic>> targetDetails = await DMLAssemblers
+                  .create()
+                  .select("*")
+                  .from(detailCarrier.customFormView["table_name"])
+                  .equalTo("header_id", targetHeader["id"])
+                  .and()
+                  .customWhere("COALESCE(f_delete, 'N') = 'N'")
+                  .all();
+
+              for (Map<String, dynamic> targetDetail in targetDetails) {
+                for (SubDetailCarrier subDetailCarrier in detailCarrier.subDetailCarriers) {
+                  List<Map<String, dynamic>> targetSubDetails = await DMLAssemblers
+                      .create()
                       .select("*")
-                      .from(detailCarrier.customFormView["table_name"])
-                      .equalTo("header_id", targetHeader["id"])
+                      .from(subDetailCarrier.customFormView["table_name"])
+                      .equalTo("header_id", targetDetail["id"])
                       .and()
                       .customWhere("COALESCE(f_delete, 'N') = 'N'")
                       .all();
 
-              for (Map<String, dynamic> targetDetail in targetDetails) {
-                for (SubDetailCarrier subDetailCarrier
-                    in detailCarrier.subDetailCarriers) {
-                  List<Map<String, dynamic>> targetSubDetails =
-                      await DMLAssemblers.create()
-                          .select("*")
-                          .from(subDetailCarrier.customFormView["table_name"])
-                          .equalTo("header_id", targetDetail["id"])
-                          .and()
-                          .customWhere("COALESCE(f_delete, 'N') = 'N'")
-                          .all();
-
-                  targetDetail[subDetailCarrier.customFormView["table_name"]] =
-                      targetSubDetails;
+                  targetDetail[subDetailCarrier.customFormView["table_name"]] = targetSubDetails;
                 }
               }
 
-              targetHeader[detailCarrier.customFormView["table_name"]] =
-                  targetDetails;
+              targetHeader[detailCarrier.customFormView["table_name"]] = targetDetails;
             } else {
-              Map<String, dynamic> targetDetail = (await DMLAssemblers.create()
-                      .select("*")
-                      .from(detailCarrier.customFormView["table_name"])
-                      .equalTo("header_id", targetHeader["id"])
-                      .and()
-                      .customWhere("COALESCE(f_delete, 'N') = 'N'")
-                      .first()) ??
-                  {};
+              Map<String, dynamic> targetDetail = (await DMLAssemblers
+                  .create()
+                  .select("*")
+                  .from(detailCarrier.customFormView["table_name"])
+                  .equalTo("header_id", targetHeader["id"])
+                  .and()
+                  .customWhere("COALESCE(f_delete, 'N') = 'N'")
+                  .first()) ?? {};
 
-              targetHeader[detailCarrier.customFormView["table_name"]] =
-                  targetDetail;
+              targetHeader[detailCarrier.customFormView["table_name"]] = targetDetail;
             }
           }
         }
@@ -1061,10 +932,9 @@ class Offlines {
     return hashDTO;
   }
 
-  static Future<List<Map<String, dynamic>>> loadFields(
-    Map<String, dynamic> customFormView,
-  ) async {
-    return await DMLAssemblers.create()
+  static Future<List<Map<String, dynamic>>> loadFields(Map<String, dynamic> customFormView) async {
+    return await DMLAssemblers
+        .create()
         .select("*")
         .from("c_field_custom_form")
         .equalTo("custom_id", customFormView["id"])
@@ -1073,14 +943,13 @@ class Offlines {
         .all();
   }
 
-  static Future<List<Map<String, dynamic>>> loadDetailForms(
-    Map<String, dynamic> customFormView,
-  ) async {
+  static Future<List<Map<String, dynamic>>> loadDetailForms(Map<String, dynamic> customFormView) async {
     List<Map<String, dynamic>> results = [];
 
     if (customFormView["table_detail_id"] != null) {
       results.addAll(
-        await DMLAssemblers.create()
+        await DMLAssemblers
+            .create()
             .select("a.*")
             .select("b.table_name")
             .select("b.sequence_name")
@@ -1091,7 +960,8 @@ class Offlines {
       );
     } else {
       results.addAll(
-        await DMLAssemblers.create()
+        await DMLAssemblers
+            .create()
             .select("b.*")
             .select("c.table_name")
             .select("c.sequence_name")
@@ -1105,7 +975,8 @@ class Offlines {
     }
 
     results.addAll(
-      await DMLAssemblers.create()
+      await DMLAssemblers
+          .create()
           .select("b.*")
           .select("c.table_name")
           .select("c.sequence_name")
@@ -1120,10 +991,9 @@ class Offlines {
     return results;
   }
 
-  static Future<List<Map<String, dynamic>>> loadSubDetailForms(
-    Map<String, dynamic> customFormView,
-  ) async {
-    return await DMLAssemblers.create()
+  static Future<List<Map<String, dynamic>>> loadSubDetailForms(Map<String, dynamic> customFormView) async {
+    return await DMLAssemblers
+        .create()
         .select("b.*")
         .select("c.table_name")
         .select("c.sequence_name")
@@ -1137,20 +1007,18 @@ class Offlines {
         .all();
   }
 
-  static Future<HeaderForm> loadHeaderForm(
-    int mode,
-    FormContainer container, {
+  static Future<HeaderForm> loadHeaderForm(int mode, FormContainer container, {
     Transaction? transaction,
   }) async {
     HeaderForm headerForm = HeaderForm();
 
     {
-      Map<String, dynamic> customFormCategoryView =
-          (await DMLAssemblers.create()
-              .select("*")
-              .from("c_custom_form_category")
-              .equalTo("id", container.carrier.customFormView["category_id"])
-              .first(transaction))!;
+      Map<String, dynamic> customFormCategoryView = (await DMLAssemblers
+          .create()
+          .select("*")
+          .from("c_custom_form_category")
+          .equalTo("id", container.carrier.customFormView["category_id"])
+          .first(transaction))!;
 
       Category category = Category();
 
@@ -1170,75 +1038,45 @@ class Offlines {
       headerForm.category = category;
     }
 
-    headerForm.template = await Template.loadTemplate(
-      mode,
-      container.carrier.customFormView,
-      container.carrier.fields,
-      transaction: transaction,
-    );
+    headerForm.template = await Template.loadTemplate(mode, container.carrier.customFormView, container.carrier.fields, container.data, transaction: transaction);
 
     for (DetailCarrier detailCarrier in container.carrier.detailCarriers) {
-      headerForm.detailForms.add(
-        await DetailForm.load(
-          mode: mode,
-          detailCarrier: detailCarrier,
-          transaction: transaction,
-        ),
-      );
+      headerForm.detailForms.add(await DetailForm.load(mode: mode, detailCarrier: detailCarrier, data: container.data, transaction: transaction));
     }
 
     if (headerForm.detailForms.length == 1) {
       if (container.carrier.customFormView["detail_index"] != null) {
-        headerForm.detailForms.elementAt(0).sectionIndex =
-            container.carrier.customFormView["detail_index"];
+        headerForm.detailForms.elementAt(0).sectionIndex = container.carrier.customFormView["detail_index"];
       }
     }
 
     headerForm.data = container.convert();
-    headerForm.hasOnChangeEvent = container.carrier.fields
-        .any((element) => StringUtils.isNotNullOrEmpty(element["pseudo_code"]));
+    headerForm.hasOnChangeEvent = container.carrier.fields.any((element) => StringUtils.isNotNullOrEmpty(element["pseudo_code"]));
 
     return headerForm;
   }
 
-  static dynamic convert(
-    dynamic value,
-    Map<String, dynamic>? fieldCustomFormView,
-  ) {
+  static dynamic convert(dynamic value, Map<String, dynamic>? fieldCustomFormView) {
     if (value != null && fieldCustomFormView != null) {
       String dataType = fieldCustomFormView["field_data_type"];
 
-      if (StringUtils.inList(dataType, [
-        "FILE",
-        "FOTO",
-        "VIDEO",
-        "SIGNATURE",
-        "UPLOAD_FOTO",
-        "UPLOAD_VIDEO",
-        "UPLOAD_SIGNATURE",
-      ])) {
-        return jsonDecode(value);
+      if (StringUtils.inList(dataType, ["FILE", "FOTO", "VIDEO", "SIGNATURE", "UPLOAD_FOTO", "UPLOAD_VIDEO", "UPLOAD_SIGNATURE"])) {
+        return value;
       }
     }
 
     return value;
   }
 
-  static Map<String, dynamic> hashDTOToMap(
-    Map<String, dynamic> hashDTO,
-    List<Map<String, dynamic>> fields,
-  ) {
+  static Map<String, dynamic> hashDTOToMap(Map<String, dynamic> hashDTO, List<Map<String, dynamic>> fields) {
     Map<String, dynamic> hashMap = {};
 
     for (MapEntry<String, dynamic> mapEntry in hashDTO.entries) {
       if (mapEntry.value != null) {
         if (!(mapEntry.value is List || mapEntry.value is Map)) {
-          Map<String, dynamic>? fieldCustomFormView = fields.firstWhereOrNull(
-            (element) => element["field_name"] == mapEntry.key,
-          );
+          Map<String, dynamic>? fieldCustomFormView = fields.firstWhereOrNull((element) => element["field_name"] == mapEntry.key);
 
-          hashMap[mapEntry.key] =
-              Offlines.convert(mapEntry.value, fieldCustomFormView);
+          hashMap[mapEntry.key] = Offlines.convert(mapEntry.value, fieldCustomFormView);
         }
       }
     }
@@ -1278,8 +1116,9 @@ class Offlines {
     required String tableName,
     required String id,
   }) async {
-    DMLAssemblers dmlAssemblers =
-        DMLAssemblers.create().select("*").from(tableName);
+    DMLAssemblers dmlAssemblers = DMLAssemblers.create()
+        .select("*")
+        .from(tableName);
 
     if (StringUtils.isNotNullOrEmpty(id)) {
       dmlAssemblers.equalTo("id", id);
@@ -1305,26 +1144,23 @@ class Offlines {
     if (customFormView != null) {
       List<Map<String, dynamic>> fields = await loadFields(customFormView);
 
-      Map<String, dynamic>? currentFieldCustomFormView =
-          fields.firstWhereOrNull((element) => element["field_name"] == name);
+      Map<String, dynamic>? currentFieldCustomFormView = fields.firstWhereOrNull((element) => element["field_name"] == name);
 
       if (currentFieldCustomFormView != null) {
-        Map<String, dynamic>? sourceDTO = await DMLAssemblers.create()
+        Map<String, dynamic>? sourceDTO = await DMLAssemblers
+            .create()
             .select("c.table_name")
             .select("CAST(b.src_column_id AS TEXT) AS key_column_id")
             .select("d.column_name AS key_column_name")
             .from("c_field_custom_form a")
             .join("INNER JOIN f_dynamic_table_detail b ON b.id = a.column_id")
             .join("INNER JOIN f_dynamic_table c ON c.id = b.src_table_id")
-            .join(
-              "INNER JOIN f_dynamic_table_detail d ON d.id = b.src_column_id",
-            )
+            .join("INNER JOIN f_dynamic_table_detail d ON d.id = b.src_column_id")
             .equalTo("a.id", currentFieldCustomFormView["id"])
             .first();
 
         if (sourceDTO != null) {
-          DynamicFormResourceResponse dynamicFormResourceResponse =
-              DynamicFormResourceResponse();
+          DynamicFormResourceResponse dynamicFormResourceResponse = DynamicFormResourceResponse();
 
           String keyColumnId = sourceDTO["key_column_id"];
           String keyColumnName = sourceDTO["key_column_name"];
@@ -1333,20 +1169,16 @@ class Offlines {
 
           List<String> requiredFields = [];
 
-          List<Map<String, dynamic>> selectedFields =
-              await DMLAssemblers.create()
-                  .select("column_name")
-                  .select("data_type")
-                  .select("column_caption")
-                  .select("COALESCE(f_pk, 'N') AS primary_key")
-                  .select(
-                    "(CASE WHEN id IN (${currentFieldCustomFormView["column_data_select"]}) THEN 'Y' ELSE 'N' END) AS showed",
-                  )
-                  .from("f_dynamic_table_detail")
-                  .customWhere(
-                    "id IN (${currentFieldCustomFormView["column_data_select"]},$keyColumnId)",
-                  )
-                  .all();
+          List<Map<String, dynamic>> selectedFields = await DMLAssemblers
+              .create()
+              .select("column_name")
+              .select("data_type")
+              .select("column_caption")
+              .select("COALESCE(f_pk, 'N') AS primary_key")
+              .select("(CASE WHEN id IN (${currentFieldCustomFormView["column_data_select"]}) THEN 'Y' ELSE 'N' END) AS showed")
+              .from("f_dynamic_table_detail")
+              .customWhere("id IN (${currentFieldCustomFormView["column_data_select"]},$keyColumnId)")
+              .all();
 
           for (Map<String, dynamic> selectedField in selectedFields) {
             String columnName = selectedField["column_name"];
@@ -1356,29 +1188,25 @@ class Offlines {
             if (!requiredFields.contains(columnName)) {
               requiredFields.add(columnName);
 
-              DynamicFormResourceFieldItem dynamicFormResourceFieldItem =
-                  DynamicFormResourceFieldItem();
+              DynamicFormResourceFieldItem dynamicFormResourceFieldItem = DynamicFormResourceFieldItem();
 
               dynamicFormResourceFieldItem.name = columnName;
               dynamicFormResourceFieldItem.type = dataType;
               dynamicFormResourceFieldItem.description = columnCaption;
-              dynamicFormResourceFieldItem.showed =
-                  selectedField["showed"] == "Y";
+              dynamicFormResourceFieldItem.showed = selectedField["showed"] == "Y";
 
-              dynamicFormResourceResponse.fields
-                  .add(dynamicFormResourceFieldItem);
+              dynamicFormResourceResponse.fields.add(dynamicFormResourceFieldItem);
             }
           }
 
           if (currentFieldCustomFormView["f_link_value"] == "Y") {
-            if (!requiredFields
-                .contains(currentFieldCustomFormView["src_link_field_value"])) {
-              requiredFields
-                  .add(currentFieldCustomFormView["src_link_field_value"]);
+            if (!requiredFields.contains(currentFieldCustomFormView["src_link_field_value"])) {
+              requiredFields.add(currentFieldCustomFormView["src_link_field_value"]);
             }
           }
 
-          List<Map<String, dynamic>> loadOnFields = await DMLAssemblers.create()
+          List<Map<String, dynamic>> loadOnFields = await DMLAssemblers
+              .create()
               .select("*")
               .from("c_field_load_on_field")
               .equalTo("field_id", currentFieldCustomFormView["id"])
@@ -1391,38 +1219,29 @@ class Offlines {
               requiredFields.add(loadOnField["src_key"]);
             }
 
-            DynamicFormResourceLoadOnFieldItem
-                dynamicFormResourceLoadOnFieldItem =
-                DynamicFormResourceLoadOnFieldItem();
+            DynamicFormResourceLoadOnFieldItem dynamicFormResourceLoadOnFieldItem = DynamicFormResourceLoadOnFieldItem();
 
-            dynamicFormResourceLoadOnFieldItem.detail =
-                loadOnField["f_load_detail"] == "Y";
+            dynamicFormResourceLoadOnFieldItem.detail = loadOnField["f_load_detail"] == "Y";
             dynamicFormResourceLoadOnFieldItem.source = loadOnField["src_key"];
             dynamicFormResourceLoadOnFieldItem.target = loadOnField["dst_key"];
 
-            dynamicFormResourceResponse.loadOnFields
-                .add(dynamicFormResourceLoadOnFieldItem);
+            dynamicFormResourceResponse.loadOnFields.add(dynamicFormResourceLoadOnFieldItem);
           }
 
-          List<Map<String, dynamic>> loadOnFieldDetails =
-              await DMLAssemblers.create()
-                  .select("*")
-                  .from("c_field_load_on_field_detail")
-                  .equalTo("field_id", currentFieldCustomFormView["id"])
-                  .all();
+          List<Map<String, dynamic>> loadOnFieldDetails = await DMLAssemblers
+              .create()
+              .select("*")
+              .from("c_field_load_on_field_detail")
+              .equalTo("field_id", currentFieldCustomFormView["id"])
+              .all();
 
           for (Map<String, dynamic> loadOnFieldDetail in loadOnFieldDetails) {
-            DynamicFormResourceDetailSetupItem
-                dynamicFormResourceDetailSetupItem =
-                DynamicFormResourceDetailSetupItem();
+            DynamicFormResourceDetailSetupItem dynamicFormResourceDetailSetupItem = DynamicFormResourceDetailSetupItem();
 
-            dynamicFormResourceDetailSetupItem.srcKey =
-                loadOnFieldDetail["src_key"];
-            dynamicFormResourceDetailSetupItem.dstKey =
-                loadOnFieldDetail["dst_key"];
+            dynamicFormResourceDetailSetupItem.srcKey = loadOnFieldDetail["src_key"];
+            dynamicFormResourceDetailSetupItem.dstKey = loadOnFieldDetail["dst_key"];
 
-            dynamicFormResourceResponse.detailSetups
-                .add(dynamicFormResourceDetailSetupItem);
+            dynamicFormResourceResponse.detailSetups.add(dynamicFormResourceDetailSetupItem);
           }
 
           return dynamicFormResourceResponse;
@@ -1431,6 +1250,27 @@ class Offlines {
     }
 
     return null;
+  }
+
+  Future<List<Map<String, dynamic>>> executeRawQuery(
+      String sql, [
+        List<Object?>? arguments,
+      ]) async {
+    try {
+      final db = await Sqlites.get();
+      // Mencegah query destruktif dari AI (hanya diizinkan SELECT)
+      if (!sql.trim().toUpperCase().startsWith("SELECT")) {
+        throw Exception(
+          "Hanya query SELECT yang diizinkan untuk eksekusi dinamis AI.",
+        );
+      }
+      return await db.rawQuery(sql, arguments);
+    } catch (e) {
+      if (kDebugMode) {
+        print("executeRawQuery error: $e");
+      }
+      return [];
+    }
   }
 
   static Future<Map<String, dynamic>?> dynamicFormResourceData({
@@ -1447,12 +1287,12 @@ class Offlines {
     if (customFormView != null) {
       List<Map<String, dynamic>> fields = await loadFields(customFormView);
 
-      Map<String, dynamic>? currentFieldCustomFormView =
-          fields.firstWhereOrNull((element) => element["field_name"] == name);
+      Map<String, dynamic>? currentFieldCustomFormView = fields.firstWhereOrNull((element) => element["field_name"] == name);
 
       if (currentFieldCustomFormView == null) {
         if (customFormView["table_detail_id"] != null) {
-          customFormView = await DMLAssemblers.create()
+          customFormView = await DMLAssemblers
+              .create()
               .select("a.*")
               .select("b.table_name")
               .from("c_custom_form a")
@@ -1463,14 +1303,14 @@ class Offlines {
           if (customFormView != null) {
             fields = await loadFields(customFormView);
 
-            currentFieldCustomFormView = fields
-                .firstWhereOrNull((element) => element["field_name"] == name);
+            currentFieldCustomFormView = fields.firstWhereOrNull((element) => element["field_name"] == name);
           }
         }
       }
 
       if (currentFieldCustomFormView == null) {
-        List<Map<String, dynamic>> details = await DMLAssemblers.create()
+        List<Map<String, dynamic>> details = await DMLAssemblers
+            .create()
             .select("b.*")
             .from("c_custom_multiple_detail a")
             .join("INNER JOIN c_custom_form b ON b.id = a.table_detail_id")
@@ -1482,8 +1322,7 @@ class Offlines {
 
           fields = await loadFields(customFormView);
 
-          currentFieldCustomFormView = fields
-              .firstWhereOrNull((element) => element["field_name"] == name);
+          currentFieldCustomFormView = fields.firstWhereOrNull((element) => element["field_name"] == name);
 
           if (currentFieldCustomFormView != null) {
             break;
@@ -1492,16 +1331,15 @@ class Offlines {
       }
 
       if (currentFieldCustomFormView != null) {
-        Map<String, dynamic>? sourceDTO = await DMLAssemblers.create()
+        Map<String, dynamic>? sourceDTO = await DMLAssemblers
+            .create()
             .select("c.table_name")
             .select("CAST(b.src_column_id AS TEXT) AS key_column_id")
             .select("d.column_name AS key_column_name")
             .from("c_field_custom_form a")
             .join("INNER JOIN f_dynamic_table_detail b ON b.id = a.column_id")
             .join("INNER JOIN f_dynamic_table c ON c.id = b.src_table_id")
-            .join(
-              "INNER JOIN f_dynamic_table_detail d ON d.id = b.src_column_id",
-            )
+            .join("INNER JOIN f_dynamic_table_detail d ON d.id = b.src_column_id")
             .equalTo("a.id", currentFieldCustomFormView["id"])
             .first();
 
@@ -1512,20 +1350,16 @@ class Offlines {
 
           List<String> requiredFields = [];
 
-          List<Map<String, dynamic>> selectedFields =
-              await DMLAssemblers.create()
-                  .select("column_name")
-                  .select("data_type")
-                  .select("column_caption")
-                  .select("COALESCE(f_pk, 'N') AS primary_key")
-                  .select(
-                    "(CASE WHEN id IN (${currentFieldCustomFormView["column_data_select"]}) THEN 'Y' ELSE 'N' END) AS showed",
-                  )
-                  .from("f_dynamic_table_detail")
-                  .customWhere(
-                    "id IN (${currentFieldCustomFormView["column_data_select"]},$keyColumnId)",
-                  )
-                  .all();
+          List<Map<String, dynamic>> selectedFields = await DMLAssemblers
+              .create()
+              .select("column_name")
+              .select("data_type")
+              .select("column_caption")
+              .select("COALESCE(f_pk, 'N') AS primary_key")
+              .select("(CASE WHEN id IN (${currentFieldCustomFormView["column_data_select"]}) THEN 'Y' ELSE 'N' END) AS showed")
+              .from("f_dynamic_table_detail")
+              .customWhere("id IN (${currentFieldCustomFormView["column_data_select"]},$keyColumnId)")
+              .all();
 
           for (Map<String, dynamic> selectedField in selectedFields) {
             String columnName = selectedField["column_name"];
@@ -1536,10 +1370,8 @@ class Offlines {
           }
 
           if (currentFieldCustomFormView["f_link_value"] == "Y") {
-            if (!requiredFields
-                .contains(currentFieldCustomFormView["src_link_field_value"])) {
-              requiredFields
-                  .add(currentFieldCustomFormView["src_link_field_value"]);
+            if (!requiredFields.contains(currentFieldCustomFormView["src_link_field_value"])) {
+              requiredFields.add(currentFieldCustomFormView["src_link_field_value"]);
             }
           }
 
@@ -1552,19 +1384,21 @@ class Offlines {
 
             dmlAssemblers.from(sourceTableName);
 
-            List<Map<String, dynamic>> manualFilters =
-                await DMLAssemblers.create()
-                    .select("*")
-                    .from("c_filter_field_list_data")
-                    .equalTo("field_id", currentFieldCustomFormView["id"])
-                    .all();
+            List<Map<String, dynamic>> manualFilters = await DMLAssemblers
+                .create()
+                .select("*")
+                .from("c_filter_field_list_data")
+                .equalTo("field_id", currentFieldCustomFormView["id"])
+                .all();
 
             for (Map<String, dynamic> manualFilter in manualFilters) {
-              String? fieldClause = (await DMLAssemblers.create()
+              String? fieldClause = (await DMLAssemblers
+                  .create()
                   .select("column_name")
                   .from("f_dynamic_table_detail")
                   .equalTo("id", manualFilter["key"])
-                  .first())?["column_name"];
+                  .first()
+              )?["column_name"];
 
               if (StringUtils.isNotNullOrEmpty(fieldClause)) {
                 if (manualFilter["operation"] == "OR") {
@@ -1576,9 +1410,7 @@ class Offlines {
                 if (manualFilter["f_from_login"] == "Y") {
                   fieldClause = "CAST($fieldClause AS TEXT)";
 
-                  dmlAssemblers.customWhere(
-                    "($fieldClause ${manualFilter["operator"]} '$currentSalesUnitId' OR $fieldClause ${manualFilter["operator"]} '$currentUsername')",
-                  );
+                  dmlAssemblers.customWhere("($fieldClause ${manualFilter["operator"]} '$currentSalesUnitId' OR $fieldClause ${manualFilter["operator"]} '$currentUsername')");
                 } else if (StringUtils.isNullOrEmpty(manualFilter["value"])) {
                   if (manualFilter["operator"] == "IS") {
                     dmlAssemblers.customWhere("$fieldClause IS NULL");
@@ -1586,9 +1418,7 @@ class Offlines {
                     dmlAssemblers.customWhere("$fieldClause IS NOT NULL");
                   }
                 } else {
-                  dmlAssemblers.customWhere(
-                    "$fieldClause ${manualFilter["operator"]} ?",
-                  );
+                  dmlAssemblers.customWhere("$fieldClause ${manualFilter["operator"]} ?");
 
                   if (manualFilter["operator"] == "LIKE") {
                     if (manualFilter["value"] == "\$selector") {
@@ -1607,12 +1437,12 @@ class Offlines {
               }
             }
 
-            List<Map<String, dynamic>> autoFilters =
-                await DMLAssemblers.create()
-                    .select("*")
-                    .from("c_field_filter_from_field")
-                    .equalTo("field_id", currentFieldCustomFormView["id"])
-                    .all();
+            List<Map<String, dynamic>> autoFilters = await DMLAssemblers
+                .create()
+                .select("*")
+                .from("c_field_filter_from_field")
+                .equalTo("field_id", currentFieldCustomFormView["id"])
+                .all();
 
             for (Map<String, dynamic> autoFilter in autoFilters) {
               if (autoFilter["operation"] == "OR") {
@@ -1621,27 +1451,16 @@ class Offlines {
                 dmlAssemblers.and();
               }
 
-              if (StringUtils.inList(
-                    autoFilter["key"],
-                    ["customer_id", "cust_id"],
-                  ) &&
-                  StringUtils.inList(
-                    autoFilter["value"],
-                    ["customer_id", "cust_id"],
-                  )) {
+              if (StringUtils.inList(autoFilter["key"], ["customer_id", "cust_id"]) && StringUtils.inList(autoFilter["value"], ["customer_id", "cust_id"])) {
                 if (customerId != null) {
-                  dmlAssemblers.customWhere(
-                    "${autoFilter["key"]} ${autoFilter["operator"]} ?",
-                  );
+                  dmlAssemblers.customWhere("${autoFilter["key"]} ${autoFilter["operator"]} ?");
                   dmlAssemblers.parameter(customerId);
                 }
               } else {
                 dynamic value = dataMap[autoFilter["value"]];
 
                 if (value != null) {
-                  dmlAssemblers.customWhere(
-                    "${autoFilter["key"]} ${autoFilter["operator"]} ?",
-                  );
+                  dmlAssemblers.customWhere("${autoFilter["key"]} ${autoFilter["operator"]} ?");
 
                   if (autoFilter["operator"] == "LIKE") {
                     dmlAssemblers.parameter("%$value%");
@@ -1652,32 +1471,31 @@ class Offlines {
               }
             }
 
-            List<Map<String, dynamic>> actualColumns =
-                await (await Sqlites.get())
-                    .rawQuery("PRAGMA table_info($sourceTableName)");
+            List<Map<String, dynamic>> actualColumns = await (await Sqlites.get()).rawQuery("PRAGMA table_info($sourceTableName)");
 
             if (actualColumns.any((element) => element["name"] == "f_delete")) {
-              dmlAssemblers.and().customWhere("COALESCE(f_delete, 'N') = 'N'");
+              dmlAssemblers
+                  .and()
+                  .customWhere("COALESCE(f_delete, 'N') = 'N'");
             }
 
             if (StringUtils.isNotNullOrEmpty(query)) {
-              dmlAssemblers.and().customWhere(
-                    "LOWER(${requiredFields.map((e) => "COALESCE(CAST($e AS TEXT), '')").join("||")}) LIKE '%$query%'",
-                  );
+              dmlAssemblers
+                  .and()
+                  .customWhere("LOWER(${requiredFields.map((e) => "COALESCE(CAST($e AS TEXT), '')").join("||")}) LIKE '%$query%'");
             }
 
-            if (StringUtils.isNotNullOrEmpty(
-              currentFieldCustomFormView["order_view"],
-            )) {
-              dmlAssemblers
-                  .customOrder(currentFieldCustomFormView["order_view"]);
+            if (StringUtils.isNotNullOrEmpty(currentFieldCustomFormView["order_view"])) {
+              dmlAssemblers.customOrder(currentFieldCustomFormView["order_view"]);
             } else {
               if (actualColumns.any((element) => element["name"] == "id")) {
                 dmlAssemblers.desc("id");
               }
             }
 
-            dmlAssemblers.limit(pageSize).offset((pageIndex - 1) * pageSize);
+            dmlAssemblers
+                .limit(pageSize)
+                .offset((pageIndex - 1) * pageSize);
 
             List<Map<String, dynamic>> data = await dmlAssemblers.all();
 
@@ -1685,24 +1503,22 @@ class Offlines {
 
             int dataSize = await dmlAssemblers.count();
 
-            String? sourceDetailTableName = (await DMLAssemblers.create()
+            String? sourceDetailTableName = (await DMLAssemblers
+                .create()
                 .select("c.table_name")
                 .from("c_custom_form a")
-                .join(
-                  "INNER JOIN c_field_custom_form b ON b.src_form_detail_id = a.id",
-                )
-                .join(
-                  "INNER JOIN f_dynamic_table c ON c.id = a.table_header_id",
-                )
+                .join("INNER JOIN c_field_custom_form b ON b.src_form_detail_id = a.id")
+                .join("INNER JOIN f_dynamic_table c ON c.id = a.table_header_id")
                 .equalTo("b.id", currentFieldCustomFormView["id"])
-                .first())?["table_name"];
+                .first()
+            )?["table_name"];
 
-            List<Map<String, dynamic>> loadOnFieldDetails =
-                await DMLAssemblers.create()
-                    .select("*")
-                    .from("c_field_load_on_field_detail")
-                    .equalTo("field_id", currentFieldCustomFormView["id"])
-                    .all();
+            List<Map<String, dynamic>> loadOnFieldDetails = await DMLAssemblers
+                .create()
+                .select("*")
+                .from("c_field_load_on_field_detail")
+                .equalTo("field_id", currentFieldCustomFormView["id"])
+                .all();
 
             for (Map<String, dynamic> hashDTO in data) {
               Map<String, dynamic> hashMap = hashDTOToMap(hashDTO, fields);
@@ -1711,8 +1527,7 @@ class Offlines {
                 if (StringUtils.isNotNullOrEmpty(sourceDetailTableName)) {
                   DMLAssemblers dmlAssemblers = DMLAssemblers.create();
 
-                  for (Map<String, dynamic> loadOnFieldDetail
-                      in loadOnFieldDetails) {
+                  for (Map<String, dynamic> loadOnFieldDetail in loadOnFieldDetails) {
                     dmlAssemblers.select(loadOnFieldDetail["src_key"]);
                   }
 
@@ -1749,108 +1564,89 @@ class Offlines {
     if (customFormView != null) {
       FormContainer container = await loadContainer(customFormView, null);
 
-      Map<String, dynamic>? currentFieldCustomFormView = container
-          .carrier.fields
-          .firstWhereOrNull((element) => element["field_name"] == name);
+      Map<String, dynamic>? currentFieldCustomFormView = container.carrier.fields.firstWhereOrNull((element) => element["field_name"] == name);
 
       if (currentFieldCustomFormView != null) {
-        Map<String, dynamic>? tableDetail = await DMLAssemblers.create()
+        Map<String, dynamic>? tableDetail = await DMLAssemblers
+            .create()
             .select("*")
             .from("f_dynamic_table_detail")
             .equalTo("id", currentFieldCustomFormView["column_id"])
             .first();
 
         if (tableDetail != null) {
-          String? srcFieldDepend = (await DMLAssemblers.create()
+          String? srcFieldDepend = (await DMLAssemblers
+              .create()
               .select("column_name")
               .from("f_dynamic_table_detail")
               .equalTo("id", tableDetail["src_column_id"])
-              .first())?["column_name"];
+              .first()
+          )?["column_name"];
 
-          if (customFormView["template_mode"] == "CARD" &&
-              customFormView["f_multiple_detail"] == "Y") {
+          if (customFormView["template_mode"] == "CARD" && customFormView["f_multiple_detail"] == "Y") {
             if (customFormView["f_auto_load_detail_form"] == "Y") {
-              Map<String, dynamic>? cfReference = await DMLAssemblers.create()
+              Map<String, dynamic>? cfReference = await DMLAssemblers
+                  .create()
                   .select("a.*")
                   .from("c_custom_form a")
-                  .join(
-                    "INNER JOIN f_dynamic_table_detail b ON b.src_table_id = a.table_header_id",
-                  )
+                  .join("INNER JOIN f_dynamic_table_detail b ON b.src_table_id = a.table_header_id")
                   .equalTo("b.id", currentFieldCustomFormView["column_id"])
                   .first();
 
               if (cfReference != null) {
-                if (cfReference["f_multiple_detail"] == "Y" &&
-                    srcFieldDepend == "id") {
-                  List<Map<String, dynamic>> mdReferences =
-                      await DMLAssemblers.create()
-                          .select("*")
-                          .from("c_custom_multiple_detail")
-                          .equalTo("custom_id", cfReference["id"])
-                          .asc('"index"')
-                          .all();
+                if (cfReference["f_multiple_detail"] == "Y" && srcFieldDepend == "id") {
+                  List<Map<String, dynamic>> mdReferences = await DMLAssemblers
+                      .create()
+                      .select("*")
+                      .from("c_custom_multiple_detail")
+                      .equalTo("custom_id", cfReference["id"])
+                      .asc('"index"')
+                      .all();
 
                   for (Map<String, dynamic> mdReference in mdReferences) {
-                    String? tableNameReference = (await DMLAssemblers.create()
+                    String? tableNameReference = (await DMLAssemblers
+                        .create()
                         .select("table_name")
                         .from("f_dynamic_table")
                         .equalTo("id", mdReference["table_load_on_field"])
-                        .first())?["table_name"];
+                        .first()
+                    )?["table_name"];
 
                     if (tableNameReference != null) {
-                      List<Map<String, dynamic>> actualColumns =
-                          await (await Sqlites.get()).rawQuery(
-                        "PRAGMA table_info($tableNameReference)",
-                      );
+                      List<Map<String, dynamic>> actualColumns = await (await Sqlites.get()).rawQuery("PRAGMA table_info($tableNameReference)");
 
-                      List<Map<String, dynamic>> listDetailReferences =
-                          await DMLAssemblers.create()
-                              .select("*")
-                              .from(tableNameReference)
-                              .equalTo("header_id", value)
-                              .and()
-                              .equalTo("form_id", cfReference["id"])
-                              .and()
-                              .customWhere("COALESCE(f_delete,'N') = 'N'")
-                              .asc(
-                                "custom_form_index",
-                                condition: actualColumns.any(
-                                  (element) =>
-                                      element["name"] == "custom_form_index",
-                                ),
-                              )
-                              .asc("id")
-                              .all();
+                      List<Map<String, dynamic>> listDetailReferences = await DMLAssemblers
+                          .create()
+                          .select("*")
+                          .from(tableNameReference)
+                          .equalTo("header_id", value)
+                          .and()
+                          .equalTo("form_id", cfReference["id"])
+                          .and()
+                          .customWhere("COALESCE(f_delete,'N') = 'N'")
+                          .asc("custom_form_index", condition: actualColumns.any((element) => element["name"] == "custom_form_index"))
+                          .asc("id")
+                          .all();
 
                       if (listDetailReferences.isNotEmpty) {
-                        List<Map<String, dynamic>> multipleDetailViews =
-                            await DMLAssemblers.create()
-                                .select("*")
-                                .from("c_custom_multiple_detail")
-                                .equalTo("custom_id", customFormView["id"])
-                                .asc('"index"')
-                                .all();
+                        List<Map<String, dynamic>> multipleDetailViews = await DMLAssemblers
+                            .create()
+                            .select("*")
+                            .from("c_custom_multiple_detail")
+                            .equalTo("custom_id", customFormView["id"])
+                            .asc('"index"')
+                            .all();
 
-                        for (Map<String, dynamic> multipleDetailView
-                            in multipleDetailViews) {
-                          if (multipleDetailView["table_reference_id"] ==
-                              mdReference["table_load_on_field"]) {
-                            for (DetailCarrier detailCarrier
-                                in container.carrier.detailCarriers) {
-                              if (detailCarrier
-                                      .customFormView["table_header_id"] ==
-                                  multipleDetailView["table_load_on_field"]) {
-                                for (Map<String, dynamic> listDetailReference
-                                    in listDetailReferences) {
-                                  List<Map<String, dynamic>> dtoList =
-                                      container.data[detailCarrier
-                                              .customFormView["table_name"]] ??
-                                          [];
+                        for (Map<String, dynamic> multipleDetailView in multipleDetailViews) {
+                          if (multipleDetailView["table_reference_id"] == mdReference["table_load_on_field"]) {
+                            for (DetailCarrier detailCarrier in container.carrier.detailCarriers) {
+                              if (detailCarrier.customFormView["table_header_id"] == multipleDetailView["table_load_on_field"]) {
+                                for (Map<String, dynamic> listDetailReference in listDetailReferences) {
+                                  List<Map<String, dynamic>> dtoList = container.data[detailCarrier.customFormView["table_name"]] ?? [];
 
                                   dtoList.add(listDetailReference);
 
-                                  container.data[detailCarrier
-                                      .customFormView["table_name"]] = dtoList;
+                                  container.data[detailCarrier.customFormView["table_name"]] = dtoList;
                                 }
                               }
                             }
@@ -1866,10 +1662,8 @@ class Offlines {
 
           Map<String, dynamic> result = {};
 
-          for (DetailCarrier detailCarrier
-              in container.carrier.detailCarriers) {
-            List<Map<String, dynamic>>? detailData =
-                container.data[detailCarrier.customFormView["table_name"]];
+          for (DetailCarrier detailCarrier in container.carrier.detailCarriers) {
+            List<Map<String, dynamic>>? detailData = container.data[detailCarrier.customFormView["table_name"]];
 
             if (detailData != null) {
               List<Map<String, dynamic>> maps = [];
@@ -1902,8 +1696,7 @@ class Offlines {
 
       List<String> scripts = [];
 
-      for (Map<String, dynamic> fieldCustomFormView
-          in container.carrier.fields) {
+      for (Map<String, dynamic> fieldCustomFormView in container.carrier.fields) {
         if (StringUtils.isNotNullOrEmpty(fieldCustomFormView["pseudo_code"])) {
           if (!scripts.contains(fieldCustomFormView["pseudo_code"])) {
             scripts.add(fieldCustomFormView["pseudo_code"]);
@@ -1911,11 +1704,8 @@ class Offlines {
         }
 
         for (DetailCarrier detailCarrier in container.carrier.detailCarriers) {
-          for (Map<String, dynamic> detailFieldCustomFormView
-              in detailCarrier.fields) {
-            if (StringUtils.isNotNullOrEmpty(
-              detailFieldCustomFormView["pseudo_code"],
-            )) {
+          for (Map<String, dynamic> detailFieldCustomFormView in detailCarrier.fields) {
+            if (StringUtils.isNotNullOrEmpty(detailFieldCustomFormView["pseudo_code"])) {
               if (!scripts.contains(detailFieldCustomFormView["pseudo_code"])) {
                 scripts.add(detailFieldCustomFormView["pseudo_code"]);
               }
@@ -1951,113 +1741,94 @@ class Offlines {
     if (customFormView != null) {
       FormContainer container = await loadContainer(customFormView, dataId);
 
-      Map<String, dynamic>? customFunctionsView = await DMLAssemblers.create()
+      Map<String, dynamic>? customFunctionsView = await DMLAssemblers
+          .create()
           .select("*")
           .from("c_custom_functions")
           .equalTo("function_id", actionId)
           .first();
 
       if (customFunctionsView != null) {
-        List<Map<String, dynamic>> customFunctionsValidationViews =
-            await DMLAssemblers.create()
-                .select("*")
-                .from("c_custom_functions_validation")
-                .equalTo("function_id", customFunctionsView["function_id"])
-                .all();
+        List<Map<String, dynamic>> customFunctionsValidationViews = await DMLAssemblers
+            .create()
+            .select("*")
+            .from("c_custom_functions_validation")
+            .equalTo("function_id", customFunctionsView["function_id"])
+            .all();
 
         if (customFunctionsValidationViews.isNotEmpty) {
-          DMLAssemblers dmlAssemblers = DMLAssemblers.create()
+          DMLAssemblers dmlAssemblers = DMLAssemblers
+              .create()
               .select("*")
               .from(customFormView["table_name"])
               .equalTo("id", dataId);
 
-          for (Map<String, dynamic> customFunctionsValidationView
-              in customFunctionsValidationViews) {
-            if (StringUtils.isNotNullOrEmpty(
-              customFunctionsValidationView["value"],
-            )) {
+          for (Map<String, dynamic> customFunctionsValidationView in customFunctionsValidationViews) {
+            if (StringUtils.isNotNullOrEmpty(customFunctionsValidationView["value"])) {
               if (customFunctionsValidationView["operation"] == "OR") {
                 dmlAssemblers.or();
               } else {
                 dmlAssemblers.and();
               }
 
-              dmlAssemblers.customWhere(
-                "${customFunctionsValidationView["key"]} ${customFunctionsValidationView["operator"]} ?",
-              );
+              dmlAssemblers.customWhere("${customFunctionsValidationView["key"]} ${customFunctionsValidationView["operator"]} ?");
               dmlAssemblers.parameter(customFunctionsValidationView["value"]);
             } else {
-              dmlAssemblers.customWhere(
-                "${customFunctionsValidationView["key"]} IS NULL",
-              );
+              dmlAssemblers.customWhere("${customFunctionsValidationView["key"]} IS NULL");
             }
           }
 
           int count = await dmlAssemblers.count();
 
           if (count == 0) {
-            BaseOverlays.error(
-              message:
-                  "Can't perform this operation because the criteria are not met",
-            );
+            BaseOverlays.error(message: "Can't perform this operation because the criteria are not met");
 
             return null;
           }
         }
 
-        List<Map<String, dynamic>> customFunctionsQueryActionViews =
-            await DMLAssemblers.create()
-                .select("*")
-                .from("c_custom_functions_query_action")
-                .equalTo("function_id", customFunctionsView["function_id"])
-                .asc("index_action")
-                .all();
+        List<Map<String, dynamic>> customFunctionsQueryActionViews = await DMLAssemblers
+            .create()
+            .select("*")
+            .from("c_custom_functions_query_action")
+            .equalTo("function_id", customFunctionsView["function_id"])
+            .asc("index_action")
+            .all();
 
         if (customFunctionsQueryActionViews.isNotEmpty) {
-          for (Map<String, dynamic> customFunctionsQueryActionView
-              in customFunctionsQueryActionViews) {
-            Map<String, dynamic>? customQueryActionView =
-                await DMLAssemblers.create()
-                    .select("*")
-                    .from("c_custom_query_action")
-                    .equalTo(
-                      "id",
-                      customFunctionsQueryActionView["query_action_id"],
-                    )
-                    .first();
+          for (Map<String, dynamic> customFunctionsQueryActionView in customFunctionsQueryActionViews) {
+            Map<String, dynamic>? customQueryActionView = await DMLAssemblers
+                .create()
+                .select("*")
+                .from("c_custom_query_action")
+                .equalTo("id", customFunctionsQueryActionView["query_action_id"])
+                .first();
 
             if (customQueryActionView != null) {
-              Map<String, dynamic>? segmentReportView =
-                  await DMLAssemblers.create()
-                      .select("*")
-                      .from("c_segment_report")
-                      .equalTo("id", customQueryActionView["segment_id"])
-                      .first();
+              Map<String, dynamic>? segmentReportView = await DMLAssemblers
+                  .create()
+                  .select("*")
+                  .from("c_segment_report")
+                  .equalTo("id", customQueryActionView["segment_id"])
+                  .first();
 
               if (segmentReportView != null) {
-                DMLAssemblers dmlAssemblers =
-                    DMLAssemblers.create().from(segmentReportView["view_name"]);
+                DMLAssemblers dmlAssemblers = DMLAssemblers
+                    .create()
+                    .from(segmentReportView["view_name"]);
 
-                List<Map<String, dynamic>> customQueryActionFilterViews =
-                    await DMLAssemblers.create()
-                        .select("*")
-                        .from("c_custom_query_action_filter")
-                        .equalTo(
-                          "custom_query_action_id",
-                          customQueryActionView["id"],
-                        )
-                        .asc("id")
-                        .all();
+                List<Map<String, dynamic>> customQueryActionFilterViews = await DMLAssemblers
+                    .create()
+                    .select("*")
+                    .from("c_custom_query_action_filter")
+                    .equalTo("custom_query_action_id", customQueryActionView["id"])
+                    .asc("id")
+                    .all();
 
-                for (Map<String, dynamic> customQueryActionFilterView
-                    in customQueryActionFilterViews) {
-                  if (StringUtils.isNotNullOrEmpty(
-                    customQueryActionFilterView["operation"],
-                  )) {
+                for (Map<String, dynamic> customQueryActionFilterView in customQueryActionFilterViews) {
+                  if (StringUtils.isNotNullOrEmpty(customQueryActionFilterView["operation"])) {
                     if (customQueryActionFilterView["f_multiple"] == "Y") {
-                      List<String> fields =
-                          (customQueryActionFilterView["field_name"] as String)
-                              .split(",");
+                      List<String> fields = (customQueryActionFilterView["field_name"] as String).split(",");
 
                       if (customQueryActionFilterView["operation"] == "OR") {
                         dmlAssemblers.or();
@@ -2065,9 +1836,7 @@ class Offlines {
                         dmlAssemblers.and();
                       }
 
-                      dmlAssemblers.customWhere(
-                        "(${fields.join(", ")}) ${customQueryActionFilterView["operator"]} (${List.generate(fields.length, (index) => "?").join(", ")})",
-                      );
+                      dmlAssemblers.customWhere("(${fields.join(", ")}) ${customQueryActionFilterView["operator"]} (${List.generate(fields.length, (index) => "?").join(", ")})");
 
                       for (String field in fields) {
                         dynamic value = container.data[field];
@@ -2078,11 +1847,9 @@ class Offlines {
                       dynamic paramValue;
 
                       if (customQueryActionFilterView["f_manual"] == "Y") {
-                        paramValue =
-                            customQueryActionFilterView["manual_value"];
+                        paramValue = customQueryActionFilterView["manual_value"];
                       } else {
-                        paramValue = container.data[customQueryActionFilterView[
-                            "dst_custom_field_name"]];
+                        paramValue = container.data[customQueryActionFilterView["dst_custom_field_name"]];
                       }
 
                       if (customQueryActionFilterView["operation"] == "OR") {
@@ -2092,14 +1859,10 @@ class Offlines {
                       }
 
                       if (paramValue != null && paramValue != "") {
-                        dmlAssemblers.customWhere(
-                          "${customQueryActionFilterView["field_name"]} ${customQueryActionFilterView["operator"]} ?",
-                        );
+                        dmlAssemblers.customWhere("${customQueryActionFilterView["field_name"]} ${customQueryActionFilterView["operator"]} ?");
                         dmlAssemblers.parameter(paramValue);
                       } else {
-                        dmlAssemblers.customWhere(
-                          "${customQueryActionFilterView["field_name"]} IS NULL",
-                        );
+                        dmlAssemblers.customWhere("${customQueryActionFilterView["field_name"]} IS NULL");
                       }
                     }
                   }
@@ -2110,20 +1873,14 @@ class Offlines {
 
                   bool valid = false;
 
-                  if (customQueryActionView["condition"] == "EXIST" &&
-                      count > 0) {
+                  if (customQueryActionView["condition"] == "EXIST" && count > 0) {
                     valid = true;
-                  } else if (customQueryActionView["condition"] ==
-                          "NOT_EXIST" &&
-                      count == 0) {
+                  } else if (customQueryActionView["condition"] == "NOT_EXIST" && count == 0) {
                     valid = true;
                   }
 
                   if (valid) {
-                    BaseOverlays.error(
-                      message: customQueryActionView["message"] ??
-                          "Can't perform this operation because the criteria are not met",
-                    );
+                    BaseOverlays.error(message: customQueryActionView["message"] ?? "Can't perform this operation because the criteria are not met");
 
                     return null;
                   }
@@ -2135,15 +1892,14 @@ class Offlines {
           }
         }
 
-        List<Map<String, dynamic>> customFunctionsActionViews =
-            await DMLAssemblers.create()
-                .select("*")
-                .from("c_custom_functions_action")
-                .equalTo("function_id", customFunctionsView["function_id"])
-                .all();
+        List<Map<String, dynamic>> customFunctionsActionViews = await DMLAssemblers
+            .create()
+            .select("*")
+            .from("c_custom_functions_action")
+            .equalTo("function_id", customFunctionsView["function_id"])
+            .all();
 
-        String updateSyntaxBuilder =
-            "UPDATE ${customFormView["table_name"]} SET ${customFunctionsActionViews.map((customFunctionsActionView) => "${customFunctionsActionView["key"]} = '${customFunctionsActionView["value"]}'").join(", ")}";
+        String updateSyntaxBuilder = "UPDATE ${customFormView["table_name"]} SET ${customFunctionsActionViews.map((customFunctionsActionView) => "${customFunctionsActionView["key"]} = '${customFunctionsActionView["value"]}'").join(", ")}";
 
         if (customFunctionsActionViews.isNotEmpty) {
           updateSyntaxBuilder += ", ";
@@ -2164,9 +1920,7 @@ class Offlines {
 
           List<String> scripts = [];
 
-          if (StringUtils.isNotNullOrEmpty(
-            customFunctionsView["pseudo_code"],
-          )) {
+          if (StringUtils.isNotNullOrEmpty(customFunctionsView["pseudo_code"])) {
             scripts.add(customFunctionsView["pseudo_code"]);
           }
 
@@ -2178,8 +1932,7 @@ class Offlines {
             }
 
             if (container.data["EDITMODE"] ?? false) {
-              HeaderForm headerForm =
-                  await Offlines.loadHeaderForm(2, container, transaction: txn);
+              HeaderForm headerForm = await Offlines.loadHeaderForm(2, container, transaction: txn);
 
               return headerForm;
             }
@@ -2198,7 +1951,8 @@ class Offlines {
     required Map<String, dynamic> data,
     String? customerId,
   }) async {
-    Map<String, dynamic>? customFormView = await DMLAssemblers.create()
+    Map<String, dynamic>? customFormView = await DMLAssemblers
+        .create()
         .select("a.*")
         .select("b.table_name")
         .select("b.sequence_name")
@@ -2210,7 +1964,8 @@ class Offlines {
     if (customFormView != null) {
       FormContainer container = await loadContainer(customFormView, data);
 
-      Map<String, dynamic>? customFunctionsView = await DMLAssemblers.create()
+      Map<String, dynamic>? customFunctionsView = await DMLAssemblers
+          .create()
           .select("*")
           .from("c_custom_functions")
           .equalTo("custom_id", customFormView["id"])
@@ -2259,8 +2014,7 @@ class Offlines {
 
         for (DetailCarrier detailCarrier in container.carrier.detailCarriers) {
           if (detailCarrier.customFormView["template_mode"] == "LIST") {
-            List<Map<String, dynamic>> detailDTOs =
-                headerDTO[detailCarrier.customFormView["table_name"]];
+            List<Map<String, dynamic>> detailDTOs = headerDTO[detailCarrier.customFormView["table_name"]];
 
             for (Map<String, dynamic> detailDTO in detailDTOs) {
               await getSqlStatements(
@@ -2273,10 +2027,8 @@ class Offlines {
                 customerId: customerId,
               );
 
-              for (SubDetailCarrier subDetailCarrier
-                  in detailCarrier.subDetailCarriers) {
-                List<Map<String, dynamic>> subDetailDTOs =
-                    detailDTO[subDetailCarrier.customFormView["table_name"]];
+              for (SubDetailCarrier subDetailCarrier in detailCarrier.subDetailCarriers) {
+                List<Map<String, dynamic>> subDetailDTOs = detailDTO[subDetailCarrier.customFormView["table_name"]];
 
                 for (Map<String, dynamic> subDetailDTO in subDetailDTOs) {
                   await getSqlStatements(
@@ -2292,8 +2044,7 @@ class Offlines {
               }
             }
           } else {
-            Map<String, dynamic> detailDTO =
-                headerDTO[detailCarrier.customFormView["table_name"]];
+            Map<String, dynamic> detailDTO = headerDTO[detailCarrier.customFormView["table_name"]];
 
             await getSqlStatements(
               transaction: transaction,
@@ -2342,11 +2093,7 @@ class Offlines {
               "template": defaultValue,
             });
 
-            defaultValue = await generateNumberSeries(
-              "${customFormView["table_name"]}_${fieldCustomFormView["field_name"]}",
-              defaultValue,
-              transaction,
-            );
+            defaultValue = await generateNumberSeries("${customFormView["table_name"]}_${fieldCustomFormView["field_name"]}", defaultValue, transaction);
           } else if (fieldCustomFormView["field_data_type"] == "NUMERIC") {
             defaultValue = defaultValue.replaceAll(",", "");
           }
@@ -2361,15 +2108,7 @@ class Offlines {
     for (Map<String, dynamic> fieldCustomFormView in fields) {
       for (String fieldName in hashDTO.keys) {
         if (fieldName == fieldCustomFormView["field_name"]) {
-          if (StringUtils.inList(fieldCustomFormView["field_data_type"], [
-            "FILE",
-            "FOTO",
-            "VIDEO",
-            "SIGNATURE",
-            "UPLOAD_FOTO",
-            "UPLOAD_VIDEO",
-            "UPLOAD_SIGNATURE",
-          ])) {
+          if (StringUtils.inList(fieldCustomFormView["field_data_type"], ["FILE", "FOTO", "VIDEO", "SIGNATURE", "UPLOAD_FOTO", "UPLOAD_VIDEO", "UPLOAD_SIGNATURE"])) {
             Map<String, dynamic>? fileMap = hashDTO[fieldName];
 
             if (fileMap != null) {
@@ -2490,19 +2229,11 @@ class Offlines {
       }
     }
 
-    Iterable<MapEntry<String, dynamic>> iterable = hashDTO.entries.where(
-      (entry) =>
-          !(entry.value is List || entry.value is Map) &&
-          actualFields.contains(entry.key),
-    );
+    Iterable<MapEntry<String, dynamic>> iterable = hashDTO.entries.where((entry) => !(entry.value is List || entry.value is Map) && actualFields.contains(entry.key));
 
-    await transaction.rawInsert(
-      "INSERT INTO $tableName ( ${iterable.map((entry) => entry.key).join(", ")} ) VALUES ( ${iterable.map((entry) => entry.value != null ? "'${entry.value}'" : "NULL").join(", ")} )",
-    );
+    await transaction.rawInsert("INSERT INTO $tableName ( ${iterable.map((entry) => entry.key).join(", ")} ) VALUES ( ${iterable.map((entry) => entry.value != null ? "'${entry.value}'" : "NULL").join(", ")} )");
 
-    Map<String, dynamic>? newRow = (await transaction
-            .rawQuery("SELECT * FROM $tableName ORDER BY rowid DESC LIMIT 1"))
-        .firstOrNull;
+    Map<String, dynamic>? newRow = (await transaction.rawQuery("SELECT * FROM $tableName ORDER BY rowid DESC LIMIT 1")).firstOrNull;
 
     if (newRow != null) {
       await handleTrigger(
@@ -2524,45 +2255,41 @@ class Offlines {
     required Map<String, dynamic> newRow,
     required Map<String, dynamic> customFormView,
   }) async {
-    List<Map<String, dynamic>> dynamicTableTriggerViews =
-        await DMLAssemblers.create()
-            .select("*")
-            .from("f_dynamic_table_trigger")
-            .equalTo("table_id", customFormView["table_header_id"])
-            .and()
-            .inn("trigger_state", states)
-            .and()
-            .inn("trigger_operation", operations)
-            .all(transaction);
+    List<Map<String, dynamic>> dynamicTableTriggerViews = await DMLAssemblers
+        .create()
+        .select("*")
+        .from("f_dynamic_table_trigger")
+        .equalTo("table_id", customFormView["table_header_id"])
+        .and()
+        .inn("trigger_state", states)
+        .and()
+        .inn("trigger_operation", operations)
+        .all(transaction);
 
-    for (Map<String, dynamic> dynamicTableTriggerView
-        in dynamicTableTriggerViews) {
-      List<Map<String, dynamic>> dynamicTableTriggerActionViews =
-          await DMLAssemblers.create()
-              .select("*")
-              .from("f_dynamic_table_trigger_action")
-              .equalTo("trigger_id", dynamicTableTriggerView["id"])
-              .asc("sequence_index")
-              .all(transaction);
+    for (Map<String, dynamic> dynamicTableTriggerView in dynamicTableTriggerViews) {
+      List<Map<String, dynamic>> dynamicTableTriggerActionViews = await DMLAssemblers
+          .create()
+          .select("*")
+          .from("f_dynamic_table_trigger_action")
+          .equalTo("trigger_id", dynamicTableTriggerView["id"])
+          .asc("sequence_index")
+          .all(transaction);
 
-      List<Map<String, dynamic>> dynamicTableTriggerVariableViews =
-          await DMLAssemblers.create()
-              .select("*")
-              .from("f_dynamic_table_trigger_variable")
-              .equalTo("trigger_id", dynamicTableTriggerView["id"])
-              .all(transaction);
+      List<Map<String, dynamic>> dynamicTableTriggerVariableViews = await DMLAssemblers
+          .create()
+          .select("*")
+          .from("f_dynamic_table_trigger_variable")
+          .equalTo("trigger_id", dynamicTableTriggerView["id"])
+          .all(transaction);
 
       Map<String, dynamic> variable = {};
 
-      for (Map<String, dynamic> dynamicTableTriggerVariableView
-          in dynamicTableTriggerVariableViews) {
-        Map<String, dynamic>? result = await DMLAssemblers.create()
+      for (Map<String, dynamic> dynamicTableTriggerVariableView in dynamicTableTriggerVariableViews) {
+        Map<String, dynamic>? result = await DMLAssemblers
+            .create()
             .select("*")
             .from(dynamicTableTriggerVariableView["source_table_name"])
-            .equalTo(
-              dynamicTableTriggerVariableView["column_key"],
-              newRow[dynamicTableTriggerVariableView["column_value"]],
-            )
+            .equalTo(dynamicTableTriggerVariableView["column_key"], newRow[dynamicTableTriggerVariableView["column_value"]])
             .first(transaction);
 
         if (result != null) {
@@ -2570,8 +2297,7 @@ class Offlines {
         }
       }
 
-      for (Map<String, dynamic> dynamicTableTriggerActionView
-          in dynamicTableTriggerActionViews) {
+      for (Map<String, dynamic> dynamicTableTriggerActionView in dynamicTableTriggerActionViews) {
         if (dynamicTableTriggerActionView["action_function"] == "INSERT") {
           await handleTriggerActionInsert(
             transaction: transaction,
@@ -2580,8 +2306,7 @@ class Offlines {
             dynamicTableTriggerActionView: dynamicTableTriggerActionView,
             variable: variable,
           );
-        } else if (dynamicTableTriggerActionView["action_function"] ==
-            "UPDATE") {
+        } else if (dynamicTableTriggerActionView["action_function"] == "UPDATE") {
           await handleTriggerActionUpdate(
             transaction: transaction,
             oldRow: oldRow,
@@ -2589,8 +2314,7 @@ class Offlines {
             dynamicTableTriggerActionView: dynamicTableTriggerActionView,
             variable: variable,
           );
-        } else if (dynamicTableTriggerActionView["action_function"] ==
-            "DELETE") {
+        } else if (dynamicTableTriggerActionView["action_function"] == "DELETE") {
           await handleTriggerActionDelete(
             transaction: transaction,
             oldRow: oldRow,
@@ -2613,30 +2337,18 @@ class Offlines {
       String? columnKey = dynamicTableTriggerActionDetailView["column_key"];
 
       if (StringUtils.isNotNullOrEmpty(columnKey)) {
-        List<List<String>> pairedVariableKeywords =
-            extractAllTableColumn(columnKey!);
+        List<List<String>> pairedVariableKeywords = extractAllTableColumn(columnKey!);
 
         for (List<String> pairedVariableKeyword in pairedVariableKeywords) {
           String key = pairedVariableKeyword[0];
           String value = pairedVariableKeyword[1];
 
           if (StringUtils.inList(key, ["new", "NEW"])) {
-            columnKey = columnKey!.replaceAll(
-              "$key.$value",
-              newRow[value] != null ? "'${newRow[value]}'" : "NULL",
-            );
+            columnKey = columnKey!.replaceAll("$key.$value", newRow[value] != null ? "'${newRow[value]}'" : "NULL");
           } else if (StringUtils.inList(key, ["old", "OLD"])) {
-            columnKey = columnKey!.replaceAll(
-              "$key.$value",
-              oldRow[value] != null ? "'${oldRow[value]}'" : "NULL",
-            );
+            columnKey = columnKey!.replaceAll("$key.$value", oldRow[value] != null ? "'${oldRow[value]}'" : "NULL");
           } else {
-            columnKey = columnKey!.replaceAll(
-              "$key.$value",
-              variable[key][value] != null
-                  ? "'${variable[key][value]}'"
-                  : "NULL",
-            );
+            columnKey = columnKey!.replaceAll("$key.$value", variable[key][value] != null ? "'${variable[key][value]}'" : "NULL");
           }
         }
 
@@ -2654,35 +2366,23 @@ class Offlines {
     required Map<String, dynamic> newRow,
     required Map<String, dynamic> variable,
     required Map<String, dynamic> dynamicTableTriggerActionDetailView,
-  }) {
+  })  {
     if (dynamicTableTriggerActionDetailView["f_manual_value"] == "Y") {
       String? columnValue = dynamicTableTriggerActionDetailView["column_value"];
 
       if (StringUtils.isNotNullOrEmpty(columnValue)) {
-        List<List<String>> pairedVariableKeywords =
-            extractAllTableColumn(columnValue!);
+        List<List<String>> pairedVariableKeywords = extractAllTableColumn(columnValue!);
 
         for (List<String> pairedVariableKeyword in pairedVariableKeywords) {
           String key = pairedVariableKeyword[0];
           String value = pairedVariableKeyword[1];
 
           if (StringUtils.inList(key, ["new", "NEW"])) {
-            columnValue = columnValue!.replaceAll(
-              "$key.$value",
-              newRow[value] != null ? "'${newRow[value]}'" : "NULL",
-            );
+            columnValue = columnValue!.replaceAll("$key.$value", newRow[value] != null ? "'${newRow[value]}'" : "NULL");
           } else if (StringUtils.inList(key, ["old", "OLD"])) {
-            columnValue = columnValue!.replaceAll(
-              "$key.$value",
-              oldRow[value] != null ? "'${oldRow[value]}'" : "NULL",
-            );
+            columnValue = columnValue!.replaceAll("$key.$value", oldRow[value] != null ? "'${oldRow[value]}'" : "NULL");
           } else {
-            columnValue = columnValue!.replaceAll(
-              "$key.$value",
-              variable[key][value] != null
-                  ? "'${variable[key][value]}'"
-                  : "NULL",
-            );
+            columnValue = columnValue!.replaceAll("$key.$value", variable[key][value] != null ? "'${variable[key][value]}'" : "NULL");
           }
         }
 
@@ -2691,24 +2391,14 @@ class Offlines {
         return "NULL";
       }
     } else if (dynamicTableTriggerActionDetailView["f_variable"] == "Y") {
-      return variable[dynamicTableTriggerActionDetailView["variable_name"]]
-                  [dynamicTableTriggerActionDetailView["column_value"]] !=
-              null
-          ? "'${variable[dynamicTableTriggerActionDetailView["variable_name"]][dynamicTableTriggerActionDetailView["column_value"]]}'"
-          : "NULL";
+      return variable[dynamicTableTriggerActionDetailView["variable_name"]][dynamicTableTriggerActionDetailView["column_value"]] != null ? "'${variable[dynamicTableTriggerActionDetailView["variable_name"]][dynamicTableTriggerActionDetailView["column_value"]]}'" : "NULL";
     } else if (dynamicTableTriggerActionDetailView["f_sequence_id"] == "Y") {
       return "'${nextIdempotentId()}'";
     } else {
       if (newRow.isEmpty) {
-        return oldRow[dynamicTableTriggerActionDetailView["column_value"]] !=
-                null
-            ? "'${oldRow[dynamicTableTriggerActionDetailView["column_value"]]}'"
-            : "NULL";
+        return oldRow[dynamicTableTriggerActionDetailView["column_value"]] != null ? "'${oldRow[dynamicTableTriggerActionDetailView["column_value"]]}'" : "NULL";
       } else {
-        return newRow[dynamicTableTriggerActionDetailView["column_value"]] !=
-                null
-            ? "'${newRow[dynamicTableTriggerActionDetailView["column_value"]]}'"
-            : "NULL";
+        return newRow[dynamicTableTriggerActionDetailView["column_value"]] != null ? "'${newRow[dynamicTableTriggerActionDetailView["column_value"]]}'" : "NULL";
       }
     }
   }
@@ -2736,41 +2426,32 @@ class Offlines {
       return dynamicTableTriggerActionDetailView["key"];
     }
 
-    String buildCondition(
-      Map<String, dynamic> dynamicTableTriggerActionDetailView,
-    ) {
+    String buildCondition(Map<String, dynamic> dynamicTableTriggerActionDetailView) {
       return buildValue(
         oldRow: oldRow,
         newRow: newRow,
         variable: variable,
-        dynamicTableTriggerActionDetailView:
-            dynamicTableTriggerActionDetailView,
+        dynamicTableTriggerActionDetailView: dynamicTableTriggerActionDetailView,
       );
     }
 
-    String buildConditionExtra(
-      Map<String, dynamic> dynamicTableTriggerActionDetailView,
-    ) {
+    String buildConditionExtra(Map<String, dynamic> dynamicTableTriggerActionDetailView) {
       String key = buildKey(
         oldRow: oldRow,
         newRow: newRow,
         variable: variable,
-        dynamicTableTriggerActionDetailView:
-            dynamicTableTriggerActionDetailView,
+        dynamicTableTriggerActionDetailView: dynamicTableTriggerActionDetailView,
       );
 
       String value = buildValue(
         oldRow: oldRow,
         newRow: newRow,
         variable: variable,
-        dynamicTableTriggerActionDetailView:
-            dynamicTableTriggerActionDetailView,
+        dynamicTableTriggerActionDetailView: dynamicTableTriggerActionDetailView,
       );
 
-      String operation =
-          buildOperation(dynamicTableTriggerActionDetailView["operation"]);
-      String operand =
-          buildOperand(dynamicTableTriggerActionDetailView["operand"]);
+      String operation = buildOperation(dynamicTableTriggerActionDetailView["operation"]);
+      String operand = buildOperand(dynamicTableTriggerActionDetailView["operand"]);
 
       if (StringUtils.inList(operation, ["IN", "NOT IN"])) {
         return "$operand $key $operation ($value)";
@@ -2781,14 +2462,14 @@ class Offlines {
 
     String tableName = dynamicTableTriggerActionView["dest_table_name"];
 
-    List<Map<String, dynamic>> dynamicTableTriggerActionDetailViews =
-        await DMLAssemblers.create()
-            .select("*")
-            .from("f_dynamic_table_trigger_action_detail")
-            .equalTo("action_id", dynamicTableTriggerActionView["id"])
-            .asc("action_mode")
-            .asc("index_field")
-            .all(transaction);
+    List<Map<String, dynamic>> dynamicTableTriggerActionDetailViews = await DMLAssemblers
+        .create()
+        .select("*")
+        .from("f_dynamic_table_trigger_action_detail")
+        .equalTo("action_id", dynamicTableTriggerActionView["id"])
+        .asc("action_mode")
+        .asc("index_field")
+        .all(transaction);
 
     await transaction.rawInsert("""
         INSERT INTO $tableName ( ${dynamicTableTriggerActionDetailViews.where((element) => element["action_mode"] == "DATA").map((dynamicTableTriggerActionDetailView) => buildData(dynamicTableTriggerActionDetailView)).join(", ")} )
@@ -2796,32 +2477,30 @@ class Offlines {
         WHERE ${dynamicTableTriggerActionDetailViews.isNotEmpty ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION_EXTRA").map((dynamicTableTriggerActionDetailView) => buildConditionExtra(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"} 
     """);
 
-    Map<String, dynamic>? affectedRow = (await transaction
-            .rawQuery("SELECT * FROM $tableName ORDER BY rowid DESC LIMIT 1"))
-        .firstOrNull;
+    Map<String, dynamic>? affectedRow = (await transaction.rawQuery("SELECT * FROM $tableName ORDER BY rowid DESC LIMIT 1")).firstOrNull;
 
     if (affectedRow != null) {
-      String? sequenceName = (await DMLAssemblers.create()
+      String? sequenceName = (await DMLAssemblers
+          .create()
           .select("sequence_name")
           .from("f_dynamic_table")
           .equalTo("table_name", tableName)
           .first(transaction))?["sequence_name"];
 
       if (StringUtils.isNotNullOrEmpty(sequenceName)) {
-        Map<String, dynamic> finalizedAffectedRow =
-            Map<String, dynamic>.from(affectedRow);
+        Map<String, dynamic> finalizedAffectedRow = Map<String, dynamic>.from(affectedRow);
 
-        List<Map<String, dynamic>> generateNumbers =
-            await DMLAssemblers.create()
-                .select("c.field_name")
-                .select("c.default_value AS template")
-                .from("f_dynamic_table a")
-                .join("INNER JOIN c_custom_form b ON b.table_header_id = a.id")
-                .join("INNER JOIN c_field_custom_form c ON c.custom_id = b.id")
-                .equalTo("a.table_name", tableName)
-                .and()
-                .customWhere("c.default_value LIKE '%\$GENERATE_NUMBER%'")
-                .all(transaction);
+        List<Map<String, dynamic>> generateNumbers = await DMLAssemblers
+            .create()
+            .select("c.field_name")
+            .select("c.default_value AS template")
+            .from("f_dynamic_table a")
+            .join("INNER JOIN c_custom_form b ON b.table_header_id = a.id")
+            .join("INNER JOIN c_field_custom_form c ON c.custom_id = b.id")
+            .equalTo("a.table_name", tableName)
+            .and()
+            .customWhere("c.default_value LIKE '%\$GENERATE_NUMBER%'")
+            .all(transaction);
 
         finalizedAffectedRow["_metadata"] = {
           "action": "insert",
@@ -2850,36 +2529,29 @@ class Offlines {
         oldRow: oldRow,
         newRow: newRow,
         variable: variable,
-        dynamicTableTriggerActionDetailView:
-            dynamicTableTriggerActionDetailView,
+        dynamicTableTriggerActionDetailView: dynamicTableTriggerActionDetailView,
       );
 
       return "${dynamicTableTriggerActionDetailView["column_key"]} = $value";
     }
 
-    String buildCondition(
-      Map<String, dynamic> dynamicTableTriggerActionDetailView,
-    ) {
+    String buildCondition(Map<String, dynamic> dynamicTableTriggerActionDetailView) {
       String key = buildKey(
         oldRow: oldRow,
         newRow: newRow,
         variable: variable,
-        dynamicTableTriggerActionDetailView:
-            dynamicTableTriggerActionDetailView,
+        dynamicTableTriggerActionDetailView: dynamicTableTriggerActionDetailView,
       );
 
       String value = buildValue(
         oldRow: oldRow,
         newRow: newRow,
         variable: variable,
-        dynamicTableTriggerActionDetailView:
-            dynamicTableTriggerActionDetailView,
+        dynamicTableTriggerActionDetailView: dynamicTableTriggerActionDetailView,
       );
 
-      String operation =
-          buildOperation(dynamicTableTriggerActionDetailView["operation"]);
-      String operand =
-          buildOperand(dynamicTableTriggerActionDetailView["operand"]);
+      String operation = buildOperation(dynamicTableTriggerActionDetailView["operation"]);
+      String operand = buildOperand(dynamicTableTriggerActionDetailView["operand"]);
 
       if (StringUtils.inList(operation, ["IN", "NOT IN"])) {
         return "$operand $key $operation ($value)";
@@ -2890,14 +2562,14 @@ class Offlines {
 
     String tableName = dynamicTableTriggerActionView["dest_table_name"];
 
-    List<Map<String, dynamic>> dynamicTableTriggerActionDetailViews =
-        await DMLAssemblers.create()
-            .select("*")
-            .from("f_dynamic_table_trigger_action_detail")
-            .equalTo("action_id", dynamicTableTriggerActionView["id"])
-            .asc("action_mode")
-            .asc("index_field")
-            .all(transaction);
+    List<Map<String, dynamic>> dynamicTableTriggerActionDetailViews = await DMLAssemblers
+        .create()
+        .select("*")
+        .from("f_dynamic_table_trigger_action_detail")
+        .equalTo("action_id", dynamicTableTriggerActionView["id"])
+        .asc("action_mode")
+        .asc("index_field")
+        .all(transaction);
 
     int affectedCount = await transaction.rawUpdate("""
         UPDATE $tableName
@@ -2906,23 +2578,21 @@ class Offlines {
     """);
 
     if (affectedCount > 0) {
-      List<Map<String, dynamic>> affectedRows = await transaction.rawQuery(
-        "SELECT * FROM $tableName WHERE ${dynamicTableTriggerActionDetailViews.isNotEmpty ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}",
-      );
+      List<Map<String, dynamic>> affectedRows = await transaction.rawQuery("SELECT * FROM $tableName WHERE ${dynamicTableTriggerActionDetailViews.isNotEmpty ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}");
 
       for (Map<String, dynamic> affectedRow in affectedRows) {
-        String? sequenceName = (await DMLAssemblers.create()
+        String? sequenceName = (await DMLAssemblers
+            .create()
             .select("sequence_name")
             .from("f_dynamic_table")
             .equalTo("table_name", tableName)
             .first(transaction))?["sequence_name"];
 
         if (StringUtils.isNotNullOrEmpty(sequenceName)) {
-          Map<String, dynamic> finalizedAffectedRow =
-              Map<String, dynamic>.from(affectedRow);
+          Map<String, dynamic> finalizedAffectedRow = Map<String, dynamic>.from(affectedRow);
 
           List<Map<String, dynamic>> generateNumbers = await DMLAssemblers
-                  .create()
+              .create()
               .select("c.field_name")
               .select("c.default_value AS template")
               .from("f_dynamic_table a")
@@ -2956,29 +2626,23 @@ class Offlines {
     required Map<String, dynamic> dynamicTableTriggerActionView,
     required Map<String, dynamic> variable,
   }) async {
-    String buildCondition(
-      Map<String, dynamic> dynamicTableTriggerActionDetailView,
-    ) {
+    String buildCondition(Map<String, dynamic> dynamicTableTriggerActionDetailView) {
       String key = buildKey(
         oldRow: oldRow,
         newRow: newRow,
         variable: variable,
-        dynamicTableTriggerActionDetailView:
-            dynamicTableTriggerActionDetailView,
+        dynamicTableTriggerActionDetailView: dynamicTableTriggerActionDetailView,
       );
 
       String value = buildValue(
         oldRow: oldRow,
         newRow: newRow,
         variable: variable,
-        dynamicTableTriggerActionDetailView:
-            dynamicTableTriggerActionDetailView,
+        dynamicTableTriggerActionDetailView: dynamicTableTriggerActionDetailView,
       );
 
-      String operation =
-          buildOperation(dynamicTableTriggerActionDetailView["operation"]);
-      String operand =
-          buildOperand(dynamicTableTriggerActionDetailView["operand"]);
+      String operation = buildOperation(dynamicTableTriggerActionDetailView["operation"]);
+      String operand = buildOperand(dynamicTableTriggerActionDetailView["operand"]);
 
       if (StringUtils.inList(operation, ["IN", "NOT IN"])) {
         return "$operand $key $operation ($value)";
@@ -2989,18 +2653,16 @@ class Offlines {
 
     String tableName = dynamicTableTriggerActionView["dest_table_name"];
 
-    List<Map<String, dynamic>> dynamicTableTriggerActionDetailViews =
-        await DMLAssemblers.create()
-            .select("*")
-            .from("f_dynamic_table_trigger_action_detail")
-            .equalTo("action_id", dynamicTableTriggerActionView["id"])
-            .asc("action_mode")
-            .asc("index_field")
-            .all(transaction);
+    List<Map<String, dynamic>> dynamicTableTriggerActionDetailViews = await DMLAssemblers
+        .create()
+        .select("*")
+        .from("f_dynamic_table_trigger_action_detail")
+        .equalTo("action_id", dynamicTableTriggerActionView["id"])
+        .asc("action_mode")
+        .asc("index_field")
+        .all(transaction);
 
-    List<Map<String, dynamic>> affectedRows = await transaction.rawQuery(
-      "SELECT * FROM $tableName WHERE ${dynamicTableTriggerActionDetailViews.isNotEmpty ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}",
-    );
+    List<Map<String, dynamic>> affectedRows = await transaction.rawQuery("SELECT * FROM $tableName WHERE ${dynamicTableTriggerActionDetailViews.isNotEmpty ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}");
 
     int affectedCount = await transaction.rawDelete("""
       DELETE FROM $tableName
@@ -3009,18 +2671,18 @@ class Offlines {
 
     if (affectedCount > 0) {
       for (Map<String, dynamic> affectedRow in affectedRows) {
-        String? sequenceName = (await DMLAssemblers.create()
+        String? sequenceName = (await DMLAssemblers
+            .create()
             .select("sequence_name")
             .from("f_dynamic_table")
             .equalTo("table_name", tableName)
             .first(transaction))?["sequence_name"];
 
         if (StringUtils.isNotNullOrEmpty(sequenceName)) {
-          Map<String, dynamic> finalizedAffectedRow =
-              Map<String, dynamic>.from(affectedRow);
+          Map<String, dynamic> finalizedAffectedRow = Map<String, dynamic>.from(affectedRow);
 
           List<Map<String, dynamic>> generateNumbers = await DMLAssemblers
-                  .create()
+              .create()
               .select("c.field_name")
               .select("c.default_value AS template")
               .from("f_dynamic_table a")
@@ -3053,7 +2715,8 @@ class Offlines {
     required Map<String, dynamic> customFormView,
   }) async {
     if (customFormView["f_allow_schedule"] == "Y") {
-      Map<String, dynamic>? scheduleMetaData = await DMLAssemblers.create()
+      Map<String, dynamic>? scheduleMetaData = await DMLAssemblers
+          .create()
           .select("a.id AS table_id")
           .select("a.table_name")
           .select("b.id AS form_id")
@@ -3065,35 +2728,30 @@ class Offlines {
           .first(transaction);
 
       if (scheduleMetaData != null) {
-        List<Map<String, dynamic>> dynamicScheduleMappingViews =
-            await DMLAssemblers.create()
-                .select("*")
-                .from("t_dynamic_schedule_mapping")
-                .equalTo("custom_form_id", customFormView["id"])
-                .all(transaction);
+        List<Map<String, dynamic>> dynamicScheduleMappingViews = await DMLAssemblers
+            .create()
+            .select("*")
+            .from("t_dynamic_schedule_mapping")
+            .equalTo("custom_form_id", customFormView["id"])
+            .all(transaction);
 
-        await transaction.rawInsert(
-          "INSERT INTO ${scheduleMetaData["table_name"]} ( id, create_date, create_who, company_id, bu_id, table_id, form_id, custom_form_data, custom_form_id, ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => dynamicScheduleMappingView["schedule_column"] as String).join(", ")} ) VALUES ( '${nextIdempotentId()}', DATETIME(), '$currentUsername', '$currentCompanyId', '$currentBusinessUnitId', '${scheduleMetaData["table_id"]}', '${scheduleMetaData["form_id"]}', '${hashDTO["id"]}', '${hashDTO["form_id"]}', ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => hashDTO[dynamicScheduleMappingView["master_column"]] != null ? "'${hashDTO[dynamicScheduleMappingView["master_column"]]}'" : "NULL").join(", ")} )",
-        );
+        await transaction.rawInsert("INSERT INTO ${scheduleMetaData["table_name"]} ( id, create_date, create_who, company_id, bu_id, table_id, form_id, custom_form_data, custom_form_id, ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => dynamicScheduleMappingView["schedule_column"] as String).join(", ")} ) VALUES ( '${nextIdempotentId()}', DATETIME(), '$currentUsername', '$currentCompanyId', '$currentBusinessUnitId', '${scheduleMetaData["table_id"]}', '${scheduleMetaData["form_id"]}', '${hashDTO["id"]}', '${hashDTO["form_id"]}', ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => hashDTO[dynamicScheduleMappingView["master_column"]] != null ? "'${hashDTO[dynamicScheduleMappingView["master_column"]]}'" : "NULL").join(", ")} )");
 
-        Map<String, dynamic>? affectedRow = (await transaction.rawQuery(
-          "SELECT * FROM ${scheduleMetaData["table_name"]} ORDER BY rowid DESC LIMIT 1",
-        ))
-            .firstOrNull;
+        Map<String, dynamic>? affectedRow = (await transaction.rawQuery("SELECT * FROM ${scheduleMetaData["table_name"]} ORDER BY rowid DESC LIMIT 1")).firstOrNull;
 
         if (affectedRow != null) {
-          String? sequenceName = (await DMLAssemblers.create()
+          String? sequenceName = (await DMLAssemblers
+              .create()
               .select("sequence_name")
               .from("f_dynamic_table")
               .equalTo("table_name", scheduleMetaData["table_name"])
               .first(transaction))?["sequence_name"];
 
           if (StringUtils.isNotNullOrEmpty(sequenceName)) {
-            Map<String, dynamic> finalizedAffectedRow =
-                Map<String, dynamic>.from(affectedRow);
+            Map<String, dynamic> finalizedAffectedRow = Map<String, dynamic>.from(affectedRow);
 
             List<Map<String, dynamic>> generateNumbers = await DMLAssemblers
-                    .create()
+                .create()
                 .select("c.field_name")
                 .select("c.default_value AS template")
                 .from("f_dynamic_table a")
@@ -3177,30 +2835,20 @@ class Offlines {
       }
     }
 
-    Map<String, dynamic>? oldRow = await DMLAssemblers.create()
+    Map<String, dynamic>? oldRow = await DMLAssemblers
+        .create()
         .select("*")
         .from(tableName)
         .equalTo("id", hashDTO["id"])
         .first(transaction);
 
     if (oldRow != null) {
-      Iterable<MapEntry<String, dynamic>> iterable = hashDTO.entries.where(
-        (entry) =>
-            !(entry.value is List ||
-                entry.value is Map ||
-                StringUtils.inList(entry.key, ["salesunit_id", "user_id"])) &&
-            actualFields.contains(entry.key),
-      );
+      Iterable<MapEntry<String, dynamic>> iterable = hashDTO.entries.where((entry) => !(entry.value is List || entry.value is Map || StringUtils.inList(entry.key, ["salesunit_id", "user_id"])) && actualFields.contains(entry.key));
 
-      int affectedCount = await transaction.rawUpdate(
-        "UPDATE $tableName SET ${iterable.map((entry) => "${entry.key} = ${entry.value != null ? "'${entry.value}'" : "NULL"}").join(", ")} WHERE id = '${hashDTO["id"]}'",
-      );
+      int affectedCount = await transaction.rawUpdate("UPDATE $tableName SET ${iterable.map((entry) => "${entry.key} = ${entry.value != null ? "'${entry.value}'" : "NULL"}").join(", ")} WHERE id = '${hashDTO["id"]}'");
 
       if (affectedCount == 1) {
-        Map<String, dynamic>? newRow = (await transaction.rawQuery(
-          "SELECT * FROM $tableName WHERE id = '${hashDTO["id"]}'",
-        ))
-            .firstOrNull;
+        Map<String, dynamic>? newRow = (await transaction.rawQuery("SELECT * FROM $tableName WHERE id = '${hashDTO["id"]}'")).firstOrNull;
 
         if (newRow != null) {
           await handleTrigger(
@@ -3222,7 +2870,8 @@ class Offlines {
     required Map<String, dynamic> customFormView,
   }) async {
     if (customFormView["f_allow_schedule"] == "Y") {
-      Map<String, dynamic>? scheduleMetaData = await DMLAssemblers.create()
+      Map<String, dynamic>? scheduleMetaData = await DMLAssemblers
+          .create()
           .select("a.id AS table_id")
           .select("a.table_name")
           .select("b.id AS form_id")
@@ -3234,49 +2883,40 @@ class Offlines {
           .first(transaction);
 
       if (scheduleMetaData != null) {
-        List<Map<String, dynamic>> dynamicScheduleMappingViews =
-            await DMLAssemblers.create()
-                .select("*")
-                .from("t_dynamic_schedule_mapping")
-                .equalTo("custom_form_id", customFormView["id"])
-                .all(transaction);
+        List<Map<String, dynamic>> dynamicScheduleMappingViews = await DMLAssemblers
+            .create()
+            .select("*")
+            .from("t_dynamic_schedule_mapping")
+            .equalTo("custom_form_id", customFormView["id"])
+            .all(transaction);
 
-        int affectedCount = await transaction.rawUpdate(
-          "UPDATE ${scheduleMetaData["table_name"]} SET change_date = DATETIME(), change_who = '$currentUsername',  ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => "${dynamicScheduleMappingView["schedule_column"]} = ${hashDTO[dynamicScheduleMappingView["master_column"]] != null ? "'${hashDTO[dynamicScheduleMappingView["master_column"]]}'" : "NULL"}").join(", ")} WHERE custom_form_data = '${hashDTO["id"]}' AND custom_form_id = '${hashDTO["form_id"]}'",
-        );
+        int affectedCount = await transaction.rawUpdate("UPDATE ${scheduleMetaData["table_name"]} SET change_date = DATETIME(), change_who = '$currentUsername',  ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => "${dynamicScheduleMappingView["schedule_column"]} = ${hashDTO[dynamicScheduleMappingView["master_column"]] != null ? "'${hashDTO[dynamicScheduleMappingView["master_column"]]}'" : "NULL"}" ).join(", ")} WHERE custom_form_data = '${hashDTO["id"]}' AND custom_form_id = '${hashDTO["form_id"]}'");
 
         if (affectedCount == 1) {
-          Map<String, dynamic>? affectedRow = (await transaction.rawQuery(
-            "SELECT * FROM ${scheduleMetaData["table_name"]} WHERE custom_form_data = '${hashDTO["id"]}' AND custom_form_id = '${hashDTO["form_id"]}'",
-          ))
-              .firstOrNull;
+          Map<String, dynamic>? affectedRow = (await transaction.rawQuery("SELECT * FROM ${scheduleMetaData["table_name"]} WHERE custom_form_data = '${hashDTO["id"]}' AND custom_form_id = '${hashDTO["form_id"]}'")).firstOrNull;
 
           if (affectedRow != null) {
-            String? sequenceName = (await DMLAssemblers.create()
+            String? sequenceName = (await DMLAssemblers
+                .create()
                 .select("sequence_name")
                 .from("f_dynamic_table")
                 .equalTo("table_name", scheduleMetaData["table_name"])
                 .first(transaction))?["sequence_name"];
 
             if (StringUtils.isNotNullOrEmpty(sequenceName)) {
-              Map<String, dynamic> finalizedAffectedRow =
-                  Map<String, dynamic>.from(affectedRow);
+              Map<String, dynamic> finalizedAffectedRow = Map<String, dynamic>.from(affectedRow);
 
-              List<Map<String, dynamic>> generateNumbers =
-                  await DMLAssemblers.create()
-                      .select("c.field_name")
-                      .select("c.default_value AS template")
-                      .from("f_dynamic_table a")
-                      .join(
-                        "INNER JOIN c_custom_form b ON b.table_header_id = a.id",
-                      )
-                      .join(
-                        "INNER JOIN c_field_custom_form c ON c.custom_id = b.id",
-                      )
-                      .equalTo("a.table_name", scheduleMetaData["table_name"])
-                      .and()
-                      .customWhere("c.default_value LIKE '%\$GENERATE_NUMBER%'")
-                      .all(transaction);
+              List<Map<String, dynamic>> generateNumbers = await DMLAssemblers
+                  .create()
+                  .select("c.field_name")
+                  .select("c.default_value AS template")
+                  .from("f_dynamic_table a")
+                  .join("INNER JOIN c_custom_form b ON b.table_header_id = a.id")
+                  .join("INNER JOIN c_field_custom_form c ON c.custom_id = b.id")
+                  .equalTo("a.table_name", scheduleMetaData["table_name"])
+                  .and()
+                  .customWhere("c.default_value LIKE '%\$GENERATE_NUMBER%'")
+                  .all(transaction);
 
               finalizedAffectedRow["_metadata"] = {
                 "action": "update",
@@ -3301,30 +2941,21 @@ class Offlines {
     required Map<String, dynamic> hashDTO,
     required Map<String, dynamic> customFormView,
   }) async {
-    String? tableName = (await DMLAssemblers.create()
+    String? tableName = (await DMLAssemblers
+        .create()
         .select("b.table_name")
         .from("f_dynamic_table a")
         .join("INNER JOIN f_dynamic_table b ON b.table_name = a.history_table")
         .equalTo("a.id", customFormView["table_header_id"])
-        .first(transaction))?["table_name"];
+        .first(transaction)
+    )?["table_name"];
 
     if (tableName != null) {
       List<String> actualFields = await getActualFields(tableName, transaction);
 
-      Iterable<MapEntry<String, dynamic>> iterable = hashDTO.entries.where(
-        (entry) =>
-            !(entry.value is List ||
-                entry.value is Map ||
-                StringUtils.inList(
-                  entry.key,
-                  ["id", "create_date", "create_who"],
-                )) &&
-            actualFields.contains(entry.key),
-      );
+      Iterable<MapEntry<String, dynamic>> iterable = hashDTO.entries.where((entry) => !(entry.value is List || entry.value is Map || StringUtils.inList(entry.key, ["id", "create_date", "create_who"])) && actualFields.contains(entry.key));
 
-      await transaction.execute(
-        "INSERT INTO $tableName ( id, create_date, create_who, history_system_id, ${iterable.map((entry) => entry.key).join(", ")} ) VALUES ( '${nextIdempotentId()}', DATETIME(), '$currentUsername', '${hashDTO["id"]}', ${iterable.map((entry) => entry.value != null ? "'${entry.value}'" : "NULL").join(", ")} );",
-      );
+      await transaction.execute("INSERT INTO $tableName ( id, create_date, create_who, history_system_id, ${iterable.map((entry) => entry.key).join(", ")} ) VALUES ( '${nextIdempotentId()}', DATETIME(), '$currentUsername', '${hashDTO["id"]}', ${iterable.map((entry) => entry.value != null ? "'${entry.value}'" : "NULL").join(", ")} );");
     }
   }
 
@@ -3333,19 +2964,14 @@ class Offlines {
     required String entity,
     required Map<String, dynamic> payload,
   }) async {
-    await transaction.execute(
-      "INSERT INTO _sync_queues ( id, entity, payload, created_at ) VALUES ( '${Uuid().v4()}', '$entity', '${jsonEncode(payload)}', DATETIME() );",
-    );
+    await transaction.execute("INSERT INTO _sync_queues ( id, entity, payload, created_at ) VALUES ( '${Uuid().v4()}', '$entity', '${jsonEncode(payload)}', DATETIME() );");
   }
 
   static String nextIdempotentId() {
     return DateTime.now().microsecondsSinceEpoch.toString();
   }
 
-  static Future<int> nextSequence(
-    String name, [
-    Transaction? transaction,
-  ]) async {
+  static Future<int> nextSequence(String name, [Transaction? transaction]) async {
     DatabaseExecutor databaseExecutor = transaction ?? await Sqlites.get();
 
     await databaseExecutor.rawInsert(
@@ -3353,25 +2979,17 @@ class Offlines {
       [name],
     );
 
-    int value = (await databaseExecutor
-            .rawQuery("SELECT * FROM _sequences ORDER BY rowid DESC LIMIT 1"))
-        .first["value"] as int;
+    int value = (await databaseExecutor.rawQuery("SELECT * FROM _sequences ORDER BY rowid DESC LIMIT 1")).first["value"] as int;
 
     return value;
   }
 
-  static Future<String> generateNumberSeries(
-    String name,
-    String template, [
-    Transaction? transaction,
-  ]) async {
+  static Future<String> generateNumberSeries(String name, String template, [Transaction? transaction]) async {
     try {
       final data = template.split("#");
 
       if (data.length != 3) {
-        throw Exception(
-          "Invalid Length # Format (Format : \$GENERATE_NUMBER#PREFIX#DIGIT_LENGTH) !",
-        );
+        throw Exception("Invalid Length # Format (Format : \$GENERATE_NUMBER#PREFIX#DIGIT_LENGTH) !");
       }
 
       String prefix = data[1];
@@ -3410,12 +3028,9 @@ class Offlines {
       final digit = int.parse(data[2]);
 
       // Call your ID generator (you must implement this in Dart)
-      final generatedNumber = "${await nextSequence(name, transaction)}"
-          .padLeft(digit - prefix.length, "0");
+      final generatedNumber = "${await nextSequence(name, transaction)}".padLeft(digit - prefix.length, "0");
 
-      print(
-        "Success Generated Number Series Dynamic with prefix $prefix to be : $generatedNumber",
-      );
+      print("Success Generated Number Series Dynamic with prefix $prefix to be : $generatedNumber");
 
       return "$prefix${generatedNumber}_";
     } catch (e, s) {
@@ -3424,23 +3039,16 @@ class Offlines {
         print("Stack Trace:\n$s");
       }
 
-      print(
-        "Failed generate Number Series on Dynamic Default Value cause format invalid",
-      );
+      print("Failed generate Number Series on Dynamic Default Value cause format invalid");
     }
 
     return template;
   }
 
-  static Future<List<String>> getActualFields(
-    String tableName, [
-    Transaction? transaction,
-  ]) async {
+  static Future<List<String>> getActualFields(String tableName, [Transaction? transaction]) async {
     DatabaseExecutor databaseExecutor = transaction ?? await Sqlites.get();
 
-    return (await databaseExecutor.rawQuery("PRAGMA table_info($tableName)"))
-        .map((e) => e["name"] as String)
-        .toList();
+    return (await databaseExecutor.rawQuery("PRAGMA table_info($tableName)")).map((e) => e["name"] as String).toList();
   }
 
   static List<List<String>> extractAllTableColumn(String input) {
