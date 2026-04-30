@@ -180,13 +180,13 @@ class Pulls {
               List<Map<String, dynamic>>.from(entry.value);
 
           for (Map<String, dynamic> detailPayload in detailPayloads) {
-            process(transaction, entry.key, detailPayload, detailTableInfos);
+            await process(transaction, entry.key, detailPayload, detailTableInfos);
           }
         }
       }
 
       if (tableName == "c_segment_report") {
-        handleSegmentReport(transaction, payload);
+        await handleSegmentReport(transaction, payload);
       }
     }
   }
