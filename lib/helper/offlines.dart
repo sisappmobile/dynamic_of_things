@@ -1252,27 +1252,6 @@ class Offlines {
     return null;
   }
 
-  Future<List<Map<String, dynamic>>> executeRawQuery(
-      String sql, [
-        List<Object?>? arguments,
-      ]) async {
-    try {
-      final db = await Sqlites.get();
-      // Mencegah query destruktif dari AI (hanya diizinkan SELECT)
-      if (!sql.trim().toUpperCase().startsWith("SELECT")) {
-        throw Exception(
-          "Hanya query SELECT yang diizinkan untuk eksekusi dinamis AI.",
-        );
-      }
-      return await db.rawQuery(sql, arguments);
-    } catch (e) {
-      if (kDebugMode) {
-        print("executeRawQuery error: $e");
-      }
-      return [];
-    }
-  }
-
   static Future<Map<String, dynamic>?> dynamicFormResourceData({
     required String formId,
     required String name,
