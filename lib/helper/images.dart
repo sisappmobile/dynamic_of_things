@@ -296,19 +296,17 @@ class Images {
     bool legacy = false,
   }) async {
     if (legacy) {
-      final XFile? xFile = await ImagePicker().pickImage(
-        source: ImageSource.camera,
-        imageQuality: 20,
-      );
+      final XFile? xFile = await ImagePicker().pickImage(source: ImageSource.camera);
 
       if (xFile != null) {
         final Uint8List bytesFile = Uint8List.fromList(
           await xFile.readAsBytes(),
         );
 
-        callback.call(
-          await processCameraCaptureBytes(bytesFile),
-        );
+        final Uint8List watermarkedBytes = await processCameraCaptureBytes(bytesFile);
+        final Uint8List compressedBytes = await FlutterImageCompress.compressWithList(watermarkedBytes, minWidth: 640, minHeight: 480);
+
+        callback.call(compressedBytes);
       }
     } else {
       await availableCameras().then((value) {
@@ -441,10 +439,8 @@ class _WatermarkedCameraPageState extends State<_WatermarkedCameraPage> {
       final Uint8List bytesFile = Uint8List.fromList(
         await xFile.readAsBytes(),
       );
-      final Uint8List compressedBytes =
-          await FlutterImageCompress.compressWithList(bytesFile);
-      final Uint8List watermarkedBytes =
-          await Images.processCameraCaptureBytes(compressedBytes);
+      final Uint8List watermarkedBytes = await Images.processCameraCaptureBytes(bytesFile);
+      final Uint8List compressedBytes = await FlutterImageCompress.compressWithList(watermarkedBytes, minWidth: 640, minHeight: 480);
 
       if (!mounted) {
         return;
@@ -452,7 +448,7 @@ class _WatermarkedCameraPageState extends State<_WatermarkedCameraPage> {
 
       Navigators.pushReplacement(
         _WatermarkedCameraPreviewPage(
-          bytes: watermarkedBytes,
+          bytes: compressedBytes,
           cameraDescriptions: widget.cameraDescriptions,
           callback: widget.callback,
         ),
