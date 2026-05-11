@@ -1129,8 +1129,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
           XFile? xFile = await FlutterImageCompress.compressAndGetFile(
             platformFile.path!,
             await CustomAttachments.temporaryPath(fileName: platformFile.name),
-              minWidth: 640,
-              minHeight: 480
+            minWidth: 640,
+            minHeight: 480,
           );
 
           if (xFile != null) {

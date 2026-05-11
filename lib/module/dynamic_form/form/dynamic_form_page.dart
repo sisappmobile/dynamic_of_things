@@ -24,6 +24,7 @@ import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
+import "package:geolocator/geolocator.dart";
 import "package:go_router/go_router.dart";
 import "package:loader_overlay/loader_overlay.dart";
 import "package:smooth_corner/smooth_corner.dart";
@@ -63,6 +64,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
   bool prefsReady = false;
 
   static const double gapCard = 12;
+  static const double treeMaximumDistanceInMeters = 20;
 
   @override
   void initState() {
@@ -367,11 +369,15 @@ class DynamicFormPageState extends State<DynamicFormPage>
 
     if (globalKey.currentState != null) {
       if (globalKey.currentState!.validate()) {
+        globalKey.currentState!.save();
+
+        if (!treeLocationRadiusValid()) {
+          return;
+        }
+
         BaseDialogs.confirmation(
           title: "are_you_sure_want_to_proceed".tr(),
           positiveCallback: () {
-            globalKey.currentState!.save();
-
             context.read<DynamicFormBloc>().add(
                   DynamicFormSave(
                     formId: widget.dynamicFormMenuItem.id,
@@ -455,6 +461,60 @@ class DynamicFormPageState extends State<DynamicFormPage>
     }
 
     return false;
+  }
+
+  bool treeLocationRadiusValid() {
+    final double? userLatitude = readCoordinate("latitude");
+    final double? userLongitude =
+        readCoordinate("longitude") ?? readCoordinate("longtitude");
+    final double? treeLatitude = readCoordinate("desc_lat");
+    final double? treeLongitude = readCoordinate("desc_long");
+
+    final bool hasTreeLocation = treeLatitude != null || treeLongitude != null;
+
+    if (!hasTreeLocation) {
+      return true;
+    }
+
+    if (userLatitude == null ||
+        userLongitude == null ||
+        treeLatitude == null ||
+        treeLongitude == null) {
+      BaseOverlays.error(
+        message: "Lokasi kamu atau titik pohon belum lengkap.",
+      );
+      return false;
+    }
+
+    final double distanceInMeters = Geolocator.distanceBetween(
+      userLatitude,
+      userLongitude,
+      treeLatitude,
+      treeLongitude,
+    );
+
+    if (distanceInMeters > treeMaximumDistanceInMeters) {
+      BaseOverlays.error(
+        message: "Jarak kamu terlalu jauh dari titik pohon (${distanceInMeters.toStringAsFixed(2)} m).",
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  double? readCoordinate(String key) {
+    final dynamic value = headerForm?.data[key];
+
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    if (value is String) {
+      return double.tryParse(value.trim().replaceAll(",", "."));
+    }
+
+    return null;
   }
 
   Widget appBar() {
