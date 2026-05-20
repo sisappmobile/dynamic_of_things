@@ -111,7 +111,7 @@ class ChartCardState extends State<ChartCard> {
     final ChartModel? selected = await showModalBottomSheet<ChartModel>(
       context: context,
       useSafeArea: false,
-      isScrollControlled: false,
+      isScrollControlled: true,
       showDragHandle: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(
@@ -137,11 +137,12 @@ class ChartCardState extends State<ChartCard> {
           ChartModel.stackedArea,
           ChartModel.stackedBar,
           ChartModel.pie,
+          ChartModel.table,
         ];
 
         final double bottomInset = MediaQuery.of(context).padding.bottom;
         final double screenHeight = MediaQuery.of(context).size.height;
-        final double maxHeight = screenHeight * 0.30;
+        final double maxHeight = screenHeight * 0.78;
 
         const int crossAxisCount = 3;
         final double gap = Dimensions.size10;
@@ -179,6 +180,8 @@ class ChartCardState extends State<ChartCard> {
               return const Color.fromARGB(255, 0, 27, 125);
             case ChartModel.pie:
               return const Color.fromARGB(255, 255, 0, 0);
+            case ChartModel.table:
+              return const Color.fromARGB(255, 55, 116, 255);
           }
         }
 
@@ -274,11 +277,13 @@ class ChartCardState extends State<ChartCard> {
                       if (!compact) ...[
                         SizedBox(height: Dimensions.size2),
                         Text(
-                          chartModel.isCircular()
-                              ? "Circular"
-                              : (chartModel.isStacked()
-                                  ? "Stacked"
-                                  : "Non-stacked"),
+                          chartModel == ChartModel.table
+                              ? "Rows"
+                              : (chartModel.isCircular()
+                                  ? "Circular"
+                                  : (chartModel.isStacked()
+                                      ? "Stacked"
+                                      : "Non-stacked")),
                           textAlign: TextAlign.center,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -449,6 +454,7 @@ class ChartCardState extends State<ChartCard> {
     final List<String> pieCategories =
         pieSlices.map((slice) => slice.label).toList();
     final bool showDivergingLegend = model == ChartModel.groupedColumn;
+    final bool showTable = model == ChartModel.table;
     final List<String> divergingLegend = const <String>[
       "Above average",
       "Below average",
@@ -507,14 +513,16 @@ class ChartCardState extends State<ChartCard> {
                     : const Color(0xFFE03131);
               },
             )
-          else if (model != ChartModel.pie && variables.isNotEmpty)
+          else if (!showTable &&
+              model != ChartModel.pie &&
+              variables.isNotEmpty)
             ScroolLegend(
               isGlass: widget.isGlass,
               variables: variables,
               colorForIndex: colorIndex,
             ),
           if ((model == ChartModel.pie && pieCategories.isNotEmpty) ||
-              (model != ChartModel.pie && variables.isNotEmpty))
+              (!showTable && model != ChartModel.pie && variables.isNotEmpty))
             SizedBox(height: Dimensions.size10),
           SizedBox(
             height: widget.compact ? 300 : 320,
@@ -595,9 +603,152 @@ class ChartCardState extends State<ChartCard> {
       );
     }
 
+    if (model == ChartModel.table) {
+      return KeyedSubtree(
+        key: ValueKey<String>("${widget.chart.id}_${model.name}"),
+        child: chartDataTable(),
+      );
+    }
+
     return KeyedSubtree(
       key: ValueKey<String>("${widget.chart.id}_${model.name}"),
       child: cartesianChart(variables),
+    );
+  }
+
+  Widget chartDataTable() {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final bool dark = Theme.of(context).brightness == Brightness.dark;
+    final Color borderColor = widget.isGlass
+        ? Colors.white.withOpacity(0.14)
+        : colorScheme.outlineVariant.withValues(alpha: dark ? 0.35 : 0.55);
+    final Color headerBg = widget.isGlass
+        ? Colors.white.withOpacity(0.08)
+        : colorScheme.surfaceContainerHighest.withValues(alpha: 0.55);
+    final Color oddRowBg = widget.isGlass
+        ? Colors.white.withOpacity(0.04)
+        : colorScheme.surfaceContainerHighest.withValues(alpha: 0.24);
+    final Color primaryText = widget.isGlass
+        ? Colors.white.withOpacity(0.92)
+        : colorScheme.onSurface.withValues(alpha: 0.88);
+    final Color secondaryText = widget.isGlass
+        ? Colors.white.withOpacity(0.68)
+        : colorScheme.onSurfaceVariant.withValues(alpha: 0.84);
+    final List<Map<String, dynamic>> rows = raw!.toList()
+      ..sort((a, b) {
+        final int valueCompare = parseChartNumber(
+          b["value"],
+        ).compareTo(parseChartNumber(a["value"]));
+        if (valueCompare != 0) {
+          return valueCompare;
+        }
+
+        final String categoryA = (a["category"] ?? "").toString();
+        final String categoryB = (b["category"] ?? "").toString();
+        return categoryA.toLowerCase().compareTo(categoryB.toLowerCase());
+      });
+
+    Widget cell(
+      String text, {
+      required int flex,
+      bool header = false,
+      TextAlign align = TextAlign.start,
+      Color? color,
+    }) {
+      return Expanded(
+        flex: flex,
+        child: Text(
+          text,
+          maxLines: header ? 1 : 2,
+          overflow: TextOverflow.ellipsis,
+          textAlign: align,
+          style: TextStyle(
+            fontSize: header ? Dimensions.text11 : Dimensions.text12,
+            fontWeight: header ? FontWeight.w900 : FontWeight.w700,
+            color: color ?? (header ? secondaryText : primaryText),
+            height: 1.15,
+          ),
+        ),
+      );
+    }
+
+    Widget tableRow({
+      required List<Widget> children,
+      required Color background,
+      BorderRadius? radius,
+      Border? border,
+    }) {
+      return Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: Dimensions.size10,
+          vertical: Dimensions.size10,
+        ),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: radius,
+          border: border,
+        ),
+        child: Row(children: children),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(Dimensions.size15),
+      child: Column(
+        children: [
+          tableRow(
+            background: headerBg,
+            radius: BorderRadius.vertical(
+              top: Radius.circular(Dimensions.size15),
+            ),
+            border: Border.all(color: borderColor, width: 0.7),
+            children: [
+              cell("Variable", flex: 4, header: true),
+              cell("Category", flex: 4, header: true),
+              cell(
+                "Total",
+                flex: 3,
+                header: true,
+                align: TextAlign.end,
+              ),
+            ],
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: EdgeInsets.zero,
+              physics: const BouncingScrollPhysics(),
+              itemCount: rows.length,
+              itemBuilder: (context, index) {
+                final Map<String, dynamic> row = rows[index];
+                final String variable =
+                    (row["variable"] ?? "").toString().trim();
+                final String category =
+                    (row["category"] ?? "").toString().trim();
+                final num value = parseChartNumber(row["value"]);
+
+                return tableRow(
+                  background: index.isEven ? Colors.transparent : oddRowBg,
+                  border: Border(
+                    left: BorderSide(color: borderColor, width: 0.7),
+                    right: BorderSide(color: borderColor, width: 0.7),
+                    bottom: BorderSide(color: borderColor, width: 0.7),
+                  ),
+                  children: [
+                    cell(variable.isEmpty ? "-" : variable, flex: 4),
+                    cell(category.isEmpty ? "-" : category, flex: 4),
+                    cell(
+                      formatChartNumber(value),
+                      flex: 3,
+                      align: TextAlign.end,
+                      color: primaryText,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1104,6 +1255,7 @@ class ChartCardState extends State<ChartCard> {
         }).toList();
 
       case ChartModel.pie:
+      case ChartModel.table:
         return <CartesianSeries<CatPoint, String>>[];
     }
   }

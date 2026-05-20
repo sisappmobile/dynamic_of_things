@@ -235,6 +235,13 @@ DynamicSummaryValuePresentation splitDynamicSummaryValue(
     );
   }
 
+  if (RegExp(r"^-?\d[\d.,]*\s*/\s*-?\d[\d.,]*$").hasMatch(raw)) {
+    return DynamicSummaryValuePresentation(
+      headline: "",
+      amount: raw.replaceAll(RegExp(r"\s*/\s*"), "/"),
+    );
+  }
+
   final RegExpMatch? match = RegExp(r"^(.*?)(-?\d[\d.,]*)$").firstMatch(raw);
   if (match != null) {
     final String headline = (match.group(1) ?? "")

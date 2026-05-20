@@ -4,15 +4,12 @@ class JsonScriptEngine {
   Map<String, dynamic> scope = {};
 
   Map<String, dynamic> run(Map<String, dynamic> json, String script) {
-
     root = _deepConvert(json);
     scope.clear();
 
     _lines = script.split("\n");
 
-    final cleaned = _lines
-        .map((e) => e.trim())
-        .toList();
+    final cleaned = _lines.map((e) => e.trim()).toList();
 
     _exec(cleaned, 0, cleaned.length);
 
@@ -42,11 +39,9 @@ class JsonScriptEngine {
     int i = start;
 
     while (i < end) {
-
       String line = lines[i];
 
       try {
-
         if (line.isEmpty || line == "BEGIN" || line == "END") {
           i++;
           continue;
@@ -74,21 +69,17 @@ class JsonScriptEngine {
 
           scope.remove(varName);
           i = endFor;
-        }
-
-        else if (line.startsWith("IF")) {
-
+        } else if (line.startsWith("IF")) {
           final endIf = _findBlockEnd(lines, i, "IF");
 
           int cursor = i;
           bool executed = false;
 
           while (cursor < endIf) {
-
             String currentLine = lines[cursor];
 
-            if (currentLine.startsWith("IF") || currentLine.startsWith("ELSIF")) {
-
+            if (currentLine.startsWith("IF") ||
+                currentLine.startsWith("ELSIF")) {
               String cond;
               if (currentLine.startsWith("ELSIF")) {
                 cond = currentLine.substring(5).trim();
@@ -108,7 +99,6 @@ class JsonScriptEngine {
             }
 
             if (currentLine == "ELSE") {
-
               if (!executed) {
                 _exec(lines, cursor + 1, endIf);
               }
@@ -120,26 +110,16 @@ class JsonScriptEngine {
           }
 
           i = endIf;
-        }
-
-        else if (line.startsWith("ERROR")) {
+        } else if (line.startsWith("ERROR")) {
           _handleError(line, i);
-        }
-
-        else if (line.startsWith("ASSERT")) {
+        } else if (line.startsWith("ASSERT")) {
           _handleAssert(line, i);
-        }
-
-        else if (line.startsWith("REQUIRE")) {
+        } else if (line.startsWith("REQUIRE")) {
           _handleRequire(line, i);
-        }
-
-        else if (line.contains("=")) {
+        } else if (line.contains("=")) {
           _assign(line);
         }
-
       } catch (e) {
-
         if (e is ScriptValidationException) {
           rethrow;
         }
@@ -171,7 +151,6 @@ class JsonScriptEngine {
   }
 
   void _handleError(String line, int index) {
-
     String message = line.substring(5).trim();
 
     if (message.startsWith('"') && message.endsWith('"')) {
@@ -182,7 +161,6 @@ class JsonScriptEngine {
   }
 
   void _handleAssert(String line, int index) {
-
     final match = RegExp(r'ASSERT (.+?) "(.*)"').firstMatch(line);
 
     if (match == null) {
@@ -206,7 +184,6 @@ class JsonScriptEngine {
   }
 
   void _handleRequire(String line, int index) {
-
     final match = RegExp(r'REQUIRE (.+?) "(.*)"').firstMatch(line);
 
     if (match == null) {
@@ -230,7 +207,6 @@ class JsonScriptEngine {
   }
 
   void _assign(String line) {
-
     // handle ??=
     if (line.contains("??=")) {
       final parts = line.split("??=");
@@ -266,7 +242,6 @@ class JsonScriptEngine {
   }
 
   dynamic _handleDateDiff(String expr) {
-
     final inside = expr.substring(9, expr.length - 1);
     final parts = _splitArgs(inside);
 
@@ -276,7 +251,7 @@ class JsonScriptEngine {
 
     final start = _toDateTime(_evalExpression(parts[0]));
     final end = _toDateTime(_evalExpression(parts[1]));
-    final unit = parts[2].replaceAll('"', '').trim();
+    final unit = parts[2].replaceAll(String.fromCharCode(34), "").trim();
 
     final diff = end.difference(start);
 
@@ -297,19 +272,19 @@ class JsonScriptEngine {
   List<String> _splitArgs(String raw) {
     List<String> result = [];
     int bracket = 0;
-    String current = '';
+    String current = "";
 
     for (int i = 0; i < raw.length; i++) {
       final c = raw[i];
 
-      if (c == ',' && bracket == 0) {
+      if (c == "," && bracket == 0) {
         result.add(current.trim());
-        current = '';
+        current = "";
       } else {
-        if (c == '(') {
+        if (c == "(") {
           bracket++;
         }
-        if (c == ')') {
+        if (c == ")") {
           bracket--;
         }
         current += c;
@@ -324,7 +299,6 @@ class JsonScriptEngine {
   }
 
   DateTime _toDateTime(dynamic value) {
-
     if (value is DateTime) {
       return value;
     }
@@ -531,11 +505,10 @@ class ExpressionParser {
   // ================= TOKENIZER =================
 
   List<String> _tokenize(String input) {
-    final regex = RegExp(r'\s*("(?:[^"\\]|\\.)*"|\?\?|==|!=|>=|<=|[0-9]+\.?[0-9]*|[()+\-*/]|[A-Za-z0-9_.]+)\s*');
-    return regex
-        .allMatches(input)
-        .map((m) => m.group(1)!)
-        .toList();
+    final regex = RegExp(
+      r'''\s*("(?:[^"\\]|\\.)*"|\?\?|==|!=|>=|<=|[0-9]+\.?[0-9]*|[()+\-*/]|[A-Za-z0-9_.]+)\s*''',
+    );
+    return regex.allMatches(input).map((m) => m.group(1)!).toList();
   }
 
   String _peek() => pos < tokens.length ? tokens[pos] : "";
@@ -620,9 +593,9 @@ class ExpressionParser {
     }
 
     // parentheses
-    if (token == '(') {
+    if (token == "(") {
       var value = _parseExpression();
-      _match(')');
+      _match(")");
       return value;
     }
 

@@ -113,6 +113,7 @@ class DynamicSummaryCardState extends State<DynamicSummaryCard> {
             .colorScheme
             .onSurfaceVariant
             .withValues(alpha: 0.86);
+    final String label = snapshot!.label.trim();
 
     final Widget inner = Container(
       padding: EdgeInsets.all(Dimensions.size20),
@@ -204,17 +205,17 @@ class DynamicSummaryCardState extends State<DynamicSummaryCard> {
               height: 1.0,
             ),
           ),
-          SizedBox(height: Dimensions.size4),
-          Text(
-            snapshot!.label.isEmpty
-                ? "Ringkasan cepat siap dipakai untuk sales."
-                : snapshot!.label,
-            style: TextStyle(
-              fontSize: Dimensions.text11,
-              fontWeight: FontWeight.w700,
-              color: secondaryText,
+          if (label.isNotEmpty) ...[
+            SizedBox(height: Dimensions.size4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: Dimensions.text11,
+                fontWeight: FontWeight.w700,
+                color: secondaryText,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

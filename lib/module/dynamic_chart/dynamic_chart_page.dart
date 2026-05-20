@@ -1279,15 +1279,15 @@ class DynamicChartPageState extends State<DynamicChartPage>
   }
 
   bool shouldRenderChart(Chart chart) {
-    if (chart is! Summary) {
-      return true;
-    }
-
     if (!chartDataCache.containsKey(chart.id)) {
       return true;
     }
 
-    return parseSummarySnapshot(chartDataCache[chart.id]) != null;
+    if (chart is Summary) {
+      return parseSummarySnapshot(chartDataCache[chart.id]) != null;
+    }
+
+    return normalizeChartRows(chartDataCache[chart.id]).isNotEmpty;
   }
 
   List<Chart> visibleCharts(List<Chart> charts) {
@@ -2097,7 +2097,11 @@ class DynamicChartPageState extends State<DynamicChartPage>
               ),
             ],
             Padding(
-              padding: EdgeInsets.only(top: Dimensions.size20),
+              padding: EdgeInsets.only(
+                top: isGlass && isMobile
+                    ? MediaQuery.of(context).padding.top + Dimensions.size10
+                    : Dimensions.size20,
+              ),
               child: SafeArea(
                 top: !isGlass && isMobile,
                 bottom: false,

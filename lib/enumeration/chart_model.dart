@@ -7,6 +7,7 @@ enum ChartModel {
   stackedArea,
   stackedBar,
   pie,
+  table,
 }
 
 enum RangePreset { today, last7, last30 }
@@ -26,6 +27,8 @@ extension ChartModelX on ChartModel {
         return "Stacked Bar";
       case ChartModel.pie:
         return "Pie";
+      case ChartModel.table:
+        return "Table";
     }
   }
 
@@ -43,6 +46,8 @@ extension ChartModelX on ChartModel {
         return Icons.view_week_rounded;
       case ChartModel.pie:
         return Icons.pie_chart_rounded;
+      case ChartModel.table:
+        return Icons.table_chart_rounded;
     }
   }
 
@@ -55,12 +60,14 @@ extension ChartModelX on ChartModel {
       case ChartModel.groupedColumn:
       case ChartModel.line:
       case ChartModel.pie:
+      case ChartModel.table:
         return false;
     }
   }
 
   bool isCircular() => this == ChartModel.pie;
 }
+
 class InsightWidget {
   final num total;
   final int rows;
