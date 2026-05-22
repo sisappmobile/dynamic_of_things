@@ -1355,6 +1355,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             DetailForm? detailForm = widget.headerForm.detailForms.firstOrNull;
 
             if (detailForm != null) {
+              detailForm.clearRows(widget.headerForm);
               if (details.isNotEmpty) {
                 for (Map<String, dynamic> detail in details) {
                   Map<String, dynamic> row = {};
@@ -1413,6 +1414,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
               if (result != null) {
                 for (DetailForm detailForm in widget.headerForm.detailForms) {
+                  detailForm.clearRows(widget.headerForm);
                   List<Map<String, dynamic>> details =
                       result[detailForm.template.tableName] != null
                           ? List<Map<String, dynamic>>.from(

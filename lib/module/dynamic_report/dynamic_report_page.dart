@@ -729,10 +729,20 @@ class DynamicReportPageState extends State<DynamicReportPage>
       all.removeWhere((f) => f.name == qtyField.name);
     }
 
+    bool isItemField(Field f) {
+      final k = f.name.toLowerCase();
+      final c = f.caption.toLowerCase();
+      return k.contains("item_name") || k.contains("itemdesc") || k.contains("item_desc") ||
+             c.contains("item name") || c.contains("item desc") || k == "item" || c == "item";
+    }
+
+    final List<Field> itemFields = all.where(isItemField).toList();
+    all.removeWhere(isItemField);
+
     final List<Field> metrics = all.where(isTricMetric).toList();
     final List<Field> normals = all.where((f) => !isTricMetric(f)).toList();
 
-    final List<Field> fields = [...metrics, ...normals];
+    final List<Field> fields = [...itemFields, ...metrics, ...normals];
 
     final Widget content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,

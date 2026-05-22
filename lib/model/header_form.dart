@@ -486,6 +486,16 @@ class DetailForm with ChangeNotifier {
 
     notifyListeners();
   }
+
+  void clearRows(HeaderForm headerForm) {
+    if (single) {
+      headerForm.data[template.tableName] = <String, dynamic>{};
+    } else {
+      headerForm.data[template.tableName] = <Map<String, dynamic>>[];
+    }
+
+    notifyListeners();
+  }
 }
 
 class SubDetailForm with ChangeNotifier {
