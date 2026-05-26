@@ -1303,29 +1303,27 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
               if (!item.detail) {
                 dynamic v = selectedItem[item.source];
 
-                if (v != null) {
-                  bool found = false;
+                bool found = false;
 
-                  for (Section section in widget.template.sections) {
-                    for (Field f in section.fields) {
-                      if (StringUtils.equalsIgnoreCase(f.name, item.target)) {
-                        f
-                          ..setValue(
-                            widget.data,
-                            await DynamicForms.decodeValue(
-                              field: f,
-                              value: v,
-                            ),
-                          )
-                          ..forceRefresh = true;
-                        found = true;
-                      }
+                for (Section section in widget.template.sections) {
+                  for (Field f in section.fields) {
+                    if (StringUtils.equalsIgnoreCase(f.name, item.target)) {
+                      f
+                        ..setValue(
+                          widget.data,
+                          await DynamicForms.decodeValue(
+                            field: f,
+                            value: v,
+                          ),
+                        )
+                        ..forceRefresh = true;
+                      found = true;
                     }
                   }
+                }
 
-                  if (!found) {
-                    widget.data[item.target] = v;
-                  }
+                if (!found) {
+                  widget.data[item.target] = v;
                 }
               }
             }
@@ -1412,9 +1410,10 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 );
               }
 
-              if (result != null) {
-                for (DetailForm detailForm in widget.headerForm.detailForms) {
-                  detailForm.clearRows(widget.headerForm);
+              for (DetailForm detailForm in widget.headerForm.detailForms) {
+                detailForm.clearRows(widget.headerForm);
+
+                if (result != null) {
                   List<Map<String, dynamic>> details =
                       result[detailForm.template.tableName] != null
                           ? List<Map<String, dynamic>>.from(
