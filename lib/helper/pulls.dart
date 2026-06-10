@@ -272,8 +272,6 @@ class Pulls {
         print("Caught Exception: $e");
         print("Stack Trace:\n$s");
       }
-
-      rethrow;
     }
   }
 
