@@ -415,7 +415,7 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      dynamicFormCategoryItem.name.toUpperCase(),
+                      dynamicFormCategoryItem.name,
                       textAlign: TextAlign.start,
                       style: TextStyle(
                         fontSize: Dimensions.text16,
@@ -753,7 +753,7 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
                 ),
                 child: Center(
                   child: Text(
-                    dynamicFormMenuItem.name.toUpperCase(),
+                    dynamicFormMenuItem.name,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.92),
@@ -782,7 +782,7 @@ class DynamicFormMenuPageState extends State<DynamicFormMenuPage>
                 ),
                 child: Center(
                   child: Text(
-                    dynamicFormMenuItem.name.toUpperCase(),
+                    dynamicFormMenuItem.name,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: AppColors.onPrimaryContainer(),
