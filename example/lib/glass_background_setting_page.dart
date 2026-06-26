@@ -14,17 +14,17 @@ class GlassBackgroundSettingPage extends StatefulWidget {
 
   @override
   State<GlassBackgroundSettingPage> createState() =>
-      _GlassBackgroundSettingPageState();
+      GlassBackgroundSettingPageState();
 }
 
-class _GlassBackgroundSettingPageState
+class GlassBackgroundSettingPageState
     extends State<GlassBackgroundSettingPage> {
   final ImagePicker _picker = ImagePicker();
 
   String? _path;
-  bool _busy = false;
+  bool busy = false;
 
-  final List<String> _defaultWallpapers = <String>[
+  final List<String> defaultWallpapers = <String>[
     Generals.defaultPortraitWallpaper,
   ];
 
@@ -35,11 +35,11 @@ class _GlassBackgroundSettingPageState
         .getString(SharedPreferenceKey.GLASS_BACKGROUND_PATH);
 
     if (_path == null || _path!.trim().isEmpty) {
-      _path = _defaultWallpapers.first;
+      _path = defaultWallpapers.first;
     }
   }
 
-  bool _isSelectedAsset(String assetPath) {
+  bool isSelectedAsset(String assetPath) {
     return _path != null && _path!.trim() == assetPath.trim();
   }
 
@@ -79,7 +79,7 @@ class _GlassBackgroundSettingPageState
 
   Future<void> pickFromGallery() async {
     try {
-      setState(() => _busy = true);
+      setState(() => busy = true);
 
       final XFile? x = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -87,7 +87,7 @@ class _GlassBackgroundSettingPageState
       );
 
       if (x == null) {
-        setState(() => _busy = false);
+        setState(() => busy = false);
         return;
       }
 
@@ -105,10 +105,10 @@ class _GlassBackgroundSettingPageState
 
       setState(() {
         _path = newPath;
-        _busy = false;
+        busy = false;
       });
     } catch (_) {
-      setState(() => _busy = false);
+      setState(() => busy = false);
     }
   }
 
@@ -130,7 +130,7 @@ class _GlassBackgroundSettingPageState
   }
 
   Future<void> removeBackground() async {
-    final String assetPath = _defaultWallpapers.first;
+    final String assetPath = defaultWallpapers.first;
 
     await Preferences.getInstance().setString(
       SharedPreferenceKey.GLASS_BACKGROUND_PATH,
@@ -209,7 +209,7 @@ class _GlassBackgroundSettingPageState
     required VoidCallback onTap,
   }) {
     return GestureDetector(
-      onTap: _busy ? null : onTap,
+      onTap: busy ? null : onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         margin: EdgeInsets.only(right: Dimensions.size10),
@@ -404,16 +404,16 @@ class _GlassBackgroundSettingPageState
           ),
           SizedBox(height: Dimensions.size10),
           glassTintButton(
-            onTap: _busy ? null : pickFromGallery,
+            onTap: busy ? null : pickFromGallery,
             icon: Icons.photo_library,
             text: "choose_from_gallery".tr(),
             tint: greenTint,
             border: greenBorder,
-            loading: _busy,
+            loading: busy,
           ),
           SizedBox(height: Dimensions.size10),
           glassTintButton(
-            onTap: _busy ? null : removeBackground,
+            onTap: busy ? null : removeBackground,
             icon: Icons.restart_alt,
             text: "use_default_background".tr(),
             tint: darkTint,
@@ -450,7 +450,7 @@ class _GlassBackgroundSettingPageState
   @override
   Widget build(BuildContext context) {
     if (_path == null || _path!.trim().isEmpty) {
-      _path = _defaultWallpapers.first;
+      _path = defaultWallpapers.first;
     }
 
     final double topInset = MediaQuery.of(context).padding.top;
@@ -485,8 +485,8 @@ class _GlassBackgroundSettingPageState
                         height: 140,
                         child: ListView(
                           scrollDirection: Axis.horizontal,
-                          children: _defaultWallpapers.map((String assetPath) {
-                            final bool selected = _isSelectedAsset(assetPath);
+                          children: defaultWallpapers.map((String assetPath) {
+                            final bool selected = isSelectedAsset(assetPath);
                             return cardWallpaper(
                               assetPath: assetPath,
                               selected: selected,

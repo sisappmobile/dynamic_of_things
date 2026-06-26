@@ -203,11 +203,13 @@ class Images {
       return source;
     }
 
-    final int padding = math.max(12, (image.width * 0.02).round());
-    final int lineSpacing = math.max(6, (font.lineHeight * 0.25).round());
+    final int padding = math.max(16, (image.width * 0.025).round());
+    final int lineSpacing = math.max(8, (font.lineHeight * 0.35).round());
+    final int accentWidth = math.max(4, (image.width * 0.008).round());
+    final int textLeftPadding = padding + accentWidth + (padding ~/ 1.5);
     final int maxTextWidth = math.max(
       1,
-      image.width - (padding * 4),
+      image.width - (padding * 3) - textLeftPadding,
     );
     final List<String> wrappedLines = <String>[];
 
@@ -239,14 +241,14 @@ class Images {
 
     final int boxWidth = math.min(
       image.width - (padding * 2),
-      maxLineWidth + (padding * 2),
+      maxLineWidth + padding + textLeftPadding,
     );
     final int boxHeight =
         (padding * 2) +
         (font.lineHeight * wrappedLines.length) +
         (lineSpacing * (wrappedLines.length - 1));
     final int boxLeft = padding;
-    final int boxTop = math.max(0, image.height - boxHeight - padding);
+    final int boxTop = padding;
     final int boxRight = math.min(image.width - 1, boxLeft + boxWidth);
     final int boxBottom = math.min(image.height - 1, boxTop + boxHeight);
 
@@ -256,8 +258,18 @@ class Images {
       y1: boxTop,
       x2: boxRight,
       y2: boxBottom,
-      color: img.ColorRgba8(0, 0, 0, 170),
-      radius: math.max(8, (image.width * 0.012).round()),
+      color: img.ColorRgba8(24, 28, 33, 160),
+      radius: math.max(12, (image.width * 0.02).round()),
+    );
+
+    img.fillRect(
+      image,
+      x1: boxLeft + padding,
+      y1: boxTop + padding,
+      x2: boxLeft + padding + accentWidth,
+      y2: boxBottom - padding,
+      color: img.ColorRgb8(16, 185, 129),
+      radius: math.max(2, (accentWidth * 0.5).round()),
     );
 
     int cursorY = boxTop + padding;
@@ -267,7 +279,7 @@ class Images {
         image,
         line,
         font: font,
-        x: boxLeft + padding,
+        x: boxLeft + textLeftPadding,
         y: cursorY,
         color: img.ColorRgb8(255, 255, 255),
       );

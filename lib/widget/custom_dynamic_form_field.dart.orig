@@ -1779,7 +1779,6 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
   bool isPdfAttachment(Attachment attachment) {
     return attachment.mime?.toLowerCase() == "application/pdf" ||
-        attachment.mime?.toLowerCase() == "pdf" ||
         attachment.name?.toLowerCase().endsWith(".pdf") == true;
   }
 

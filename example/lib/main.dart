@@ -37,10 +37,10 @@ const String sessionIdKey = "sessionId";
 const String usernameKey = "username";
 // const String baseUrl = "https://192.168.2.1:8443/salesforce/api/";
 // const String baseUrl = "https://10.0.2.2:8443/salesforce/api/";
-// const String baseUrl = "https://demo-murti.sisapp.com:13443/salesforce/api/";
-const String baseUrl = "https://posdemo.sisapp.com:6443/salesforce/api/";
+ const String baseUrl = "https://demo-murti.sisapp.com:13443/salesforce/api/";
+//const String baseUrl = "https://posdemo.sisapp.com:6443/salesforce/api/";
 const String salt = "72e4425c484016c95677d1a2513681ff8e2b2459b11e68c8b67cc7b7fe60c422b629eb45d1a5b236c3df0031860c98f4b0f58c2497212ee20d58a833b9a3ea1d";
-const String serverCode = "NICO";
+const String serverCode = "MURTI_INDAH";
 
 final GoRouter goRouter = GoRouter(
   routes: [
@@ -371,12 +371,12 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
   final GlobalKey<FormState> formState = GlobalKey<FormState>(debugLabel: "formState");
 
   bool obscurePassword = true;
-  String deviceId = kIsWeb ? "2da36fa95fe84105a3e22f85ae191ce3" : "2da36fa95fe84105a3e22f85ae191ce3";
+  String deviceId = kIsWeb ? "05cb85e2354dc0eb" : "05cb85e2354dc0eb";
   // String deviceId = "2c49b31455f471db";
-  // String deviceId = "2da36fa95fe84105a3e22f85ae191ce3";
+  // String deviceId = "05cb85e2354dc0eb";
   // String deviceId = "2c49b31455f471db";
-  // String deviceId = "2da36fa95fe84105a3e22f85ae191ce3";
-  // String deviceId = "2da36fa95fe84105a3e22f85ae191ce3";
+  // String deviceId = "05cb85e2354dc0eb";
+  // String deviceId = "05cb85e2354dc0eb";
 
   @override
   void initState() {
@@ -546,7 +546,7 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
   }
 
   Future<void> initDeviceId() async {
-    final String resolvedDeviceId = await _getDeviceId();
+    final String resolvedDeviceId = await getDeviceId();
 
     if (!mounted) {
       return;
@@ -557,9 +557,9 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
     });
   }
 
-  Future<String> _getDeviceId() async {
+  Future<String> getDeviceId() async {
     if (kIsWeb) {
-      const String hardcodedWebDeviceId = "2da36fa95fe84105a3e22f85ae191ce3";
+      const String hardcodedWebDeviceId = "05cb85e2354dc0eb";
 
       if (hardcodedWebDeviceId.trim().isNotEmpty) {
         return hardcodedWebDeviceId;
@@ -610,8 +610,8 @@ class HomePage extends StatefulWidget {
 }
 
 class HomePageState extends State<HomePage> with WidgetsBindingObserver {
-  bool _prefsReady = false;
-  bool _glassMode = false;
+  bool prefsReady = false;
+  bool glassMode = false;
 
   @override
   void initState() {
@@ -619,10 +619,10 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
     WidgetsBinding.instance.addObserver(this);
 
-    _initPrefs();
+    initPrefs();
   }
 
-  Future<void> _initPrefs() async {
+  Future<void> initPrefs() async {
     try {
       await Preferences.getInstance().init();
     } catch (_) {
@@ -636,14 +636,14 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final int t = Preferences.getInstance().getInt(SharedPreferenceKey.DASHBOARD_UI_TYPE) ?? 1;
 
     setState(() {
-      _prefsReady = true;
-      _glassMode = t == 2;
+      prefsReady = true;
+      glassMode = t == 2;
     });
   }
 
-  Future<void> _setGlassMode(bool value) async {
-    if (!_prefsReady) {
-      await _initPrefs();
+  Future<void> setGlassMode(bool value) async {
+    if (!prefsReady) {
+      await initPrefs();
     }
 
     if (!mounted) {
@@ -651,7 +651,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
 
     setState(() {
-      _glassMode = value;
+      glassMode = value;
     });
 
     await Preferences.getInstance().setInt(
@@ -727,7 +727,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       ),
                       SizedBox(height: Dimensions.size5),
                       Text(
-                        _glassMode ? "Glass" : "Modern",
+                        glassMode ? "Glass" : "Modern",
                         style: TextStyle(
                           fontSize: Dimensions.text11,
                           fontWeight: FontWeight.w700,
@@ -738,8 +738,8 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   ),
                 ),
                 Switch(
-                  value: _glassMode,
-                  onChanged: _prefsReady ? _setGlassMode : null,
+                  value: glassMode,
+                  onChanged: prefsReady ? setGlassMode : null,
                 ),
               ],
             ),
@@ -768,7 +768,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
               ],
             ),
             // tombol setting wallpaper (hanya ketika Glass aktif)
-            if (_glassMode) ...[
+            if (glassMode) ...[
               SizedBox(height: Dimensions.size10),
               SizedBox(
                 width: double.infinity,

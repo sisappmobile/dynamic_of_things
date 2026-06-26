@@ -326,7 +326,8 @@ class DynamicForms {
             Attachment attachment = Attachment()
               ..name = json["name"]
               ..mime = json["mime"]
-              ..bytes = base64Decode(json["bytes"]);
+              ..url = json["url"]
+              ..bytes = json["bytes"] != null && json["bytes"].toString().isNotEmpty ? base64Decode(json["bytes"]) : null;
 
             if (!kIsWeb &&
                 StringUtils.inList(field.type, [
