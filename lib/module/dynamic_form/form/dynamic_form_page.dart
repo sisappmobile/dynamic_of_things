@@ -495,7 +495,8 @@ class DynamicFormPageState extends State<DynamicFormPage>
 
     if (distanceInMeters > treeMaximumDistanceInMeters) {
       BaseOverlays.error(
-        message: "Jarak kamu terlalu jauh dari titik pohon (${distanceInMeters.toStringAsFixed(2)} m).",
+        message:
+            "Jarak kamu terlalu jauh dari titik pohon (${distanceInMeters.toStringAsFixed(2)} m).",
       );
       return false;
     }
@@ -933,70 +934,73 @@ class DynamicFormPageState extends State<DynamicFormPage>
 
     final bool glass = isGlass;
     final Color primary = Theme.of(context).colorScheme.primary;
+    final Color onPrimary = Theme.of(context).colorScheme.onPrimary;
 
     if (glass) {
-      return Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: saveHandler,
+      return Container(
+        decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(Dimensions.size30),
-          child: GlassContainer(
-            blur: Dimensions.size25,
-            borderRadius: Dimensions.size30,
-            opacity: 0.18,
-            borderOpacity: 0.30,
-            padding: EdgeInsets.zero,
-            child: Container(
-              height: Dimensions.size55,
-              padding: EdgeInsets.symmetric(horizontal: Dimensions.size20),
-              decoration: ShapeDecoration(
-                color: primary.withOpacity(0.25),
-                shadows: [
-                  BoxShadow(
-                    blurRadius: Dimensions.size20,
-                    offset: Offset(0, Dimensions.size10),
-                    color: Colors.black.withValues(alpha: 0.18),
-                  ),
-                ],
-                shape: SmoothRectangleBorder(
+          boxShadow: [
+            BoxShadow(
+              blurRadius: Dimensions.size20,
+              offset: Offset(0, Dimensions.size10),
+              color: Colors.black.withValues(alpha: 0.25),
+            ),
+          ],
+        ),
+        child: GlassContainer(
+          blur: Dimensions.size25,
+          borderRadius: Dimensions.size30,
+          opacity: 0.18,
+          borderOpacity: 0.30,
+          padding: EdgeInsets.zero,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: saveHandler,
+              borderRadius: BorderRadius.circular(Dimensions.size30),
+              child: Container(
+                height: Dimensions.size55,
+                padding: EdgeInsets.symmetric(horizontal: Dimensions.size20),
+                decoration: BoxDecoration(
+                  color: primary.withOpacity(0.25),
                   borderRadius: BorderRadius.circular(Dimensions.size30),
-                  smoothness: Dimensions.size1,
-                  side: BorderSide(
+                  border: Border.all(
                     color: primary.withOpacity(0.30),
                   ),
                 ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: Dimensions.size35,
-                    height: Dimensions.size35,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.18),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.28),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: Dimensions.size35,
+                      height: Dimensions.size35,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.18),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.28),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.save,
+                        color: Colors.white.withOpacity(0.95),
+                        size: Dimensions.size20,
                       ),
                     ),
-                    child: Icon(
-                      Icons.save,
-                      color: Colors.white.withOpacity(0.95),
-                      size: Dimensions.size20,
+                    SizedBox(width: Dimensions.size10),
+                    Text(
+                      "save".tr(),
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.95),
+                        fontSize: Dimensions.text14,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.2,
+                      ),
                     ),
-                  ),
-                  SizedBox(width: Dimensions.size10),
-                  Text(
-                    "save".tr(),
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.95),
-                      fontSize: Dimensions.text14,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                  SizedBox(width: Dimensions.size2),
-                ],
+                    SizedBox(width: Dimensions.size2),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1004,54 +1008,55 @@ class DynamicFormPageState extends State<DynamicFormPage>
       );
     }
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: saveHandler,
+    return Container(
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(Dimensions.size30),
-        child: Ink(
-          height: Dimensions.size55,
-          padding: EdgeInsets.symmetric(
-            horizontal: Dimensions.size20,
+        boxShadow: [
+          BoxShadow(
+            blurRadius: Dimensions.size15,
+            offset: Offset(0, Dimensions.size5),
+            color: primary.withValues(alpha: 0.38),
           ),
-          decoration: ShapeDecoration(
-            color: primary,
-            shape: SmoothRectangleBorder(
-              borderRadius: BorderRadius.circular(Dimensions.size30),
-              smoothness: Dimensions.size1,
+        ],
+      ),
+      child: Material(
+        color: primary,
+        borderRadius: BorderRadius.circular(Dimensions.size30),
+        child: InkWell(
+          onTap: saveHandler,
+          borderRadius: BorderRadius.circular(Dimensions.size30),
+          child: Container(
+            height: Dimensions.size55,
+            padding: EdgeInsets.symmetric(horizontal: Dimensions.size20),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: Dimensions.size35,
+                  height: Dimensions.size35,
+                  decoration: BoxDecoration(
+                    color: onPrimary.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.save,
+                    color: onPrimary,
+                    size: Dimensions.size20,
+                  ),
+                ),
+                SizedBox(width: Dimensions.size10),
+                Text(
+                  "save".tr(),
+                  style: TextStyle(
+                    color: onPrimary,
+                    fontSize: Dimensions.text14,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                SizedBox(width: Dimensions.size2),
+              ],
             ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: Dimensions.size35,
-                height: Dimensions.size35,
-                decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onPrimary
-                      .withValues(alpha: 0.18),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.save,
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  size: Dimensions.size20,
-                ),
-              ),
-              SizedBox(width: Dimensions.size10),
-              Text(
-                "save".tr(),
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  fontSize: Dimensions.text14,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.2,
-                ),
-              ),
-              SizedBox(width: Dimensions.size2),
-            ],
           ),
         ),
       ),

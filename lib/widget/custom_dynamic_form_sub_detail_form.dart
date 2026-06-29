@@ -395,76 +395,79 @@ class CustomDynamicFormSubDetailFormState
     if (widget.readOnly) {
       return const SizedBox.shrink();
     }
+    return buttonSave();
+  }
 
+  Widget buttonSave() {
     final bool glass = isGlass;
     final Color primary = Theme.of(context).colorScheme.primary;
     final Color onPrimary = Theme.of(context).colorScheme.onPrimary;
 
     if (glass) {
-      return Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () async {
-            save();
-          },
+      return Container(
+        decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(Dimensions.size30),
-          child: GlassContainer(
-            blur: Dimensions.size25,
-            borderRadius: Dimensions.size30,
-            opacity: 0.18,
-            borderOpacity: 0.30,
-            padding: EdgeInsets.zero,
-            child: Container(
-              height: Dimensions.size55,
-              padding: EdgeInsets.symmetric(horizontal: Dimensions.size20),
-              decoration: ShapeDecoration(
-                color: primary.withOpacity(0.25),
-                shadows: [
-                  BoxShadow(
-                    blurRadius: Dimensions.size25,
-                    offset: Offset(0, Dimensions.size15),
-                    color: Colors.black.withValues(alpha: 0.18),
-                  ),
-                ],
-                shape: SmoothRectangleBorder(
+          boxShadow: [
+            BoxShadow(
+              blurRadius: Dimensions.size20,
+              offset: Offset(0, Dimensions.size10),
+              color: Colors.black.withValues(alpha: 0.25),
+            ),
+          ],
+        ),
+        child: GlassContainer(
+          blur: Dimensions.size25,
+          borderRadius: Dimensions.size30,
+          opacity: 0.18,
+          borderOpacity: 0.30,
+          padding: EdgeInsets.zero,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: save,
+              borderRadius: BorderRadius.circular(Dimensions.size30),
+              child: Container(
+                height: Dimensions.size55,
+                padding: EdgeInsets.symmetric(horizontal: Dimensions.size20),
+                decoration: BoxDecoration(
+                  color: primary.withOpacity(0.25),
                   borderRadius: BorderRadius.circular(Dimensions.size30),
-                  smoothness: Dimensions.size1,
-                  side: BorderSide(
+                  border: Border.all(
                     color: primary.withOpacity(0.30),
                   ),
                 ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: Dimensions.size35,
-                    height: Dimensions.size35,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.18),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.28),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: Dimensions.size35,
+                      height: Dimensions.size35,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.18),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.28),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.save_rounded,
+                        size: Dimensions.size20,
+                        color: Colors.white.withOpacity(0.95),
                       ),
                     ),
-                    child: Icon(
-                      Icons.save_rounded,
-                      size: Dimensions.size20,
-                      color: Colors.white.withOpacity(0.95),
+                    SizedBox(width: Dimensions.size10),
+                    Text(
+                      "save".tr(),
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.95),
+                        fontSize: Dimensions.text14,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.2,
+                      ),
                     ),
-                  ),
-                  SizedBox(width: Dimensions.size10),
-                  Text(
-                    "save".tr(),
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.95),
-                      fontSize: Dimensions.text14,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                  SizedBox(width: Dimensions.size2),
-                ],
+                    SizedBox(width: Dimensions.size2),
+                  ],
+                ),
               ),
             ),
           ),
@@ -472,58 +475,55 @@ class CustomDynamicFormSubDetailFormState
       );
     }
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () async {
-          save();
-        },
+    return Container(
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(Dimensions.size30),
-        child: Ink(
-          height: Dimensions.size55,
-          padding: EdgeInsets.symmetric(horizontal: Dimensions.size20),
-          decoration: ShapeDecoration(
-            color: primary,
-            shadows: [
-              BoxShadow(
-                blurRadius: Dimensions.size25,
-                offset: Offset(0, Dimensions.size15),
-                color: Colors.black.withValues(alpha: 0.18),
-              ),
-            ],
-            shape: SmoothRectangleBorder(
-              borderRadius: BorderRadius.circular(Dimensions.size30),
-              smoothness: Dimensions.size1,
-            ),
+        boxShadow: [
+          BoxShadow(
+            blurRadius: Dimensions.size15,
+            offset: Offset(0, Dimensions.size5),
+            color: primary.withValues(alpha: 0.38),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: Dimensions.size35,
-                height: Dimensions.size35,
-                decoration: BoxDecoration(
-                  color: onPrimary.withValues(alpha: 0.18),
-                  shape: BoxShape.circle,
+        ],
+      ),
+      child: Material(
+        color: primary,
+        borderRadius: BorderRadius.circular(Dimensions.size30),
+        child: InkWell(
+          onTap: save,
+          borderRadius: BorderRadius.circular(Dimensions.size30),
+          child: Container(
+            height: Dimensions.size55,
+            padding: EdgeInsets.symmetric(horizontal: Dimensions.size20),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: Dimensions.size35,
+                  height: Dimensions.size35,
+                  decoration: BoxDecoration(
+                    color: onPrimary.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.save_rounded,
+                    size: Dimensions.size20,
+                    color: onPrimary,
+                  ),
                 ),
-                child: Icon(
-                  Icons.save_rounded,
-                  color: onPrimary,
-                  size: Dimensions.size20,
+                SizedBox(width: Dimensions.size10),
+                Text(
+                  "save".tr(),
+                  style: TextStyle(
+                    color: onPrimary,
+                    fontSize: Dimensions.text14,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.2,
+                  ),
                 ),
-              ),
-              SizedBox(width: Dimensions.size10),
-              Text(
-                "save".tr(),
-                style: TextStyle(
-                  color: onPrimary,
-                  fontSize: Dimensions.text14,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.2,
-                ),
-              ),
-              SizedBox(width: Dimensions.size2),
-            ],
+                SizedBox(width: Dimensions.size2),
+              ],
+            ),
           ),
         ),
       ),
