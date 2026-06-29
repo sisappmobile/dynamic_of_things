@@ -6,36 +6,44 @@ allprojects {
 }
 
 rootProject.buildDir = "../build"
-
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
 
 subprojects {
     afterEvaluate {
-        android {
-            compileSdkVersion flutter.compileSdkVersion
-            defaultConfig {
-                minSdk = flutter.minSdkVersion
+        // Force compileSdk on all subprojects
+        if (project.hasProperty('android')) {
+            project.android {
+                compileSdkVersion 36
             }
         }
     }
 }
 
-subprojects {
-    afterEvaluate { project ->
-        if (project.hasProperty("android")) {
-            project.android {
-                compileOptions {
-                    sourceCompatibility JavaVersion.VERSION_17
-                    targetCompatibility JavaVersion.VERSION_17
-                }
+// ✅ THE REAL FIX: Hook before evaluation using allprojects + plugins.withId
+//    This fires early enough to catch detect_fake_location before it locks JVM target
+allprojects {
+    plugins.withId("org.jetbrains.kotlin.android") {
+        project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile).configureEach {
+            jvmTargetValidationMode.set(
+                org.jetbrains.kotlin.gradle.dsl.jvm.JvmTargetValidationMode.WARNING
+            )
+        }
+    }
+    plugins.withId("com.android.library") {
+        project.android {
+            compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
             }
         }
-
-        project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-            kotlinOptions {
-                jvmTarget = "17"
+    }
+    plugins.withId("com.android.application") {
+        project.android {
+            compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
             }
         }
     }

@@ -450,13 +450,15 @@ class CustomDynamicFormDetailFormState
                         subDetailForm: subDetailForm,
                         detailData: data,
                         onRefresh: () {
-                          context.read<DynamicFormBloc>().add(
-                                DynamicFormRefresh(
-                                  formId: widget.headerForm.template.id,
-                                  customerId: widget.customerId,
-                                  headerForm: widget.headerForm,
-                                ),
-                              );
+                          if (mounted) {
+                            context.read<DynamicFormBloc>().add(
+                                  DynamicFormRefresh(
+                                    formId: widget.headerForm.template.id,
+                                    customerId: widget.customerId,
+                                    headerForm: widget.headerForm,
+                                  ),
+                                );
+                          }
                         },
                       ),
                     );

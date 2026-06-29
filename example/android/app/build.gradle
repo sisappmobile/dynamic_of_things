@@ -1,34 +1,32 @@
 plugins {
     id "com.android.application"
-    id "kotlin-android"
-    id "dev.flutter.flutter-gradle-plugin"
+    // ❌ Remove: id "kotlin-android"   <-- causes the KGP warning
+    id "dev.flutter.flutter-gradle-plugin"  // Flutter's plugin handles Kotlin now
 }
-
 android {
     namespace = "com.sisapp.dot.example"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = JavaVersion.VERSION_17
     }
-
     defaultConfig {
         applicationId = "com.sisapp.dot.example"
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 24
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
-
     buildTypes {
         release {
             signingConfig = signingConfigs.debug
         }
     }
+}
+flutter {
+    source = "../.."
 }

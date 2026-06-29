@@ -99,13 +99,15 @@ class CustomDynamicFormState extends State<CustomDynamicForm>
               headerForm: widget.headerForm,
               detailForm: detailForm,
               onRefresh: () {
-                context.read<DynamicFormBloc>().add(
-                  DynamicFormRefresh(
-                    formId: widget.headerForm.template.id,
-                    customerId: widget.customerId,
-                    headerForm: widget.headerForm,
-                  ),
-                );
+                if (mounted) {
+                  context.read<DynamicFormBloc>().add(
+                    DynamicFormRefresh(
+                      formId: widget.headerForm.template.id,
+                      customerId: widget.customerId,
+                      headerForm: widget.headerForm,
+                    ),
+                  );
+                }
               },
             );
           }
