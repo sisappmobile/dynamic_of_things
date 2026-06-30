@@ -38,7 +38,7 @@ const String usernameKey = "username";
 // const String baseUrl = "https://192.168.2.1:8443/salesforce/api/";
 // const String baseUrl = "https://10.0.2.2:8443/salesforce/api/";
 //const String baseUrl = "https://demo-murti.sisapp.com:13443/salesforce/api/";
-const String baseUrl = "https://posdemo.sisapp.com:8443/salesforce/api/";
+const String baseUrl = "https://posdemo.sisapp.com:6443/salesforce/api/";
 const String salt =
     "72e4425c484016c95677d1a2513681ff8e2b2459b11e68c8b67cc7b7fe60c422b629eb45d1a5b236c3df0031860c98f4b0f58c2497212ee20d58a833b9a3ea1d";
 const String serverCode = "DAIRYLAND";
@@ -379,7 +379,7 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
   bool obscurePassword = true;
   String deviceId = kIsWeb
       ? "57748c918ceb48b4b66b9bcbc0699585"
-      : "57748c918ceb48b4b66b9bcbc0699585";
+      : "0000000000000000";
   // String deviceId = "2c49b31455f471db";
   // String deviceId = "57748c918ceb48b4b66b9bcbc0699585";
   // String deviceId = "2c49b31455f471db";
@@ -490,11 +490,11 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
                               "UN": tecUsername.text,
                               "PW": sha256(tecUsername.text + tecPassword.text),
                               "MD": deviceId,
-                              "AV": "",
-                              "TD": "",
-                              "OS": "",
-                              "FT": "",
-                              "serverCode": serverCode,
+                              "AV": null,
+                              "TD": null,
+                              "OS": null,
+                              "FT": null,
+                              "SC": serverCode,
                             },
                           );
 
@@ -908,6 +908,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   await BaseDialogs.confirmation(
                     title: "Are you sure want to proceed?",
                     positiveCallback: () async {
+                      await BasePreferences.getInstance().remove(sessionIdKey);
                       context.go("/");
                     },
                   );

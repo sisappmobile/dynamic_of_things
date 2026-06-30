@@ -481,7 +481,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                               widget.field.setValue(widget.data, value);
                             });
 
-                            if (widget.field.hasScript || widget.headerForm.hasOnChangeEvent) {
+                            if (widget.field.hasScript) {
                               if (mounted) {
                                 context.read<DynamicFormBloc>().add(
                                       DynamicFormRefresh(
@@ -1031,7 +1031,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       if (dateTime != null) {
         widget.field.setValue(widget.data, dateTime);
 
-        if (widget.field.hasScript || widget.headerForm.hasOnChangeEvent) {
+        if (widget.field.hasScript) {
           if (mounted) {
             context.read<DynamicFormBloc>().add(
                   DynamicFormRefresh(
@@ -1052,7 +1052,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       if (timeOfDay != null) {
         widget.field.setValue(widget.data, timeOfDay);
 
-        if (widget.field.hasScript || widget.headerForm.hasOnChangeEvent) {
+        if (widget.field.hasScript) {
           if (mounted) {
             context.read<DynamicFormBloc>().add(
                   DynamicFormRefresh(
@@ -1090,7 +1090,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
 
             widget.field.setValue(widget.data, finalDateTime);
 
-            if (widget.field.hasScript || widget.headerForm.hasOnChangeEvent) {
+            if (widget.field.hasScript) {
               if (mounted) {
                 context.read<DynamicFormBloc>().add(
                       DynamicFormRefresh(
@@ -1386,7 +1386,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             }
           }
 
-          if (needRefresh || widget.field.hasScript || widget.headerForm.hasOnChangeEvent) {
+          if (needRefresh || widget.field.hasScript) {
             if (mounted) {
               context.read<DynamicFormBloc>().add(
                     DynamicFormRefresh(
@@ -1471,7 +1471,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       widget.field.setValue(widget.data, value);
     }
 
-    if (widget.field.hasScript || widget.headerForm.hasOnChangeEvent) {
+    if (widget.field.hasScript) {
       if (mounted) {
         context.read<DynamicFormBloc>().add(
               DynamicFormRefresh(
@@ -2312,7 +2312,7 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
       child: Focus(
         onFocusChange: (value) {
           if (!value && mounted) {
-            if (widget.field.hasScript || widget.headerForm.hasOnChangeEvent) {
+            if (widget.field.hasScript) {
               context.read<DynamicFormBloc>().add(
                     DynamicFormRefresh(
                       formId: widget.headerForm.template.id,
