@@ -1,6 +1,5 @@
 // ignore_for_file: deprecated_member_use
 
-
 import "package:base/base.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/generals.dart";
@@ -241,7 +240,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
           child: monthSwitcher(),
         ),
         SizedBox(
-          height: 360,
+          height: 430,
           child: SfCalendar(
             key: ValueKey<String>(
               "${formId ?? "ALL"}-${items.length}-${(calendarController.displayDate ?? selectedDate).month}-${(calendarController.displayDate ?? selectedDate).year}",
@@ -424,25 +423,19 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
             padding: EdgeInsets.zero,
             child: calendarBody,
           )
-        : Container(
-            decoration: ShapeDecoration(
-              color: AppColors.surface(),
-              shadows: [
-                BoxShadow(
-                  blurRadius: Dimensions.size25,
-                  offset: Offset(0, Dimensions.size10),
-                  color: Colors.black.withValues(alpha: 0.10),
-                ),
-              ],
-              shape: SmoothRectangleBorder(
-                borderRadius: BorderRadius.circular(Dimensions.size25),
-                smoothness: Dimensions.size1,
-                side: BorderSide(
-                  color: AppColors.outline().withValues(alpha: 0.30),
-                ),
+        : Material(
+            color: AppColors.surface(),
+            elevation: 10,
+            shadowColor: Colors.black.withValues(alpha: 0.10),
+            surfaceTintColor: Colors.transparent,
+            clipBehavior: Clip.antiAlias,
+            shape: SmoothRectangleBorder(
+              borderRadius: BorderRadius.circular(Dimensions.size25),
+              smoothness: Dimensions.size1,
+              side: BorderSide(
+                color: AppColors.outline().withValues(alpha: 0.30),
               ),
             ),
-            clipBehavior: Clip.antiAlias,
             child: calendarBody,
           );
 
@@ -492,25 +485,19 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
             padding: EdgeInsets.zero,
             child: agendaBody,
           )
-        : Container(
-            decoration: ShapeDecoration(
-              color: AppColors.surface(),
-              shadows: [
-                BoxShadow(
-                  blurRadius: Dimensions.size25,
-                  offset: Offset(0, Dimensions.size10),
-                  color: Colors.black.withValues(alpha: 0.10),
-                ),
-              ],
-              shape: SmoothRectangleBorder(
-                borderRadius: BorderRadius.circular(Dimensions.size25),
-                smoothness: Dimensions.size1,
-                side: BorderSide(
-                  color: AppColors.outline().withValues(alpha: 0.30),
-                ),
+        : Material(
+            color: AppColors.surface(),
+            elevation: 10,
+            shadowColor: Colors.black.withValues(alpha: 0.10),
+            surfaceTintColor: Colors.transparent,
+            clipBehavior: Clip.antiAlias,
+            shape: SmoothRectangleBorder(
+              borderRadius: BorderRadius.circular(Dimensions.size25),
+              smoothness: Dimensions.size1,
+              side: BorderSide(
+                color: AppColors.outline().withValues(alpha: 0.30),
               ),
             ),
-            clipBehavior: Clip.antiAlias,
             child: agendaBody,
           );
 
@@ -734,11 +721,33 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     );
   }
 
+  // SESUDAH
   Widget monthSide({
     required String label,
     required VoidCallback onTap,
     required bool alignLeft,
   }) {
+    final Widget text = Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontWeight: FontWeight.w900,
+        fontSize: Dimensions.text12,
+        color: isGlass
+            ? Colors.white.withOpacity(0.82)
+            : AppColors.onSurface().withValues(alpha: 0.65),
+      ),
+    );
+
+    final Icon icon = Icon(
+      alignLeft ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
+      size: Dimensions.size20,
+      color: isGlass
+          ? Colors.white.withOpacity(0.75)
+          : AppColors.onSurface().withValues(alpha: 0.55),
+    );
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -753,42 +762,14 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
             mainAxisSize: MainAxisSize.min,
             children: alignLeft
                 ? [
-                    Icon(
-                      Icons.chevron_left_rounded,
-                      size: Dimensions.size20,
-                      color: isGlass
-                          ? Colors.white.withOpacity(0.75)
-                          : AppColors.onSurface().withValues(alpha: 0.55),
-                    ),
+                    icon,
                     SizedBox(width: Dimensions.size2),
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: isGlass
-                            ? Colors.white.withOpacity(0.82)
-                            : AppColors.onSurface().withValues(alpha: 0.65),
-                      ),
-                    ),
+                    Flexible(child: text),
                   ]
                 : [
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: isGlass
-                            ? Colors.white.withOpacity(0.82)
-                            : AppColors.onSurface().withValues(alpha: 0.65),
-                      ),
-                    ),
+                    Flexible(child: text),
                     SizedBox(width: Dimensions.size2),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: Dimensions.size20,
-                      color: isGlass
-                          ? Colors.white.withOpacity(0.75)
-                          : AppColors.onSurface().withValues(alpha: 0.55),
-                    ),
+                    icon,
                   ],
           ),
         ),
@@ -892,160 +873,161 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     final String time =
         isAllDay ? "Seharian" : timeRange(it.begin.dateTime, it.until.dateTime);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => openItemMenu(it),
-        customBorder: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimensions.size20),
-          smoothness: Dimensions.size1,
-        ),
-        child: isGlass
-            ? GlassContainer(
-                blur: Dimensions.size15,
-                borderRadius: Dimensions.size20,
-                opacity: 0.10,
-                borderOpacity: 0.18,
-                padding: EdgeInsets.all(Dimensions.size15),
-                child: Row(
-                  children: [
-                    dateBadgeRed(dow: dow, day: day),
-                    SizedBox(width: Dimensions.size10),
-                    Container(
-                      width: Dimensions.size1,
-                      height: Dimensions.size45,
-                      color: Colors.white.withOpacity(0.18),
-                    ),
-                    SizedBox(width: Dimensions.size10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: Dimensions.text14,
-                              color: Colors.white.withOpacity(0.92),
-                            ),
-                          ),
-                          SizedBox(height: Dimensions.size2),
-                          Text(
-                            desc.isNotEmpty ? desc : time,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: Dimensions.text12,
-                              color: Colors.white.withOpacity(0.70),
-                            ),
-                          ),
-                          if (!isAllDay) ...[
-                            SizedBox(height: Dimensions.size2),
-                            Text(
-                              time,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: Dimensions.text11,
-                                color: Colors.white.withOpacity(0.60),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: Dimensions.size10),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: Colors.white.withOpacity(0.65),
-                    ),
-                  ],
+    final SmoothRectangleBorder itemShape = SmoothRectangleBorder(
+      borderRadius: BorderRadius.circular(Dimensions.size20),
+      smoothness: Dimensions.size1,
+    );
+
+    if (isGlass) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => openItemMenu(it),
+          customBorder: itemShape,
+          child: GlassContainer(
+            blur: Dimensions.size15,
+            borderRadius: Dimensions.size20,
+            opacity: 0.10,
+            borderOpacity: 0.18,
+            padding: EdgeInsets.all(Dimensions.size15),
+            child: Row(
+              children: [
+                dateBadgeRed(dow: dow, day: day),
+                SizedBox(width: Dimensions.size10),
+                Container(
+                  width: Dimensions.size1,
+                  height: Dimensions.size45,
+                  color: Colors.white.withOpacity(0.18),
                 ),
-              )
-            : Ink(
-                padding: EdgeInsets.all(Dimensions.size15),
-                decoration: ShapeDecoration(
-                  color: AppColors.surfaceContainerLowest(),
-                  shadows: [
-                    BoxShadow(
-                      blurRadius: Dimensions.size20,
-                      offset: Offset(0, Dimensions.size10),
-                      color: Colors.black.withValues(alpha: 0.07),
-                    ),
-                  ],
-                  shape: SmoothRectangleBorder(
-                    borderRadius: BorderRadius.circular(Dimensions.size20),
-                    smoothness: Dimensions.size1,
-                    side: BorderSide(
-                      color: AppColors.outline().withValues(alpha: 0.22),
-                    ),
+                SizedBox(width: Dimensions.size10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: Dimensions.text14,
+                          color: Colors.white.withOpacity(0.92),
+                        ),
+                      ),
+                      SizedBox(height: Dimensions.size2),
+                      Text(
+                        desc.isNotEmpty ? desc : time,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: Dimensions.text12,
+                          color: Colors.white.withOpacity(0.70),
+                        ),
+                      ),
+                      if (!isAllDay) ...[
+                        SizedBox(height: Dimensions.size2),
+                        Text(
+                          time,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: Dimensions.text11,
+                            color: Colors.white.withOpacity(0.60),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                child: Row(
+                SizedBox(width: Dimensions.size10),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.white.withOpacity(0.65),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Material(
+      color: AppColors.surfaceContainerLowest(),
+      elevation: 6,
+      shadowColor: Colors.black.withValues(alpha: 0.07),
+      surfaceTintColor: Colors.transparent,
+      clipBehavior: Clip.antiAlias,
+      shape: itemShape.copyWith(
+        side: BorderSide(
+          color: AppColors.outline().withValues(alpha: 0.22),
+        ),
+      ),
+      child: InkWell(
+        onTap: () => openItemMenu(it),
+        customBorder: itemShape,
+        child: Padding(
+          padding: EdgeInsets.all(Dimensions.size15),
+          child: Row(
+            children: [
+              dateBadgeRed(dow: dow, day: day),
+              SizedBox(width: Dimensions.size10),
+              Container(
+                width: Dimensions.size1,
+                height: Dimensions.size45,
+                color: AppColors.outline().withValues(alpha: 0.25),
+              ),
+              SizedBox(width: Dimensions.size10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    dateBadgeRed(dow: dow, day: day),
-                    SizedBox(width: Dimensions.size10),
-                    Container(
-                      width: Dimensions.size1,
-                      height: Dimensions.size45,
-                      color: AppColors.outline().withValues(alpha: 0.25),
-                    ),
-                    SizedBox(width: Dimensions.size10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: Dimensions.text14,
-                              color: AppColors.onSurface(),
-                            ),
-                          ),
-                          SizedBox(height: Dimensions.size2),
-                          Text(
-                            desc.isNotEmpty ? desc : time,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: Dimensions.text12,
-                              color:
-                                  AppColors.onSurface().withValues(alpha: 0.65),
-                            ),
-                          ),
-                          if (!isAllDay) ...[
-                            SizedBox(height: Dimensions.size2),
-                            Text(
-                              time,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: Dimensions.text11,
-                                color: AppColors.onSurface()
-                                    .withValues(alpha: 0.55),
-                              ),
-                            ),
-                          ],
-                        ],
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: Dimensions.text14,
+                        color: AppColors.onSurface(),
                       ),
                     ),
-                    SizedBox(width: Dimensions.size10),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: AppColors.onSurface().withValues(alpha: 0.55),
+                    SizedBox(height: Dimensions.size2),
+                    Text(
+                      desc.isNotEmpty ? desc : time,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: Dimensions.text12,
+                        color: AppColors.onSurface().withValues(alpha: 0.65),
+                      ),
                     ),
+                    if (!isAllDay) ...[
+                      SizedBox(height: Dimensions.size2),
+                      Text(
+                        time,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: Dimensions.text11,
+                          color: AppColors.onSurface().withValues(alpha: 0.55),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
+              SizedBox(width: Dimensions.size10),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.onSurface().withValues(alpha: 0.55),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1233,25 +1215,19 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                 padding: EdgeInsets.zero,
                 child: sheetBody,
               )
-            : Container(
-                decoration: ShapeDecoration(
-                  color: AppColors.surface(),
-                  shadows: [
-                    BoxShadow(
-                      blurRadius: Dimensions.size30,
-                      offset: Offset(0, Dimensions.size20),
-                      color: Colors.black.withValues(alpha: 0.18),
-                    ),
-                  ],
-                  shape: SmoothRectangleBorder(
-                    borderRadius: BorderRadius.circular(Dimensions.size25),
-                    smoothness: Dimensions.size1,
-                    side: BorderSide(
-                      color: AppColors.outline().withValues(alpha: 0.25),
-                    ),
+            : Material(
+                color: AppColors.surface(),
+                elevation: 14,
+                shadowColor: Colors.black.withValues(alpha: 0.18),
+                surfaceTintColor: Colors.transparent,
+                clipBehavior: Clip.antiAlias,
+                shape: SmoothRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.size25),
+                  smoothness: Dimensions.size1,
+                  side: BorderSide(
+                    color: AppColors.outline().withValues(alpha: 0.25),
                   ),
                 ),
-                clipBehavior: Clip.antiAlias,
                 child: sheetBody,
               );
 
@@ -1634,89 +1610,77 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     required bool selected,
     required VoidCallback onTap,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        customBorder: SmoothRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimensions.size50),
-          smoothness: Dimensions.size1,
-        ),
-        child: isGlass
-            ? GlassContainer(
-                blur: Dimensions.size15,
-                borderRadius: Dimensions.size50,
-                opacity: selected ? 0.18 : 0.10,
-                borderOpacity: selected ? 0.30 : 0.18,
-                padding: EdgeInsets.symmetric(
-                  horizontal: Dimensions.size15,
-                  vertical: Dimensions.size10,
-                ),
-                child: Center(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: isGlass
-                          ? Colors.white.withOpacity(selected ? 0.95 : 0.85)
-                          : selected
-                              ? AppColors.onPrimaryContainer()
-                              : AppColors.onSurface(),
-                    ),
-                  ),
-                ),
-              )
-            : Ink(
-                padding: EdgeInsets.symmetric(
-                  horizontal: Dimensions.size15,
-                  vertical: Dimensions.size10,
-                ),
-                decoration: ShapeDecoration(
-                  color: isGlass
-                      ? Colors.white.withOpacity(selected ? 0.18 : 0.10)
-                      : selected
-                          ? AppColors.primaryContainer()
-                          : AppColors.surface(),
-                  shadows: selected
-                      ? [
-                          BoxShadow(
-                            blurRadius: Dimensions.size20,
-                            offset: Offset(0, Dimensions.size10),
-                            color: Colors.black.withValues(alpha: 0.10),
-                          ),
-                        ]
-                      : [],
-                  shape: SmoothRectangleBorder(
-                    borderRadius: BorderRadius.circular(Dimensions.size50),
-                    smoothness: Dimensions.size1,
-                    side: BorderSide(
-                      color: isGlass
-                          ? Colors.white.withOpacity(selected ? 0.30 : 0.18)
-                          : selected
-                              ? AppColors.onPrimaryContainer()
-                                  .withValues(alpha: 0.20)
-                              : AppColors.outline().withValues(alpha: 0.30),
-                    ),
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: isGlass
-                          ? Colors.white.withOpacity(selected ? 0.95 : 0.85)
-                          : selected
-                              ? AppColors.onPrimaryContainer()
-                              : AppColors.onSurface(),
-                    ),
-                  ),
+    final SmoothRectangleBorder chipShape = SmoothRectangleBorder(
+      borderRadius: BorderRadius.circular(Dimensions.size50),
+      smoothness: Dimensions.size1,
+    );
+
+    if (isGlass) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          customBorder: chipShape,
+          child: GlassContainer(
+            blur: Dimensions.size15,
+            borderRadius: Dimensions.size50,
+            opacity: selected ? 0.18 : 0.10,
+            borderOpacity: selected ? 0.30 : 0.18,
+            padding: EdgeInsets.symmetric(
+              horizontal: Dimensions.size15,
+              vertical: Dimensions.size10,
+            ),
+            child: Center(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white.withOpacity(selected ? 0.95 : 0.85),
                 ),
               ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Material(
+      color: selected ? AppColors.primaryContainer() : AppColors.surface(),
+      elevation: selected ? 6 : 0,
+      shadowColor: Colors.black.withValues(alpha: 0.10),
+      surfaceTintColor: Colors.transparent,
+      clipBehavior: Clip.antiAlias,
+      shape: chipShape.copyWith(
+        side: BorderSide(
+          color: selected
+              ? AppColors.onPrimaryContainer().withValues(alpha: 0.20)
+              : AppColors.outline().withValues(alpha: 0.30),
+        ),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: chipShape,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: Dimensions.size15,
+            vertical: Dimensions.size10,
+          ),
+          child: Center(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                color: selected
+                    ? AppColors.onPrimaryContainer()
+                    : AppColors.onSurface(),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

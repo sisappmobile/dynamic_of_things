@@ -663,26 +663,61 @@ class SimpleSpinnerPageState extends State<SimpleSpinnerPage>
                 padding: EdgeInsets.zero,
                 child: content,
               )
-            : Ink(
-                decoration: ShapeDecoration(
-                  color: AppColors.surface(),
-                  shadows: [
-                    BoxShadow(
-                      blurRadius: Dimensions.size20,
-                      offset: Offset(0, Dimensions.size10),
-                      color: Colors.black.withValues(alpha: 0.08),
+            : isGlass
+                ? Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () {
+                        if (BaseSettings.navigatorType ==
+                            BaseNavigatorType.legacy) {
+                          Navigators.pop(result: spinnerItem);
+                        } else {
+                          context.pop(spinnerItem);
+                        }
+                      },
+                      customBorder: SmoothRectangleBorder(
+                        borderRadius: BorderRadius.circular(Dimensions.size20),
+                        smoothness: Dimensions.size1,
+                      ),
+                      child: GlassContainer(
+                        blur: Dimensions.size20,
+                        borderRadius: Dimensions.size20,
+                        opacity: 0.12,
+                        borderOpacity: 0.22,
+                        padding: EdgeInsets.zero,
+                        child: content,
+                      ),
                     ),
-                  ],
-                  shape: SmoothRectangleBorder(
-                    borderRadius: BorderRadius.circular(Dimensions.size20),
-                    smoothness: Dimensions.size1,
-                    side: BorderSide(
-                      color: AppColors.outline().withValues(alpha: 0.22),
+                  )
+                : Material(
+                    color: AppColors.surface(),
+                    elevation: 6,
+                    shadowColor: Colors.black.withValues(alpha: 0.08),
+                    surfaceTintColor: Colors.transparent,
+                    clipBehavior: Clip.antiAlias,
+                    shape: SmoothRectangleBorder(
+                      borderRadius: BorderRadius.circular(Dimensions.size20),
+                      smoothness: Dimensions.size1,
+                      side: BorderSide(
+                        color: AppColors.outline().withValues(alpha: 0.22),
+                      ),
+                    ),
+                    child: InkWell(
+                      onTap: () {
+                        if (BaseSettings.navigatorType ==
+                            BaseNavigatorType.legacy) {
+                          Navigators.pop(result: spinnerItem);
+                        } else {
+                          context.pop(spinnerItem);
+                        }
+                      },
+                      customBorder: SmoothRectangleBorder(
+                        borderRadius: BorderRadius.circular(Dimensions.size20),
+                        smoothness: Dimensions.size1,
+                      ),
+                      child: content,
                     ),
                   ),
-                ),
-                child: content,
-              ),
       ),
     );
   }

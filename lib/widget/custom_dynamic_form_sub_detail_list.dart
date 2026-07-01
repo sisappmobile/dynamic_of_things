@@ -535,8 +535,6 @@ class CustomDynamicFormSubDetailListState
           SizedBox(height: Dimensions.size4),
           Text(
             shownValue,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: Dimensions.text14,
               fontWeight: FontWeight.w900,

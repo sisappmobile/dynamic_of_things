@@ -378,13 +378,13 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
 
   bool obscurePassword = true;
   String deviceId = kIsWeb
-      ? "57748c918ceb48b4b66b9bcbc0699585"
-      : "0000000000000000";
+      ? "6b4f6adeafbc4d18a3c0e83ddaaaea8c"
+      : "6b4f6adeafbc4d18a3c0e83ddaaaea8c";
   // String deviceId = "2c49b31455f471db";
-  // String deviceId = "57748c918ceb48b4b66b9bcbc0699585";
+  // String deviceId = "6b4f6adeafbc4d18a3c0e83ddaaaea8c";
   // String deviceId = "2c49b31455f471db";
-  // String deviceId = "57748c918ceb48b4b66b9bcbc0699585";
-  // String deviceId = "57748c918ceb48b4b66b9bcbc0699585";
+  // String deviceId = "6b4f6adeafbc4d18a3c0e83ddaaaea8c";
+  // String deviceId = "6b4f6adeafbc4d18a3c0e83ddaaaea8c";
 
   @override
   void initState() {
@@ -576,7 +576,7 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
 
   Future<String> getDeviceId() async {
     if (kIsWeb) {
-      const String hardcodedWebDeviceId = "57748c918ceb48b4b66b9bcbc0699585";
+      const String hardcodedWebDeviceId = "6b4f6adeafbc4d18a3c0e83ddaaaea8c";
 
       if (hardcodedWebDeviceId.trim().isNotEmpty) {
         return hardcodedWebDeviceId;

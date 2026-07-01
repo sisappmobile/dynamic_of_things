@@ -907,8 +907,6 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
           SizedBox(height: Dimensions.size4),
           Text(
             StringUtils.isNotNullOrEmpty(value) ? value : "-",
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: Dimensions.text14,
               fontWeight: FontWeight.w900,
@@ -1655,8 +1653,21 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                                 ? Colors.white.withOpacity(0.92)
                                 : AppColors.onSurface().withValues(alpha: 0.35);
 
+                        final SmoothRectangleBorder tileShape =
+                            SmoothRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(Dimensions.size20),
+                          smoothness: Dimensions.size1,
+                          side: BorderSide(color: tileBorder),
+                        );
+
                         return Material(
-                          color: Colors.transparent,
+                          color: tileBg,
+                          elevation: enabled ? 6 : 0,
+                          shadowColor: Colors.black.withValues(alpha: 0.07),
+                          surfaceTintColor: Colors.transparent,
+                          clipBehavior: Clip.antiAlias,
+                          shape: tileShape,
                           child: InkWell(
                             onTap: enabled
                                 ? () {
@@ -1664,82 +1675,60 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                                     item.onTap?.call();
                                   }
                                 : null,
-                            borderRadius:
-                                BorderRadius.circular(Dimensions.size20),
-                            child: Ink(
-                              decoration: ShapeDecoration(
-                                color: tileBg,
-                                shadows: enabled
-                                    ? [
-                                        BoxShadow(
-                                          blurRadius: Dimensions.size15,
-                                          offset: const Offset(0, 8),
-                                          color: Colors.black
-                                              .withValues(alpha: 0.07),
-                                        ),
-                                      ]
-                                    : const [],
-                                shape: SmoothRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(Dimensions.size20),
-                                  smoothness: Dimensions.size1,
-                                  side: BorderSide(color: tileBorder),
-                                ),
+                            customBorder: tileShape,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: Dimensions.size10,
+                                vertical: Dimensions.size10,
                               ),
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: Dimensions.size10,
-                                  vertical: Dimensions.size10,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: Dimensions.size35,
-                                      height: Dimensions.size35,
-                                      decoration: BoxDecoration(
-                                        color: iconBg,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: isFirst
-                                              ? tint(primary, 0.30)
-                                              : outline.withValues(alpha: 0.16),
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        icon,
-                                        size: Dimensions.size20,
-                                        color: iconColor,
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: Dimensions.size35,
+                                    height: Dimensions.size35,
+                                    decoration: BoxDecoration(
+                                      color: iconBg,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isFirst
+                                            ? tint(primary, 0.30)
+                                            : outline.withValues(alpha: 0.16),
                                       ),
                                     ),
-                                    SizedBox(width: Dimensions.size10),
-                                    Expanded(
-                                      child: Text(
-                                        item.title,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: Dimensions.text12,
-                                          fontWeight: FontWeight.w900,
-                                          color: textColor,
-                                          letterSpacing: 0.1,
-                                        ),
-                                      ),
-                                    ),
-                                    Icon(
-                                      Icons.chevron_right_rounded,
+                                    child: Icon(
+                                      icon,
                                       size: Dimensions.size20,
-                                      color: enabled
-                                          ? glass
-                                              ? Colors.white.withOpacity(0.92)
-                                              : AppColors.onSurface()
-                                                  .withValues(alpha: 0.40)
-                                          : glass
-                                              ? Colors.white.withOpacity(0.92)
-                                              : AppColors.onSurface()
-                                                  .withValues(alpha: 0.18),
+                                      color: iconColor,
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                  SizedBox(width: Dimensions.size10),
+                                  Expanded(
+                                    child: Text(
+                                      item.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: Dimensions.text12,
+                                        fontWeight: FontWeight.w900,
+                                        color: textColor,
+                                        letterSpacing: 0.1,
+                                      ),
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.chevron_right_rounded,
+                                    size: Dimensions.size20,
+                                    color: enabled
+                                        ? glass
+                                            ? Colors.white.withOpacity(0.92)
+                                            : AppColors.onSurface()
+                                                .withValues(alpha: 0.40)
+                                        : glass
+                                            ? Colors.white.withOpacity(0.92)
+                                            : AppColors.onSurface()
+                                                .withValues(alpha: 0.18),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
