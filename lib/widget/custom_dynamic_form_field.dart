@@ -1398,7 +1398,18 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             }
           }
 
-          if (widget.headerForm.detailForms.isNotEmpty) {
+          // Cascade-reload of header-level detail forms only applies when this
+          // field itself lives on the header's own template (e.g. selecting a
+          // master record that should repopulate its detail rows). When the
+          // field lives inside a detail row's own row-editor template instead
+          // (widget.template is that row's template, not the header's), this
+          // must be skipped - otherwise selecting a DATA field inside a detail
+          // row (e.g. "Item Group" inside "Produk Transaksi") wipes the very
+          // row list currently being edited via clearRows(), racing with any
+          // DynamicFormRefresh dispatched just above and making the refresh
+          // request carry an empty array for that table.
+          if (widget.template == widget.headerForm.template &&
+              widget.headerForm.detailForms.isNotEmpty) {
             try {
               context.loaderOverlay.show();
 

@@ -177,9 +177,20 @@ class DynamicForms {
         );
 
         if (detailForm != null) {
-          Future<void> detailProcess(Map<String, dynamic> detailRow) async {
+          // Encodes into a COPY of the row, never the original. encodeValue
+          // rewrites typed Dart values (bool, DateTime, ...) into wire-format
+          // strings ("Y"/"N", ISO dates, ...) for the outgoing request -
+          // mutating the caller's actual row here would corrupt the live
+          // data still bound to on-screen widgets (e.g. a detail row open in
+          // CustomDynamicFormDetailForm) the instant a refresh is dispatched.
+          Future<Map<String, dynamic>> detailProcess(
+            Map<String, dynamic> sourceDetailRow,
+          ) async {
+            Map<String, dynamic> detailRow =
+                Map<String, dynamic>.from(sourceDetailRow);
+
             for (MapEntry<String, dynamic> detailMapEntry
-                in detailRow.entries) {
+                in sourceDetailRow.entries) {
               if (detailMapEntry.value is Map || detailMapEntry.value is List) {
                 SubDetailForm? subDetailForm =
                     detailForm.subDetailForms.firstWhereOrNull(
@@ -187,11 +198,14 @@ class DynamicForms {
                 );
 
                 if (subDetailForm != null) {
-                  Future<void> subDetailProcess(
-                    Map<String, dynamic> subDetailRow,
+                  Future<Map<String, dynamic>> subDetailProcess(
+                    Map<String, dynamic> sourceSubDetailRow,
                   ) async {
+                    Map<String, dynamic> subDetailRow =
+                        Map<String, dynamic>.from(sourceSubDetailRow);
+
                     for (MapEntry<String, dynamic> subDetailMapEntry
-                        in subDetailRow.entries) {
+                        in sourceSubDetailRow.entries) {
                       Field? subDetailField;
 
                       outerLoop:
@@ -214,17 +228,26 @@ class DynamicForms {
                         field: subDetailField,
                       );
                     }
+
+                    return subDetailRow;
                   }
 
                   if (detailMapEntry.value is Map) {
                     Map<String, dynamic> subDetailRow = detailMapEntry.value;
 
-                    await subDetailProcess(subDetailRow);
+                    detailRow[detailMapEntry.key] =
+                        await subDetailProcess(subDetailRow);
                   } else {
+                    List<Map<String, dynamic>> encodedSubDetailRows = [];
+
                     for (Map<String, dynamic> subDetailRow
                         in detailMapEntry.value) {
-                      await subDetailProcess(subDetailRow);
+                      encodedSubDetailRows.add(
+                        await subDetailProcess(subDetailRow),
+                      );
                     }
+
+                    detailRow[detailMapEntry.key] = encodedSubDetailRows;
                   }
                 }
               } else {
@@ -248,16 +271,22 @@ class DynamicForms {
                 );
               }
             }
+
+            return detailRow;
           }
 
           if (headerMapEntry.value is Map) {
             Map<String, dynamic> detailRow = headerMapEntry.value;
 
-            await detailProcess(detailRow);
+            headerRow[headerMapEntry.key] = await detailProcess(detailRow);
           } else {
+            List<Map<String, dynamic>> encodedDetailRows = [];
+
             for (Map<String, dynamic> detailRow in headerMapEntry.value) {
-              await detailProcess(detailRow);
+              encodedDetailRows.add(await detailProcess(detailRow));
             }
+
+            headerRow[headerMapEntry.key] = encodedDetailRows;
           }
         }
       } else {

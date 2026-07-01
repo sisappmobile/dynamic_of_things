@@ -333,12 +333,12 @@ class JsonScriptEngine {
 
     if (cond.contains("!=")) {
       final p = cond.split("!=");
-      return _evalExpression(p[0]) != _evalExpression(p[1]);
+      return !_looseEquals(_evalExpression(p[0]), _evalExpression(p[1]));
     }
 
     if (cond.contains("==")) {
       final p = cond.split("==");
-      return _evalExpression(p[0]) == _evalExpression(p[1]);
+      return _looseEquals(_evalExpression(p[0]), _evalExpression(p[1]));
     }
 
     if (cond.contains(">")) {
@@ -362,6 +362,52 @@ class JsonScriptEngine {
     }
 
     return _value(cond) == true;
+  }
+
+  // CHECK-type field values round-trip as "Y"/"N" strings (see
+  // DynamicForms.encodeValue, which every online AND offline refresh payload
+  // passes through before this engine ever sees the data), so a script
+  // comparing such a field against a `true`/`false` literal (e.g.
+  // `element.is_discount_percentage == true`) would otherwise always
+  // evaluate false via Dart's `==`, since a String is never equal to a bool.
+  // Coerce both sides when either one looks boolean-like. Kept in lockstep
+  // with PseudoCodeEngine.equalsLoose/toBooleanLoose in dmsretail's
+  // com.sisapp.helper package - fix both or the two engines diverge.
+  bool _looseEquals(dynamic a, dynamic b) {
+    if (a == null || b == null) {
+      return a == b;
+    }
+
+    if (a is bool || b is bool) {
+      final bool? ba = _looseBool(a);
+      final bool? bb = _looseBool(b);
+
+      if (ba != null && bb != null) {
+        return ba == bb;
+      }
+    }
+
+    return a == b;
+  }
+
+  bool? _looseBool(dynamic value) {
+    if (value is bool) {
+      return value;
+    }
+
+    if (value is String) {
+      final String s = value.trim();
+
+      if (s.toUpperCase() == "Y" || s.toLowerCase() == "true") {
+        return true;
+      }
+
+      if (s.toUpperCase() == "N" || s.toLowerCase() == "false") {
+        return false;
+      }
+    }
+
+    return null;
   }
 
   dynamic _value(String v) {

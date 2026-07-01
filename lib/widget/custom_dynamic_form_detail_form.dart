@@ -1,13 +1,16 @@
 // ignore_for_file: deprecated_member_use
 
 import "package:base/base.dart";
+import "package:collection/collection.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
+import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/generals.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_event.dart";
+import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_state.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form.dart";
 import "package:dynamic_of_things/widget/custom_dynamic_form_sub_detail_list.dart";
 import "package:dynamic_of_things/widget/glass_container.dart";
@@ -43,6 +46,8 @@ class CustomDynamicFormDetailFormState
   GlobalKey<FormState> formState = GlobalKey<FormState>();
 
   late Map<String, dynamic> data;
+  late DetailForm detailForm;
+  late DynamicFormBloc bloc;
   bool prefsReady = false;
 
   @override
@@ -52,7 +57,128 @@ class CustomDynamicFormDetailFormState
     WidgetsBinding.instance.addObserver(this);
     initPrefs();
 
+    bloc = DynamicFormBloc();
+
     data = widget.data;
+    detailForm = widget.detailForm;
+
+    applyEnableAfterCascade();
+
+    // Field.readOnly lives on the shared per-COLUMN Field object (there is
+    // only one "item_price" Field, not one per row) - so whatever readOnly
+    // state widget.detailForm's Field objects currently carry when this
+    // editor opens may reflect a DIFFERENT row entirely. In particular, the
+    // header-level "recompute totals" refresh fired after any row is
+    // saved (DetailForm.hasOnChangeEvent -> onRefresh) runs pseudo_code
+    // across ALL rows, and readOnly assignments inside that loop can only
+    // leave ONE final (last-row-wins) value on the shared Field, silently
+    // leaking one row's condition onto every other row's display until
+    // something recomputes it correctly. Firing the same scoped (single-row)
+    // refresh a field's own onChange would immediately re-derives the
+    // correct state for THIS row specifically the moment the editor opens,
+    // instead of trusting whatever the shared Field last happened to hold.
+    // Dispatched directly on `bloc` (not via context.read, which would look
+    // above this State's own context and miss the local BlocProvider set up
+    // in build() below) so it's safe to fire before the first build.
+    if (widget.detailForm.hasOnChangeEvent) {
+      bloc.add(
+        DynamicFormRefresh(
+          formId: widget.headerForm.template.id,
+          customerId: widget.customerId,
+          headerForm: widget.headerForm,
+        ),
+      );
+    }
+  }
+
+  // enableAfter is a client-side-only concept (a field becomes editable once
+  // the field it depends on has a value) — the server response has no idea
+  // about it, so every time `detailForm`/`data` are swapped for a fresh
+  // server-parsed set of Field objects (initial open, or after a refresh),
+  // any earlier Field.enable() call is lost since it lived on the previous,
+  // now-discarded Field instance. Re-derive it from scratch against whatever
+  // Field objects are current, so it survives both the initial render and
+  // every subsequent refresh.
+  void applyEnableAfterCascade() {
+    for (Section section in detailForm.template.sections) {
+      for (Field field in section.fields) {
+        String? dependsOn = field.enableAfter;
+
+        if (dependsOn != null &&
+            dependsOn.isNotEmpty &&
+            data[dependsOn] != null) {
+          field.enable();
+        }
+      }
+    }
+  }
+
+  // The caller (CustomDynamicFormDetailList) scopes widget.headerForm's
+  // detail table to just this row before pushing this page, so any
+  // DynamicFormRefresh fired by a field's onChange (e.g. Item Group,
+  // Discount Percent) recomputes script/pseudo_code against this single
+  // row unambiguously. The refreshed HeaderForm never reaches this page's
+  // own fields automatically though — this listener picks it up and swaps
+  // in the fresh template/data so readOnly and computed values update live.
+  Future<void> onDynamicFormState(
+    BuildContext context,
+    DynamicFormState state,
+  ) async {
+    if (state is DynamicFormRefreshSuccess) {
+      // DynamicFormRefreshSuccess.headerForm is parsed straight from the
+      // response JSON, so CHECK/DATE/... fields are still wire-format values
+      // ("Y"/"N", ISO date strings) at this point. decode() converts them
+      // back into typed Dart values (bool, DateTime, ...) the field widgets
+      // expect - the same call DynamicFormPage's own listener makes for its
+      // own refresh handling.
+      await DynamicForms.decode(state.headerForm);
+
+      DetailForm? refreshed = state.headerForm.detailForms.firstWhereOrNull(
+        (element) =>
+            element.template.tableName == detailForm.template.tableName,
+      );
+
+      if (refreshed == null) {
+        return;
+      }
+
+      dynamic refreshedData = refreshed.getData(state.headerForm);
+      Map<String, dynamic>? refreshedRow;
+
+      if (refreshedData is List &&
+          refreshedData.isNotEmpty &&
+          refreshedData.first is Map) {
+        refreshedRow = Map<String, dynamic>.from(refreshedData.first);
+      } else if (refreshedData is Map) {
+        refreshedRow = Map<String, dynamic>.from(refreshedData);
+      }
+
+      if (refreshedRow == null) {
+        return;
+      }
+
+      // Keep widget.headerForm's (still scoped to just this one row by the
+      // caller) copy in sync with the refreshed row. Every subsequent field
+      // edit in this editor dispatches DynamicFormRefresh using
+      // widget.headerForm directly (not the local `data`/`detailForm` swapped
+      // in below), so without this a second edit after the first refresh
+      // would re-send the pre-refresh row content and any change made in
+      // between would appear to silently revert.
+      widget.headerForm.data[widget.detailForm.template.tableName] = [
+        refreshedRow,
+      ];
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        detailForm = refreshed;
+        data = refreshedRow!;
+
+        applyEnableAfterCascade();
+      });
+    }
   }
 
   Future<void> initPrefs() async {
@@ -92,6 +218,29 @@ class CustomDynamicFormDetailFormState
     final bool glass = isGlass;
     final double horizontalPadding = DotResponsive.horizontalPadding(context);
 
+    // A local DynamicFormBloc instance, scoped to just this editor, so
+    // DynamicFormRefresh calls fired by fields inside this row (via
+    // context.read<DynamicFormBloc>()) go through a bloc no other screen is
+    // listening to. Without this, the app-level DynamicFormBloc is shared
+    // with DynamicFormPage (the header page underneath), whose own
+    // BlocListener reacts to every DynamicFormRefreshSuccess and overwrites
+    // its headerForm with this editor's single-row-scoped response —
+    // corrupting the detail list shown once this page is popped.
+    return BlocProvider<DynamicFormBloc>.value(
+      value: bloc,
+      child: BlocListener<DynamicFormBloc, DynamicFormState>(
+        bloc: bloc,
+        listener: onDynamicFormState,
+        child: scaffold(safe: safe, glass: glass, horizontalPadding: horizontalPadding),
+      ),
+    );
+  }
+
+  Widget scaffold({
+    required EdgeInsets safe,
+    required bool glass,
+    required double horizontalPadding,
+  }) {
     return Scaffold(
       backgroundColor:
           glass ? Colors.transparent : AppColors.surfaceContainerLowest(),
@@ -163,6 +312,12 @@ class CustomDynamicFormDetailFormState
     super.dispose();
 
     WidgetsBinding.instance.removeObserver(this);
+
+    // BlocProvider.value() (used in build() above, since `bloc` is created
+    // and owned here rather than by the provider) does not auto-close the
+    // bloc the way BlocProvider(create: ...) would - this editor created it,
+    // so this editor is responsible for closing it.
+    bloc.close();
   }
 
   @override
@@ -279,7 +434,7 @@ class CustomDynamicFormDetailFormState
               ),
               SizedBox(height: Dimensions.size2),
               Text(
-                widget.detailForm.template.title,
+                detailForm.template.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -421,14 +576,14 @@ class CustomDynamicFormDetailFormState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   CustomDynamicForm(
-                    key: ValueKey("Detail-${widget.detailForm.template.id}"),
+                    key: ValueKey("Detail-${detailForm.template.id}"),
                     readOnly: widget.readOnly,
                     customerId: widget.customerId,
                     headerForm: widget.headerForm,
-                    template: widget.detailForm.template,
+                    template: detailForm.template,
                     data: data,
                   ),
-                  ...widget.detailForm.subDetailForms
+                  ...detailForm.subDetailForms
                       .asMap()
                       .entries
                       .map((entry) {
@@ -446,7 +601,7 @@ class CustomDynamicFormDetailFormState
                         readOnly: widget.readOnly,
                         customerId: widget.customerId,
                         headerForm: widget.headerForm,
-                        detailForm: widget.detailForm,
+                        detailForm: detailForm,
                         subDetailForm: subDetailForm,
                         detailData: data,
                         onRefresh: () {

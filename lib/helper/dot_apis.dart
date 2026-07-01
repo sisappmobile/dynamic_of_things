@@ -399,6 +399,17 @@ class DotApis {
       return HeaderForm.fromJson(response.data);
     }
 
+    // A script/pseudo_code failure on refresh() comes back as HTTP 202 with
+    // {"RC": 1, "RM": "<message>"} (GeneralResponse), not a 4xx/5xx - it was
+    // previously silently discarded here (falling through to `return null`),
+    // making the field simply appear to do nothing with no error surfaced at
+    // all. Throw so the bloc's existing catch block logs and toasts it.
+    if (response.statusCode == 202 &&
+        response.data is Map &&
+        (response.data as Map).containsKey("RM")) {
+      throw Exception((response.data as Map)["RM"]);
+    }
+
     return null;
   }
 

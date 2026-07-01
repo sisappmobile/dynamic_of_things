@@ -297,34 +297,55 @@ class CustomDynamicFormDetailListState
                                   ? () async {
                                       Map<String, dynamic>? result;
 
-                                      if (BaseSettings.navigatorType ==
-                                          BaseNavigatorType.legacy) {
-                                        result = await Navigators.push(
-                                          CustomDynamicFormDetailForm(
-                                            customerId: widget.customerId,
-                                            readOnly: false,
-                                            headerForm: widget.headerForm,
-                                            detailForm: widget.detailForm,
-                                            data: widget.detailForm.getRow(
-                                              widget.headerForm,
-                                              index,
+                                      // Scope the detail table to just this row for the
+                                      // duration of editing. Any DynamicFormRefresh fired
+                                      // from a field inside the editor (e.g. onChange of
+                                      // Item Group / Discount Percent) will then evaluate
+                                      // its script/pseudo_code against this single row
+                                      // instead of stale/unrelated sibling rows, and the
+                                      // resulting readOnly/value changes apply unambiguously.
+                                      final List<Map<String, dynamic>>
+                                          fullList = widget.detailForm
+                                                  .getData(widget.headerForm)
+                                              as List<Map<String, dynamic>>;
+                                      final Map<String, dynamic> liveRow =
+                                          fullList[index];
+                                      final Map<String, dynamic> snapshot =
+                                          Map<String, dynamic>.from(liveRow);
+                                      final String tableName = widget
+                                          .detailForm.template.tableName;
+
+                                      widget.headerForm.data[tableName] = [
+                                        liveRow,
+                                      ];
+
+                                      try {
+                                        if (BaseSettings.navigatorType ==
+                                            BaseNavigatorType.legacy) {
+                                          result = await Navigators.push(
+                                            CustomDynamicFormDetailForm(
+                                              customerId: widget.customerId,
+                                              readOnly: false,
+                                              headerForm: widget.headerForm,
+                                              detailForm: widget.detailForm,
+                                              data: liveRow,
                                             ),
-                                          ),
-                                        );
-                                      } else {
-                                        result = await context.push(
-                                          "/dynamic-form-details",
-                                          extra: {
-                                            "customerId": widget.customerId,
-                                            "readOnly": false,
-                                            "headerForm": widget.headerForm,
-                                            "detailForm": widget.detailForm,
-                                            "data": widget.detailForm.getRow(
-                                              widget.headerForm,
-                                              index,
-                                            ),
-                                          },
-                                        );
+                                          );
+                                        } else {
+                                          result = await context.push(
+                                            "/dynamic-form-details",
+                                            extra: {
+                                              "customerId": widget.customerId,
+                                              "readOnly": false,
+                                              "headerForm": widget.headerForm,
+                                              "detailForm": widget.detailForm,
+                                              "data": liveRow,
+                                            },
+                                          );
+                                        }
+                                      } finally {
+                                        widget.headerForm.data[tableName] =
+                                            fullList;
                                       }
 
                                       if (result != null) {
@@ -340,6 +361,15 @@ class CustomDynamicFormDetailListState
                                             widget.onRefresh!();
                                           }
                                         }
+                                      } else {
+                                        // Discard any speculative mutation that a
+                                        // refresh may have written into liveRow while
+                                        // the editor was open but not saved.
+                                        widget.detailForm.updateRow(
+                                          widget.headerForm,
+                                          snapshot,
+                                          index,
+                                        );
                                       }
                                     }
                                   : null,
@@ -545,26 +575,41 @@ class CustomDynamicFormDetailListState
             onTap: () async {
               Map<String, dynamic>? result;
 
-              if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
-                result = await Navigators.push(
-                  CustomDynamicFormDetailForm(
-                    customerId: widget.customerId,
-                    readOnly: false,
-                    headerForm: widget.headerForm,
-                    detailForm: widget.detailForm,
-                    data: {},
-                  ),
-                );
-              } else {
-                result = await context.push(
-                  "/dynamic-form-details",
-                  extra: {
-                    "customerId": widget.customerId,
-                    "readOnly": false,
-                    "headerForm": widget.headerForm,
-                    "detailForm": widget.detailForm,
-                  },
-                );
+              // Same single-row scoping as edit: swap the detail table for a
+              // fresh, empty single-row list while the new row is filled in,
+              // then restore the real list once the editor closes.
+              final List<Map<String, dynamic>> fullList = widget.detailForm
+                  .getData(widget.headerForm) as List<Map<String, dynamic>>;
+              final Map<String, dynamic> liveRow = <String, dynamic>{};
+              final String tableName = widget.detailForm.template.tableName;
+
+              widget.headerForm.data[tableName] = [liveRow];
+
+              try {
+                if (BaseSettings.navigatorType == BaseNavigatorType.legacy) {
+                  result = await Navigators.push(
+                    CustomDynamicFormDetailForm(
+                      customerId: widget.customerId,
+                      readOnly: false,
+                      headerForm: widget.headerForm,
+                      detailForm: widget.detailForm,
+                      data: liveRow,
+                    ),
+                  );
+                } else {
+                  result = await context.push(
+                    "/dynamic-form-details",
+                    extra: {
+                      "customerId": widget.customerId,
+                      "readOnly": false,
+                      "headerForm": widget.headerForm,
+                      "detailForm": widget.detailForm,
+                      "data": liveRow,
+                    },
+                  );
+                }
+              } finally {
+                widget.headerForm.data[tableName] = fullList;
               }
 
               if (result != null) {
