@@ -112,12 +112,16 @@ class Formats {
           map[key] = value.format();
         } else if (value is DateTime) {
           map[key] = Jiffy.parseFromDateTime(value).dateFormat();
+        } else if (value is TimeOfDay) {
+          map[key] = time(value);
         } else if (value is List) {
           for (dynamic detailValue in value) {
             if (detailValue is Jiffy) {
               detailValue = detailValue.format();
             } else if (detailValue is DateTime) {
               detailValue = Jiffy.parseFromDateTime(detailValue).dateFormat();
+            } else if (detailValue is TimeOfDay) {
+              detailValue = time(detailValue);
             } else if (detailValue is Map<String, dynamic>) {
               convert(detailValue);
             }
