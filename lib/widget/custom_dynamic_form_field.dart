@@ -8,7 +8,6 @@ import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/enumeration/dynamic_form_field_type.dart";
 import "package:dynamic_of_things/enumeration/dynamic_form_validation_type.dart";
 import "package:dynamic_of_things/helper/bottom_sheets.dart";
-import "package:dynamic_of_things/helper/custom_attachments.dart";
 import "package:dynamic_of_things/helper/dialogs.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
@@ -1129,25 +1128,18 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             ..mime = mime;
 
           if (!kIsWeb &&
-              platformFile.path != null &&
+              fileBytes != null &&
               (isImageAttachmentMime(mime) ||
                   (extension != null &&
                       StringUtils.inList(
                         extension,
                         ["jpg", "jpeg", "png", "webp", "heic"],
                       )))) {
-            XFile? xFile = await FlutterImageCompress.compressAndGetFile(
-              platformFile.path!,
-              await CustomAttachments.temporaryPath(
-                fileName: platformFile.name,
-              ),
+            attachment.bytes = await FlutterImageCompress.compressWithList(
+              fileBytes,
               minWidth: 640,
               minHeight: 480,
             );
-
-            if (xFile != null) {
-              attachment.bytes = await xFile.readAsBytes();
-            }
           }
 
           attachment.bytes ??= fileBytes;
