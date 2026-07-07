@@ -1105,53 +1105,58 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         }
       }
     } else if (widget.field.type == DynamicFormFieldType.FILE.name) {
-      FilePickerResult? filePickerResult = await FilePicker.platform.pickFiles(
-        withData: true,
-        type: FileType.any,
-      );
-
-      if (filePickerResult != null && filePickerResult.files.isNotEmpty) {
-        final PlatformFile platformFile = filePickerResult.files.first;
-        final Uint8List? fileBytes = platformFile.bytes ??
-            (platformFile.path != null
-                ? await XFile(platformFile.path!).readAsBytes()
-                : null);
-        final String? mime = detectMimeType(
-          name: platformFile.name,
-          bytes: fileBytes,
-        );
-        final String? extension = platformFile.extension?.toLowerCase();
-
-        Attachment attachment = Attachment()
-          ..name = platformFile.name
-          ..mime = mime;
-
-        if (!kIsWeb &&
-            platformFile.path != null &&
-            (isImageAttachmentMime(mime) ||
-                (extension != null &&
-                    StringUtils.inList(
-                      extension,
-                      ["jpg", "jpeg", "png", "webp", "heic"],
-                    )))) {
-          XFile? xFile = await FlutterImageCompress.compressAndGetFile(
-            platformFile.path!,
-            await CustomAttachments.temporaryPath(fileName: platformFile.name),
-            minWidth: 640,
-            minHeight: 480,
-          );
-
-          if (xFile != null) {
-            attachment.bytes = await xFile.readAsBytes();
+      await Dialogs.file(
+        context: context,
+        title: "choose_file".tr(),
+        callback: (files) async {
+          if (files.isEmpty) {
+            return;
           }
-        }
 
-        attachment.bytes ??= fileBytes;
+          final PlatformFile platformFile = files.first;
+          final Uint8List? fileBytes = platformFile.bytes ??
+              (platformFile.path != null
+                  ? await XFile(platformFile.path!).readAsBytes()
+                  : null);
+          final String? mime = detectMimeType(
+            name: platformFile.name,
+            bytes: fileBytes,
+          );
+          final String? extension = platformFile.extension?.toLowerCase();
 
-        if (attachment.bytes != null) {
-          widget.field.setValue(widget.data, attachment);
-        }
-      }
+          Attachment attachment = Attachment()
+            ..name = platformFile.name
+            ..mime = mime;
+
+          if (!kIsWeb &&
+              platformFile.path != null &&
+              (isImageAttachmentMime(mime) ||
+                  (extension != null &&
+                      StringUtils.inList(
+                        extension,
+                        ["jpg", "jpeg", "png", "webp", "heic"],
+                      )))) {
+            XFile? xFile = await FlutterImageCompress.compressAndGetFile(
+              platformFile.path!,
+              await CustomAttachments.temporaryPath(
+                fileName: platformFile.name,
+              ),
+              minWidth: 640,
+              minHeight: 480,
+            );
+
+            if (xFile != null) {
+              attachment.bytes = await xFile.readAsBytes();
+            }
+          }
+
+          attachment.bytes ??= fileBytes;
+
+          if (attachment.bytes != null) {
+            widget.field.setValue(widget.data, attachment);
+          }
+        },
+      );
     } else if (widget.field.type == DynamicFormFieldType.FOTO.name) {
       Images.camera(
         context: context,

@@ -26,6 +26,8 @@
   "common_gallery": "Gallery",
   "common_camera": "Camera",
   "common_choose_photo_source": "Choose photo source",
+  "common_choose_file_source": "Choose file source",
+  "common_browse_files": "Browse Files",
   "common_close": "Close",
   "get_location": "Get location",
   "signature": "Signature",

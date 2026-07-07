@@ -301,4 +301,114 @@ class Dialogs {
       });
     }
   }
+
+  static Future<void> file({
+    required BuildContext context,
+    required String title,
+    required void Function(List<PlatformFile> files) callback,
+  }) async {
+    List<Widget> actions = [
+      TextButton(
+        child: Text("common_close".tr()),
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+    ];
+
+    BoxDecoration boxDecoration = BoxDecoration(
+      border: Border.all(
+        color: Theme.of(context).colorScheme.primary,
+        width: 1.5,
+      ),
+      borderRadius: BorderRadius.circular(8),
+    );
+
+    await showDialog(
+      context: context,
+      builder: (BuildContext buildContext) {
+        return AlertDialog(
+          title: Text("common_choose_file_source".tr()),
+          content: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 100,
+                  decoration: boxDecoration,
+                  child: InkWell(
+                    onTap: () async {
+                      FilePickerResult? filePickerResult =
+                          await FilePicker.platform.pickFiles(
+                        withData: true,
+                        type: FileType.media,
+                      );
+
+                      if (filePickerResult != null &&
+                          filePickerResult.files.isNotEmpty) {
+                        if (BaseSettings.navigatorType ==
+                            BaseNavigatorType.legacy) {
+                          Navigators.pop();
+                        } else {
+                          context.pop();
+                        }
+
+                        callback.call(filePickerResult.files);
+                      }
+                    },
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.photo),
+                          Text("common_gallery".tr()),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: Dimensions.size10,
+              ),
+              Expanded(
+                child: Container(
+                  height: 100,
+                  decoration: boxDecoration,
+                  child: InkWell(
+                    onTap: () async {
+                      FilePickerResult? filePickerResult =
+                          await FilePicker.platform.pickFiles(
+                        withData: true,
+                        type: FileType.any,
+                      );
+
+                      if (filePickerResult != null &&
+                          filePickerResult.files.isNotEmpty) {
+                        if (BaseSettings.navigatorType ==
+                            BaseNavigatorType.legacy) {
+                          Navigators.pop();
+                        } else {
+                          context.pop();
+                        }
+
+                        callback.call(filePickerResult.files);
+                      }
+                    },
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.folder),
+                          Text("common_browse_files".tr()),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: actions,
+        );
+      },
+    );
+  }
 }

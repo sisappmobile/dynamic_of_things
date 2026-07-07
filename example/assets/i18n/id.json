@@ -21,6 +21,8 @@
   "my_location": "Lokasi saya",
   "common_camera": "Kamera",
   "common_choose_photo_source": "Pilih sumber foto",
+  "common_choose_file_source": "Pilih sumber file",
+  "common_browse_files": "Jelajahi File",
   "common_close": "Tutup",
   "get_location": "Dapatkan lokasi",
   "signature": "Tanda tangan",
