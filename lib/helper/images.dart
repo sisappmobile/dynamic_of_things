@@ -14,13 +14,50 @@ import "package:image/image.dart" as img;
 import "package:image_picker/image_picker.dart";
 
 class Images {
-  static bool get _shouldSaveCameraImage {
+  static bool _parseSaveImageFlag(Object? value) {
+    if (value is bool) {
+      return value;
+    }
+
+    if (value is num) {
+      return value != 0;
+    }
+
+    if (value is String) {
+      final String normalized = value.trim().toLowerCase();
+
+      if (["true", "1", "yes", "y"].contains(normalized)) {
+        return true;
+      }
+
+      if (["false", "0", "no", "n", ""].contains(normalized)) {
+        return false;
+      }
+    }
+
+    return false;
+  }
+
+  static Future<bool> _shouldSaveCameraImage() async {
     try {
-      return Preferences.getInstance().getBool(
-            SharedPreferenceKey.SAVE_IMAGE,
-            false,
-          ) ??
-          false;
+      await Preferences.getInstance().init();
+
+      final Preferences preferences = Preferences.getInstance();
+      if (preferences.sharedPreferences.containsKey(
+        SharedPreferenceKey.SAVE_IMAGE.name,
+      )) {
+        return _parseSaveImageFlag(
+          preferences.sharedPreferences.get(
+            SharedPreferenceKey.SAVE_IMAGE.name,
+          ),
+        );
+      }
+
+      final Object? legacyValue = preferences.sharedPreferences.get(
+        "saveimage",
+      );
+
+      return _parseSaveImageFlag(legacyValue);
     } catch (_) {
       return false;
     }
@@ -33,7 +70,13 @@ class Images {
         defaultTargetPlatform == TargetPlatform.android ||
             defaultTargetPlatform == TargetPlatform.iOS;
 
-    if (kIsWeb || bytes.isEmpty || !_shouldSaveCameraImage || !isMobileTarget) {
+    if (kIsWeb || bytes.isEmpty || !isMobileTarget) {
+      return;
+    }
+
+    final bool shouldSaveCameraImage = await _shouldSaveCameraImage();
+
+    if (!shouldSaveCameraImage) {
       return;
     }
 
