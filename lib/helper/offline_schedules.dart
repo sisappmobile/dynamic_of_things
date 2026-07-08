@@ -3,6 +3,7 @@
 import "package:basic_utils/basic_utils.dart";
 import "package:dynamic_of_things/helper/dml_assemblers.dart";
 import "package:dynamic_of_things/helper/offlines.dart";
+import "package:dynamic_of_things/model/dynamic_form_list_response.dart" show FilterItem;
 import "package:dynamic_of_things/model/dynamic_schedule_template.dart";
 import "package:jiffy/jiffy.dart";
 
@@ -52,6 +53,30 @@ class OfflineSchedules {
         template.forms[row["id"]] = row["name"];
       }
 
+      List<Map<String, dynamic>> filterFields = await DMLAssemblers
+          .create()
+          .select("*")
+          .from("c_custom_filter_field")
+          .equalTo("custom_id", id)
+          .all();
+
+      for (Map<String, dynamic> filterField in filterFields) {
+        if (filterField["f_manual_hidden"] == "Y") {
+          continue;
+        }
+
+        template.filters.add(
+          FilterItem(
+            id: filterField["id"].toString(),
+            caption: filterField["field_caption"] ?? "",
+            type: filterField["field_type"] ?? "",
+            operator: filterField["field_operator"] ?? "",
+            lovType: filterField["lov_type"],
+            defaultValue: filterField["default_value"],
+          ),
+        );
+      }
+
       return template;
     }
 
@@ -64,6 +89,7 @@ class OfflineSchedules {
     required Jiffy until,
     String? customerId,
     String? formId,
+    Map<String, dynamic>? filters,
   }) async {
     Map<String, dynamic>? customFormView = await Offlines.loadCustomFormView(id);
 
@@ -90,6 +116,65 @@ class OfflineSchedules {
         dmlAssemblers
             .and()
             .equalTo("a.customer_id", customerId);
+      }
+
+      // Mirrors Offlines.list()'s c_custom_filter_field handling verbatim,
+      // scoped to this schedule's own custom_id, with the "a." table alias
+      // this query uses.
+      List<Map<String, dynamic>> filterFields = await DMLAssemblers
+          .create()
+          .select("a.*")
+          .select("b.column_name")
+          .from("c_custom_filter_field a")
+          .join("INNER JOIN f_dynamic_table_detail b ON b.id = a.field_name")
+          .equalTo("a.custom_id", id)
+          .all();
+
+      for (Map<String, dynamic> filterField in filterFields) {
+        bool isManualHidden = filterField["f_manual_hidden"] == "Y";
+        String filterId = filterField["id"].toString();
+        String operator = filterField["field_operator"] ?? "=";
+        String? defaultValue = filterField["default_value"];
+
+        if (!isManualHidden && filters != null && filters.containsKey(filterId)) {
+          filterField["value"] = filters[filterId];
+        }
+
+        dynamic suppliedValue = filterField["value"];
+        String sqliteOperator = operator == "ILIKE" ? "LIKE" : operator;
+
+        if (suppliedValue != null) {
+          dmlAssemblers
+              .and()
+              .customWhere("a.${filterField["column_name"]} $sqliteOperator ?");
+
+          if (operator == "ILIKE") {
+            if (suppliedValue is String &&
+                StringUtils.equalsIgnoreCase(suppliedValue, "\$selector")) {
+              dmlAssemblers.parameter("%,$currentSalesUnitId,%");
+            } else {
+              dmlAssemblers.parameter("%$suppliedValue%");
+            }
+          } else {
+            dmlAssemblers.parameter(suppliedValue);
+          }
+        } else if (defaultValue != null) {
+          dmlAssemblers
+              .and()
+              .customWhere("a.${filterField["column_name"]} $sqliteOperator ?");
+
+          if (operator == "ILIKE") {
+            dmlAssemblers.parameter("%$defaultValue%");
+          } else if (defaultValue == "\$now") {
+            dmlAssemblers.parameter(
+              DateTime.now().toIso8601String().substring(0, 10),
+            );
+          } else if (StringUtils.equalsIgnoreCase(defaultValue, "\$selector")) {
+            dmlAssemblers.parameter(currentSalesUnitId);
+          } else {
+            dmlAssemblers.parameter(defaultValue);
+          }
+        }
       }
 
       List<String> userIds = [];

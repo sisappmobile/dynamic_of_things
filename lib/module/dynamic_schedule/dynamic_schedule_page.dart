@@ -1,10 +1,16 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import "package:base/base.dart";
+import "package:basic_utils/basic_utils.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
+import "package:dynamic_of_things/helper/dot_apis.dart";
+import "package:dynamic_of_things/helper/dynamic_forms.dart";
+import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/helper/generals.dart";
+import "package:dynamic_of_things/helper/offlines.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
 import "package:dynamic_of_things/helper/responsive_layout.dart";
+import "package:dynamic_of_things/model/dynamic_form_list_response.dart" show FilterItem;
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
 import "package:dynamic_of_things/model/dynamic_schedule_data.dart";
 import "package:dynamic_of_things/model/dynamic_schedule_template.dart";
@@ -13,12 +19,15 @@ import "package:dynamic_of_things/module/dynamic_schedule/dynamic_schedule_bloc.
 import "package:dynamic_of_things/module/dynamic_schedule/dynamic_schedule_event.dart";
 import "package:dynamic_of_things/module/dynamic_schedule/dynamic_schedule_state.dart";
 import "package:dynamic_of_things/widget/glass_container.dart";
+import "package:dynamic_of_things/widget/simple_spinner_page.dart";
 import "package:easy_localization/easy_localization.dart";
+import "package:flutter/foundation.dart" show kDebugMode;
 import "package:flutter/material.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:go_router/go_router.dart";
 import "package:jiffy/jiffy.dart";
 import "package:loader_overlay/loader_overlay.dart";
+import "package:pattern_formatter/pattern_formatter.dart";
 import "package:smooth_corner/smooth_corner.dart";
 import "package:syncfusion_flutter_calendar/calendar.dart";
 
@@ -135,6 +144,12 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     refreshRange(first, last);
   }
 
+  Map<String, dynamic> get activeFilters => Map.fromEntries(
+        (template?.filters ?? [])
+            .where((element) => element.value != null)
+            .map((e) => MapEntry(e.id, e.value)),
+      );
+
   void refreshRange(DateTime begin, DateTime until) {
     if (template == null) {
       return;
@@ -144,7 +159,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     final DateTime u = DateTime(until.year, until.month, until.day);
 
     final String key =
-        "${b.toIso8601String()}|${u.toIso8601String()}|${formId ?? "ALL"}";
+        "${b.toIso8601String()}|${u.toIso8601String()}|${formId ?? "ALL"}|${activeFilters.entries.map((e) => "${e.key}=${e.value}").join(",")}";
     if (lastFetchKey == key) {
       return;
     }
@@ -157,6 +172,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
             until: Jiffy.parseFromDateTime(u),
             formId: formId,
             customerId: widget.customerId,
+            filters: activeFilters,
           ),
         );
   }
@@ -1494,6 +1510,8 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
             ],
           ),
         ),
+        SizedBox(width: Dimensions.size10),
+        filterButton(),
         if (hasCreateAccess()) ...[
           SizedBox(width: Dimensions.size10),
           pillButton(
@@ -1682,6 +1700,630 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
           ),
         ),
       ),
+    );
+  }
+
+  Widget filterButton() {
+    final List<FilterItem> filters = template?.filters ?? [];
+
+    if (filters.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final bool hasActiveFilter =
+        filters.any((element) => element.value != null);
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        iconPill(
+          icon: Icons.filter_list_rounded,
+          onTap: () => openFilter(),
+        ),
+        if (hasActiveFilter)
+          Positioned(
+            right: 2,
+            top: 2,
+            child: Container(
+              width: Dimensions.size10,
+              height: Dimensions.size10,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.error,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isGlass ? Colors.black : AppColors.surface(),
+                  width: 1.5,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> openFilter() async {
+    final GlobalKey<FormState> formState =
+        GlobalKey<FormState>(debugLabel: "formState");
+
+    if (template == null) {
+      return;
+    }
+
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      barrierColor: Colors.black26,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        final EdgeInsets insets = MediaQuery.of(context).viewInsets;
+
+        return StatefulBuilder(
+          builder: (context, setStateSheet) {
+            final bool hasActiveFilter = template!.filters.any(
+              (filter) =>
+                  filter.value != null ||
+                  (filter.controller != null &&
+                      StringUtils.isNotNullOrEmpty(filter.controller!.text)),
+            );
+
+            final int count = template!.filters.length;
+            final bool compact = count <= 3;
+            final double maxH =
+                MediaQuery.of(context).size.height * (compact ? 0.62 : 0.90);
+            final bool glass = isGlass;
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: insets.bottom),
+              child: SafeArea(
+                top: false,
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: maxH),
+                    child: Builder(
+                      builder: (context) {
+                        final Widget sheetContent = Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                Dimensions.size15,
+                                Dimensions.size15,
+                                Dimensions.size15,
+                                Dimensions.size10,
+                              ),
+                              child: Row(
+                                children: [
+                                  iconPill(
+                                    icon: Icons.close,
+                                    onTap: () {
+                                      if (BaseSettings.navigatorType ==
+                                          BaseNavigatorType.legacy) {
+                                        Navigators.pop();
+                                      } else {
+                                        context.pop();
+                                      }
+                                    },
+                                  ),
+                                  SizedBox(width: Dimensions.size10),
+                                  Expanded(
+                                    child: Text(
+                                      "filter".tr(),
+                                      style: TextStyle(
+                                        fontSize: Dimensions.text18,
+                                        fontWeight: FontWeight.w900,
+                                        color: glass
+                                            ? Colors.white.withOpacity(0.95)
+                                            : AppColors.onSurface(),
+                                      ),
+                                    ),
+                                  ),
+                                  if (hasActiveFilter)
+                                    TextButton.icon(
+                                      onPressed: () {
+                                        BaseDialogs.confirmation(
+                                          title: "are_you_sure_want_to_proceed"
+                                              .tr(),
+                                          positiveCallback: () {
+                                            for (FilterItem filter
+                                                in template!.filters) {
+                                              filter
+                                                ..value = null
+                                                ..controller = null;
+                                            }
+                                            setStateSheet(() {});
+                                          },
+                                        );
+                                      },
+                                      icon: const Icon(Icons.clear_all),
+                                      label: Text("clear".tr()),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            Divider(
+                              height: 0,
+                              color: glass
+                                  ? Colors.white.withOpacity(0.20)
+                                  : AppColors.outline().withValues(alpha: 0.35),
+                            ),
+                            Flexible(
+                              fit: FlexFit.loose,
+                              child: Padding(
+                                padding: EdgeInsets.all(Dimensions.size15),
+                                child: Form(
+                                  key: formState,
+                                  autovalidateMode: AutovalidateMode.always,
+                                  child: ListView.separated(
+                                    shrinkWrap: compact,
+                                    physics: compact
+                                        ? const NeverScrollableScrollPhysics()
+                                        : const BouncingScrollPhysics(),
+                                    padding: EdgeInsets.only(
+                                      bottom: Dimensions.size15,
+                                    ),
+                                    itemCount: template!.filters.length,
+                                    separatorBuilder: (context, index) =>
+                                        SizedBox(height: Dimensions.size15),
+                                    itemBuilder: (context, index) {
+                                      final FilterItem filter =
+                                          template!.filters[index];
+
+                                      if (filter.controller == null) {
+                                        filter.controller =
+                                            TextEditingController();
+
+                                        if (filter.value != null) {
+                                          if (filter.type == "DATE") {
+                                            filter.controller!.text =
+                                                Formats.dateTime(filter.value);
+                                          } else if (filter.type ==
+                                              "NUMERIC") {
+                                            filter.controller!.text =
+                                                Formats.tryParseNumber(
+                                                  filter.value,
+                                                ).currency();
+                                          } else if (StringUtils.inList(
+                                            filter.type,
+                                            ["STRING", "DATA", "COMBOBOX"],
+                                          )) {
+                                            filter.controller!.text =
+                                                filter.value;
+                                          }
+                                        }
+                                      }
+
+                                      return filterCard(
+                                        title: filter.caption,
+                                        canClear: filter.value != null ||
+                                            StringUtils.isNotNullOrEmpty(
+                                              filter.controller!.text,
+                                            ),
+                                        onClear: () {
+                                          filter
+                                            ..value = null
+                                            ..controller = null;
+                                          setStateSheet(() {});
+                                        },
+                                        child: filterInput(
+                                          filter: filter,
+                                          setStateSheet: setStateSheet,
+                                          onChanged: () => setStateSheet(() {}),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                Dimensions.size15,
+                                Dimensions.size5,
+                                Dimensions.size15,
+                                Dimensions.size15,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: () {
+                                        if (BaseSettings.navigatorType ==
+                                            BaseNavigatorType.legacy) {
+                                          Navigators.pop();
+                                        } else {
+                                          context.pop();
+                                        }
+                                      },
+                                      icon: const Icon(Icons.close),
+                                      label: Text("close".tr()),
+                                    ),
+                                  ),
+                                  SizedBox(width: Dimensions.size10),
+                                  Expanded(
+                                    child: FilledButton.icon(
+                                      onPressed: () {
+                                        if (formState.currentState != null &&
+                                            formState.currentState!
+                                                .validate()) {
+                                          formState.currentState!.save();
+
+                                          setState(() {});
+
+                                          refresh();
+                                        }
+
+                                        if (BaseSettings.navigatorType ==
+                                            BaseNavigatorType.legacy) {
+                                          Navigators.pop();
+                                        } else {
+                                          context.pop();
+                                        }
+                                      },
+                                      icon: const Icon(Icons.search),
+                                      label: Text("search".tr()),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+
+                        if (glass) {
+                          return Container(
+                            margin: EdgeInsets.all(Dimensions.size15),
+                            child: GlassContainer(
+                              blur: Dimensions.size25,
+                              borderRadius: Dimensions.size25,
+                              opacity: 0.14,
+                              borderOpacity: 0.22,
+                              padding: EdgeInsets.zero,
+                              child: sheetContent,
+                            ),
+                          );
+                        }
+
+                        return Container(
+                          margin: EdgeInsets.all(Dimensions.size15),
+                          decoration: ShapeDecoration(
+                            color: AppColors.surface(),
+                            shape: SmoothRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(Dimensions.size25),
+                              smoothness: Dimensions.size1,
+                              side: BorderSide(
+                                color:
+                                    AppColors.outline().withValues(alpha: 0.35),
+                              ),
+                            ),
+                            shadows: [
+                              BoxShadow(
+                                blurRadius: Dimensions.size30,
+                                offset: const Offset(0, 16),
+                                color: Colors.black.withValues(alpha: 0.18),
+                              ),
+                            ],
+                          ),
+                          child: sheetContent,
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget filterCard({
+    required String title,
+    required Widget child,
+    required bool canClear,
+    required VoidCallback onClear,
+  }) {
+    final bool glass = isGlass;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: Dimensions.size20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: Dimensions.text14,
+                    fontWeight: FontWeight.w900,
+                    color: glass
+                        ? Colors.white.withOpacity(0.92)
+                        : AppColors.onSurface(),
+                  ),
+                ),
+              ),
+              if (canClear)
+                IconButton(
+                  onPressed: onClear,
+                  icon: const Icon(Icons.backspace, size: 18),
+                  color: glass ? Colors.white.withOpacity(0.75) : null,
+                ),
+            ],
+          ),
+          SizedBox(height: Dimensions.size10),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget filterInput({
+    required FilterItem filter,
+    required void Function(void Function()) setStateSheet,
+    required VoidCallback onChanged,
+  }) {
+    Widget resultWidget = const SizedBox.shrink();
+    final bool glass = isGlass;
+    final String scheduleId = widget.dynamicFormMenuItem.id;
+
+    if (filter.type == "STRING") {
+      resultWidget = TextFormField(
+        controller: filter.controller,
+        decoration: inputDecoration(hint: filter.caption),
+        keyboardType: TextInputType.text,
+        onChanged: (_) => onChanged(),
+        onSaved: (newValue) {
+          if (StringUtils.isNotNullOrEmpty(newValue)) {
+            filter.value = newValue;
+          } else {
+            filter.value = null;
+          }
+        },
+      );
+    } else if (filter.type == "NUMERIC") {
+      resultWidget = TextFormField(
+        controller: filter.controller,
+        decoration: inputDecoration(hint: filter.caption),
+        inputFormatters: [
+          ThousandsFormatter(
+            allowFraction: true,
+            formatter: NumberFormat.decimalPattern("id_ID"),
+          ),
+        ],
+        keyboardType: TextInputType.number,
+        onChanged: (_) => onChanged(),
+        onSaved: (newValue) {
+          filter.value = int.tryParse(newValue ?? "");
+        },
+      );
+    } else if (StringUtils.inList(filter.type, ["CHECKBOX", "RADIOBUTTON"])) {
+      resultWidget = Align(
+        alignment: Alignment.centerLeft,
+        child: SizedBox(
+          width: Dimensions.size25,
+          height: Dimensions.size25,
+          child: Checkbox(
+            tristate: true,
+            value: filter.value,
+            onChanged: (value) {
+              setStateSheet(() {
+                filter.value = value;
+              });
+            },
+          ),
+        ),
+      );
+    } else if (filter.type == "DATE") {
+      resultWidget = TextFormField(
+        controller: filter.controller,
+        decoration: inputDecoration(
+          hint: filter.caption,
+          suffixIcon: const Icon(Icons.event),
+        ),
+        onTap: () {
+          BaseSheets.date(
+            jiffy: filter.value ?? Jiffy.now(),
+            min: Jiffy.parseFromDateTime(DateTime(1900, 1, 1)),
+            max: Jiffy.parseFromDateTime(DateTime(2099, 12, 31)),
+            onSelected: (jiffy) {
+              setStateSheet(() {
+                filter.value = jiffy;
+                filter.controller!.text = Formats.date(
+                  filter.value,
+                  defaultString: "",
+                );
+              });
+            },
+          );
+        },
+        readOnly: true,
+      );
+    } else if (StringUtils.inList(filter.type, ["DATA", "COMBOBOX"])) {
+      resultWidget = Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () async {
+            Map<String, String>? items;
+
+            try {
+              context.loaderOverlay.show();
+
+              if (DynamicForms.offline) {
+                items = await Offlines.filterResource(field: filter.id);
+              } else {
+                items = await DotApis.getInstance().dynamicFormListFilterResources(
+                  id: scheduleId,
+                  field: filter.id,
+                );
+              }
+            } catch (e, s) {
+              if (kDebugMode) {
+                print("Caught Exception: $e");
+                print("Stack Trace:\n$s");
+              }
+
+              BaseOverlays.error(
+                message: "something_wrong_please_try_again".tr(),
+              );
+            } finally {
+              context.loaderOverlay.hide();
+            }
+
+            if (items != null) {
+              final List<SpinnerItem> spinnerItems = [];
+
+              for (MapEntry<String, String> mapEntry in items.entries) {
+                spinnerItems.add(
+                  SpinnerItem(
+                    identity: mapEntry.key,
+                    description: mapEntry.value,
+                  ),
+                );
+              }
+
+              final SpinnerItem? selectedItem = await Navigators.push(
+                SimpleSpinnerPage(
+                  title: filter.caption,
+                  spinnerItems: spinnerItems,
+                ),
+              );
+
+              if (selectedItem != null) {
+                setStateSheet(() {
+                  filter.value = selectedItem.identity;
+                  filter.controller!.text = selectedItem.description;
+                });
+              } else {
+                setStateSheet(() {
+                  filter.value = null;
+                  filter.controller!.text = "";
+                });
+              }
+            }
+          },
+          customBorder: SmoothRectangleBorder(
+            borderRadius: BorderRadius.circular(Dimensions.size15),
+            smoothness: Dimensions.size1,
+          ),
+          child: Builder(
+            builder: (context) {
+              final Widget content = Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      StringUtils.isNotNullOrEmpty(filter.controller!.text)
+                          ? filter.controller!.text
+                          : "choose".tr(),
+                      style: TextStyle(
+                        fontSize: Dimensions.text16,
+                        fontWeight: FontWeight.w700,
+                        color: glass
+                            ? Colors.white.withOpacity(
+                                StringUtils.isNotNullOrEmpty(
+                                  filter.controller!.text,
+                                )
+                                    ? 0.95
+                                    : 0.70,
+                              )
+                            : AppColors.onSurface().withValues(
+                                alpha: StringUtils.isNotNullOrEmpty(
+                                  filter.controller!.text,
+                                )
+                                    ? 0.95
+                                    : 0.55,
+                              ),
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_drop_down,
+                    color: glass
+                        ? Colors.white.withOpacity(0.70)
+                        : AppColors.onSurface().withValues(alpha: 0.55),
+                  ),
+                ],
+              );
+
+              return Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: Dimensions.size15,
+                  vertical: Dimensions.size15,
+                ),
+                decoration: ShapeDecoration(
+                  color: glass
+                      ? Colors.white.withOpacity(0.12)
+                      : AppColors.surface(),
+                  shape: SmoothRectangleBorder(
+                    borderRadius: BorderRadius.circular(Dimensions.size20),
+                    smoothness: Dimensions.size1,
+                    side: BorderSide(
+                      color: glass
+                          ? Colors.white.withOpacity(0.35)
+                          : AppColors.outline().withValues(alpha: 0.45),
+                    ),
+                  ),
+                ),
+                child: content,
+              );
+            },
+          ),
+        ),
+      );
+    }
+
+    return resultWidget;
+  }
+
+  InputDecoration inputDecoration({
+    required String hint,
+    Widget? suffixIcon,
+  }) {
+    final bool glass = isGlass;
+    final OutlineInputBorder outline = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(Dimensions.size20),
+      borderSide: BorderSide(
+        color: glass
+            ? Colors.white.withOpacity(0.35)
+            : AppColors.outline().withValues(alpha: 0.45),
+        width: Dimensions.size1,
+      ),
+    );
+
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: glass ? Colors.white.withOpacity(0.12) : AppColors.surface(),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: Dimensions.size15,
+        vertical: Dimensions.size15,
+      ),
+      enabledBorder: outline,
+      focusedBorder: outline.copyWith(
+        borderSide: BorderSide(
+          color: glass
+              ? Colors.white.withOpacity(0.60)
+              : AppColors.onSurface().withValues(alpha: 0.60),
+          width: 1.2,
+        ),
+      ),
+      errorBorder: outline.copyWith(
+        borderSide: BorderSide(
+          color: Colors.red.withValues(alpha: 0.60),
+          width: 1,
+        ),
+      ),
+      focusedErrorBorder: outline.copyWith(
+        borderSide: BorderSide(
+          color: Colors.red.withValues(alpha: 0.70),
+          width: 1.2,
+        ),
+      ),
+      suffixIcon: suffixIcon,
     );
   }
 

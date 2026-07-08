@@ -1,9 +1,12 @@
 // ignore_for_file: always_put_required_named_parameters_first, always_specify_types
 
+import "package:flutter/material.dart";
+
 class ListResponse {
   final bool createUsingScanQr;
   final List<Action> actions;
   final List<Field> fields;
+  final List<FilterItem> filters;
   final List<Map<String, dynamic>> data;
 
   String? name;
@@ -13,6 +16,7 @@ class ListResponse {
     required this.createUsingScanQr,
     required this.actions,
     required this.fields,
+    required this.filters,
     required this.data,
   });
 
@@ -20,7 +24,42 @@ class ListResponse {
     createUsingScanQr: json["createUsingScanQr"] ?? false,
     actions: json["actions"] != null ? List<Action>.from(json["actions"].map((e) => Action.fromJson(e))) : [],
     fields: json["fields"] != null ? List<Field>.from(json["fields"].map((e) => Field.fromJson(e))) : [],
+    filters: json["filters"] != null ? List<FilterItem>.from(json["filters"].map((e) => FilterItem.fromJson(e))) : [],
     data: json["data"] != null ? List<Map<String, dynamic>>.from(json["data"].map((e) => e)) : [],
+  );
+}
+
+// Client-facing metadata for one c_custom_filter_field row, shared by the
+// dynamic-forms list page and the dynamic-schedule page. `value`/`controller`
+// are local UI-bound state (mirroring dynamic_report_template.dart's Filter
+// class), not part of the server payload.
+class FilterItem {
+  final String id;
+  final String caption;
+  final String type;
+  final String operator;
+  final String? lovType;
+  final String? defaultValue;
+
+  dynamic value;
+  TextEditingController? controller;
+
+  FilterItem({
+    required this.id,
+    required this.caption,
+    required this.type,
+    required this.operator,
+    required this.lovType,
+    required this.defaultValue,
+  });
+
+  factory FilterItem.fromJson(Map<String, dynamic> json) => FilterItem(
+    id: json["id"] ?? "",
+    caption: json["caption"] ?? "",
+    type: json["type"] ?? "",
+    operator: json["operator"] ?? "",
+    lovType: json["lovType"],
+    defaultValue: json["defaultValue"],
   );
 }
 

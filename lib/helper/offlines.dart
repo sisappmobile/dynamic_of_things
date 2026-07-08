@@ -248,6 +248,7 @@ class Offlines {
   static Future<ListResponse?> list({
     required String id,
     String? customerId,
+    Map<String, dynamic>? filters,
   }) async {
     Map<String, dynamic>? customFormView = await DMLAssemblers
         .create()
@@ -266,6 +267,7 @@ class Offlines {
       createUsingScanQr: customFormView["f_create_using_scan_qr"] == "Y",
       actions: [],
       fields: [],
+      filters: [],
       data: [],
     );
 
@@ -347,22 +349,69 @@ class Offlines {
         .all();
 
     for (Map<String, dynamic> filterField in filterFields) {
-      String _ = filterField["field_type"];
-      String? filterValue = filterField["value"] ?? filterField["default_value"];
+      bool isManualHidden = filterField["f_manual_hidden"] == "Y";
+      String filterId = filterField["id"].toString();
+      String operator = filterField["field_operator"] ?? "=";
+      String? defaultValue = filterField["default_value"];
 
-      if (filterValue != null) {
+      // Only a non-hidden filter's id can legitimately appear in `filters`
+      // (the caller only ever knows about ids from listResponse.filters,
+      // which excludes manual-hidden rows below) - mirrors
+      // DynamicFormService.list()'s same guard server-side.
+      if (!isManualHidden && filters != null && filters.containsKey(filterId)) {
+        filterField["value"] = filters[filterId];
+      }
+
+      if (!isManualHidden) {
+        listResponse.filters.add(
+          FilterItem(
+            id: filterId,
+            caption: filterField["field_caption"] ?? "",
+            type: filterField["field_type"] ?? "",
+            operator: operator,
+            lovType: filterField["lov_type"],
+            defaultValue: defaultValue,
+          ),
+        );
+      }
+
+      dynamic suppliedValue = filterField["value"];
+
+      // c_custom_filter_field.field_operator stores "ILIKE" (Postgres
+      // case-insensitive LIKE), which isn't valid SQLite syntax - SQLite's
+      // own LIKE is already ASCII case-insensitive, close enough here.
+      String sqliteOperator = operator == "ILIKE" ? "LIKE" : operator;
+
+      if (suppliedValue != null) {
         dmlAssemblers
             .and()
-            .customWhere("${filterField["column_name"]} ${filterField["field_operator"]} ?");
+            .customWhere("${filterField["column_name"]} $sqliteOperator ?");
 
-        if (filterField["field_operator"] == "LIKE") {
-          if (filterValue == "\$selector") {
+        if (operator == "ILIKE") {
+          if (suppliedValue is String &&
+              StringUtils.equalsIgnoreCase(suppliedValue, "\$selector")) {
             dmlAssemblers.parameter("%,$currentSalesUnitId,%");
           } else {
-            dmlAssemblers.parameter("%$filterValue%");
+            dmlAssemblers.parameter("%$suppliedValue%");
           }
         } else {
-          dmlAssemblers.parameter(filterValue);
+          dmlAssemblers.parameter(suppliedValue);
+        }
+      } else if (defaultValue != null) {
+        dmlAssemblers
+            .and()
+            .customWhere("${filterField["column_name"]} $sqliteOperator ?");
+
+        if (operator == "ILIKE") {
+          dmlAssemblers.parameter("%$defaultValue%");
+        } else if (defaultValue == "\$now") {
+          dmlAssemblers.parameter(
+            DateTime.now().toIso8601String().substring(0, 10),
+          );
+        } else if (StringUtils.equalsIgnoreCase(defaultValue, "\$selector")) {
+          dmlAssemblers.parameter(currentSalesUnitId);
+        } else {
+          dmlAssemblers.parameter(defaultValue);
         }
       }
     }
@@ -492,6 +541,120 @@ class Offlines {
     listResponse.data.addAll(rows);
 
     return listResponse;
+  }
+
+  // Mirrors DynamicFormService.listFilterResources() / PressLOV.LOV_DYNAMIC_REPORT
+  // and PressLOV.LOV_DYNAMIC_FIELD_COMBO_BOX_FILTER verbatim, against the
+  // locally-synced tables, for a DATA/COMBOBOX-type c_custom_filter_field row.
+  static Future<Map<String, String>> filterResource({
+    required String field,
+  }) async {
+    Map<String, String> resources = {};
+
+    Map<String, dynamic>? filterField = await DMLAssemblers
+        .create()
+        .select("*")
+        .from("c_custom_filter_field")
+        .equalTo("id", field)
+        .first();
+
+    if (filterField == null) {
+      return resources;
+    }
+
+    String fieldType = filterField["field_type"] ?? "";
+    String fieldName = filterField["field_name"]?.toString() ?? "";
+
+    if (fieldType == "DATA") {
+      String? columnName = (await DMLAssemblers
+          .create()
+          .select("src_link_field_value")
+          .from("c_field_custom_form")
+          .equalTo("column_id", fieldName)
+          .first())?["src_link_field_value"];
+
+      String? srcTableId = (await DMLAssemblers
+          .create()
+          .select("src_table_id")
+          .from("f_dynamic_table_detail")
+          .equalTo("id", fieldName)
+          .first())?["src_table_id"]
+          ?.toString();
+
+      String? table;
+
+      if (StringUtils.isNotNullOrEmpty(srcTableId)) {
+        table = (await DMLAssemblers
+            .create()
+            .select("table_name")
+            .from("f_dynamic_table")
+            .equalTo("id", srcTableId!)
+            .first())?["table_name"];
+      }
+
+      String? srcColumnId = (await DMLAssemblers
+          .create()
+          .select("src_column_id")
+          .from("f_dynamic_table_detail")
+          .equalTo("id", fieldName)
+          .first())?["src_column_id"]
+          ?.toString();
+
+      String? columnId;
+
+      if (StringUtils.isNotNullOrEmpty(srcColumnId)) {
+        columnId = (await DMLAssemblers
+            .create()
+            .select("column_name")
+            .from("f_dynamic_table_detail")
+            .equalTo("id", srcColumnId!)
+            .first())?["column_name"];
+      }
+
+      if (StringUtils.isNotNullOrEmpty(columnName) &&
+          StringUtils.isNotNullOrEmpty(columnId) &&
+          StringUtils.isNotNullOrEmpty(table)) {
+        List<Map<String, dynamic>> rows = await DMLAssemblers
+            .create()
+            .select(columnId!)
+            .select(columnName!)
+            .from(table!)
+            .isNotNull(columnId)
+            .groupBy(columnId)
+            .groupBy(columnName)
+            .asc(columnName)
+            .all();
+
+        for (Map<String, dynamic> row in rows) {
+          dynamic key = row[columnId];
+          dynamic value = row[columnName];
+
+          if (key != null) {
+            resources[key.toString()] =
+                value != null ? value.toString() : key.toString();
+          }
+        }
+      }
+    } else if (fieldType == "COMBOBOX") {
+      String? listValue = (await DMLAssemblers
+          .create()
+          .select("dropdown_value")
+          .from("f_dynamic_table_detail")
+          .equalTo("id", fieldName)
+          .first())?["dropdown_value"];
+
+      if (StringUtils.isNotNullOrEmpty(listValue)) {
+        for (String option in listValue!.split("\n")) {
+          String trimmed = option.trim();
+
+          if (trimmed.isNotEmpty) {
+            resources[trimmed] = trimmed;
+          }
+        }
+      }
+    }
+
+    return resources;
   }
 
   static Future<Map<String, dynamic>?> loadCustomFormView(String formId) async {

@@ -82,6 +82,7 @@ class DotApis {
   Future<ListResponse?> dynamicFormList({
     required String id,
     String? customerId,
+    Map<String, dynamic>? filters,
   }) async {
     Map<String, String> headers = {};
 
@@ -89,14 +90,20 @@ class DotApis {
       headers["sfa-customer-id"] = customerId!;
     }
 
+    Map<String, dynamic> queryParameters = {
+      "id": id,
+    };
+
+    if (filters != null && filters.isNotEmpty) {
+      queryParameters["filters"] = jsonEncode(filters);
+    }
+
     Response response = await dio.get(
       "v2/dynamic-forms/list",
       options: Options(
         headers: headers,
       ),
-      queryParameters: {
-        "id": id,
-      },
+      queryParameters: queryParameters,
     );
 
     if (response.statusCode == 200) {
@@ -104,6 +111,24 @@ class DotApis {
     }
 
     return null;
+  }
+
+  Future<Map<String, String>> dynamicFormListFilterResources({
+    required String id,
+    required String field,
+  }) async {
+    Response response = await dio.get(
+      "v2/dynamic-forms/list/$id/filter-resources",
+      queryParameters: {
+        "field": field,
+      },
+    );
+
+    if (response.statusCode == 200 && response.data != null) {
+      return Map<String, String>.from(response.data);
+    }
+
+    return {};
   }
 
   Future<Response> dynamicScheduleTemplate({
@@ -130,6 +155,7 @@ class DotApis {
     required Jiffy until,
     String? customerId,
     String? formId,
+    Map<String, dynamic>? filters,
   }) async {
     Map<String, String> headers = {};
 
@@ -144,6 +170,10 @@ class DotApis {
 
     if (StringUtils.isNotNullOrEmpty(formId)) {
       queryParameters["formId"] = formId!;
+    }
+
+    if (filters != null && filters.isNotEmpty) {
+      queryParameters["filters"] = jsonEncode(filters);
     }
 
     return await dio.get(
