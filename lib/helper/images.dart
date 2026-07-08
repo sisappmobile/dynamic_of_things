@@ -1,16 +1,64 @@
 import "dart:math" as math;
-import "dart:typed_data";
 
 import "package:base/base.dart";
 import "package:camera/camera.dart";
+import "package:dynamic_of_things/enumeration/constant.dart";
+import "package:dynamic_of_things/helper/preferences.dart";
 import "package:easy_localization/easy_localization.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_image_compress/flutter_image_compress.dart";
+import "package:gal/gal.dart";
 import "package:geocoding/geocoding.dart";
 import "package:image/image.dart" as img;
 import "package:image_picker/image_picker.dart";
 
 class Images {
+  static bool get _shouldSaveCameraImage {
+    try {
+      return Preferences.getInstance().getBool(
+            SharedPreferenceKey.SAVE_IMAGE,
+            false,
+          ) ??
+          false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<void> saveCameraImageToGalleryIfEnabled(
+    Uint8List bytes,
+  ) async {
+    final bool isMobileTarget =
+        defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS;
+
+    if (kIsWeb || bytes.isEmpty || !_shouldSaveCameraImage || !isMobileTarget) {
+      return;
+    }
+
+    try {
+      bool hasAccess = await Gal.hasAccess();
+
+      if (!hasAccess) {
+        hasAccess = await Gal.requestAccess();
+      }
+
+      if (!hasAccess) {
+        return;
+      }
+
+      await Gal.putImageBytes(
+        bytes,
+        name: "dynamic_form_${DateTime.now().millisecondsSinceEpoch}",
+      );
+    } on GalException catch (e) {
+      debugPrint("save camera image to gallery error $e");
+    } catch (e) {
+      debugPrint("save camera image to gallery error $e");
+    }
+  }
+
   static String _cameraWatermarkTimestamp(DateTime value) {
     return DateFormat("dd MMMM yyyy : HH:mm.ss", "id").format(value);
   }
@@ -40,7 +88,10 @@ class Images {
             [
               placemark.thoroughfare,
               placemark.subThoroughfare,
-            ].whereType<String>().where((String item) => item.trim().isNotEmpty).join(" "),
+            ]
+                .whereType<String>()
+                .where((String item) => item.trim().isNotEmpty)
+                .join(" "),
           ) ??
           _normalizedValue(placemark.name),
       _normalizedValue(placemark.subLocality),
@@ -150,8 +201,10 @@ class Images {
       return <String>[trimmed];
     }
 
-    final List<String> words =
-        trimmed.split(RegExp(r"\s+")).where((String item) => item.isNotEmpty).toList();
+    final List<String> words = trimmed
+        .split(RegExp(r"\s+"))
+        .where((String item) => item.isNotEmpty)
+        .toList();
 
     if (words.isEmpty) {
       return <String>[trimmed];
@@ -243,8 +296,7 @@ class Images {
       image.width - (padding * 2),
       maxLineWidth + padding + textLeftPadding,
     );
-    final int boxHeight =
-        (padding * 2) +
+    final int boxHeight = (padding * 2) +
         (font.lineHeight * wrappedLines.length) +
         (lineSpacing * (wrappedLines.length - 1));
     final int boxLeft = padding;
@@ -308,15 +360,24 @@ class Images {
     bool legacy = false,
   }) async {
     if (legacy) {
-      final XFile? xFile = await ImagePicker().pickImage(source: ImageSource.camera);
+      final XFile? xFile =
+          await ImagePicker().pickImage(source: ImageSource.camera);
 
       if (xFile != null) {
         final Uint8List bytesFile = Uint8List.fromList(
           await xFile.readAsBytes(),
         );
 
-        final Uint8List watermarkedBytes = await processCameraCaptureBytes(bytesFile);
-        final Uint8List compressedBytes = await FlutterImageCompress.compressWithList(watermarkedBytes, minWidth: 640, minHeight: 480);
+        final Uint8List watermarkedBytes =
+            await processCameraCaptureBytes(bytesFile);
+        final Uint8List compressedBytes =
+            await FlutterImageCompress.compressWithList(
+          watermarkedBytes,
+          minWidth: 640,
+          minHeight: 480,
+        );
+
+        await saveCameraImageToGalleryIfEnabled(compressedBytes);
 
         callback.call(compressedBytes);
       }
@@ -451,8 +512,14 @@ class _WatermarkedCameraPageState extends State<_WatermarkedCameraPage> {
       final Uint8List bytesFile = Uint8List.fromList(
         await xFile.readAsBytes(),
       );
-      final Uint8List watermarkedBytes = await Images.processCameraCaptureBytes(bytesFile);
-      final Uint8List compressedBytes = await FlutterImageCompress.compressWithList(watermarkedBytes, minWidth: 640, minHeight: 480);
+      final Uint8List watermarkedBytes =
+          await Images.processCameraCaptureBytes(bytesFile);
+      final Uint8List compressedBytes =
+          await FlutterImageCompress.compressWithList(
+        watermarkedBytes,
+        minWidth: 640,
+        minHeight: 480,
+      );
 
       if (!mounted) {
         return;
@@ -649,7 +716,8 @@ class _WatermarkedCameraPreviewPage extends StatelessWidget {
                           Icons.check,
                           color: Colors.white,
                         ),
-                        onPressed: () {
+                        onPressed: () async {
+                          await Images.saveCameraImageToGalleryIfEnabled(bytes);
                           Navigators.pop();
                           callback.call(bytes);
                         },

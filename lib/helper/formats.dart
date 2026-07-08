@@ -52,13 +52,19 @@ class Formats {
   static bool tryParseBool(dynamic value) {
     if (value != null) {
       if (value is String) {
-        try {
-          return bool.parse(value);
-        } catch (ex) {
-          return value == "Y";
+        final String normalized = value.trim().toLowerCase();
+
+        if (["true", "1", "yes", "y"].contains(normalized)) {
+          return true;
         }
-      } else if (value is int) {
-        return value == 1;
+
+        if (["false", "0", "no", "n", ""].contains(normalized)) {
+          return false;
+        }
+
+        return false;
+      } else if (value is num) {
+        return value != 0;
       } else if (value is bool) {
         return value;
       } else {
@@ -70,7 +76,10 @@ class Formats {
   }
 
   static TimeOfDay parseTime(String string) {
-    return TimeOfDay(hour: int.parse(string.split(":")[0]), minute: int.parse(string.split(":")[1]));
+    return TimeOfDay(
+      hour: int.parse(string.split(":")[0]),
+      minute: int.parse(string.split(":")[1]),
+    );
   }
 
   static String date(dynamic value, {String? defaultString}) {
@@ -87,7 +96,8 @@ class Formats {
 
   static String time(TimeOfDay? timeOfDay, {String? defaultString}) {
     if (timeOfDay != null) {
-      return const DefaultMaterialLocalizations().formatTimeOfDay(timeOfDay, alwaysUse24HourFormat: true);
+      return const DefaultMaterialLocalizations()
+          .formatTimeOfDay(timeOfDay, alwaysUse24HourFormat: true);
     } else {
       return defaultString ?? "N/A";
     }

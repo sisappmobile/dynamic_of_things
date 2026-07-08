@@ -117,6 +117,7 @@ Future<void> main() async {
   );
 
   await BasePreferences.getInstance().init();
+  await Preferences.getInstance().init();
 
   if (Sqlites.supported) {
     await Sqlites.get();
@@ -377,9 +378,8 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
       GlobalKey<FormState>(debugLabel: "formState");
 
   bool obscurePassword = true;
-  String deviceId = kIsWeb
-      ? "6b4f6adeafbc4d18a3c0e83ddaaaea8c"
-      : "6b4f6adeafbc4d18a3c0e83ddaaaea8c";
+  String deviceId =
+      kIsWeb ? "6b4f6adeafbc4d18a3c0e83ddaaaea8c" : "b9f6d547f1f9b61c";
   // String deviceId = "2c49b31455f471db";
   // String deviceId = "6b4f6adeafbc4d18a3c0e83ddaaaea8c";
   // String deviceId = "2c49b31455f471db";
@@ -516,6 +516,14 @@ class SignInPageState extends State<SignInPage> with WidgetsBindingObserver {
                               await setBusinessUnitId(json["BUID"]);
                               await setBusinessUnitCode(
                                 json["businessUnitCode"],
+                              );
+                              await Preferences.getInstance().setBool(
+                                SharedPreferenceKey.SAVE_IMAGE,
+                                Formats.tryParseBool(
+                                  json["saveImage"] ??
+                                      json["saveimage"] ??
+                                      json["save_image"],
+                                ),
                               );
 
                               context.go("/");
