@@ -5,6 +5,7 @@ import "package:camera/camera.dart";
 import "package:dynamic_of_things/helper/images.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:file_picker/file_picker.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:go_router/go_router.dart";
 import "package:image_picker/image_picker.dart";
@@ -48,8 +49,21 @@ class Dialogs {
                       onTap: () async {
                         if (multiple) {
                           List<XFile> xFiles =
-                              await ImagePicker().pickMultiImage(
-                            imageQuality: 20,
+                              await ImagePicker().pickMultiImage();
+
+                          xFiles = await Future.wait(
+                            xFiles.map((XFile file) async {
+                              final Uint8List compressed =
+                                  await Images.compressPhoto(
+                                await file.readAsBytes(),
+                              );
+
+                              return XFile.fromData(
+                                compressed,
+                                name: Images.jpegFileName(file.name),
+                                mimeType: Images.photoMimeType,
+                              );
+                            }),
                           );
 
                           if (BaseSettings.navigatorType ==
@@ -63,10 +77,19 @@ class Dialogs {
                         } else {
                           XFile? xFile = await ImagePicker().pickImage(
                             source: ImageSource.gallery,
-                            imageQuality: 20,
                           );
 
                           if (xFile != null) {
+                            final Uint8List compressed =
+                                await Images.compressPhoto(
+                              await xFile.readAsBytes(),
+                            );
+                            xFile = XFile.fromData(
+                              compressed,
+                              name: Images.jpegFileName(xFile.name),
+                              mimeType: Images.photoMimeType,
+                            );
+
                             if (BaseSettings.navigatorType ==
                                 BaseNavigatorType.legacy) {
                               Navigators.pop();
@@ -113,8 +136,8 @@ class Dialogs {
                               XFile.fromData(
                                 bytes,
                                 name:
-                                    "${DateTime.now().millisecondsSinceEpoch.toString()}.png",
-                                mimeType: "image/png",
+                                    "${DateTime.now().millisecondsSinceEpoch.toString()}.jpg",
+                                mimeType: Images.photoMimeType,
                               ),
                             ]);
                           },
@@ -151,8 +174,8 @@ class Dialogs {
           callback.call([
             XFile.fromData(
               bytes,
-              name: "${DateTime.now().millisecondsSinceEpoch.toString()}.png",
-              mimeType: "image/png",
+              name: "${DateTime.now().millisecondsSinceEpoch.toString()}.jpg",
+              mimeType: Images.photoMimeType,
             ),
           ]);
         },

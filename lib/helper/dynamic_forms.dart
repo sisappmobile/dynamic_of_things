@@ -1,6 +1,5 @@
 import "dart:convert";
 import "dart:io";
-
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:collection/collection.dart";
@@ -8,6 +7,7 @@ import "package:dynamic_of_things/enumeration/dynamic_form_field_type.dart";
 import "package:dynamic_of_things/helper/custom_attachments.dart";
 import "package:dynamic_of_things/helper/dynamic_form_texts.dart";
 import "package:dynamic_of_things/helper/formats.dart";
+import "package:dynamic_of_things/helper/images.dart";
 import "package:dynamic_of_things/model/attachment.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:flutter/foundation.dart";
@@ -150,11 +150,23 @@ class DynamicForms {
           DynamicFormFieldType.UPLOAD_SIGNATURE.name,
         ])) {
           Attachment attachment = value;
+          Uint8List bytes = attachment.bytes!;
+          String? name = attachment.name;
+          String? mime = attachment.mime;
+
+          if (StringUtils.inList(field.type, [
+            DynamicFormFieldType.FOTO.name,
+            DynamicFormFieldType.UPLOAD_FOTO.name,
+          ])) {
+            bytes = await Images.compressPhoto(bytes);
+            name = Images.jpegFileName(name);
+            mime = Images.photoMimeType;
+          }
 
           row[key] = {
-            "name": attachment.name,
-            "mime": attachment.mime,
-            "bytes": base64Encode(attachment.bytes!),
+            "name": name,
+            "mime": mime,
+            "bytes": base64Encode(bytes),
           };
         } else {
           row[key] = value;
@@ -356,7 +368,10 @@ class DynamicForms {
               ..name = json["name"]
               ..mime = json["mime"]
               ..url = json["url"]
-              ..bytes = json["bytes"] != null && json["bytes"].toString().isNotEmpty ? base64Decode(json["bytes"]) : null;
+              ..bytes =
+                  json["bytes"] != null && json["bytes"].toString().isNotEmpty
+                      ? base64Decode(json["bytes"])
+                      : null;
 
             if (!kIsWeb &&
                 StringUtils.inList(field.type, [

@@ -14,6 +14,189 @@ import "package:image/image.dart" as img;
 import "package:image_picker/image_picker.dart";
 
 class Images {
+  /// Leave a little headroom below 100 KB for storage/server metadata.
+  static const int maxPhotoSizeBytes = 95 * 1024;
+  static const String photoMimeType = "image/jpeg";
+
+  static const List<({int width, int height})> _photoDimensions = [
+    (width: 720, height: 720),
+    (width: 600, height: 600),
+    (width: 480, height: 480),
+    (width: 360, height: 360),
+    (width: 240, height: 240),
+  ];
+
+  static bool _isJpeg(Uint8List bytes) {
+    return bytes.length >= 3 &&
+        bytes[0] == 0xff &&
+        bytes[1] == 0xd8 &&
+        bytes[2] == 0xff;
+  }
+
+  static String jpegFileName(String? originalName) {
+    final String trimmed = (originalName ?? "").trim();
+    final String fallback = DateTime.now().millisecondsSinceEpoch.toString();
+
+    if (trimmed.isEmpty) {
+      return "$fallback.jpg";
+    }
+
+    final int separatorIndex = math.max(
+      trimmed.lastIndexOf("/"),
+      trimmed.lastIndexOf("\\"),
+    );
+    final int extensionIndex = trimmed.lastIndexOf(".");
+    final String baseName = extensionIndex > separatorIndex
+        ? trimmed.substring(0, extensionIndex)
+        : trimmed;
+
+    return "${baseName.isEmpty ? fallback : baseName}.jpg";
+  }
+
+  static Future<Uint8List> _compressPhotoCandidate({
+    required Uint8List source,
+    required int width,
+    required int height,
+    required int quality,
+  }) {
+    return FlutterImageCompress.compressWithList(
+      source,
+      minWidth: width,
+      minHeight: height,
+      quality: quality,
+      autoCorrectionAngle: true,
+      format: CompressFormat.jpeg,
+      keepExif: false,
+    );
+  }
+
+  static Uint8List _compressPhotoWithDart(
+    Uint8List source, {
+    required int maxBytes,
+  }) {
+    img.Image? decoded = img.decodeImage(source);
+
+    if (decoded == null) {
+      throw const FormatException("The selected photo cannot be decoded");
+    }
+
+    decoded = img.bakeOrientation(decoded);
+
+    for (final ({int width, int height}) dimension in _photoDimensions) {
+      final int longestSide = math.max(decoded.width, decoded.height);
+      final int targetLongestSide = math.max(dimension.width, dimension.height);
+      final img.Image resized = longestSide > targetLongestSide
+          ? img.copyResize(
+              decoded,
+              width: decoded.width >= decoded.height ? targetLongestSide : null,
+              height: decoded.height > decoded.width ? targetLongestSide : null,
+              interpolation: img.Interpolation.average,
+            )
+          : decoded;
+
+      for (int quality = 85; quality >= 10; quality -= 5) {
+        final Uint8List candidate = img.encodeJpg(resized, quality: quality);
+
+        if (candidate.length <= maxBytes) {
+          return candidate;
+        }
+      }
+    }
+
+    // A valid JPEG at this size is expected to be far below the target. This
+    // final fallback makes the byte limit deterministic even for very noisy
+    // source images.
+    final img.Image thumbnail = img.copyResize(
+      decoded,
+      width: decoded.width >= decoded.height ? 160 : null,
+      height: decoded.height > decoded.width ? 160 : null,
+      interpolation: img.Interpolation.average,
+    );
+    final Uint8List candidate = img.encodeJpg(thumbnail, quality: 10);
+
+    if (candidate.length > maxBytes) {
+      throw StateError("Unable to compress photo below $maxBytes bytes");
+    }
+
+    return candidate;
+  }
+
+  /// Converts a photo to JPEG and finds the highest practical quality below
+  /// [maxBytes]. Resolution is reduced only when the minimum acceptable
+  /// quality at the current resolution is still too large.
+  static Future<Uint8List> compressPhoto(
+    Uint8List source, {
+    int maxBytes = maxPhotoSizeBytes,
+  }) async {
+    if (source.isEmpty) {
+      throw const FormatException("The selected photo is empty");
+    }
+
+    if (maxBytes <= 0) {
+      throw ArgumentError.value(maxBytes, "maxBytes", "Must be positive");
+    }
+
+    if (_isJpeg(source) && source.length <= maxBytes) {
+      return source;
+    }
+
+    try {
+      for (final ({int width, int height}) dimension in _photoDimensions) {
+        const int minimumQuality = 30;
+        const int maximumQuality = 85;
+        final Uint8List maximumCandidate = await _compressPhotoCandidate(
+          source: source,
+          width: dimension.width,
+          height: dimension.height,
+          quality: maximumQuality,
+        );
+
+        if (maximumCandidate.isNotEmpty &&
+            maximumCandidate.length <= maxBytes) {
+          return maximumCandidate;
+        }
+
+        final Uint8List minimumCandidate = await _compressPhotoCandidate(
+          source: source,
+          width: dimension.width,
+          height: dimension.height,
+          quality: minimumQuality,
+        );
+
+        if (minimumCandidate.isEmpty || minimumCandidate.length > maxBytes) {
+          continue;
+        }
+
+        Uint8List bestCandidate = minimumCandidate;
+        int low = minimumQuality + 1;
+        int high = maximumQuality - 1;
+
+        while (low <= high) {
+          final int quality = (low + high) ~/ 2;
+          final Uint8List candidate = await _compressPhotoCandidate(
+            source: source,
+            width: dimension.width,
+            height: dimension.height,
+            quality: quality,
+          );
+
+          if (candidate.isNotEmpty && candidate.length <= maxBytes) {
+            bestCandidate = candidate;
+            low = quality + 1;
+          } else {
+            high = quality - 1;
+          }
+        }
+
+        return bestCandidate;
+      }
+    } catch (error) {
+      debugPrint("native photo compression error $error");
+    }
+
+    return _compressPhotoWithDart(source, maxBytes: maxBytes);
+  }
+
   static bool _parseSaveImageFlag(Object? value) {
     if (value is bool) {
       return value;
@@ -382,9 +565,7 @@ class Images {
       cursorY += font.lineHeight + lineSpacing;
     }
 
-    return Uint8List.fromList(
-      img.encodePng(image),
-    );
+    return img.encodeJpg(image, quality: 90);
   }
 
   static Future<Uint8List> processCameraCaptureBytes(Uint8List bytes) async {
@@ -413,11 +594,8 @@ class Images {
 
         final Uint8List watermarkedBytes =
             await processCameraCaptureBytes(bytesFile);
-        final Uint8List compressedBytes =
-            await FlutterImageCompress.compressWithList(
+        final Uint8List compressedBytes = await compressPhoto(
           watermarkedBytes,
-          minWidth: 640,
-          minHeight: 480,
         );
 
         await saveCameraImageToGalleryIfEnabled(compressedBytes);
@@ -557,11 +735,8 @@ class _WatermarkedCameraPageState extends State<_WatermarkedCameraPage> {
       );
       final Uint8List watermarkedBytes =
           await Images.processCameraCaptureBytes(bytesFile);
-      final Uint8List compressedBytes =
-          await FlutterImageCompress.compressWithList(
+      final Uint8List compressedBytes = await Images.compressPhoto(
         watermarkedBytes,
-        minWidth: 640,
-        minHeight: 480,
       );
 
       if (!mounted) {

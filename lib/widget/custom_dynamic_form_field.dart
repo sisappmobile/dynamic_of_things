@@ -31,7 +31,6 @@ import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
-import "package:flutter_image_compress/flutter_image_compress.dart";
 import "package:get/get_utils/src/extensions/internacionalization.dart"
     hide Trans;
 import "package:loader_overlay/loader_overlay.dart";
@@ -1135,11 +1134,10 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                         extension,
                         ["jpg", "jpeg", "png", "webp", "heic"],
                       )))) {
-            attachment.bytes = await FlutterImageCompress.compressWithList(
-              fileBytes,
-              minWidth: 640,
-              minHeight: 480,
-            );
+            attachment
+              ..bytes = await Images.compressPhoto(fileBytes)
+              ..name = Images.jpegFileName(attachment.name)
+              ..mime = Images.photoMimeType;
           }
 
           attachment.bytes ??= fileBytes;
@@ -1154,8 +1152,8 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         context: context,
         callback: (bytes) async {
           Attachment attachment = Attachment()
-            ..name = DateTime.now().millisecondsSinceEpoch.toString()
-            ..mime = "image/png"
+            ..name = "${DateTime.now().millisecondsSinceEpoch.toString()}.jpg"
+            ..mime = Images.photoMimeType
             ..bytes = bytes;
           widget.field.setValue(widget.data, attachment);
         },
