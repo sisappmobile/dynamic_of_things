@@ -14,16 +14,16 @@ import "package:image/image.dart" as img;
 import "package:image_picker/image_picker.dart";
 
 class Images {
-  /// Leave a little headroom below 100 KB for storage/server metadata.
-  static const int maxPhotoSizeBytes = 95 * 1024;
+  /// Keep evidence photos small enough for low-bandwidth synchronization.
+  static const int maxPhotoSizeBytes = 30 * 1024;
+  static const int maxPhotoPixelCount = 400 * 1000;
   static const String photoMimeType = "image/jpeg";
 
   static const List<({int width, int height})> _photoDimensions = [
-    (width: 720, height: 720),
-    (width: 600, height: 600),
-    (width: 480, height: 480),
-    (width: 360, height: 360),
+    (width: 400, height: 400),
+    (width: 320, height: 320),
     (width: 240, height: 240),
+    (width: 160, height: 160),
   ];
 
   static bool _isJpeg(Uint8List bytes) {
@@ -31,6 +31,17 @@ class Images {
         bytes[0] == 0xff &&
         bytes[1] == 0xd8 &&
         bytes[2] == 0xff;
+  }
+
+  static bool _jpegMeetsPhotoLimits(Uint8List bytes, int maxBytes) {
+    if (!_isJpeg(bytes) || bytes.length > maxBytes) {
+      return false;
+    }
+
+    final img.Image? decoded = img.decodeImage(bytes);
+
+    return decoded != null &&
+        (decoded.width * decoded.height) <= maxPhotoPixelCount;
   }
 
   static String jpegFileName(String? originalName) {
@@ -94,7 +105,7 @@ class Images {
             )
           : decoded;
 
-      for (int quality = 85; quality >= 10; quality -= 5) {
+      for (int quality = 70; quality >= 10; quality -= 5) {
         final Uint8List candidate = img.encodeJpg(resized, quality: quality);
 
         if (candidate.length <= maxBytes) {
@@ -108,8 +119,8 @@ class Images {
     // source images.
     final img.Image thumbnail = img.copyResize(
       decoded,
-      width: decoded.width >= decoded.height ? 160 : null,
-      height: decoded.height > decoded.width ? 160 : null,
+      width: decoded.width >= decoded.height ? 120 : null,
+      height: decoded.height > decoded.width ? 120 : null,
       interpolation: img.Interpolation.average,
     );
     final Uint8List candidate = img.encodeJpg(thumbnail, quality: 10);
@@ -121,9 +132,8 @@ class Images {
     return candidate;
   }
 
-  /// Converts a photo to JPEG and finds the highest practical quality below
-  /// [maxBytes]. Resolution is reduced only when the minimum acceptable
-  /// quality at the current resolution is still too large.
+  /// Converts a photo to a low-resolution JPEG below [maxBytes]. Quality and
+  /// resolution are reduced progressively so the result stays recognizable.
   static Future<Uint8List> compressPhoto(
     Uint8List source, {
     int maxBytes = maxPhotoSizeBytes,
@@ -136,14 +146,14 @@ class Images {
       throw ArgumentError.value(maxBytes, "maxBytes", "Must be positive");
     }
 
-    if (_isJpeg(source) && source.length <= maxBytes) {
+    if (_jpegMeetsPhotoLimits(source, maxBytes)) {
       return source;
     }
 
     try {
       for (final ({int width, int height}) dimension in _photoDimensions) {
-        const int minimumQuality = 30;
-        const int maximumQuality = 85;
+        const int minimumQuality = 20;
+        const int maximumQuality = 70;
         final Uint8List maximumCandidate = await _compressPhotoCandidate(
           source: source,
           width: dimension.width,
@@ -151,8 +161,7 @@ class Images {
           quality: maximumQuality,
         );
 
-        if (maximumCandidate.isNotEmpty &&
-            maximumCandidate.length <= maxBytes) {
+        if (_jpegMeetsPhotoLimits(maximumCandidate, maxBytes)) {
           return maximumCandidate;
         }
 
@@ -163,7 +172,7 @@ class Images {
           quality: minimumQuality,
         );
 
-        if (minimumCandidate.isEmpty || minimumCandidate.length > maxBytes) {
+        if (!_jpegMeetsPhotoLimits(minimumCandidate, maxBytes)) {
           continue;
         }
 
@@ -180,7 +189,7 @@ class Images {
             quality: quality,
           );
 
-          if (candidate.isNotEmpty && candidate.length <= maxBytes) {
+          if (_jpegMeetsPhotoLimits(candidate, maxBytes)) {
             bestCandidate = candidate;
             low = quality + 1;
           } else {
