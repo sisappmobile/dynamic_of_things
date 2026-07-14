@@ -159,8 +159,8 @@ class DynamicForms {
             DynamicFormFieldType.UPLOAD_FOTO.name,
           ])) {
             bytes = await Images.compressPhoto(bytes);
-            name = Images.jpegFileName(name);
-            mime = Images.photoMimeType;
+            name = Images.photoFileName(name, bytes);
+            mime = Images.photoMimeTypeForBytes(bytes);
           }
 
           row[key] = {

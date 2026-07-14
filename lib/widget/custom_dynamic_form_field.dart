@@ -1136,8 +1136,11 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                       )))) {
             attachment
               ..bytes = await Images.compressPhoto(fileBytes)
-              ..name = Images.jpegFileName(attachment.name)
-              ..mime = Images.photoMimeType;
+              ..name = Images.photoFileName(
+                attachment.name,
+                attachment.bytes!,
+              )
+              ..mime = Images.photoMimeTypeForBytes(attachment.bytes!);
           }
 
           attachment.bytes ??= fileBytes;
@@ -1152,8 +1155,11 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         context: context,
         callback: (bytes) async {
           Attachment attachment = Attachment()
-            ..name = "${DateTime.now().millisecondsSinceEpoch.toString()}.jpg"
-            ..mime = Images.photoMimeType
+            ..name = Images.photoFileName(
+              DateTime.now().millisecondsSinceEpoch.toString(),
+              bytes,
+            )
+            ..mime = Images.photoMimeTypeForBytes(bytes)
             ..bytes = bytes;
           widget.field.setValue(widget.data, attachment);
         },

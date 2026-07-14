@@ -60,8 +60,12 @@ class Dialogs {
 
                               return XFile.fromData(
                                 compressed,
-                                name: Images.jpegFileName(file.name),
-                                mimeType: Images.photoMimeType,
+                                name: Images.photoFileName(
+                                  file.name,
+                                  compressed,
+                                ),
+                                mimeType:
+                                    Images.photoMimeTypeForBytes(compressed),
                               );
                             }),
                           );
@@ -86,8 +90,12 @@ class Dialogs {
                             );
                             xFile = XFile.fromData(
                               compressed,
-                              name: Images.jpegFileName(xFile.name),
-                              mimeType: Images.photoMimeType,
+                              name: Images.photoFileName(
+                                xFile.name,
+                                compressed,
+                              ),
+                              mimeType:
+                                  Images.photoMimeTypeForBytes(compressed),
                             );
 
                             if (BaseSettings.navigatorType ==
@@ -135,9 +143,13 @@ class Dialogs {
                             callback.call([
                               XFile.fromData(
                                 bytes,
-                                name:
-                                    "${DateTime.now().millisecondsSinceEpoch.toString()}.jpg",
-                                mimeType: Images.photoMimeType,
+                                name: Images.photoFileName(
+                                  DateTime.now()
+                                      .millisecondsSinceEpoch
+                                      .toString(),
+                                  bytes,
+                                ),
+                                mimeType: Images.photoMimeTypeForBytes(bytes),
                               ),
                             ]);
                           },
@@ -174,8 +186,11 @@ class Dialogs {
           callback.call([
             XFile.fromData(
               bytes,
-              name: "${DateTime.now().millisecondsSinceEpoch.toString()}.jpg",
-              mimeType: Images.photoMimeType,
+              name: Images.photoFileName(
+                DateTime.now().millisecondsSinceEpoch.toString(),
+                bytes,
+              ),
+              mimeType: Images.photoMimeTypeForBytes(bytes),
             ),
           ]);
         },
