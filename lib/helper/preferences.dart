@@ -27,6 +27,38 @@ class Preferences {
     return sharedPreferences.getBool(sharedPreferenceKey.name) ?? defValue;
   }
 
+  bool getFlexibleBool(
+    SharedPreferenceKey sharedPreferenceKey, [
+    bool defValue = false,
+  ]) {
+    Object? value = sharedPreferences.get(sharedPreferenceKey.name);
+    final String? legacyKey = sharedPreferenceKey.legacyKey;
+
+    if (value == null &&
+        StringUtils.isNotNullOrEmpty(legacyKey) &&
+        legacyKey != sharedPreferenceKey.name) {
+      value = sharedPreferences.get(legacyKey!);
+    }
+
+    if (value is bool) {
+      return value;
+    }
+    if (value is int) {
+      return value == 1;
+    }
+    if (value is String) {
+      final String normalizedValue = value.trim().toLowerCase();
+      if (normalizedValue == "1" || normalizedValue == "true") {
+        return true;
+      }
+      if (normalizedValue == "0" || normalizedValue == "false") {
+        return false;
+      }
+    }
+
+    return defValue;
+  }
+
   int? getInt(SharedPreferenceKey sharedPreferenceKey, [int? defValue]) {
     return sharedPreferences.getInt(sharedPreferenceKey.name) ?? defValue;
   }

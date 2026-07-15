@@ -1816,9 +1816,16 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   }
 
   bool get supportsDocumentScanner {
-    return !kIsWeb &&
-        (defaultTargetPlatform == TargetPlatform.android ||
-            defaultTargetPlatform == TargetPlatform.iOS);
+    try {
+      return !kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.android ||
+              defaultTargetPlatform == TargetPlatform.iOS) &&
+          Preferences.getInstance().getFlexibleBool(
+            SharedPreferenceKey.AUTO_FILL_SCANNER,
+          );
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> scanDocumentToPdf() async {
