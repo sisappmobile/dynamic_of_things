@@ -9,6 +9,7 @@ import "package:dynamic_of_things/enumeration/dynamic_form_field_type.dart";
 import "package:dynamic_of_things/enumeration/dynamic_form_validation_type.dart";
 import "package:dynamic_of_things/helper/bottom_sheets.dart";
 import "package:dynamic_of_things/helper/dialogs.dart";
+import "package:dynamic_of_things/helper/document_scans.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/formats.dart";
@@ -1814,6 +1815,40 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
         attachment.name?.toLowerCase().endsWith(".pdf") == true;
   }
 
+  bool get supportsDocumentScanner {
+    return !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
+  }
+
+  Future<void> scanDocumentToPdf() async {
+    try {
+      context.loaderOverlay.show();
+
+      final ScannedPdf? scannedPdf = await DocumentScans.scanToPdf();
+      if (scannedPdf == null || !mounted) {
+        return;
+      }
+
+      widget.field.setValue(
+        widget.data,
+        Attachment(
+          name: scannedPdf.fileName,
+          mime: "application/pdf",
+          bytes: scannedPdf.bytes,
+        ),
+      );
+    } catch (_) {
+      if (mounted) {
+        BaseOverlays.error(message: "scan_to_pdf_failed".tr());
+      }
+    } finally {
+      if (mounted) {
+        context.loaderOverlay.hide();
+      }
+    }
+  }
+
   Widget attachmentPlaceholder({
     required Attachment attachment,
     required IconData icon,
@@ -1902,6 +1937,15 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
                 icon: Icons.upload,
                 text: "choose_file".tr().toUpperCase(),
                 onTap: () => onPressed(),
+              ),
+              Visibility(
+                visible: widget.field.type == DynamicFormFieldType.FILE.name &&
+                    supportsDocumentScanner,
+                child: actionPill(
+                  icon: Icons.document_scanner_rounded,
+                  text: "scan_to_pdf".tr().toUpperCase(),
+                  onTap: scanDocumentToPdf,
+                ),
               ),
               Visibility(
                 visible: widget.field.type ==

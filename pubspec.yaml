@@ -31,6 +31,9 @@ dependencies:
   pattern_formatter: 4.0.0
   file_picker: 10.1.9
   image_picker: 1.1.2
+  cunning_document_scanner: ^1.2.3
+  google_mlkit_text_recognition: ^0.16.0
+  pdf: ^3.11.3
   smooth_corner: 1.1.1
   collection: 1.19.1
   dotted_border: 3.0.1

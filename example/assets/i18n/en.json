@@ -96,6 +96,8 @@
   "value_must_be_before": "Value must be before {}",
   "value_must_be_after": "Value must be after {}",
   "choose_file": "Choose file",
+  "scan_to_pdf": "Scan to PDF",
+  "scan_to_pdf_failed": "Failed to scan the document. Check camera permission and try again.",
   "record_video": "Record video",
   "take_photo": "Take photo",
   "delete": "Delete",

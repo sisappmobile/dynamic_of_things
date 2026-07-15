@@ -96,6 +96,8 @@
   "value_must_be_before": "Nilai harus sebelum {}",
   "value_must_be_after": "Nilai harus setelah {}",
   "choose_file": "Pilih file",
+  "scan_to_pdf": "Pindai ke PDF",
+  "scan_to_pdf_failed": "Dokumen gagal dipindai. Periksa izin kamera lalu coba lagi.",
   "record_video": "Rekam video",
   "take_photo": "Ambil foto",
   "delete": "Hapus",
