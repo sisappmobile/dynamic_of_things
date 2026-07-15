@@ -1873,18 +1873,20 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
             size: Dimensions.size30,
             color: primary(context),
           ),
-          SizedBox(height: Dimensions.size10),
-          Text(
-            attachment.name ?? "",
-            textAlign: TextAlign.center,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: isGlass
-                  ? Colors.white.withOpacity(0.92)
-                  : AppColors.onSurface(),
-              fontSize: Dimensions.text12,
-              fontWeight: FontWeight.w800,
+          SizedBox(height: Dimensions.size5),
+          Flexible(
+            child: Text(
+              attachment.name ?? "",
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: isGlass
+                    ? Colors.white.withOpacity(0.92)
+                    : AppColors.onSurface(),
+                fontSize: Dimensions.text12,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ],
