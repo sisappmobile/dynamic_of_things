@@ -22,6 +22,21 @@ class DMLAssemblers {
   String? _having;
   final List<dynamic> _parameters = [];
 
+  // sqflite only accepts num, String, Uint8List (and null) as raw query
+  // arguments - a DateTime passed straight through triggers
+  // "Invalid argument ... with type DateTime" (currently just a warning,
+  // but documented to become a thrown exception in a future version).
+  // Every place that pushes onto _parameters routes through here so any
+  // DateTime is normalized once, in one place, rather than requiring every
+  // caller to remember to format it first.
+  dynamic _normalizeParameter(dynamic value) {
+    if (value is DateTime) {
+      return value.toIso8601String();
+    }
+
+    return value;
+  }
+
   DMLAssemblers select(String column, {bool condition = true}) {
     if (condition) {
       _selects.add(column);
@@ -74,7 +89,7 @@ class DMLAssemblers {
     if (condition) {
       if (parameter != null) {
         _wheres.add("$column = ?");
-        _parameters.add(parameter);
+        _parameters.add(_normalizeParameter(parameter));
       }
     }
 
@@ -89,7 +104,7 @@ class DMLAssemblers {
     if (condition) {
       if (parameter != null) {
         _wheres.add("$column != ?");
-        _parameters.add(parameter);
+        _parameters.add(_normalizeParameter(parameter));
       }
     }
 
@@ -104,7 +119,7 @@ class DMLAssemblers {
     if (condition) {
       if (parameter != null) {
         _wheres.add("$column < ?");
-        _parameters.add(parameter);
+        _parameters.add(_normalizeParameter(parameter));
       }
     }
 
@@ -119,7 +134,7 @@ class DMLAssemblers {
     if (condition) {
       if (parameter != null) {
         _wheres.add("$column <= ?");
-        _parameters.add(parameter);
+        _parameters.add(_normalizeParameter(parameter));
       }
     }
 
@@ -134,7 +149,7 @@ class DMLAssemblers {
     if (condition) {
       if (parameter != null) {
         _wheres.add("$column > ?");
-        _parameters.add(parameter);
+        _parameters.add(_normalizeParameter(parameter));
       }
     }
 
@@ -149,7 +164,7 @@ class DMLAssemblers {
     if (condition) {
       if (parameter != null) {
         _wheres.add("$column >= ?");
-        _parameters.add(parameter);
+        _parameters.add(_normalizeParameter(parameter));
       }
     }
 
@@ -175,7 +190,7 @@ class DMLAssemblers {
 
             tags += "?";
 
-            _parameters.add(parameter);
+            _parameters.add(_normalizeParameter(parameter));
           }
         }
 
@@ -262,7 +277,7 @@ class DMLAssemblers {
 
   DMLAssemblers parameter(dynamic value, {bool condition = true}) {
     if (condition) {
-      _parameters.add(value);
+      _parameters.add(_normalizeParameter(value));
     }
 
     return this;
