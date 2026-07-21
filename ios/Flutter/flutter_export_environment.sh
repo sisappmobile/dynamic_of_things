@@ -1,8 +1,7 @@
 #!/bin/sh
 # This is a generated file; do not edit or check into version control.
-export "FLUTTER_ROOT=/Users/satriaramadan/flutter"
-export "FLUTTER_APPLICATION_PATH=/Users/satriaramadan/Documents/Project satria/dynamic_of_things"
-export "FLUTTER_FRAMEWORK_SWIFT_PACKAGE_PATH=/Users/satriaramadan/Documents/Project satria/dynamic_of_things/ios/Flutter/ephemeral/Packages/.packages/FlutterFramework"
+export "FLUTTER_ROOT=/Users/kecoakburikk/fvm/versions/3.41.8"
+export "FLUTTER_APPLICATION_PATH=/Users/kecoakburikk/Documents/project/flutter/dynamic_of_things"
 export "COCOAPODS_PARALLEL_CODE_SIGN=true"
 export "FLUTTER_TARGET=lib/main.dart"
 export "FLUTTER_BUILD_DIR=build"

@@ -1,7 +1,7 @@
 plugins {
     id "com.android.application"
-    // ❌ Remove: id "kotlin-android"   <-- causes the KGP warning
-    id "dev.flutter.flutter-gradle-plugin"  // Flutter's plugin handles Kotlin now
+    id "org.jetbrains.kotlin.android"
+    id "dev.flutter.flutter-gradle-plugin"
 }
 android {
     namespace = "com.sisapp.dot.example"

@@ -7,6 +7,7 @@ import "package:basic_utils/basic_utils.dart";
 import "package:collection/collection.dart";
 import "package:dynamic_of_things/enumeration/dynamic_form_field_type.dart";
 import "package:dynamic_of_things/helper/dml_assemblers.dart";
+import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/helper/json_script_engine.dart";
 import "package:dynamic_of_things/helper/pulls.dart";
 import "package:dynamic_of_things/helper/sqlites.dart";
@@ -155,6 +156,25 @@ Future<void> setCompanyId(String value) async {
 String get currentCompanyId => BasePreferences.getInstance().getString("dot-company-id")!;
 
 class Offlines {
+  // Every raw-SQL value embedded into an INSERT/UPDATE statement in this
+  // file should go through this - a bare `'${value}'` interpolation on a
+  // num (e.g. a pseudo_code arithmetic result, which is a double the
+  // moment any division touches it) stores Dart's raw "25000.0" text, which
+  // Formats.tryParseNumber's id-locale parser later misreads and inflates
+  // 10x on read-back. See Formats.numberToStorageString for the full
+  // explanation.
+  static String? sqlLiteral(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+
+    if (value is num) {
+      return Formats.numberToStorageString(value);
+    }
+
+    return value.toString();
+  }
+
   static Future<DynamicFormMenuResponse> menus(bool journey) async {
     List<Map<String, dynamic>> rows = await DMLAssemblers
         .create()
@@ -1224,6 +1244,23 @@ class Offlines {
       String dataType = fieldCustomFormView["field_data_type"];
 
       if (StringUtils.inList(dataType, ["FILE", "FOTO", "VIDEO", "SIGNATURE", "UPLOAD_FOTO", "UPLOAD_VIDEO", "UPLOAD_SIGNATURE"])) {
+        // getSqlStatements jsonEncode()s the {name, mime, bytes} attachment
+        // map before it's written to the SQLite TEXT column (see the
+        // "f_default_value"... loop above it in this file), so a saved
+        // row's raw value here is that JSON string, not a Map -
+        // DynamicForms.decodeValue only reconstructs an Attachment when it
+        // receives a Map, silently returning null (no visible error) for
+        // anything else. Without decoding it back here, every FILE/FOTO/
+        // VIDEO/SIGNATURE/UPLOAD_* field saved offline appears empty the
+        // next time the record is viewed or edited.
+        if (value is String) {
+          try {
+            return jsonDecode(value);
+          } catch (_) {
+            return value;
+          }
+        }
+
         return value;
       }
     }
@@ -1587,14 +1624,14 @@ class Offlines {
                 .all();
 
             for (Map<String, dynamic> autoFilter in autoFilters) {
-              if (autoFilter["operation"] == "OR") {
-                dmlAssemblers.or();
-              } else {
-                dmlAssemblers.and();
-              }
-
               if (StringUtils.inList(autoFilter["key"], ["customer_id", "cust_id"]) && StringUtils.inList(autoFilter["value"], ["customer_id", "cust_id"])) {
                 if (customerId != null) {
+                  if (autoFilter["operation"] == "OR") {
+                    dmlAssemblers.or();
+                  } else {
+                    dmlAssemblers.and();
+                  }
+
                   dmlAssemblers.customWhere("${autoFilter["key"]} ${autoFilter["operator"]} ?");
                   dmlAssemblers.parameter(customerId);
                 }
@@ -1602,6 +1639,12 @@ class Offlines {
                 dynamic value = dataMap[autoFilter["value"]];
 
                 if (value != null) {
+                  if (autoFilter["operation"] == "OR") {
+                    dmlAssemblers.or();
+                  } else {
+                    dmlAssemblers.and();
+                  }
+
                   dmlAssemblers.customWhere("${autoFilter["key"]} ${autoFilter["operator"]} ?");
 
                   if (autoFilter["operator"] == "LIKE") {
@@ -2373,7 +2416,7 @@ class Offlines {
 
     Iterable<MapEntry<String, dynamic>> iterable = hashDTO.entries.where((entry) => !(entry.value is List || entry.value is Map) && actualFields.contains(entry.key));
 
-    await transaction.rawInsert("INSERT INTO $tableName ( ${iterable.map((entry) => entry.key).join(", ")} ) VALUES ( ${iterable.map((entry) => entry.value != null ? "'${entry.value}'" : "NULL").join(", ")} )");
+    await transaction.rawInsert("INSERT INTO $tableName ( ${iterable.map((entry) => entry.key).join(", ")} ) VALUES ( ${iterable.map((entry) => sqlLiteral(entry.value) != null ? "'${sqlLiteral(entry.value)}'" : "NULL").join(", ")} )");
 
     Map<String, dynamic>? newRow = (await transaction.rawQuery("SELECT * FROM $tableName ORDER BY rowid DESC LIMIT 1")).firstOrNull;
 
@@ -2565,7 +2608,7 @@ class Offlines {
     required Map<String, dynamic> variable,
   }) async {
     String buildData(Map<String, dynamic> dynamicTableTriggerActionDetailView) {
-      return dynamicTableTriggerActionDetailView["key"];
+      return dynamicTableTriggerActionDetailView["column_key"];
     }
 
     String buildCondition(Map<String, dynamic> dynamicTableTriggerActionDetailView) {
@@ -2613,10 +2656,18 @@ class Offlines {
         .asc("index_field")
         .all(transaction);
 
+    // Unlike CONDITION_EXTRA (deliberately optional - falls back to TRUE),
+    // an INSERT action with zero DATA rows has no columns to write at all;
+    // `INSERT INTO tbl ( )` is malformed SQL, and there's no meaningful
+    // fallback to synthesize, so skip the action instead of attempting it.
+    if (!dynamicTableTriggerActionDetailViews.any((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "DATA")) {
+      return;
+    }
+
     await transaction.rawInsert("""
         INSERT INTO $tableName ( ${dynamicTableTriggerActionDetailViews.where((element) => element["action_mode"] == "DATA").map((dynamicTableTriggerActionDetailView) => buildData(dynamicTableTriggerActionDetailView)).join(", ")} )
         SELECT ${dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(", ")}
-        WHERE ${dynamicTableTriggerActionDetailViews.isNotEmpty ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION_EXTRA").map((dynamicTableTriggerActionDetailView) => buildConditionExtra(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"} 
+        WHERE ${dynamicTableTriggerActionDetailViews.any((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION_EXTRA") ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION_EXTRA").map((dynamicTableTriggerActionDetailView) => buildConditionExtra(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}
     """);
 
     Map<String, dynamic>? affectedRow = (await transaction.rawQuery("SELECT * FROM $tableName ORDER BY rowid DESC LIMIT 1")).firstOrNull;
@@ -2713,14 +2764,21 @@ class Offlines {
         .asc("index_field")
         .all(transaction);
 
+    // Same reasoning as handleTriggerActionInsert: a bare `SET ` with no
+    // assignments is malformed SQL and there's nothing sensible to fall
+    // back to, so skip the action when there are no DATA rows to set.
+    if (!dynamicTableTriggerActionDetailViews.any((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "DATA")) {
+      return;
+    }
+
     int affectedCount = await transaction.rawUpdate("""
         UPDATE $tableName
         SET ${dynamicTableTriggerActionDetailViews.where((element) => element["action_mode"] == "DATA").map((dynamicTableTriggerActionDetailView) => buildData(dynamicTableTriggerActionDetailView)).join(", ")}
-        WHERE ${dynamicTableTriggerActionDetailViews.isNotEmpty ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}
+        WHERE ${dynamicTableTriggerActionDetailViews.any((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION") ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}
     """);
 
     if (affectedCount > 0) {
-      List<Map<String, dynamic>> affectedRows = await transaction.rawQuery("SELECT * FROM $tableName WHERE ${dynamicTableTriggerActionDetailViews.isNotEmpty ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}");
+      List<Map<String, dynamic>> affectedRows = await transaction.rawQuery("SELECT * FROM $tableName WHERE ${dynamicTableTriggerActionDetailViews.any((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION") ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}");
 
       for (Map<String, dynamic> affectedRow in affectedRows) {
         String? sequenceName = (await DMLAssemblers
@@ -2804,11 +2862,11 @@ class Offlines {
         .asc("index_field")
         .all(transaction);
 
-    List<Map<String, dynamic>> affectedRows = await transaction.rawQuery("SELECT * FROM $tableName WHERE ${dynamicTableTriggerActionDetailViews.isNotEmpty ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}");
+    List<Map<String, dynamic>> affectedRows = await transaction.rawQuery("SELECT * FROM $tableName WHERE ${dynamicTableTriggerActionDetailViews.any((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION") ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}");
 
     int affectedCount = await transaction.rawDelete("""
       DELETE FROM $tableName
-      WHERE ${dynamicTableTriggerActionDetailViews.isNotEmpty ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}
+      WHERE ${dynamicTableTriggerActionDetailViews.any((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION") ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}
     """);
 
     if (affectedCount > 0) {
@@ -2877,7 +2935,7 @@ class Offlines {
             .equalTo("custom_form_id", customFormView["id"])
             .all(transaction);
 
-        await transaction.rawInsert("INSERT INTO ${scheduleMetaData["table_name"]} ( id, create_date, create_who, company_id, bu_id, table_id, form_id, custom_form_data, custom_form_id, ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => dynamicScheduleMappingView["schedule_column"] as String).join(", ")} ) VALUES ( '${nextIdempotentId()}', DATETIME(), '$currentUsername', '$currentCompanyId', '$currentBusinessUnitId', '${scheduleMetaData["table_id"]}', '${scheduleMetaData["form_id"]}', '${hashDTO["id"]}', '${hashDTO["form_id"]}', ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => hashDTO[dynamicScheduleMappingView["master_column"]] != null ? "'${hashDTO[dynamicScheduleMappingView["master_column"]]}'" : "NULL").join(", ")} )");
+        await transaction.rawInsert("INSERT INTO ${scheduleMetaData["table_name"]} ( id, create_date, create_who, company_id, bu_id, table_id, form_id, custom_form_data, custom_form_id, ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => dynamicScheduleMappingView["schedule_column"] as String).join(", ")} ) VALUES ( '${nextIdempotentId()}', DATETIME(), '$currentUsername', '$currentCompanyId', '$currentBusinessUnitId', '${scheduleMetaData["table_id"]}', '${scheduleMetaData["form_id"]}', '${hashDTO["id"]}', '${hashDTO["form_id"]}', ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => sqlLiteral(hashDTO[dynamicScheduleMappingView["master_column"]]) != null ? "'${sqlLiteral(hashDTO[dynamicScheduleMappingView["master_column"]])}'" : "NULL").join(", ")} )");
 
         Map<String, dynamic>? affectedRow = (await transaction.rawQuery("SELECT * FROM ${scheduleMetaData["table_name"]} ORDER BY rowid DESC LIMIT 1")).firstOrNull;
 
@@ -2987,7 +3045,7 @@ class Offlines {
     if (oldRow != null) {
       Iterable<MapEntry<String, dynamic>> iterable = hashDTO.entries.where((entry) => !(entry.value is List || entry.value is Map || StringUtils.inList(entry.key, ["salesunit_id", "user_id"])) && actualFields.contains(entry.key));
 
-      int affectedCount = await transaction.rawUpdate("UPDATE $tableName SET ${iterable.map((entry) => "${entry.key} = ${entry.value != null ? "'${entry.value}'" : "NULL"}").join(", ")} WHERE id = '${hashDTO["id"]}'");
+      int affectedCount = await transaction.rawUpdate("UPDATE $tableName SET ${iterable.map((entry) => "${entry.key} = ${sqlLiteral(entry.value) != null ? "'${sqlLiteral(entry.value)}'" : "NULL"}").join(", ")} WHERE id = '${hashDTO["id"]}'");
 
       if (affectedCount == 1) {
         Map<String, dynamic>? newRow = (await transaction.rawQuery("SELECT * FROM $tableName WHERE id = '${hashDTO["id"]}'")).firstOrNull;
@@ -3032,7 +3090,7 @@ class Offlines {
             .equalTo("custom_form_id", customFormView["id"])
             .all(transaction);
 
-        int affectedCount = await transaction.rawUpdate("UPDATE ${scheduleMetaData["table_name"]} SET change_date = DATETIME(), change_who = '$currentUsername',  ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => "${dynamicScheduleMappingView["schedule_column"]} = ${hashDTO[dynamicScheduleMappingView["master_column"]] != null ? "'${hashDTO[dynamicScheduleMappingView["master_column"]]}'" : "NULL"}" ).join(", ")} WHERE custom_form_data = '${hashDTO["id"]}' AND custom_form_id = '${hashDTO["form_id"]}'");
+        int affectedCount = await transaction.rawUpdate("UPDATE ${scheduleMetaData["table_name"]} SET change_date = DATETIME(), change_who = '$currentUsername',  ${dynamicScheduleMappingViews.map((dynamicScheduleMappingView) => "${dynamicScheduleMappingView["schedule_column"]} = ${sqlLiteral(hashDTO[dynamicScheduleMappingView["master_column"]]) != null ? "'${sqlLiteral(hashDTO[dynamicScheduleMappingView["master_column"]])}'" : "NULL"}" ).join(", ")} WHERE custom_form_data = '${hashDTO["id"]}' AND custom_form_id = '${hashDTO["form_id"]}'");
 
         if (affectedCount == 1) {
           Map<String, dynamic>? affectedRow = (await transaction.rawQuery("SELECT * FROM ${scheduleMetaData["table_name"]} WHERE custom_form_data = '${hashDTO["id"]}' AND custom_form_id = '${hashDTO["form_id"]}'")).firstOrNull;

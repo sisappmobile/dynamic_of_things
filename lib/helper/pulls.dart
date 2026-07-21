@@ -10,6 +10,7 @@ import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:get/get.dart" as g;
 import "package:sqflite/sqflite.dart";
+import "package:uuid/uuid.dart";
 
 class Pulls {
   // ✅ singleton instance
@@ -259,17 +260,68 @@ class Pulls {
     Transaction transaction,
     Map<String, dynamic> payload,
   ) async {
+    String convertedQuery = "";
+
     try {
       final converter = PgToSqliteConverter();
 
-      final sqliteQuery = converter.convert(payload["segment_report_query"]);
+      convertedQuery = converter.convert(payload["segment_report_query"]);
 
       await transaction.execute(
-        "CREATE VIEW IF NOT EXISTS ${payload["view_name"]} AS $sqliteQuery",
+        "CREATE VIEW IF NOT EXISTS ${payload["view_name"]} AS $convertedQuery",
       );
     } catch (e, s) {
       if (kDebugMode) {
         print("Caught Exception: $e");
+        print("Stack Trace:\n$s");
+      }
+
+      await logSegmentReportError(
+        transaction: transaction,
+        payload: payload,
+        convertedQuery: convertedQuery,
+        error: e,
+        stackTrace: s,
+      );
+    }
+  }
+
+  // Segment report views come from a per-company/admin-authored Postgres
+  // query converted to SQLite at pull time (PgToSqliteConverter), so failures
+  // here are query-compatibility issues an admin needs to fix, not something
+  // a user can act on - only debug-printing them left no way to identify
+  // which segment report broke or why after the fact. Persisted into its own
+  // table (lazily created here, same as getTableInfos does for dynamic-form
+  // tables, since the DB schema is pinned at version 1 with no onUpgrade -
+  // sqlites.dart's onCreate list never runs again for already-installed
+  // users). Failure to log is swallowed so a broken log write can never take
+  // down the sync transaction it's trying to diagnose.
+  Future<void> logSegmentReportError({
+    required Transaction transaction,
+    required Map<String, dynamic> payload,
+    required String convertedQuery,
+    required Object error,
+    required StackTrace stackTrace,
+  }) async {
+    try {
+      await transaction.execute(
+        "CREATE TABLE IF NOT EXISTS _segment_report_errors ( id TEXT PRIMARY KEY, segment_report_id TEXT, segment_report_name TEXT, view_name TEXT, segment_report_query TEXT, converted_query TEXT, error_message TEXT, stack_trace TEXT, create_date TEXT )",
+      );
+
+      await transaction.insert("_segment_report_errors", {
+        "id": Uuid().v4(),
+        "segment_report_id": payload["id"]?.toString(),
+        "segment_report_name": payload["segment_report_name"],
+        "view_name": payload["view_name"],
+        "segment_report_query": payload["segment_report_query"],
+        "converted_query": convertedQuery,
+        "error_message": error.toString(),
+        "stack_trace": stackTrace.toString(),
+        "create_date": DateTime.now().toIso8601String(),
+      });
+    } catch (e, s) {
+      if (kDebugMode) {
+        print("Caught Exception while logging segment report error: $e");
         print("Stack Trace:\n$s");
       }
     }

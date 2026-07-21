@@ -105,12 +105,38 @@ class CustomDynamicFormFieldState extends State<CustomDynamicFormField> {
   @override
   void initState() {
     super.initState();
+
+    controller.text = widget.field.label(widget.data);
+    _lastSyncedField = widget.field;
+  }
+
+  // Tracks the Field instance controller.text was last synced from, so
+  // didUpdateWidget below can tell "the ancestor rebuilt for some unrelated
+  // reason" (same Field instance - do nothing) apart from "a refresh swapped
+  // in a fresh Field/data pair" (different instance - resync). Needed
+  // because build() used to call `controller.text = widget.field.label(...)`
+  // unconditionally on every rebuild, which fought the ListenableBuilder
+  // guard below (deliberately written to NOT clobber SHORT_TEXT/LONG_TEXT/
+  // NUMBER/EMAIL/URL fields while the user is actively typing into them) -
+  // any rebuild triggered by something other than this field's own
+  // notifyListeners() (another field's onChange, a DynamicFormRefresh, a
+  // validator, ...) would still force the text back to widget.data's current
+  // value mid-edit, corrupting or reverting whatever the user had just typed
+  // depending on timing.
+  Field? _lastSyncedField;
+
+  @override
+  void didUpdateWidget(CustomDynamicFormField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (!identical(widget.field, _lastSyncedField)) {
+      controller.text = widget.field.label(widget.data);
+      _lastSyncedField = widget.field;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    controller.text = widget.field.label(widget.data);
-
     return ListenableBuilder(
       listenable: widget.field,
       builder: (context, child) {

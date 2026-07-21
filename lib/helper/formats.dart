@@ -49,6 +49,25 @@ class Formats {
     }
   }
 
+  // Pseudo_code arithmetic (any division anywhere in a script forces the
+  // result to a Dart double) and other internal computations regularly
+  // produce values like 25000.0. Interpolating that straight into raw SQL
+  // via toString() stores the literal text "25000.0" in SQLite. The next
+  // time that text is read back and run through tryParseNumber() above (id
+  // locale: "." is the GROUPING separator, "," is the decimal separator),
+  // the "." gets misread as a thousands separator and the digits get
+  // concatenated - "25000.0" parses back as 250000, a silent 10x inflation.
+  // This produces text that survives that same round trip unchanged: whole
+  // numbers get no decimal point at all, and genuine fractions use "," to
+  // match the id-locale decimal separator tryParseNumber expects.
+  static String numberToStorageString(num value) {
+    if (value == value.truncateToDouble()) {
+      return value.toInt().toString();
+    }
+
+    return value.toString().replaceFirst(".", ",");
+  }
+
   static bool tryParseBool(dynamic value) {
     if (value != null) {
       if (value is String) {

@@ -18,6 +18,12 @@
 @import connectivity_plus;
 #endif
 
+#if __has_include(<cunning_document_scanner/CunningDocumentScannerPlugin.h>)
+#import <cunning_document_scanner/CunningDocumentScannerPlugin.h>
+#else
+@import cunning_document_scanner;
+#endif
+
 #if __has_include(<detect_fake_location/DetectFakeLocationPlugin.h>)
 #import <detect_fake_location/DetectFakeLocationPlugin.h>
 #else
@@ -64,6 +70,18 @@
 #import <geolocator_apple/GeolocatorPlugin.h>
 #else
 @import geolocator_apple;
+#endif
+
+#if __has_include(<google_mlkit_commons/GoogleMlKitCommonsPlugin.h>)
+#import <google_mlkit_commons/GoogleMlKitCommonsPlugin.h>
+#else
+@import google_mlkit_commons;
+#endif
+
+#if __has_include(<google_mlkit_text_recognition/GoogleMlKitTextRecognitionPlugin.h>)
+#import <google_mlkit_text_recognition/GoogleMlKitTextRecognitionPlugin.h>
+#else
+@import google_mlkit_text_recognition;
 #endif
 
 #if __has_include(<image_picker_ios/FLTImagePickerPlugin.h>)
@@ -137,6 +155,7 @@
 + (void)registerWithRegistry:(NSObject<FlutterPluginRegistry>*)registry {
   [CameraPlugin registerWithRegistrar:[registry registrarForPlugin:@"CameraPlugin"]];
   [ConnectivityPlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"ConnectivityPlusPlugin"]];
+  [CunningDocumentScannerPlugin registerWithRegistrar:[registry registrarForPlugin:@"CunningDocumentScannerPlugin"]];
   [DetectFakeLocationPlugin registerWithRegistrar:[registry registrarForPlugin:@"DetectFakeLocationPlugin"]];
   [FPPDeviceInfoPlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"FPPDeviceInfoPlusPlugin"]];
   [FilePickerPlugin registerWithRegistrar:[registry registrarForPlugin:@"FilePickerPlugin"]];
@@ -145,6 +164,8 @@
   [GalPlugin registerWithRegistrar:[registry registrarForPlugin:@"GalPlugin"]];
   [GeocodingPlugin registerWithRegistrar:[registry registrarForPlugin:@"GeocodingPlugin"]];
   [GeolocatorPlugin registerWithRegistrar:[registry registrarForPlugin:@"GeolocatorPlugin"]];
+  [GoogleMlKitCommonsPlugin registerWithRegistrar:[registry registrarForPlugin:@"GoogleMlKitCommonsPlugin"]];
+  [GoogleMlKitTextRecognitionPlugin registerWithRegistrar:[registry registrarForPlugin:@"GoogleMlKitTextRecognitionPlugin"]];
   [FLTImagePickerPlugin registerWithRegistrar:[registry registrarForPlugin:@"FLTImagePickerPlugin"]];
   [MobileScannerPlugin registerWithRegistrar:[registry registrarForPlugin:@"MobileScannerPlugin"]];
   [NativeDeviceOrientationPlugin registerWithRegistrar:[registry registrarForPlugin:@"NativeDeviceOrientationPlugin"]];

@@ -1,9 +1,67 @@
+import "dart:convert";
+
+import "package:flutter/foundation.dart";
+
+// A field with no value yet (e.g. a freshly-added detail row whose
+// pseudo_code-driven refresh fires before the user has typed anything) is a
+// routine, expected case here, not a script bug - so arithmetic and
+// comparisons must not throw when an operand is null. Mirrors
+// PseudoCodeEngine.toBigDecimal in dmsretail's com.sisapp.helper package
+// (null coerces to zero there too) - fix both or the two engines diverge.
+num _toNumValue(dynamic value) {
+  if (value is num) {
+    return value;
+  }
+
+  if (value == null) {
+    return 0;
+  }
+
+  if (value is String) {
+    final num? parsed = num.tryParse(value.trim());
+
+    if (parsed != null) {
+      return parsed;
+    }
+  }
+
+  throw Exception("Not a number: $value");
+}
+
+// Mirrors PseudoCodeEngine.arithAdd: `+` concatenates only when BOTH sides
+// are strings, otherwise it's numeric addition (with the same null-as-zero
+// coercion as every other arithmetic operator).
+dynamic _arithAdd(dynamic a, dynamic b) {
+  if (a is String || b is String) {
+    if (a is String && b is String) {
+      return a + b;
+    }
+
+    throw Exception("Cannot add $a and $b");
+  }
+
+  return _toNumValue(a) + _toNumValue(b);
+}
+
 class JsonScriptEngine {
+  // Kept in lockstep with PseudoCodeEngine.METADATA_KEYS in dmsretail's
+  // com.sisapp.helper package - fix both or the two engines diverge.
+  static const Set<String> _metadataKeys = {
+    "readOnly",
+    "readonly",
+    "mandatory",
+    "required",
+  };
+
   late Map<String, dynamic> root;
   late List<String> _lines;
   Map<String, dynamic> scope = {};
 
   Map<String, dynamic> run(Map<String, dynamic> json, String script) {
+    if (kDebugMode) {
+      print(jsonEncode("script json data: $json"));
+    }
+
     root = _deepConvert(json);
     scope.clear();
 
@@ -323,12 +381,12 @@ class JsonScriptEngine {
 
     if (cond.contains(">=")) {
       final p = cond.split(">=");
-      return _evalExpression(p[0]) >= _evalExpression(p[1]);
+      return _compareValues(_evalExpression(p[0]), _evalExpression(p[1])) >= 0;
     }
 
     if (cond.contains("<=")) {
       final p = cond.split("<=");
-      return _evalExpression(p[0]) <= _evalExpression(p[1]);
+      return _compareValues(_evalExpression(p[0]), _evalExpression(p[1])) <= 0;
     }
 
     if (cond.contains("!=")) {
@@ -343,12 +401,12 @@ class JsonScriptEngine {
 
     if (cond.contains(">")) {
       final p = cond.split(">");
-      return _evalExpression(p[0]) > _evalExpression(p[1]);
+      return _compareValues(_evalExpression(p[0]), _evalExpression(p[1])) > 0;
     }
 
     if (cond.contains("<")) {
       final p = cond.split("<");
-      return _evalExpression(p[0]) < _evalExpression(p[1]);
+      return _compareValues(_evalExpression(p[0]), _evalExpression(p[1])) < 0;
     }
 
     if (cond.contains(" IS NULL")) {
@@ -362,6 +420,18 @@ class JsonScriptEngine {
     }
 
     return _value(cond) == true;
+  }
+
+  int _compareValues(dynamic a, dynamic b) {
+    if (a is String && b is String) {
+      return a.compareTo(b);
+    }
+
+    if (a is DateTime && b is DateTime) {
+      return a.compareTo(b);
+    }
+
+    return _toNumValue(a).compareTo(_toNumValue(b));
   }
 
   // CHECK-type field values round-trip as "Y"/"N" strings (see
@@ -488,6 +558,26 @@ class JsonScriptEngine {
       current = root;
     }
 
+    // element.item_price.readOnly = <expr> (loop scope)
+    // item_price.readOnly = <expr>         (header/root scope)
+    // Mirrors PseudoCodeEngine.setValue's METADATA_KEYS handling on the
+    // server: redirects the write into a top-level `_fields` sibling map
+    // instead of the data tree, since that's what Template.loadTemplate
+    // (header_form.dart) reads to set Field.readOnly/required. Without this,
+    // the write falls through to the generic path below and corrupts the
+    // field's own data value instead.
+    if (parts.length == 2 && _metadataKeys.contains(parts.last)) {
+      final String fieldName = parts[parts.length - 2];
+      final String metaKey = (parts.last == "readOnly" || parts.last == "readonly") ? "readOnly" : "required";
+
+      final Map<String, dynamic> fields = root.putIfAbsent("_fields", () => <String, dynamic>{}) as Map<String, dynamic>;
+      final Map<String, dynamic> fieldMeta = fields.putIfAbsent(fieldName, () => <String, dynamic>{}) as Map<String, dynamic>;
+
+      fieldMeta[metaKey] = value;
+
+      return;
+    }
+
     for (int i = 0; i < parts.length - 1; i++) {
       var key = parts[i];
 
@@ -591,9 +681,9 @@ class ExpressionParser {
 
     while (true) {
       if (_match("+")) {
-        left = left + _parseMulDiv();
+        left = _arithAdd(left, _parseMulDiv());
       } else if (_match("-")) {
-        left = left - _parseMulDiv();
+        left = _toNumValue(left) - _toNumValue(_parseMulDiv());
       } else {
         break;
       }
@@ -607,9 +697,9 @@ class ExpressionParser {
 
     while (true) {
       if (_match("*")) {
-        left = left * _parseUnary();
+        left = _toNumValue(left) * _toNumValue(_parseUnary());
       } else if (_match("/")) {
-        left = left / _parseUnary();
+        left = _toNumValue(left) / _toNumValue(_parseUnary());
       } else {
         break;
       }
@@ -620,7 +710,7 @@ class ExpressionParser {
 
   dynamic _parseUnary() {
     if (_match("-")) {
-      return -_parseUnary();
+      return -_toNumValue(_parseUnary());
     }
     return _parsePrimary();
   }
