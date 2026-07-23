@@ -67,17 +67,33 @@ class Action {
   final String id;
   final String resourceId;
   final String name;
+  final bool showOutside;
+
+  // Set only for the narrow subset of custom functions whose script_before
+  // just toggles a hidden filter's operator (e.g. "Expired Event"/"Ongoing
+  // Event" on the EVENT form) - see CustomFunctionScriptParser server-side.
+  // Non-null here means this action is a list-level filter toggle, not a
+  // row-scoped action, and should be rendered as a toolbar button instead
+  // of appearing in the per-row action menu.
+  final String? filterOverrideId;
+  final String? filterOverrideOperator;
 
   Action({
     required this.id,
     required this.resourceId,
     required this.name,
+    this.showOutside = false,
+    this.filterOverrideId,
+    this.filterOverrideOperator,
   });
 
   factory Action.fromJson(Map<String, dynamic> json) => Action(
     id: json["id"] ?? "",
     resourceId: json["resourceId"] ?? "",
     name: json["name"] ?? "",
+    showOutside: json["showOutside"] ?? false,
+    filterOverrideId: json["filterOverrideId"],
+    filterOverrideOperator: json["filterOverrideOperator"],
   );
 }
 

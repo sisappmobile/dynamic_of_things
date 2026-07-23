@@ -64,6 +64,7 @@ class DynamicScheduleBloc
             until: event.until,
             formId: event.formId,
             filters: event.filters,
+            filterOperators: event.filterOperators,
           );
 
           items.addAll(List<Item>.from(rows.map((row) => Item.fromJson(row))));
@@ -75,6 +76,7 @@ class DynamicScheduleBloc
             until: event.until,
             formId: event.formId,
             filters: event.filters,
+            filterOperators: event.filterOperators,
           );
 
           if (response.statusCode == 200) {

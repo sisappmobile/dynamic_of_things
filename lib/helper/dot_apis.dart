@@ -83,6 +83,7 @@ class DotApis {
     required String id,
     String? customerId,
     Map<String, dynamic>? filters,
+    Map<String, dynamic>? filterOperators,
   }) async {
     Map<String, String> headers = {};
 
@@ -96,6 +97,10 @@ class DotApis {
 
     if (filters != null && filters.isNotEmpty) {
       queryParameters["filters"] = jsonEncode(filters);
+    }
+
+    if (filterOperators != null && filterOperators.isNotEmpty) {
+      queryParameters["filterOperators"] = jsonEncode(filterOperators);
     }
 
     Response response = await dio.get(
@@ -156,6 +161,7 @@ class DotApis {
     String? customerId,
     String? formId,
     Map<String, dynamic>? filters,
+    Map<String, dynamic>? filterOperators,
   }) async {
     Map<String, String> headers = {};
 
@@ -174,6 +180,10 @@ class DotApis {
 
     if (filters != null && filters.isNotEmpty) {
       queryParameters["filters"] = jsonEncode(filters);
+    }
+
+    if (filterOperators != null && filterOperators.isNotEmpty) {
+      queryParameters["filterOperators"] = jsonEncode(filterOperators);
     }
 
     return await dio.get(

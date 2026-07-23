@@ -5,12 +5,14 @@ class DynamicFormListLoad extends DynamicFormListEvent {
   final String? customerId;
   final String name;
   final Map<String, dynamic>? filters;
+  final Map<String, dynamic>? filterOperators;
 
   DynamicFormListLoad({
     required this.id,
     required this.customerId,
     required this.name,
     this.filters,
+    this.filterOperators,
   });
 }
 

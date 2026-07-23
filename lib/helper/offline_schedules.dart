@@ -19,6 +19,7 @@ class OfflineSchedules {
           .select("CAST(e.function_id AS TEXT) AS id")
           .select("e.resource_id AS resource_id")
           .select("e.function_name AS name")
+          .select("e.script_before AS script_before")
           .from("c_group_access_sales_unit_custom_form a")
           .join("INNER JOIN c_group_access_sales_unit_custom_form_detail b ON b.group_id = a.id")
           .join("INNER JOIN c_sales_access_custom_form c ON c.group_id = a.id")
@@ -37,6 +38,11 @@ class OfflineSchedules {
         action.id = customFunctionsView["id"];
         action.resourceId = customFunctionsView["resource_id"];
         action.name = customFunctionsView["name"];
+
+        final filterOperatorOverride = Offlines.parseFilterOperatorOverride(customFunctionsView["script_before"]);
+
+        action.filterOverrideId = filterOperatorOverride?.filterId;
+        action.filterOverrideOperator = filterOperatorOverride?.operator;
 
         template.actions.add(action);
       }
@@ -90,6 +96,7 @@ class OfflineSchedules {
     String? customerId,
     String? formId,
     Map<String, dynamic>? filters,
+    Map<String, dynamic>? filterOperators,
   }) async {
     Map<String, dynamic>? customFormView = await Offlines.loadCustomFormView(id);
 
@@ -135,6 +142,12 @@ class OfflineSchedules {
         String filterId = filterField["id"].toString();
         String operator = filterField["field_operator"] ?? "=";
         String? defaultValue = filterField["default_value"];
+
+        // Applies even to hidden filters - see Offlines.list()'s identical
+        // comment for why.
+        if (filterOperators != null && filterOperators.containsKey(filterId)) {
+          operator = filterOperators[filterId].toString();
+        }
 
         if (!isManualHidden && filters != null && filters.containsKey(filterId)) {
           filterField["value"] = filters[filterId];

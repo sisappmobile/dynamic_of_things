@@ -20,10 +20,17 @@ class Action {
   late String resourceId;
   late String name;
 
+  // See dynamic_form_list_response.dart's Action.filterOverrideId - same
+  // meaning, same server-side parser (CustomFunctionScriptParser).
+  String? filterOverrideId;
+  String? filterOverrideOperator;
+
   Action();
 
   factory Action.fromJson(Map<String, dynamic> json) => Action()
     ..id = json["id"] ?? ""
     ..resourceId = json["resourceId"] ?? ""
-    ..name = json["name"] ?? "";
+    ..name = json["name"] ?? ""
+    ..filterOverrideId = json["filterOverrideId"]
+    ..filterOverrideOperator = json["filterOverrideOperator"];
 }

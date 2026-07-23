@@ -19,6 +19,7 @@ class DynamicScheduleData extends DynamicScheduleEvent {
   final Jiffy until;
   final String? formId;
   final Map<String, dynamic>? filters;
+  final Map<String, dynamic>? filterOperators;
 
   DynamicScheduleData({
     required this.id,
@@ -27,5 +28,6 @@ class DynamicScheduleData extends DynamicScheduleEvent {
     required this.until,
     required this.formId,
     this.filters,
+    this.filterOperators,
   });
 }

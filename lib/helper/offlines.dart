@@ -175,6 +175,35 @@ class Offlines {
     return value.toString();
   }
 
+  // Mirrors dmsretail's CustomFunctionScriptParser.parseFilterOperatorOverride
+  // exactly (same regex, same narrow intent) - keep both in lockstep. Most
+  // c_custom_functions.script_before scripts manipulate detail-form field
+  // state and have no mobile equivalent worth building (pseudo_code already
+  // covers that lifecycle); this one specific idiom - toggling a single
+  // hidden filter's operator, e.g. the EVENT form's "Expired Event"/"Ongoing
+  // Event" buttons - is simple and structural enough to extract without a JS
+  // engine.
+  static final RegExp _filterOperatorOverridePattern = RegExp(
+    r"""stID\s*===\s*['"]([^'"]+)['"][\s\S]*?stFieldOperator\s*=\s*['"]([^'"]+)['"]""",
+  );
+
+  static ({String filterId, String operator})? parseFilterOperatorOverride(
+    String? scriptBefore,
+  ) {
+    if (StringUtils.isNullOrEmpty(scriptBefore)) {
+      return null;
+    }
+
+    final RegExpMatch? match =
+        _filterOperatorOverridePattern.firstMatch(scriptBefore!);
+
+    if (match == null) {
+      return null;
+    }
+
+    return (filterId: match.group(1)!, operator: match.group(2)!);
+  }
+
   static Future<DynamicFormMenuResponse> menus(bool journey) async {
     List<Map<String, dynamic>> rows = await DMLAssemblers
         .create()
@@ -269,6 +298,7 @@ class Offlines {
     required String id,
     String? customerId,
     Map<String, dynamic>? filters,
+    Map<String, dynamic>? filterOperators,
   }) async {
     Map<String, dynamic>? customFormView = await DMLAssemblers
         .create()
@@ -296,6 +326,7 @@ class Offlines {
         .select("DISTINCT CAST(e.function_id AS TEXT) AS id")
         .select("e.resource_id AS resource_id")
         .select("e.function_name AS name")
+        .select("e.script_before AS script_before")
         .from("c_group_access_sales_unit_custom_form a")
         .join("INNER JOIN c_group_access_sales_unit_custom_form_detail b ON b.group_id = a.id")
         .join("INNER JOIN c_sales_access_custom_form c ON c.group_id = a.id")
@@ -309,11 +340,15 @@ class Offlines {
         .all();
 
     for (Map<String, dynamic> action in actions) {
+      final filterOperatorOverride = parseFilterOperatorOverride(action["script_before"]);
+
       listResponse.actions.add(
         Action(
           id: action["id"],
           resourceId: action["resource_id"],
           name: action["name"],
+          filterOverrideId: filterOperatorOverride?.filterId,
+          filterOverrideOperator: filterOperatorOverride?.operator,
         ),
       );
     }
@@ -373,6 +408,15 @@ class Offlines {
       String filterId = filterField["id"].toString();
       String operator = filterField["field_operator"] ?? "=";
       String? defaultValue = filterField["default_value"];
+
+      // Unlike `filters` (value overrides), operator overrides apply even to
+      // hidden filters - this is exactly what a filterList[a].stFieldOperator
+      // mutation in script_before does for buttons like "Expired Event"/
+      // "Ongoing Event", whose target filter is hidden by design. Mirrors
+      // DynamicFormService.list()'s suppliedFilterOperators handling.
+      if (filterOperators != null && filterOperators.containsKey(filterId)) {
+        operator = filterOperators[filterId].toString();
+      }
 
       // Only a non-hidden filter's id can legitimately appear in `filters`
       // (the caller only ever knows about ids from listResponse.filters,

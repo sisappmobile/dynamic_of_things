@@ -22,7 +22,7 @@ import "package:dynamic_of_things/widget/glass_container.dart";
 import "package:dynamic_of_things/widget/simple_spinner_page.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/foundation.dart" show kDebugMode;
-import "package:flutter/material.dart";
+import "package:flutter/material.dart" hide Action;
 import "package:flutter_bloc/flutter_bloc.dart";
 import "package:go_router/go_router.dart";
 import "package:jiffy/jiffy.dart";
@@ -150,6 +150,12 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
             .map((e) => MapEntry(e.id, e.value)),
       );
 
+  // Tracks which list-level filter-toggle button (Action.filterOverrideId !=
+  // null, e.g. "Expired Event"/"Ongoing Event") is currently active, keyed
+  // by the target filter's id. See dynamic_form_list_page.dart's identical
+  // field for the full explanation.
+  Map<String, dynamic> activeFilterOperators = {};
+
   void refreshRange(DateTime begin, DateTime until) {
     if (template == null) {
       return;
@@ -159,7 +165,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
     final DateTime u = DateTime(until.year, until.month, until.day);
 
     final String key =
-        "${b.toIso8601String()}|${u.toIso8601String()}|${formId ?? "ALL"}|${activeFilters.entries.map((e) => "${e.key}=${e.value}").join(",")}";
+        "${b.toIso8601String()}|${u.toIso8601String()}|${formId ?? "ALL"}|${activeFilters.entries.map((e) => "${e.key}=${e.value}").join(",")}|${activeFilterOperators.entries.map((e) => "${e.key}=${e.value}").join(",")}";
     if (lastFetchKey == key) {
       return;
     }
@@ -173,6 +179,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
             formId: formId,
             customerId: widget.customerId,
             filters: activeFilters,
+            filterOperators: activeFilterOperators,
           ),
         );
   }
@@ -1464,7 +1471,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
         ? trSafe("all", "Semua")
         : (template?.forms[formId] ?? "");
 
-    final Widget content = Row(
+    final Widget appBarRow = Row(
       children: [
         iconPill(
           icon: Icons.turn_left_rounded,
@@ -1545,6 +1552,14 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
             },
           ),
         ],
+      ],
+    );
+
+    final Widget content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        appBarRow,
+        filterOperatorButtons(),
       ],
     );
 
@@ -1698,6 +1713,100 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // See dynamic_form_list_page.dart's identical method for the full
+  // explanation - renders Action.filterOverrideId != null actions (e.g.
+  // "Expired Event"/"Ongoing Event") as toggle chips below the app bar row.
+  Widget filterOperatorButtons() {
+    final List<Action> toggleActions = (template?.actions ?? [])
+        .where((element) => element.filterOverrideId != null)
+        .toList();
+
+    if (toggleActions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final bool glass = isGlass;
+
+    return Padding(
+      padding: EdgeInsets.only(top: Dimensions.size10),
+      child: SizedBox(
+        height: Dimensions.size35,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: toggleActions.length,
+          separatorBuilder: (context, index) =>
+              SizedBox(width: Dimensions.size10),
+          itemBuilder: (context, index) {
+            final Action action = toggleActions[index];
+            final bool isActive =
+                activeFilterOperators[action.filterOverrideId] ==
+                    action.filterOverrideOperator;
+
+            return Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  setState(() {
+                    if (isActive) {
+                      activeFilterOperators.remove(action.filterOverrideId);
+                    } else {
+                      activeFilterOperators[action.filterOverrideId!] =
+                          action.filterOverrideOperator;
+                    }
+                  });
+
+                  refresh();
+                },
+                customBorder: SmoothRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.size100),
+                  smoothness: Dimensions.size1,
+                ),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: Dimensions.size15,
+                    vertical: Dimensions.size5,
+                  ),
+                  decoration: ShapeDecoration(
+                    color: isActive
+                        ? Theme.of(context).colorScheme.primary
+                        : (glass
+                            ? Colors.white.withOpacity(0.10)
+                            : AppColors.surfaceContainerLowest()),
+                    shape: SmoothRectangleBorder(
+                      borderRadius: BorderRadius.circular(Dimensions.size100),
+                      smoothness: Dimensions.size1,
+                      side: BorderSide(
+                        color: isActive
+                            ? Colors.transparent
+                            : (glass
+                                ? Colors.white.withOpacity(0.20)
+                                : AppColors.outline().withValues(alpha: 0.35)),
+                      ),
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      action.name,
+                      style: TextStyle(
+                        fontSize: Dimensions.text12,
+                        fontWeight: FontWeight.w700,
+                        color: isActive
+                            ? Theme.of(context).colorScheme.onPrimary
+                            : (glass
+                                ? Colors.white.withOpacity(0.85)
+                                : AppColors.onSurface()),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );

@@ -26,12 +26,14 @@ class DynamicFormListBloc extends Bloc<DynamicFormListEvent, DynamicFormListStat
             id: event.id,
             customerId: event.customerId,
             filters: event.filters,
+            filterOperators: event.filterOperators,
           );
         } else {
           listResponse = await DotApis.getInstance().dynamicFormList(
             id: event.id,
             customerId: event.customerId,
             filters: event.filters,
+            filterOperators: event.filterOperators,
           );
         }
 

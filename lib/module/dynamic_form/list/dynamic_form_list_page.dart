@@ -64,6 +64,13 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
   // re-fetches filters metadata bundled with every list reload.
   List<FilterItem> filters = [];
 
+  // Tracks which list-level filter-toggle button (Action.filterOverrideId !=
+  // null, e.g. "Expired Event"/"Ongoing Event") is currently active, keyed
+  // by the target filter's id. At most one operator can be active per
+  // filter id at a time - selecting a different button for the same filter
+  // simply replaces it.
+  Map<String, dynamic> activeFilterOperators = {};
+
   TextEditingController tecSearch = TextEditingController();
 
   // PERBAIKAN: Spacing disesuaikan agar rapi dan tidak terlalu renggang
@@ -404,6 +411,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                                 mapModeButton(),
                               ],
                             ),
+                            filterOperatorButtons(),
                             SizedBox(height: Dimensions.size10),
                             searchBar,
                           ],
@@ -508,6 +516,102 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
             ),
           ),
       ],
+    );
+  }
+
+  // Renders the narrow subset of listResponse.actions that are list-level
+  // filter toggles (Action.filterOverrideId != null, e.g. "Expired Event"/
+  // "Ongoing Event") as a horizontally scrollable row of toggle chips -
+  // these are excluded from the per-row action menu built elsewhere in this
+  // file since they aren't row-scoped actions.
+  Widget filterOperatorButtons() {
+    final List<Action> toggleActions = (listResponse?.actions ?? [])
+        .where((element) => element.filterOverrideId != null)
+        .toList();
+
+    if (toggleActions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final bool glass = isGlass;
+
+    return Padding(
+      padding: EdgeInsets.only(top: Dimensions.size10),
+      child: SizedBox(
+        height: Dimensions.size35,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: toggleActions.length,
+          separatorBuilder: (context, index) =>
+              SizedBox(width: Dimensions.size10),
+          itemBuilder: (context, index) {
+            final Action action = toggleActions[index];
+            final bool isActive =
+                activeFilterOperators[action.filterOverrideId] ==
+                    action.filterOverrideOperator;
+
+            return Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  setState(() {
+                    if (isActive) {
+                      activeFilterOperators.remove(action.filterOverrideId);
+                    } else {
+                      activeFilterOperators[action.filterOverrideId!] =
+                          action.filterOverrideOperator;
+                    }
+                  });
+
+                  refresh();
+                },
+                customBorder: SmoothRectangleBorder(
+                  borderRadius: BorderRadius.circular(Dimensions.size100),
+                  smoothness: Dimensions.size1,
+                ),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: Dimensions.size15,
+                    vertical: Dimensions.size5,
+                  ),
+                  decoration: ShapeDecoration(
+                    color: isActive
+                        ? Theme.of(context).colorScheme.primary
+                        : (glass
+                            ? Colors.white.withOpacity(0.10)
+                            : AppColors.surfaceContainerLowest()),
+                    shape: SmoothRectangleBorder(
+                      borderRadius: BorderRadius.circular(Dimensions.size100),
+                      smoothness: Dimensions.size1,
+                      side: BorderSide(
+                        color: isActive
+                            ? Colors.transparent
+                            : (glass
+                                ? Colors.white.withOpacity(0.20)
+                                : AppColors.outline().withValues(alpha: 0.35)),
+                      ),
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      action.name,
+                      style: TextStyle(
+                        fontSize: Dimensions.text12,
+                        fontWeight: FontWeight.w700,
+                        color: isActive
+                            ? Theme.of(context).colorScheme.onPrimary
+                            : (glass
+                                ? Colors.white.withOpacity(0.85)
+                                : AppColors.onSurface()),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -1123,6 +1227,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                   .where((element) => element.value != null)
                   .map((e) => MapEntry(e.id, e.value)),
             ),
+            filterOperators: activeFilterOperators,
           ),
         );
   }
@@ -1364,17 +1469,19 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
 
                 listResponse!.actions
                     .where(
-                  (element) => !StringUtils.inList(
-                    element.resourceId,
-                    [
-                      "BTN_CREATE",
-                      "BTN_EDIT",
-                      "BTN_VIEW",
-                      "BTN_SAVE",
-                      "BTN_ADD_DETAIL",
-                      "BTN_DEL_DETAIL",
-                    ],
-                  ),
+                  (element) =>
+                      element.filterOverrideId == null &&
+                      !StringUtils.inList(
+                        element.resourceId,
+                        [
+                          "BTN_CREATE",
+                          "BTN_EDIT",
+                          "BTN_VIEW",
+                          "BTN_SAVE",
+                          "BTN_ADD_DETAIL",
+                          "BTN_DEL_DETAIL",
+                        ],
+                      ),
                 )
                     .forEach((element) {
                   MenuItem menuItem = MenuItem(
@@ -1403,17 +1510,19 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                     }
 
                     Action? action = listResponse!.actions.firstWhereOrNull(
-                      (element) => !StringUtils.inList(
-                        element.resourceId,
-                        [
-                          "BTN_CREATE",
-                          "BTN_EDIT",
-                          "BTN_VIEW",
-                          "BTN_SAVE",
-                          "BTN_ADD_DETAIL",
-                          "BTN_DEL_DETAIL",
-                        ],
-                      ),
+                      (element) =>
+                          element.filterOverrideId == null &&
+                          !StringUtils.inList(
+                            element.resourceId,
+                            [
+                              "BTN_CREATE",
+                              "BTN_EDIT",
+                              "BTN_VIEW",
+                              "BTN_SAVE",
+                              "BTN_ADD_DETAIL",
+                              "BTN_DEL_DETAIL",
+                            ],
+                          ),
                     );
 
                     if (action != null) {
