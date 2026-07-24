@@ -2581,7 +2581,11 @@ class Offlines {
           }
         }
 
-        return columnKey!;
+        if (_isUnsupportedPostgresFormula(columnKey!)) {
+          return "NULL";
+        }
+
+        return columnKey;
       } else {
         return "NULL";
       }
@@ -2615,7 +2619,11 @@ class Offlines {
           }
         }
 
-        return columnValue!;
+        if (_isUnsupportedPostgresFormula(columnValue!)) {
+          return "NULL";
+        }
+
+        return columnValue;
       } else {
         return "NULL";
       }
@@ -3293,6 +3301,27 @@ class Offlines {
     DatabaseExecutor databaseExecutor = transaction ?? await Sqlites.get();
 
     return (await databaseExecutor.rawQuery("PRAGMA table_info($tableName)")).map((e) => e["name"] as String).toList();
+  }
+
+  // Some trigger actions' column_key/column_value templates are raw
+  // Postgres SQL formulas meant to run server-side (e.g. auto-generated
+  // document numbers combining TO_CHAR()/fn_get_id()/the ^ exponent
+  // operator, none of which exist in SQLite) - see the "SVN..." doc_num
+  // formula in m_sales_visit_note's trigger for a real example. fn_get_id()
+  // specifically guarantees uniqueness ACROSS SERVER INSTANCES via a fixed
+  // machine-id salt (s_parameter.PRESS_MACHINE_ID); that guarantee doesn't
+  // hold for many independent OFFLINE devices generating the same document
+  // type concurrently, so this is intentionally not "translated" to a local
+  // SQLite equivalent - doing so risks two devices producing the identical
+  // document number. Instead this column is left NULL offline and is
+  // expected to be filled in by the server (running the real Postgres
+  // formula) when the row syncs up.
+  static bool _isUnsupportedPostgresFormula(String expression) {
+    final String lower = expression.toLowerCase();
+
+    return lower.contains("to_char(") ||
+        lower.contains("fn_get_id(") ||
+        expression.contains("^");
   }
 
   static List<List<String>> extractAllTableColumn(String input) {
