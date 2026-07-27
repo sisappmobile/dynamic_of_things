@@ -3,13 +3,13 @@
 import "package:base/base.dart";
 import "package:dio/dio.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
+import "package:dynamic_of_things/helper/dynamic_error_messages.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/offline_reports.dart";
 import "package:dynamic_of_things/model/dynamic_report_data.dart";
 import "package:dynamic_of_things/model/dynamic_report_template.dart";
 import "package:dynamic_of_things/module/dynamic_report/dynamic_report_event.dart";
 import "package:dynamic_of_things/module/dynamic_report/dynamic_report_state.dart";
-import "package:easy_localization/easy_localization.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 
@@ -24,7 +24,8 @@ class DynamicReportBloc extends Bloc<DynamicReportEvent, DynamicReportState> {
         if (DynamicForms.offline) {
           template = await OfflineReports.template(event.id);
         } else {
-          Response response = await DotApis.getInstance().dynamicReportTemplate(event.id);
+          Response response =
+              await DotApis.getInstance().dynamicReportTemplate(event.id);
 
           if (response.statusCode == 200) {
             template = Template.fromJson(response.data);
@@ -40,7 +41,12 @@ class DynamicReportBloc extends Bloc<DynamicReportEvent, DynamicReportState> {
           print("Stack Trace:\n$s");
         }
 
-        BaseOverlays.error(message: "common_something_wrong".tr());
+        BaseOverlays.error(
+          message: await DynamicErrorMessages.fromException(
+            e,
+            stackTrace: s,
+          ),
+        );
       } finally {
         emit(DynamicReportTemplateFinished());
       }
@@ -77,7 +83,12 @@ class DynamicReportBloc extends Bloc<DynamicReportEvent, DynamicReportState> {
           print("Stack Trace:\n$s");
         }
 
-        BaseOverlays.error(message: "common_something_wrong".tr());
+        BaseOverlays.error(
+          message: await DynamicErrorMessages.fromException(
+            e,
+            stackTrace: s,
+          ),
+        );
       } finally {
         emit(DynamicReportDataFinished());
       }
@@ -108,7 +119,8 @@ class DynamicReportBloc extends Bloc<DynamicReportEvent, DynamicReportState> {
           );
 
           if (response.statusCode == 200) {
-            String fileName = response.headers["Content-Disposition"]![0].toString();
+            String fileName =
+                response.headers["Content-Disposition"]![0].toString();
 
             fileName = fileName.substring(fileName.lastIndexOf(";") + 1);
             fileName = fileName.trim();
@@ -123,8 +135,13 @@ class DynamicReportBloc extends Bloc<DynamicReportEvent, DynamicReportState> {
             );
           }
         }
-      } catch (e) {
-        BaseOverlays.error(message: "common_something_wrong".tr());
+      } catch (e, s) {
+        BaseOverlays.error(
+          message: await DynamicErrorMessages.fromException(
+            e,
+            stackTrace: s,
+          ),
+        );
       } finally {
         emit(DynamicReportExportFinished());
       }

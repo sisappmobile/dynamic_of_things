@@ -5,6 +5,7 @@ import "package:basic_utils/basic_utils.dart";
 import "package:collection/collection.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
+import "package:dynamic_of_things/helper/dynamic_error_messages.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/helper/generals.dart";
@@ -1038,7 +1039,10 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
               }
 
               BaseOverlays.error(
-                message: "something_wrong_please_try_again".tr(),
+                message: await DynamicErrorMessages.fromException(
+                  e,
+                  stackTrace: s,
+                ),
               );
             } finally {
               context.loaderOverlay.hide();

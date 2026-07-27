@@ -3,17 +3,18 @@
 import "package:base/base.dart";
 import "package:dio/dio.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
+import "package:dynamic_of_things/helper/dynamic_error_messages.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/offlines.dart";
 import "package:dynamic_of_things/model/dynamic_form_list_response.dart";
 import "package:dynamic_of_things/model/header_form.dart" hide Action, Field;
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_event.dart";
 import "package:dynamic_of_things/module/dynamic_form/list/dynamic_form_list_state.dart";
-import "package:easy_localization/easy_localization.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 
-class DynamicFormListBloc extends Bloc<DynamicFormListEvent, DynamicFormListState> {
+class DynamicFormListBloc
+    extends Bloc<DynamicFormListEvent, DynamicFormListState> {
   DynamicFormListBloc() : super(DynamicFormListInitial()) {
     on<DynamicFormListLoad>((event, emit) async {
       try {
@@ -46,7 +47,12 @@ class DynamicFormListBloc extends Bloc<DynamicFormListEvent, DynamicFormListStat
           print("Stack Trace:\n$s");
         }
 
-        BaseOverlays.error(message: "common_something_wrong".tr());
+        BaseOverlays.error(
+          message: await DynamicErrorMessages.fromException(
+            e,
+            stackTrace: s,
+          ),
+        );
       } finally {
         emit(DynamicFormListLoadFinished());
       }
@@ -66,7 +72,8 @@ class DynamicFormListBloc extends Bloc<DynamicFormListEvent, DynamicFormListStat
 
           emit(DynamicFormListCustomActionSuccess(headerForm: headerForm));
         } else {
-          Response response = await DotApis.getInstance().dynamicFormCustomAction(
+          Response response =
+              await DotApis.getInstance().dynamicFormCustomAction(
             actionId: event.actionId,
             formId: event.formId,
             dataId: event.dataId,
@@ -76,7 +83,8 @@ class DynamicFormListBloc extends Bloc<DynamicFormListEvent, DynamicFormListStat
           if (response.statusCode == 204) {
             emit(DynamicFormListCustomActionSuccess(headerForm: null));
           } else if (response.statusCode == 200) {
-            HeaderForm headerForm = HeaderForm.fromJson(response.data)..dataId = event.dataId;
+            HeaderForm headerForm = HeaderForm.fromJson(response.data)
+              ..dataId = event.dataId;
 
             emit(DynamicFormListCustomActionSuccess(headerForm: headerForm));
           }
@@ -87,7 +95,12 @@ class DynamicFormListBloc extends Bloc<DynamicFormListEvent, DynamicFormListStat
           print("Stack Trace:\n$s");
         }
 
-        BaseOverlays.error(message: "common_something_wrong".tr());
+        BaseOverlays.error(
+          message: await DynamicErrorMessages.fromException(
+            e,
+            stackTrace: s,
+          ),
+        );
       } finally {
         emit(DynamicFormListCustomActionFinished());
       }

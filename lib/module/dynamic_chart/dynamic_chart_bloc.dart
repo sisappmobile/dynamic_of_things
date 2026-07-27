@@ -3,12 +3,12 @@
 import "package:base/base.dart";
 import "package:dio/dio.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
+import "package:dynamic_of_things/helper/dynamic_error_messages.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/offline_charts.dart";
 import "package:dynamic_of_things/model/dynamic_chart_list_response.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_event.dart";
 import "package:dynamic_of_things/module/dynamic_chart/dynamic_chart_state.dart";
-import "package:easy_localization/easy_localization.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 
@@ -39,7 +39,12 @@ class DynamicChartBloc extends Bloc<DynamicChartEvent, DynamicChartState> {
           print("Stack Trace:\n$s");
         }
 
-        BaseOverlays.error(message: "common_something_wrong".tr());
+        BaseOverlays.error(
+          message: await DynamicErrorMessages.fromException(
+            e,
+            stackTrace: s,
+          ),
+        );
       } finally {
         emit(DynamicChartLoadFinished());
       }
@@ -81,6 +86,13 @@ class DynamicChartBloc extends Bloc<DynamicChartEvent, DynamicChartState> {
           print("Caught Exception: $e");
           print("Stack Trace:\n$s");
         }
+
+        BaseOverlays.error(
+          message: await DynamicErrorMessages.fromException(
+            e,
+            stackTrace: s,
+          ),
+        );
       } finally {
         emit(DynamicChartDataFinished(id: event.id));
       }

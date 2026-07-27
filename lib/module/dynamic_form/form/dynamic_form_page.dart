@@ -9,6 +9,7 @@ import "package:crypto/crypto.dart" as crypto;
 import "package:dio/dio.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
+import "package:dynamic_of_things/helper/dynamic_error_messages.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/file_downloads.dart";
 import "package:dynamic_of_things/helper/generals.dart";
@@ -1105,8 +1106,13 @@ class DynamicFormPageState extends State<DynamicFormPage>
 
         FileDownloads.showSuccessSnackBar(context, location: savedLocation);
       }
-    } catch (_) {
-      BaseOverlays.error(message: "common_something_wrong".tr());
+    } catch (e, s) {
+      BaseOverlays.error(
+        message: await DynamicErrorMessages.fromException(
+          e,
+          stackTrace: s,
+        ),
+      );
 
       return;
     } finally {

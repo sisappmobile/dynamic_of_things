@@ -7,6 +7,7 @@ import "package:basic_utils/basic_utils.dart";
 import "package:dio/dio.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
+import "package:dynamic_of_things/helper/dynamic_error_messages.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/helper/generals.dart";
@@ -272,7 +273,12 @@ class SpinnerPageState extends State<SpinnerPage> with WidgetsBindingObserver {
         print("Stack Trace:\n$s");
       }
 
-      BaseOverlays.error(message: "unknown_error_please_try_again".tr());
+      BaseOverlays.error(
+        message: await DynamicErrorMessages.fromException(
+          e,
+          stackTrace: s,
+        ),
+      );
     } finally {
       setState(() {
         loading = false;

@@ -3,12 +3,12 @@
 import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
+import "package:dynamic_of_things/helper/dynamic_error_messages.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/offlines.dart";
 import "package:dynamic_of_things/model/header_form.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_event.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_state.dart";
-import "package:easy_localization/easy_localization.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 
@@ -45,7 +45,12 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
           print("Stack Trace:\n$s");
         }
 
-        BaseOverlays.error(message: "common_something_wrong".tr());
+        BaseOverlays.error(
+          message: await DynamicErrorMessages.fromException(
+            e,
+            stackTrace: s,
+          ),
+        );
       } finally {
         emit(DynamicFormCreateFinished());
       }
@@ -81,7 +86,12 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
           print("Stack Trace:\n$s");
         }
 
-        BaseOverlays.error(message: "common_something_wrong".tr());
+        BaseOverlays.error(
+          message: await DynamicErrorMessages.fromException(
+            e,
+            stackTrace: s,
+          ),
+        );
       } finally {
         emit(DynamicFormViewFinished());
       }
@@ -111,10 +121,18 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
 
           emit(DynamicFormEditSuccess(headerForm: headerForm));
         }
-      } catch (e) {
-        print(e);
+      } catch (e, s) {
+        if (kDebugMode) {
+          print("Caught Exception: $e");
+          print("Stack Trace:\n$s");
+        }
 
-        BaseOverlays.error(message: "common_something_wrong".tr());
+        BaseOverlays.error(
+          message: await DynamicErrorMessages.fromException(
+            e,
+            stackTrace: s,
+          ),
+        );
       } finally {
         emit(DynamicFormEditFinished());
       }
@@ -124,7 +142,8 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
       try {
         emit(DynamicFormSaveLoading());
 
-        Map<String, dynamic> output = await DynamicForms.encode(event.headerForm);
+        Map<String, dynamic> output =
+            await DynamicForms.encode(event.headerForm);
 
         if (DynamicForms.offline) {
           await Offlines.dynamicFormSave(
@@ -156,7 +175,12 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
           print("Stack Trace:\n$s");
         }
 
-        BaseOverlays.error(message: "common_something_wrong".tr());
+        BaseOverlays.error(
+          message: await DynamicErrorMessages.fromException(
+            e,
+            stackTrace: s,
+          ),
+        );
       } finally {
         emit(DynamicFormSaveFinished());
       }
@@ -166,7 +190,8 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
       try {
         emit(DynamicFormRefreshLoading());
 
-        Map<String, dynamic> output = await DynamicForms.encode(event.headerForm);
+        Map<String, dynamic> output =
+            await DynamicForms.encode(event.headerForm);
 
         HeaderForm? headerForm;
 
@@ -195,7 +220,12 @@ class DynamicFormBloc extends Bloc<DynamicFormEvent, DynamicFormState> {
           print("Stack Trace:\n$s");
         }
 
-        BaseOverlays.error(message: "common_something_wrong".tr());
+        BaseOverlays.error(
+          message: await DynamicErrorMessages.fromException(
+            e,
+            stackTrace: s,
+          ),
+        );
       } finally {
         emit(DynamicFormRefreshFinished());
       }

@@ -3,13 +3,13 @@
 import "package:base/base.dart";
 import "package:dio/dio.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
+import "package:dynamic_of_things/helper/dynamic_error_messages.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/offline_schedules.dart";
 import "package:dynamic_of_things/model/dynamic_schedule_data.dart";
 import "package:dynamic_of_things/model/dynamic_schedule_template.dart";
 import "package:dynamic_of_things/module/dynamic_schedule/dynamic_schedule_event.dart";
 import "package:dynamic_of_things/module/dynamic_schedule/dynamic_schedule_state.dart";
-import "package:easy_localization/easy_localization.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter_bloc/flutter_bloc.dart";
 
@@ -25,7 +25,8 @@ class DynamicScheduleBloc
         if (DynamicForms.offline) {
           template = await OfflineSchedules.template(event.id);
         } else {
-          Response response = await DotApis.getInstance().dynamicScheduleTemplate(
+          Response response =
+              await DotApis.getInstance().dynamicScheduleTemplate(
             id: event.id,
             customerId: event.customerId,
           );
@@ -44,7 +45,12 @@ class DynamicScheduleBloc
           print("Stack Trace:\n$s");
         }
 
-        BaseOverlays.error(message: "common_something_wrong".tr());
+        BaseOverlays.error(
+          message: await DynamicErrorMessages.fromException(
+            e,
+            stackTrace: s,
+          ),
+        );
       } finally {
         emit(DynamicScheduleTemplateFinished());
       }
@@ -80,7 +86,9 @@ class DynamicScheduleBloc
           );
 
           if (response.statusCode == 200) {
-            items.addAll(response.data != null ? List<Item>.from(response.data.map((e) => Item.fromJson(e))) : []);
+            items.addAll(response.data != null
+                ? List<Item>.from(response.data.map((e) => Item.fromJson(e)))
+                : []);
           }
         }
 
@@ -91,7 +99,12 @@ class DynamicScheduleBloc
           print("Stack Trace:\n$s");
         }
 
-        BaseOverlays.error(message: "common_something_wrong".tr());
+        BaseOverlays.error(
+          message: await DynamicErrorMessages.fromException(
+            e,
+            stackTrace: s,
+          ),
+        );
       } finally {
         emit(DynamicScheduleDataFinished());
       }
