@@ -148,7 +148,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
   Map<String, dynamic> get activeFilters => Map.fromEntries(
         (template?.filters ?? [])
             .where((element) => element.value != null)
-            .map((e) => MapEntry(e.id, e.value)),
+            .map((e) => MapEntry(e.id, e.apiValue)),
       );
 
   // Tracks which list-level filter-toggle button (Action.filterOverrideId !=
@@ -1987,7 +1987,7 @@ class DynamicSchedulePageState extends State<DynamicSchedulePage>
                                         if (filter.value != null) {
                                           if (filter.type == "DATE") {
                                             filter.controller!.text =
-                                                Formats.dateTime(filter.value);
+                                                Formats.date(filter.value);
                                           } else if (filter.type ==
                                               "NUMERIC") {
                                             filter.controller!.text =

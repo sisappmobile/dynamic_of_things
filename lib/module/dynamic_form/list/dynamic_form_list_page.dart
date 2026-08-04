@@ -748,7 +748,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
                                         if (filter.value != null) {
                                           if (filter.type == "DATE") {
                                             filter.controller!.text =
-                                                Formats.dateTime(filter.value);
+                                                Formats.date(filter.value);
                                           } else if (filter.type ==
                                               "NUMERIC") {
                                             filter.controller!.text =
@@ -1229,7 +1229,7 @@ class DynamicFormListPageState extends State<DynamicFormListPage>
             filters: Map.fromEntries(
               filters
                   .where((element) => element.value != null)
-                  .map((e) => MapEntry(e.id, e.value)),
+                  .map((e) => MapEntry(e.id, e.apiValue)),
             ),
             filterOperators: activeFilterOperators,
           ),

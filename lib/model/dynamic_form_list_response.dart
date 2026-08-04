@@ -1,6 +1,8 @@
 // ignore_for_file: always_put_required_named_parameters_first, always_specify_types
 
+import "package:base/base.dart";
 import "package:flutter/material.dart";
+import "package:jiffy/jiffy.dart";
 
 class ListResponse {
   final bool createUsingScanQr;
@@ -43,6 +45,25 @@ class FilterItem {
 
   dynamic value;
   TextEditingController? controller;
+
+  // The DATE filter's input widget stores the picked date as a `Jiffy`
+  // instance in `value` (so the picker can be reopened against it directly)
+  // - but that's never valid to hand to jsonEncode() when building the
+  // `filters`/`filterOperators` request map, which crashes with
+  // "Converting object to an encodable object failed: Instance of 'Jiffy'".
+  // Both the online (DynamicFormService.list()) and offline (Offlines.list())
+  // filter-application code expect a plain ISO "yyyy-MM-dd" string for a
+  // supplied DATE value, matching how dates are already stored everywhere
+  // else in this app (DynamicForms.encodeValue et al) - so this is the one
+  // place callers should read a filter's value from when sending it
+  // anywhere, instead of the raw `value` field.
+  dynamic get apiValue {
+    if (type == "DATE" && value is Jiffy) {
+      return (value as Jiffy).dateFormat();
+    }
+
+    return value;
+  }
 
   FilterItem({
     required this.id,
