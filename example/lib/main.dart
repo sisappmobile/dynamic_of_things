@@ -42,7 +42,7 @@ const String baseUrl = "https://10.0.2.2:8443/salesforce/api/";
 // const String baseUrl = "https://dairyland.sisapp.com:6433/salesforce/api/";
 const String salt =
     "72e4425c484016c95677d1a2513681ff8e2b2459b11e68c8b67cc7b7fe60c422b629eb45d1a5b236c3df0031860c98f4b0f58c2497212ee20d58a833b9a3ea1d";
-const String serverCode = "MURTI_INDAH";
+const String serverCode = "DAIRYLANDLIVE";
 
 final GoRouter goRouter = GoRouter(
   routes: [

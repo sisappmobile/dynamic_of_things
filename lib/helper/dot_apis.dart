@@ -10,6 +10,7 @@ import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
 import "package:dynamic_of_things/model/dynamic_form_resource_response.dart";
 import "package:dynamic_of_things/model/dynamic_report_data.dart";
 import "package:dynamic_of_things/model/header_form.dart";
+import "package:dynamic_of_things/model/print_layout.dart";
 import "package:jiffy/jiffy.dart";
 
 class DotApis {
@@ -605,5 +606,36 @@ class DotApis {
       },
       options: Options(responseType: ResponseType.bytes),
     );
+  }
+
+  Future<List<PrintLayoutItem>> dynamicFormPrintLayouts({
+    required String formId,
+  }) async {
+    Response response = await dio.get(
+      "v2/dynamic-forms/$formId/print-layouts",
+    );
+
+    if (response.statusCode == 200 && response.data is List) {
+      return List<PrintLayoutItem>.from(
+        (response.data as List).map((e) => PrintLayoutItem.fromJson(e)),
+      );
+    }
+
+    return [];
+  }
+
+  Future<PrintLayoutTemplate?> dynamicFormPrintLayoutTemplate({
+    required String formId,
+    required String layoutId,
+  }) async {
+    Response response = await dio.get(
+      "v2/dynamic-forms/$formId/print-layouts/$layoutId",
+    );
+
+    if (response.statusCode == 200) {
+      return PrintLayoutTemplate.fromJson(response.data);
+    }
+
+    return null;
   }
 }

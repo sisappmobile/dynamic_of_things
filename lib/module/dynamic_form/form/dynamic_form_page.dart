@@ -8,15 +8,18 @@ import "package:basic_utils/basic_utils.dart";
 import "package:crypto/crypto.dart" as crypto;
 import "package:dio/dio.dart";
 import "package:dynamic_of_things/enumeration/constant.dart";
+import "package:dynamic_of_things/helper/bottom_sheets.dart";
 import "package:dynamic_of_things/helper/dot_apis.dart";
 import "package:dynamic_of_things/helper/dynamic_error_messages.dart";
 import "package:dynamic_of_things/helper/dynamic_forms.dart";
 import "package:dynamic_of_things/helper/file_downloads.dart";
 import "package:dynamic_of_things/helper/generals.dart";
 import "package:dynamic_of_things/helper/preferences.dart";
+import "package:dynamic_of_things/helper/print_service.dart";
 import "package:dynamic_of_things/helper/responsive_layout.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
 import "package:dynamic_of_things/model/header_form.dart";
+import "package:dynamic_of_things/model/print_layout.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_bloc.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_event.dart";
 import "package:dynamic_of_things/module/dynamic_form/form/dynamic_form_state.dart";
@@ -64,6 +67,11 @@ class DynamicFormPageState extends State<DynamicFormPage>
   bool loading = true;
   bool prefsReady = false;
 
+  // Only relevant in readOnly (view) mode, matching printYourTemplates and
+  // reportLayouts below - fetched independently of the header form's own
+  // load/refresh cycle since it only depends on the (static) form id.
+  List<PrintLayoutItem> printLayouts = [];
+
   static const double gapCard = 12;
   static const double treeMaximumDistanceInMeters = 20;
 
@@ -73,6 +81,7 @@ class DynamicFormPageState extends State<DynamicFormPage>
 
     WidgetsBinding.instance.addObserver(this);
     initPrefs();
+    loadPrintLayouts();
 
     if (widget.headerForm != null) {
       headerForm = widget.headerForm;
@@ -619,6 +628,14 @@ class DynamicFormPageState extends State<DynamicFormPage>
               },
             ),
           ),
+        if (headerForm != null && widget.readOnly && printLayouts.isNotEmpty)
+          Container(
+            margin: EdgeInsets.only(left: Dimensions.size10),
+            child: iconPill(
+              icon: Icons.print,
+              onTap: handlePrintTap,
+            ),
+          ),
         if (popupMenuItems.isNotEmpty)
           Container(
             margin: EdgeInsets.only(left: Dimensions.size10),
@@ -1072,6 +1089,96 @@ class DynamicFormPageState extends State<DynamicFormPage>
     }
 
     return fab;
+  }
+
+  Future<void> loadPrintLayouts() async {
+    if (!widget.readOnly) {
+      return;
+    }
+
+    try {
+      final List<PrintLayoutItem> layouts =
+          await DotApis.getInstance().dynamicFormPrintLayouts(
+        formId: widget.dynamicFormMenuItem.id,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        printLayouts = layouts;
+      });
+    } catch (_) {
+      // Silently ignore - the print button simply won't appear.
+    }
+  }
+
+  Future<void> handlePrintTap() async {
+    if (printLayouts.isEmpty || headerForm == null) {
+      return;
+    }
+
+    if (printLayouts.length == 1) {
+      await printLayout(printLayouts.first);
+      return;
+    }
+
+    await BottomSheets.popupMenu(
+      context: context,
+      menuItems: printLayouts
+          .map(
+            (e) => MenuItem(
+              iconData: Icons.print,
+              title: e.caption,
+              onTap: () async {
+                await printLayout(e);
+              },
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  Future<void> printLayout(PrintLayoutItem item) async {
+    if (headerForm == null) {
+      return;
+    }
+
+    context.loaderOverlay.show();
+
+    try {
+      final PrintLayoutTemplate? template =
+          await DotApis.getInstance().dynamicFormPrintLayoutTemplate(
+        formId: widget.dynamicFormMenuItem.id,
+        layoutId: item.id,
+      );
+
+      if (template == null) {
+        throw Exception("common_something_wrong".tr());
+      }
+
+      final List<int> bytes = await PrintLayoutRenderer.render(
+        template: template,
+        data: headerForm!.data,
+      );
+
+      await PrinterService.printBytes(bytes);
+    } on PrinterException catch (e) {
+      BaseOverlays.error(message: e.message);
+      return;
+    } catch (e, s) {
+      BaseOverlays.error(
+        message: await DynamicErrorMessages.fromException(
+          e,
+          stackTrace: s,
+        ),
+      );
+
+      return;
+    } finally {
+      context.loaderOverlay.hide();
+    }
   }
 
   Future<void> downloadPrintYourTemplate(String id) async {

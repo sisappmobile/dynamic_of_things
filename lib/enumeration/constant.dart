@@ -25,7 +25,22 @@ enum SharedPreferenceKey {
   WEB_WALLPAPER_BYTES("WEB_WALLPAPER_BYTES"),
   WEB_DEVICE_ID("WEB_DEVICE_ID"),
   AUTO_FILL_SCANNER("autoFillScanner"),
-  SAVE_IMAGE("SAVE_IMAGE");
+  SAVE_IMAGE("SAVE_IMAGE"),
+
+  // Deliberately the exact same identifiers as visitqu's
+  // SharedPreferenceKey.PRINTER_* (lib/constant.dart) - Preferences here and
+  // in visitqu both key SharedPreferences purely off the enum's own `.name`
+  // (see Preferences.getString/setString etc.), so these resolve to the
+  // same underlying storage slot as long as this package and visitqu share
+  // the same app/host, which is the assumption this package's printing
+  // support relies on (it ships no printer-settings UI of its own - see
+  // PrinterSettings.load() in helper/print_service.dart).
+  PRINTER_CONNECTION_TYPE("PRINTER_CONNECTION_TYPE"),
+  PRINTER_BLUETOOTH_NAME("PRINTER_BLUETOOTH_NAME"),
+  PRINTER_BLUETOOTH_ADDRESS("PRINTER_BLUETOOTH_ADDRESS"),
+  PRINTER_NETWORK_IP("PRINTER_NETWORK_IP"),
+  PRINTER_NETWORK_PORT("PRINTER_NETWORK_PORT"),
+  PRINTER_PAPER_WIDTH("PRINTER_PAPER_WIDTH");
 
   final String? legacyKey;
 
