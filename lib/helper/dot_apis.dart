@@ -608,6 +608,20 @@ class DotApis {
     );
   }
 
+  Future<Response> exportTemplate({
+    required String formId,
+    required String functionId,
+    required String dataId,
+  }) async {
+    return await dio.get(
+      "v2/dynamic-forms/export/$formId/function/$functionId",
+      queryParameters: {
+        "dataId": dataId,
+      },
+      options: Options(responseType: ResponseType.bytes),
+    );
+  }
+
   Future<List<PrintLayoutItem>> dynamicFormPrintLayouts({
     required String formId,
   }) async {

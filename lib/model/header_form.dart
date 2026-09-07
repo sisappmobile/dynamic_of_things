@@ -19,6 +19,7 @@ class HeaderForm {
   late bool hasOnChangeEvent;
   List<PrintYourTemplate> printYourTemplates = [];
   List<ReportLayout> reportLayouts = [];
+  List<ExportLayout> exportLayouts = [];
 
   String? dataId;
 
@@ -31,7 +32,8 @@ class HeaderForm {
     ..data = json["data"]
     ..hasOnChangeEvent = json["hasOnChangeEvent"]
     ..printYourTemplates = json["printYourTemplates"] != null ? List<PrintYourTemplate>.from(json["printYourTemplates"].map((e) => PrintYourTemplate.fromJson(e))) : []
-    ..reportLayouts = json["reportLayouts"] != null ? List<ReportLayout>.from(json["reportLayouts"].map((e) => ReportLayout.fromJson(e))) : [];
+    ..reportLayouts = json["reportLayouts"] != null ? List<ReportLayout>.from(json["reportLayouts"].map((e) => ReportLayout.fromJson(e))) : []
+    ..exportLayouts = json["exportLayouts"] != null ? List<ExportLayout>.from(json["exportLayouts"].map((e) => ExportLayout.fromJson(e))) : [];
 
   Map<String, dynamic> toJson() => {
     "template": template.toJson(),
@@ -39,6 +41,7 @@ class HeaderForm {
     "hasOnChangeEvent": hasOnChangeEvent,
     "printYourTemplates": List<dynamic>.from(printYourTemplates.map((x) => x.toJson())),
     "reportLayouts": List<dynamic>.from(reportLayouts.map((x) => x.toJson())),
+    "exportLayouts": List<dynamic>.from(exportLayouts.map((x) => x.toJson())),
   };
 }
 
@@ -379,6 +382,22 @@ class ReportLayout {
   ReportLayout();
 
   factory ReportLayout.fromJson(Map<String, dynamic> json) => ReportLayout()
+    ..id = json["id"] ?? ""
+    ..label = json["label"] ?? "";
+
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "label": label,
+  };
+}
+
+class ExportLayout {
+  late String id;
+  late String label;
+
+  ExportLayout();
+
+  factory ExportLayout.fromJson(Map<String, dynamic> json) => ExportLayout()
     ..id = json["id"] ?? ""
     ..label = json["label"] ?? "";
 

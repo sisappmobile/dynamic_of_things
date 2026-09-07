@@ -558,6 +558,15 @@ class DynamicFormPageState extends State<DynamicFormPage>
               child: Text(e.label),
             );
           }).toList(),
+        )
+        ..addAll(
+          headerForm!.exportLayouts.map((e) {
+            return PopupMenuItem(
+              enabled: true,
+              value: e,
+              child: Text(e.label),
+            );
+          }).toList(),
         );
     }
 
@@ -675,6 +684,8 @@ class DynamicFormPageState extends State<DynamicFormPage>
                         } catch (e) {
                           BaseOverlays.error(message: e.toString());
                         }
+                      } else if (selectedValue is ExportLayout) {
+                        await exportTemplate(selectedValue.id);
                       }
                     }
                   },
@@ -1196,6 +1207,52 @@ class DynamicFormPageState extends State<DynamicFormPage>
 
         String fileName =
             response.headers["Content-Disposition"]![0].toString();
+
+        fileName = fileName.substring(fileName.lastIndexOf("=") + 1);
+        fileName = fileName.trim();
+        fileName = fileName.replaceAll(" ", "_");
+        fileName = fileName.toLowerCase();
+
+        final String? savedLocation = await FileDownloads.save(
+          bytes: bytes,
+          fileName: fileName,
+        );
+
+        if (!mounted || savedLocation == null) {
+          return;
+        }
+
+        FileDownloads.showSuccessSnackBar(context, location: savedLocation);
+      }
+    } catch (e, s) {
+      BaseOverlays.error(
+        message: await DynamicErrorMessages.fromException(
+          e,
+          stackTrace: s,
+        ),
+      );
+
+      return;
+    } finally {
+      context.loaderOverlay.hide();
+    }
+  }
+
+  Future<void> exportTemplate(String id) async {
+    context.loaderOverlay.show();
+
+    try {
+      Response response = await DotApis.getInstance().exportTemplate(
+        formId: widget.dynamicFormMenuItem.id,
+        functionId: id,
+        dataId: widget.dataId!,
+      );
+
+      if (response.statusCode == 200) {
+        Uint8List bytes = response.data;
+
+        String fileName =
+        response.headers["Content-Disposition"]![0].toString();
 
         fileName = fileName.substring(fileName.lastIndexOf("=") + 1);
         fileName = fileName.trim();

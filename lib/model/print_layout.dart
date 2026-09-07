@@ -42,21 +42,29 @@ class PrintLayoutTemplate {
 }
 
 class PrintLayoutElement {
-  // "ROW" | "HR" | "FEED"
+  // "ROW" | "HR" | "FEED" | "DETAIL_ROW"
   final String type;
   final int? feedLines;
+  // Only set when type == "DETAIL_ROW" - the key under which the detail
+  // form's rows live in HeaderForm.data (data[detailTableName], a
+  // List<Map<String, dynamic>>), resolved server-side via
+  // CustomFormView.dynamicTableName() so it always matches whatever key
+  // HeaderForm itself uses for that DetailForm.
+  final String? detailTableName;
   final List<PrintLayoutCell> cells;
 
   PrintLayoutElement({
     required this.type,
     required this.feedLines,
     required this.cells,
+    this.detailTableName,
   });
 
   factory PrintLayoutElement.fromJson(Map<String, dynamic> json) =>
       PrintLayoutElement(
         type: json["type"] ?? "ROW",
         feedLines: json["feedLines"],
+        detailTableName: json["detailTableName"],
         cells: json["cells"] != null
             ? List<PrintLayoutCell>.from(
                 json["cells"].map((e) => PrintLayoutCell.fromJson(e)),

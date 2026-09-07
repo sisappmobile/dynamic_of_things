@@ -185,6 +185,17 @@ class PrintLayoutRenderer {
         bytes += generator.hr();
       } else if (element.type == "FEED") {
         bytes += generator.feed(element.feedLines ?? 1);
+      } else if (element.type == "DETAIL_ROW") {
+        final List<dynamic> rows =
+            data[element.detailTableName] is List
+                ? data[element.detailTableName]
+                : [];
+
+        for (dynamic row in rows) {
+          if (row is Map) {
+            bytes += _renderRow(generator, element, Map<String, dynamic>.from(row));
+          }
+        }
       } else {
         bytes += _renderRow(generator, element, data);
       }
