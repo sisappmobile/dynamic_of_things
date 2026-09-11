@@ -4,6 +4,7 @@ import "package:base/base.dart";
 import "package:basic_utils/basic_utils.dart";
 import "package:dio/dio.dart";
 import "package:dynamic_of_things/helper/dio_adapter.dart";
+import "package:dynamic_of_things/helper/failover_interceptor.dart";
 import "package:dynamic_of_things/helper/formats.dart";
 import "package:dynamic_of_things/model/dynamic_form_list_response.dart";
 import "package:dynamic_of_things/model/dynamic_form_menu_response.dart";
@@ -28,11 +29,24 @@ class DotApis {
   late String salt;
   late String baseUrl;
   late String sessionIdKey;
+  String? alternativeBaseUrl;
 
-  void init(String salt, String baseUrl, String sessionIdKey, Interceptor interceptor) async {
+  /// [alternativeBaseUrl] is retried automatically when a request cannot
+  /// reach [baseUrl] because the server is unreachable (not on application
+  /// level errors). [onFailover] is called once the switch happens, so the
+  /// caller can persist the new base URL (e.g. to shared preferences).
+  void init(
+    String salt,
+    String baseUrl,
+    String sessionIdKey,
+    Interceptor interceptor, {
+    String? alternativeBaseUrl,
+    void Function(String newBaseUrl)? onFailover,
+  }) async {
     this.salt = salt;
     this.baseUrl = baseUrl;
     this.sessionIdKey = sessionIdKey;
+    this.alternativeBaseUrl = alternativeBaseUrl;
 
     dio = Dio(
       BaseOptions(
@@ -44,6 +58,17 @@ class DotApis {
     );
 
     dio.interceptors.add(interceptor);
+
+    dio.interceptors.add(
+      FailoverInterceptor(
+        dio: dio,
+        alternativeBaseUrlProvider: () => this.alternativeBaseUrl,
+        onFailover: (String newBaseUrl) {
+          this.baseUrl = newBaseUrl;
+          onFailover?.call(newBaseUrl);
+        },
+      ),
+    );
 
     dio.interceptors.add(
       LogInterceptor(
