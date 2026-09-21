@@ -26,6 +26,12 @@ class Pulls {
   ValueNotifier<int?>? statusNotifier;
   VoidCallback? hideAnimation;
 
+  // Safety bound on how many immediate hasMore round-trips execute() will
+  // chain in a single call, so a client that's extremely far behind can't
+  // make this loop forever - it'll just pick up where it left off (versions
+  // are persisted per batch) the next time execute() is called.
+  static const int _maxCatchUpBatches = 50;
+
   Future<void> execute() async {
     if (!onProgress) {
       try {
@@ -46,33 +52,49 @@ class Pulls {
           }
         });
 
-        int? currentVersion =
-        BasePreferences.getInstance().getInt("dot-sync-current-version");
+        Database database = await Sqlites.get();
 
-        if (currentVersion == null) {
+        Map<String, int> versions = await loadSyncVersions(database);
+
+        if (versions.isEmpty) {
           try {
             Response response =
             await DotApis.getInstance().synchronizationSnapshot();
 
             await consume(response, true);
+
+            versions = await loadSyncVersions(database);
           } catch (e, s) {
             if (kDebugMode) {
               print("Caught Exception: $e");
               print("Stack Trace:\n$s");
             }
           }
-
-          currentVersion =
-              BasePreferences.getInstance().getInt("dot-sync-current-version") ?? 0;
         }
 
         bool result = false;
 
         try {
-          Response response =
-          await DotApis.getInstance().synchronizationPull(currentVersion);
+          bool hasMore = true;
+          int batches = 0;
 
-          result = await consume(response);
+          while (hasMore && batches < _maxCatchUpBatches) {
+            batches++;
+
+            Response response =
+            await DotApis.getInstance().synchronizationPullV2(versions);
+
+            final (bool success, bool more) = await consumeV2(response);
+
+            result = success;
+            hasMore = success && more;
+
+            if (!success) {
+              break;
+            }
+
+            versions = await loadSyncVersions(database);
+          }
         } catch (e, s) {
           if (kDebugMode) {
             print("Caught Exception: $e");
@@ -91,6 +113,42 @@ class Pulls {
     }
   }
 
+  // Per-entity high-water marks, kept in SQLite (not BasePreferences, which
+  // only ever held a single global int) so each entity can be checkpointed
+  // independently - lazily created rather than added to Sqlites.onCreate,
+  // matching the same pattern _segment_report_errors already uses here,
+  // since the DB schema is pinned at version 1 with no onUpgrade path for
+  // already-installed users.
+  Future<Map<String, int>> loadSyncVersions(Database database) async {
+    await database.execute(
+      "CREATE TABLE IF NOT EXISTS _sync_versions ( entity TEXT PRIMARY KEY, version INTEGER )",
+    );
+
+    List<Map<String, dynamic>> rows = await database.query("_sync_versions");
+
+    return {
+      for (Map<String, dynamic> row in rows)
+        row["entity"] as String: (row["version"] as num).toInt(),
+    };
+  }
+
+  Future<void> saveSyncVersions(
+    DatabaseExecutor executor,
+    Map<String, int> versions,
+  ) async {
+    await executor.execute(
+      "CREATE TABLE IF NOT EXISTS _sync_versions ( entity TEXT PRIMARY KEY, version INTEGER )",
+    );
+
+    for (MapEntry<String, int> entry in versions.entries) {
+      await executor.insert(
+        "_sync_versions",
+        {"entity": entry.key, "version": entry.value},
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
   Future<bool> consume(Response response, [bool snapshot = false]) async {
     if (response.statusCode == 200) {
       Map<String, dynamic> json = Map<String, dynamic>.from(response.data);
@@ -101,11 +159,15 @@ class Pulls {
 
       Database database = await Sqlites.get();
 
+      Set<String> entitiesSeen = {};
+
       return await database.transaction((txn) async {
         for (int i = 0; i < changes.length; i++) {
           Map<String, dynamic> change = changes[i];
 
           String entity = change["entity"];
+
+          entitiesSeen.add(entity);
 
           Map<String, dynamic> payload =
               Map<String, dynamic>.from(change["payload"]);
@@ -119,6 +181,19 @@ class Pulls {
         }
 
         await BasePreferences.getInstance().setInt("dot-sync-current-version", currentVersion);
+
+        if (snapshot) {
+          // Every entity a snapshot handed us data for is, by definition,
+          // fully current as of currentVersion (the same monotonic
+          // sequence master_versions/pull-v2 use) - seeding each one's
+          // per-entity high-water mark here is what lets the very next
+          // pull-v2 call ask "what's new since currentVersion" per entity
+          // instead of re-requesting everything the snapshot just gave us.
+          await saveSyncVersions(
+            txn,
+            {for (String entity in entitiesSeen) entity: currentVersion},
+          );
+        }
 
         return true;
       }).onError((error, stackTrace) async {
@@ -136,6 +211,62 @@ class Pulls {
       return true;
     } else {
       return false;
+    }
+  }
+
+  // pull-v2's response shape differs from consume()'s (per-entity `versions`
+  // instead of one global `currentVersion`, plus `hasMore`) so it gets its
+  // own parser rather than overloading consume() - the actual row-applying
+  // logic (process()/getTableInfos()) is unchanged and fully reused.
+  Future<(bool success, bool hasMore)> consumeV2(Response response) async {
+    if (response.statusCode == 200) {
+      Map<String, dynamic> json = Map<String, dynamic>.from(response.data);
+
+      Map<String, int> versions = Map<String, dynamic>.from(json["versions"] ?? {})
+          .map((key, value) => MapEntry(key, (value as num).toInt()));
+      List<Map<String, dynamic>> changes =
+          List<Map<String, dynamic>>.from(json["changes"] ?? []);
+      bool hasMore = json["hasMore"] == true;
+
+      if (versions.isEmpty && changes.isEmpty) {
+        return (true, false);
+      }
+
+      Database database = await Sqlites.get();
+
+      bool success = await database.transaction((txn) async {
+        for (int i = 0; i < changes.length; i++) {
+          Map<String, dynamic> change = changes[i];
+
+          String entity = change["entity"];
+
+          Map<String, dynamic> payload =
+              Map<String, dynamic>.from(change["payload"]);
+
+          List<Map<String, dynamic>> tableInfos =
+              await getTableInfos(txn, entity);
+
+          await process(txn, entity, payload, tableInfos);
+
+          updateStatus(((i + 1) / changes.length * 100).toInt());
+        }
+
+        await saveSyncVersions(txn, versions);
+
+        return true;
+      }).onError((error, stackTrace) async {
+        print("e: $error | s: $stackTrace");
+
+        return false;
+      });
+
+      return (success, hasMore);
+    } else if (response.statusCode == 204) {
+      print("Sync version is up to date");
+
+      return (true, false);
+    } else {
+      return (false, false);
     }
   }
 

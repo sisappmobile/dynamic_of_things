@@ -607,6 +607,24 @@ class DotApis {
     );
   }
 
+  // Per-entity high-water marks instead of one global version - lets the
+  // server skip any entity with nothing new (master_versions) without
+  // re-syncing already-current entities just because ONE entity changed.
+  // Served at a separate path from the plain /pull above deliberately, so
+  // that endpoint keeps working unchanged for any app build still calling
+  // it.
+  Future<Response> synchronizationPullV2(Map<String, int> versions) async {
+    dio.options.connectTimeout = const Duration(minutes: 5);
+    dio.options.receiveTimeout = const Duration(minutes: 5);
+
+    return await dio.post(
+      "v2/synchronizations/pull-v2",
+      data: {
+        "versions": versions,
+      },
+    );
+  }
+
   Future<Response> synchronizationPush(List<Map<String, dynamic>> changes) async {
     changes.forEach((element) => element["payload"] = jsonDecode(element["payload"]));
 
