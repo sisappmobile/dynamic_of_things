@@ -147,6 +147,25 @@ class Pulls {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
+
+    // "dot-sync-current-version" used to be the one global watermark
+    // (host apps like visitqu's account_page.dart still read it directly,
+    // e.g. for a "Sync Version" display) - per-entity versioning replaced
+    // it as the actual sync mechanism, and nothing else repopulates this
+    // pref anymore, so without this it goes stale (shows N/A) after the
+    // very first incremental pull-v2 batch. Kept meaningful as "the
+    // highest version we've seen anything for yet", the closest analog to
+    // what the single global counter used to represent.
+    if (versions.isNotEmpty) {
+      final int maxVersion = versions.values.reduce((a, b) => a > b ? a : b);
+      final int currentPrefValue =
+          BasePreferences.getInstance().getInt("dot-sync-current-version") ?? 0;
+
+      if (maxVersion > currentPrefValue) {
+        await BasePreferences.getInstance()
+            .setInt("dot-sync-current-version", maxVersion);
+      }
+    }
   }
 
   Future<bool> consume(Response response, [bool snapshot = false]) async {
