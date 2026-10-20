@@ -450,10 +450,31 @@ class DMLAssemblers {
 
     DatabaseExecutor databaseExecutor = transaction ?? await Sqlites.get();
 
-    final List<Map<String, Object?>> results = await databaseExecutor.rawQuery(
-      _build(),
-      _parameters,
-    );
+    List<Map<String, Object?>> results;
+
+    try {
+      results = await databaseExecutor.rawQuery(_build(), _parameters);
+    } on DatabaseException catch (e) {
+      // A dynamic-form table whose f_dynamic_table metadata already synced
+      // but which has zero rows so far never gets created locally - it's
+      // otherwise only ever created reactively, the first time an actual
+      // data row for it shows up in a pull (see Pulls.process()). Rather
+      // than requiring every one of this app's many call sites to
+      // pre-emptively know about that and guard against it individually,
+      // self-heal once here, at the single choke point every query
+      // already goes through: parse the missing table's name straight out
+      // of SQLite's own error message (works whether it's the primary
+      // FROM table or one pulled in via a JOIN), create it from its
+      // metadata if that metadata exists, and retry exactly once.
+      final String? missingTable = _missingTableName(e);
+
+      if (missingTable == null ||
+          !await _ensureTableExists(databaseExecutor, missingTable)) {
+        rethrow;
+      }
+
+      results = await databaseExecutor.rawQuery(_build(), _parameters);
+    }
 
     List<Map<String, dynamic>> copy = [];
 
@@ -462,6 +483,90 @@ class DMLAssemblers {
     }
 
     return copy;
+  }
+
+  static String? _missingTableName(DatabaseException e) {
+    final RegExpMatch? match =
+        RegExp(r"no such table:\s*([A-Za-z0-9_]+)").firstMatch(e.toString());
+
+    return match?.group(1);
+  }
+
+  // Mirrors Pulls.getTableInfos()'s table-creation logic (f_dynamic_table +
+  // f_dynamic_table_detail -> CREATE TABLE), duplicated here rather than
+  // shared - Pulls already depends on DMLAssemblers, so calling back into
+  // Pulls from here would be circular. Uses raw rawQuery/execute instead of
+  // DMLAssemblers' own query builder so it works identically whether
+  // databaseExecutor is a Transaction or the raw Database.
+  static Future<bool> _ensureTableExists(
+    DatabaseExecutor databaseExecutor,
+    String tableName,
+  ) async {
+    List<Map<String, Object?>> existing =
+        await databaseExecutor.rawQuery("PRAGMA table_info($tableName)");
+
+    if (existing.isNotEmpty) {
+      return true;
+    }
+
+    List<Map<String, Object?>> tableRows = await databaseExecutor.rawQuery(
+      "SELECT * FROM f_dynamic_table WHERE table_name = ? LIMIT 1",
+      [tableName],
+    );
+
+    if (tableRows.isEmpty) {
+      return false;
+    }
+
+    List<Map<String, Object?>> columns = await databaseExecutor.rawQuery(
+      "SELECT * FROM f_dynamic_table_detail WHERE table_id = ?",
+      [tableRows.first["id"]],
+    );
+
+    if (columns.isEmpty) {
+      return false;
+    }
+
+    String? pkColumn;
+
+    for (Map<String, Object?> column in columns) {
+      if (column["f_pk"] == "Y") {
+        pkColumn = column["column_name"] as String?;
+
+        break;
+      }
+    }
+
+    List<String> columnNames = [];
+
+    for (Map<String, Object?> column in columns) {
+      columnNames.add(column["column_name"] as String);
+    }
+
+    const List<String> additionalColumns = [
+      "create_who",
+      "create_date",
+      "change_who",
+      "change_date",
+      "table_id",
+      "form_id",
+      "f_delete",
+      "version",
+      "user_id",
+      "header_id",
+    ];
+
+    for (String additionalColumn in additionalColumns) {
+      if (!columnNames.contains(additionalColumn)) {
+        columnNames.add(additionalColumn);
+      }
+    }
+
+    await databaseExecutor.execute(
+      "CREATE TABLE $tableName ( ${columnNames.toSet().map((column) => "$column TEXT ${column == pkColumn ? "PRIMARY KEY" : ""}").join(", ")} )",
+    );
+
+    return true;
   }
 
   Future<int> count([Transaction? transaction]) async {
