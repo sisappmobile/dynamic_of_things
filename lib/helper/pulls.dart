@@ -339,7 +339,46 @@ class Pulls {
       if (tableName == "c_segment_report") {
         await handleSegmentReport(transaction, payload);
       }
+
+      if (tableName == "f_dynamic_table") {
+        // getTableInfos() otherwise only ever creates a dynamic-form's
+        // local data table lazily, the first time a row of actual DATA
+        // for it shows up in a pull (process() calling getTableInfos() for
+        // the entry key of a nested List payload). A table whose metadata
+        // (this row + its just-processed f_dynamic_table_detail children,
+        // above) has synced but which happens to have zero rows so far -
+        // entirely possible, e.g. a brand new form, or one scoped down to
+        // nothing by pull-v2's row-level access filtering - would then
+        // never get its local table created at all, and any later query
+        // against it (e.g. opening the form's list page) fails with
+        // "no such table". Table metadata alone is enough to create an
+        // empty table, so do it as soon as the metadata itself is known,
+        // not gated on data existing.
+        String? dataTableName = payload["table_name"] as String?;
+
+        if (dataTableName != null && dataTableName.isNotEmpty) {
+          await getTableInfos(transaction, dataTableName);
+        }
+      }
     }
+  }
+
+  // For use OUTSIDE the pull/sync flow (no active transaction) - e.g. right
+  // before Offlines queries a dynamic form's table directly. A table can
+  // legitimately have synced f_dynamic_table metadata but zero rows (a
+  // brand new form, or one whose rows are all filtered out of this
+  // device's pull-v2 scope) - getTableInfos() during a pull only ever
+  // creates the table reactively when an actual data row shows up (see the
+  // f_dynamic_table hook in process() above), so without this, querying an
+  // as-yet-dataless form's list page throws "no such table". Safe/cheap to
+  // call on every query - PRAGMA table_info is a no-op lookup when the
+  // table already exists.
+  Future<void> ensureTableExists(String tableName) async {
+    Database database = await Sqlites.get();
+
+    await database.transaction((txn) async {
+      await getTableInfos(txn, tableName);
+    });
   }
 
   Future<List<Map<String, dynamic>>> getTableInfos(

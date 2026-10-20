@@ -52,11 +52,9 @@ packages:
   base:
     dependency: "direct main"
     description:
-      path: "."
-      ref: "54a41478bd72150246251ebcfcbdf384dabbbcf5"
-      resolved-ref: "54a41478bd72150246251ebcfcbdf384dabbbcf5"
-      url: "https://github.com/sisappmobile/base.git"
-    source: git
+      path: "/Users/kecoakburikk/Documents/project/flutter/base"
+      relative: false
+    source: path
     version: "2.0.12"
   basic_utils:
     dependency: "direct main"

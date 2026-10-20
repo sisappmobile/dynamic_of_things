@@ -313,6 +313,13 @@ class Offlines {
       throw Exception("Form tidak ditemukan");
     }
 
+    // Metadata syncing successfully doesn't guarantee the local table was
+    // ever created - that currently only happens lazily, the first time an
+    // actual data row for it shows up in a pull. A form with zero rows so
+    // far (brand new, or fully filtered out of this device's sync scope)
+    // would otherwise make every query below throw "no such table".
+    await Pulls.instance.ensureTableExists(customFormView["table_name"]);
+
     ListResponse listResponse = ListResponse(
       createUsingScanQr: customFormView["f_create_using_scan_qr"] == "Y",
       actions: [],
