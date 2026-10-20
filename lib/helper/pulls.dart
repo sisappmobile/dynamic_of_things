@@ -173,8 +173,9 @@ class Pulls {
       Map<String, dynamic> json = Map<String, dynamic>.from(response.data);
 
       int currentVersion = json["currentVersion"];
-      List<Map<String, dynamic>> changes =
-          List<Map<String, dynamic>>.from(json["changes"]);
+      List<Map<String, dynamic>> changes = _prioritizeDynamicTableMetadata(
+        List<Map<String, dynamic>>.from(json["changes"]),
+      );
 
       Database database = await Sqlites.get();
 
@@ -243,8 +244,9 @@ class Pulls {
 
       Map<String, int> versions = Map<String, dynamic>.from(json["versions"] ?? {})
           .map((key, value) => MapEntry(key, (value as num).toInt()));
-      List<Map<String, dynamic>> changes =
-          List<Map<String, dynamic>>.from(json["changes"] ?? []);
+      List<Map<String, dynamic>> changes = _prioritizeDynamicTableMetadata(
+        List<Map<String, dynamic>>.from(json["changes"] ?? []),
+      );
       bool hasMore = json["hasMore"] == true;
 
       if (versions.isEmpty && changes.isEmpty) {
@@ -287,6 +289,38 @@ class Pulls {
     } else {
       return (false, false);
     }
+  }
+
+  // Neither master_versions (pull-v2's source) nor the pre-baked offline
+  // snapshot guarantee that f_dynamic_table/f_dynamic_table_detail (a
+  // dynamic form's table definition) appears before a row of actual DATA
+  // for that same table within one batch - their query/generation order
+  // isn't tied to entity dependency. process() can only recognize a
+  // dynamic table once its own metadata has been inserted locally; if a
+  // data row is processed first, tableInfos comes back empty, the row is
+  // silently skipped, and the per-entity version watermark still advances
+  // past it - the server then never resends it. Moving metadata entities
+  // to the front of the batch (stable otherwise) removes that race.
+  List<Map<String, dynamic>> _prioritizeDynamicTableMetadata(
+    List<Map<String, dynamic>> changes,
+  ) {
+    const List<String> metadataEntities = [
+      "f_dynamic_table",
+      "f_dynamic_table_detail",
+    ];
+
+    List<Map<String, dynamic>> metadata = [];
+    List<Map<String, dynamic>> rest = [];
+
+    for (Map<String, dynamic> change in changes) {
+      if (metadataEntities.contains(change["entity"])) {
+        metadata.add(change);
+      } else {
+        rest.add(change);
+      }
+    }
+
+    return [...metadata, ...rest];
   }
 
   Future<void> process(
