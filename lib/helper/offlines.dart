@@ -453,10 +453,22 @@ class Offlines {
       // own LIKE is already ASCII case-insensitive, close enough here.
       String sqliteOperator = operator == "ILIKE" ? "LIKE" : operator;
 
+      // A DATE-type column stores a full ISO-8601 timestamp (e.g.
+      // "2026-10-20T16:35:33"), but filter values for DATE fields are
+      // always date-only ("2026-10-20" from $now, or a date picker).
+      // Comparing the column as-is against a date-only value makes every
+      // operator - "=" most visibly - spuriously fail to match. Mirrors
+      // the server's own `a.column::date` cast (MenuCustomDynamicForm.java
+      // :268/:297) by truncating the column's time component with
+      // SQLite's date() before comparing.
+      String columnExpression = filterField["field_type"] == "DATE"
+          ? "date(${filterField["column_name"]})"
+          : filterField["column_name"];
+
       if (suppliedValue != null) {
         dmlAssemblers
             .and()
-            .customWhere("${filterField["column_name"]} $sqliteOperator ?");
+            .customWhere("$columnExpression $sqliteOperator ?");
 
         if (operator == "ILIKE") {
           if (suppliedValue is String &&
@@ -471,7 +483,7 @@ class Offlines {
       } else if (defaultValue != null) {
         dmlAssemblers
             .and()
-            .customWhere("${filterField["column_name"]} $sqliteOperator ?");
+            .customWhere("$columnExpression $sqliteOperator ?");
 
         if (operator == "ILIKE") {
           dmlAssemblers.parameter("%$defaultValue%");
