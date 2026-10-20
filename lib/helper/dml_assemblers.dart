@@ -563,7 +563,7 @@ class DMLAssemblers {
     }
 
     await databaseExecutor.execute(
-      "CREATE TABLE $tableName ( ${columnNames.toSet().map((column) => "$column TEXT ${column == pkColumn ? "PRIMARY KEY" : ""}").join(", ")} )",
+      "CREATE TABLE $tableName ( ${columnNames.toSet().map((column) => '"$column" TEXT ${column == pkColumn ? "PRIMARY KEY" : ""}').join(", ")} )",
     );
 
     return true;

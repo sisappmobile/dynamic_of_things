@@ -434,7 +434,7 @@ class Pulls {
         }
 
         await transaction.execute(
-          "CREATE TABLE $tableName ( ${columns.toSet().map((column) => "$column TEXT ${column == pkColumn ? "PRIMARY KEY" : ""}").join(", ")} )",
+          "CREATE TABLE $tableName ( ${columns.toSet().map((column) => '"$column" TEXT ${column == pkColumn ? "PRIMARY KEY" : ""}').join(", ")} )",
         );
 
         tableInfos =

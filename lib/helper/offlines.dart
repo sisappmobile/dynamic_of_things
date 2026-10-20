@@ -2467,7 +2467,7 @@ class Offlines {
 
     Iterable<MapEntry<String, dynamic>> iterable = hashDTO.entries.where((entry) => !(entry.value is List || entry.value is Map) && actualFields.contains(entry.key));
 
-    await transaction.rawInsert("INSERT INTO $tableName ( ${iterable.map((entry) => entry.key).join(", ")} ) VALUES ( ${iterable.map((entry) => sqlLiteral(entry.value) != null ? "'${sqlLiteral(entry.value)}'" : "NULL").join(", ")} )");
+    await transaction.rawInsert("INSERT INTO $tableName ( ${iterable.map((entry) => '"${entry.key}"').join(", ")} ) VALUES ( ${iterable.map((entry) => sqlLiteral(entry.value) != null ? "'${sqlLiteral(entry.value)}'" : "NULL").join(", ")} )");
 
     Map<String, dynamic>? newRow = (await transaction.rawQuery("SELECT * FROM $tableName ORDER BY rowid DESC LIMIT 1")).firstOrNull;
 
@@ -3104,7 +3104,7 @@ class Offlines {
     if (oldRow != null) {
       Iterable<MapEntry<String, dynamic>> iterable = hashDTO.entries.where((entry) => !(entry.value is List || entry.value is Map || StringUtils.inList(entry.key, ["salesunit_id", "user_id"])) && actualFields.contains(entry.key));
 
-      int affectedCount = await transaction.rawUpdate("UPDATE $tableName SET ${iterable.map((entry) => "${entry.key} = ${sqlLiteral(entry.value) != null ? "'${sqlLiteral(entry.value)}'" : "NULL"}").join(", ")} WHERE id = '${hashDTO["id"]}'");
+      int affectedCount = await transaction.rawUpdate("UPDATE $tableName SET ${iterable.map((entry) => '"${entry.key}" = ${sqlLiteral(entry.value) != null ? "'${sqlLiteral(entry.value)}'" : "NULL"}').join(", ")} WHERE id = '${hashDTO["id"]}'");
 
       if (affectedCount == 1) {
         Map<String, dynamic>? newRow = (await transaction.rawQuery("SELECT * FROM $tableName WHERE id = '${hashDTO["id"]}'")).firstOrNull;
