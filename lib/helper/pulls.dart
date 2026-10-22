@@ -12,6 +12,30 @@ import "package:get/get.dart" as g;
 import "package:sqflite/sqflite.dart";
 import "package:uuid/uuid.dart";
 
+// Snapshot of where execute() currently is, shown by the corner overlay and
+// its tap-to-expand detail sheet. `status` keeps the dot's original
+// encoding (null/0-100 = in progress, 101 = success, -1 = error) so
+// updateStatus()'s existing call sites didn't need to change. `batch` is
+// 0 during the one-shot initial snapshot download and 1+ once execute()
+// is chaining incremental pull-v2 batches (a large first-time pull can
+// take many - up to _maxCatchUpBatches - since the API doesn't expose a
+// total row count up front, `status`'s 0-100 necessarily resets each
+// batch rather than reflecting whole-operation completion).
+// `entityCounts` accumulates across the whole execute() cycle (not reset
+// per batch) so the detail sheet can show what's actually been applied
+// so far.
+class PullProgressSnapshot {
+  final int? status;
+  final int batch;
+  final Map<String, int> entityCounts;
+
+  const PullProgressSnapshot({
+    this.status,
+    this.batch = 0,
+    this.entityCounts = const {},
+  });
+}
+
 class Pulls {
   // ✅ singleton instance
   static final Pulls _instance = Pulls._internal();
@@ -23,8 +47,10 @@ class Pulls {
   bool onProgress = false;
   bool shouldShowProgress = false;
   OverlayEntry? overlayEntry;
-  ValueNotifier<int?>? statusNotifier;
+  ValueNotifier<PullProgressSnapshot>? statusNotifier;
   VoidCallback? hideAnimation;
+  int _currentBatch = 0;
+  Map<String, int> _entityCounts = {};
 
   // Safety bound on how many immediate hasMore round-trips execute() will
   // chain in a single call, so a client that's extremely far behind can't
@@ -45,6 +71,8 @@ class Pulls {
 
         onProgress = true;
         shouldShowProgress = true;
+        _currentBatch = 0;
+        _entityCounts = {};
 
         Future.delayed(Duration(seconds: 1), () {
           if (shouldShowProgress) {
@@ -80,6 +108,7 @@ class Pulls {
 
           while (hasMore && batches < _maxCatchUpBatches) {
             batches++;
+            _currentBatch = batches;
 
             Response response =
             await DotApis.getInstance().synchronizationPullV2(versions);
@@ -107,6 +136,11 @@ class Pulls {
             result ? Duration.zero : const Duration(milliseconds: 1200),
           );
         }
+
+        // Reconciled every cycle, not just when saveSyncVersions() runs -
+        // see _syncGlobalVersionPref()'s own comment for why that alone
+        // isn't enough for an already-caught-up device.
+        await _syncGlobalVersionPref(versions);
       } finally {
         onProgress = false;
       }
@@ -148,23 +182,35 @@ class Pulls {
       );
     }
 
-    // "dot-sync-current-version" used to be the one global watermark
-    // (host apps like visitqu's account_page.dart still read it directly,
-    // e.g. for a "Sync Version" display) - per-entity versioning replaced
-    // it as the actual sync mechanism, and nothing else repopulates this
-    // pref anymore, so without this it goes stale (shows N/A) after the
-    // very first incremental pull-v2 batch. Kept meaningful as "the
-    // highest version we've seen anything for yet", the closest analog to
-    // what the single global counter used to represent.
-    if (versions.isNotEmpty) {
-      final int maxVersion = versions.values.reduce((a, b) => a > b ? a : b);
-      final int currentPrefValue =
-          BasePreferences.getInstance().getInt("dot-sync-current-version") ?? 0;
+    await _syncGlobalVersionPref(versions);
+  }
 
-      if (maxVersion > currentPrefValue) {
-        await BasePreferences.getInstance()
-            .setInt("dot-sync-current-version", maxVersion);
-      }
+  // "dot-sync-current-version" used to be the one global watermark (host
+  // apps like visitqu's account_page.dart still read it directly, e.g. for
+  // a "Sync Version" display) - per-entity versioning replaced it as the
+  // actual sync mechanism, and nothing else repopulates this pref anymore.
+  // Kept meaningful as "the highest version we've seen anything for yet",
+  // the closest analog to what the single global counter used to
+  // represent. Only called from saveSyncVersions() (i.e. only when a pull
+  // actually brings back new data) wasn't enough: a device that's already
+  // fully caught up gets 204 "up to date" responses indefinitely, so a
+  // device whose _sync_versions table was already populated before this
+  // reconciliation existed - or before the device's last new row ever
+  // arrived - would show "N/A" forever despite syncing successfully every
+  // cycle. execute() also calls this directly, every cycle, regardless of
+  // whether that cycle had anything new to apply.
+  Future<void> _syncGlobalVersionPref(Map<String, int> versions) async {
+    if (versions.isEmpty) {
+      return;
+    }
+
+    final int maxVersion = versions.values.reduce((a, b) => a > b ? a : b);
+    final int currentPrefValue =
+        BasePreferences.getInstance().getInt("dot-sync-current-version") ?? 0;
+
+    if (maxVersion > currentPrefValue) {
+      await BasePreferences.getInstance()
+          .setInt("dot-sync-current-version", maxVersion);
     }
   }
 
@@ -197,6 +243,7 @@ class Pulls {
 
           await process(txn, entity, payload, tableInfos);
 
+          _entityCounts[entity] = (_entityCounts[entity] ?? 0) + 1;
           updateStatus(((i + 1) / changes.length * 100).toInt());
         }
 
@@ -269,6 +316,7 @@ class Pulls {
 
           await process(txn, entity, payload, tableInfos);
 
+          _entityCounts[entity] = (_entityCounts[entity] ?? 0) + 1;
           updateStatus(((i + 1) / changes.length * 100).toInt());
         }
 
@@ -561,7 +609,7 @@ class Pulls {
       return;
     }
 
-    statusNotifier = ValueNotifier(null);
+    statusNotifier = ValueNotifier(const PullProgressSnapshot());
 
     overlayEntry = OverlayEntry(
       builder: (context) {
@@ -599,7 +647,11 @@ class Pulls {
       return;
     }
 
-    statusNotifier!.value = status;
+    statusNotifier!.value = PullProgressSnapshot(
+      status: status,
+      batch: _currentBatch,
+      entityCounts: Map<String, int>.unmodifiable(_entityCounts),
+    );
 
     if (autoCloseAfter != null) {
       Future.delayed(autoCloseAfter, () => hide());
@@ -608,7 +660,7 @@ class Pulls {
 }
 
 class OverlayContent extends StatefulWidget {
-  final ValueNotifier<int?> statusNotifier;
+  final ValueNotifier<PullProgressSnapshot> statusNotifier;
   final Function(VoidCallback hideFn) onHideReady;
 
   const OverlayContent({
@@ -678,6 +730,20 @@ class OverlayContentState extends State<OverlayContent>
     Pulls.instance.removeOverlay();
   }
 
+  void showDetail() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(Dimensions.size20),
+        ),
+      ),
+      builder: (context) =>
+          PullProgressDetailSheet(statusNotifier: widget.statusNotifier),
+    );
+  }
+
   @override
   void dispose() {
     pulseController.dispose();
@@ -693,21 +759,23 @@ class OverlayContentState extends State<OverlayContent>
         Positioned(
           left: Dimensions.size15,
           bottom: Dimensions.size15,
-          child: IgnorePointer(
-            child: FadeTransition(
-              opacity: fade,
-              child: ScaleTransition(
-                scale: scale,
-                child: ValueListenableBuilder<int?>(
-                  valueListenable: widget.statusNotifier,
-                  builder: (context, value, child) {
-                    return AnimatedStatusDot(
-                      status: value,
+          child: FadeTransition(
+            opacity: fade,
+            child: ScaleTransition(
+              scale: scale,
+              child: ValueListenableBuilder<PullProgressSnapshot>(
+                valueListenable: widget.statusNotifier,
+                builder: (context, snapshot, child) {
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: snapshot.status == 101 ? null : showDetail,
+                    child: AnimatedProgressDot(
+                      snapshot: snapshot,
                       pulseFade: pulseFade,
                       pulseScale: pulseScale,
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -717,13 +785,13 @@ class OverlayContentState extends State<OverlayContent>
   }
 }
 
-class AnimatedStatusDot extends StatelessWidget {
-  final int? status;
+class AnimatedProgressDot extends StatelessWidget {
+  final PullProgressSnapshot snapshot;
   final Animation<double> pulseFade;
   final Animation<double> pulseScale;
 
-  const AnimatedStatusDot({
-    required this.status,
+  const AnimatedProgressDot({
+    required this.snapshot,
     required this.pulseFade,
     required this.pulseScale,
     super.key,
@@ -745,37 +813,190 @@ class AnimatedStatusDot extends StatelessWidget {
           ),
         );
       },
-      child: buildChild(status),
+      child: buildChild(),
     );
   }
 
-  Widget buildChild(int? status) {
-    if (status == 101) {
+  Widget buildChild() {
+    if (snapshot.status == 101) {
       return const SizedBox.shrink(key: ValueKey("completed"));
     }
 
-    final bool isError = status == -1;
-    final Color dotColor =
+    final bool isError = snapshot.status == -1;
+    final Color accentColor =
         isError ? const Color(0xFFD64545) : const Color(0xFF14B8A6);
+    // A batch's own 0-100 progress - real/determinate within that batch,
+    // but it resets each time execute() starts a new pull-v2 batch (see
+    // PullProgressSnapshot's comment), so null (no row applied yet this
+    // batch) falls back to an indeterminate spin rather than a fake 0%.
+    final double? progressValue =
+        (!isError && snapshot.status != null) ? snapshot.status! / 100 : null;
 
     return FadeTransition(
-      key: ValueKey(isError ? "error-dot" : "loading-dot"),
+      key: ValueKey(isError ? "error-ring" : "progress-ring"),
       opacity: isError ? const AlwaysStoppedAnimation(1) : pulseFade,
       child: ScaleTransition(
         scale: isError ? const AlwaysStoppedAnimation(1) : pulseScale,
         child: DecoratedBox(
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: dotColor,
+            color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: dotColor.withValues(alpha: 0.35),
+                color: accentColor.withValues(alpha: 0.35),
                 blurRadius: Dimensions.size10,
                 spreadRadius: 1.5,
               ),
             ],
           ),
-          child: SizedBox(width: Dimensions.size10, height: Dimensions.size10),
+          child: Padding(
+            padding: EdgeInsets.all(Dimensions.size5),
+            child: SizedBox(
+              width: Dimensions.size20,
+              height: Dimensions.size20,
+              child: isError
+                  ? Icon(
+                      Icons.priority_high_rounded,
+                      size: Dimensions.text14,
+                      color: accentColor,
+                    )
+                  : CircularProgressIndicator(
+                      value: progressValue,
+                      strokeWidth: 2.5,
+                      color: accentColor,
+                      backgroundColor: accentColor.withValues(alpha: 0.15),
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Tap target for AnimatedProgressDot - a plain Material bottom sheet (no
+// visitqu/glass-specific styling, since this package is host-app-agnostic)
+// showing the current batch's progress plus a running tally of what's been
+// applied so far this execute() cycle, grouped by entity.
+class PullProgressDetailSheet extends StatelessWidget {
+  final ValueNotifier<PullProgressSnapshot> statusNotifier;
+
+  const PullProgressDetailSheet({
+    required this.statusNotifier,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.all(Dimensions.size20),
+        child: ValueListenableBuilder<PullProgressSnapshot>(
+          valueListenable: statusNotifier,
+          builder: (context, snapshot, child) {
+            final bool isError = snapshot.status == -1;
+            final bool isDone = snapshot.status == 101;
+
+            final List<MapEntry<String, int>> entries =
+                snapshot.entityCounts.entries.toList()
+                  ..sort((a, b) => b.value.compareTo(a.value));
+
+            final int totalRows =
+                snapshot.entityCounts.values.fold(0, (a, b) => a + b);
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Status Sinkronisasi",
+                  style: TextStyle(
+                    fontSize: Dimensions.text16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(height: Dimensions.size15),
+                if (isError)
+                  Text(
+                    "Sinkronisasi gagal, akan dicoba lagi.",
+                    style: TextStyle(color: const Color(0xFFD64545)),
+                  )
+                else if (isDone)
+                  const Text("Sinkronisasi selesai.")
+                else ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(Dimensions.size5),
+                    child: LinearProgressIndicator(
+                      value:
+                          snapshot.status != null ? snapshot.status! / 100 : null,
+                      minHeight: Dimensions.size5,
+                      color: const Color(0xFF14B8A6),
+                      backgroundColor:
+                          const Color(0xFF14B8A6).withValues(alpha: 0.15),
+                    ),
+                  ),
+                  SizedBox(height: Dimensions.size10),
+                  Text(
+                    snapshot.batch > 0
+                        ? "Batch ${snapshot.batch} • ${snapshot.status ?? 0}%"
+                        : "Mengunduh data awal...",
+                    style: TextStyle(fontSize: Dimensions.text12),
+                  ),
+                ],
+                SizedBox(height: Dimensions.size20),
+                Text(
+                  totalRows > 0
+                      ? "Data terunduh ($totalRows baris)"
+                      : "Data terunduh",
+                  style: TextStyle(
+                    fontSize: Dimensions.text14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                SizedBox(height: Dimensions.size10),
+                if (entries.isEmpty)
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: Dimensions.size10),
+                    child: const Text("Belum ada data yang diproses."),
+                  )
+                else
+                  Flexible(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.4,
+                      ),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: entries.length,
+                        separatorBuilder: (context, index) =>
+                            SizedBox(height: Dimensions.size10),
+                        itemBuilder: (context, index) {
+                          final MapEntry<String, int> entry = entries[index];
+
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  entry.key,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Text(
+                                entry.value.toString(),
+                                style:
+                                    const TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
