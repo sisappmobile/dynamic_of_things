@@ -24,15 +24,21 @@ import "package:uuid/uuid.dart";
 // `entityCounts` accumulates across the whole execute() cycle (not reset
 // per batch) so the detail sheet can show what's actually been applied
 // so far.
+// `entityLabels` is a parallel map of entity -> human-friendly name (falls
+// back to the raw technical name when nothing better is known - see
+// Pulls._resolveEntityLabel()), resolved lazily as each entity is seen
+// during the cycle rather than up front for all of them.
 class PullProgressSnapshot {
   final int? status;
   final int batch;
   final Map<String, int> entityCounts;
+  final Map<String, String> entityLabels;
 
   const PullProgressSnapshot({
     this.status,
     this.batch = 0,
     this.entityCounts = const {},
+    this.entityLabels = const {},
   });
 }
 
@@ -51,12 +57,102 @@ class Pulls {
   VoidCallback? hideAnimation;
   int _currentBatch = 0;
   Map<String, int> _entityCounts = {};
+  Map<String, String> _entityLabels = {};
 
   // Safety bound on how many immediate hasMore round-trips execute() will
   // chain in a single call, so a client that's extremely far behind can't
   // make this loop forever - it'll just pick up where it left off (versions
   // are persisted per batch) the next time execute() is called.
   static const int _maxCatchUpBatches = 50;
+
+  // Entities that aren't a dynamic form's own data table (no c_custom_form
+  // row to pull a form_desc from - see _resolveEntityLabel()) - the
+  // SynchronizationService.dispatchHandler() switch is the authoritative
+  // list of which entities those are, but that list isn't closed (a new
+  // sync-triggered table can appear in master_versions without ever being
+  // added there), so this is deliberately just the common ones users are
+  // likely to actually see in the detail sheet, not an exhaustive mirror.
+  // Anything missing here simply falls back to showing its raw technical
+  // name, same as before this existed.
+  static const Map<String, String> _knownEntityLabels = {
+    "m_item": "Item",
+    "m_pl": "Price List",
+    "m_customer": "Pelanggan",
+    "m_customer_pic": "PIC Pelanggan",
+    "m_customer_department": "Departemen Pelanggan",
+    "m_customer_project": "Proyek Pelanggan",
+    "m_salesunit": "Sales Unit",
+    "m_sales_structure": "Struktur Sales",
+    "m_sales_channel": "Sales Channel",
+    "m_sales_subchannel": "Sales Subchannel",
+    "m_sales_subdivision": "Sales Subdivision",
+    "m_sales_visit_status": "Status Kunjungan",
+    "m_sales_visit_note": "Catatan Kunjungan",
+    "m_bu": "Business Unit",
+    "m_mobile_bank": "Bank",
+    "m_mobile_payment_type": "Metode Pembayaran",
+    "m_stock_count_classification": "Klasifikasi Stock Count",
+    "t_sales_journey": "Sales Journey",
+    "c_custom_form": "Form",
+    "c_custom_report": "Laporan",
+    "c_custom_form_module": "Modul Form",
+    "c_custom_form_category": "Kategori Form",
+    "c_user_group_header": "Grup User",
+    "c_group_access_sales_unit_custom_form": "Akses Grup Form",
+    "c_segment_report": "Laporan Tersegmentasi",
+    "t_dynamic_chart": "Chart",
+    "t_dynamic_report": "Laporan Dinamis",
+    "f_dynamic_table": "Metadata Tabel",
+  };
+
+  // Resolves a display label for an entity, memoized in _entityLabels for
+  // the rest of this execute() cycle. x_*-prefixed tables are a dynamic
+  // form's own data table - form_desc (the same field already shown as
+  // the form's menu name elsewhere in this app) is the intentional,
+  // human-curated label; f_dynamic_table.table_caption is a looser
+  // fallback (usually just an upper-cased echo of the table name itself).
+  // Anything else is looked up in _knownEntityLabels, or shown as-is.
+  Future<String> _resolveEntityLabel(
+    DatabaseExecutor executor,
+    String entity,
+  ) async {
+    String? cached = _entityLabels[entity];
+
+    if (cached != null) {
+      return cached;
+    }
+
+    String label = _knownEntityLabels[entity] ?? entity;
+
+    if (entity.startsWith("x_")) {
+      try {
+        List<Map<String, Object?>> rows = await executor.rawQuery(
+          "SELECT b.form_desc AS form_desc, a.table_caption AS table_caption "
+          "FROM f_dynamic_table a "
+          "LEFT JOIN c_custom_form b ON b.table_header_id = a.id "
+          "WHERE a.table_name = ? LIMIT 1",
+          [entity],
+        );
+
+        if (rows.isNotEmpty) {
+          String? formDesc = rows.first["form_desc"] as String?;
+          String? tableCaption = rows.first["table_caption"] as String?;
+
+          if (formDesc != null && formDesc.trim().isNotEmpty) {
+            label = formDesc;
+          } else if (tableCaption != null && tableCaption.trim().isNotEmpty) {
+            label = tableCaption;
+          }
+        }
+      } catch (_) {
+        // A label is cosmetic - never let a lookup failure break the pull.
+      }
+    }
+
+    _entityLabels[entity] = label;
+
+    return label;
+  }
 
   Future<void> execute() async {
     if (!onProgress) {
@@ -73,6 +169,7 @@ class Pulls {
         shouldShowProgress = true;
         _currentBatch = 0;
         _entityCounts = {};
+        _entityLabels = {};
 
         Future.delayed(Duration(seconds: 1), () {
           if (shouldShowProgress) {
@@ -244,6 +341,7 @@ class Pulls {
           await process(txn, entity, payload, tableInfos);
 
           _entityCounts[entity] = (_entityCounts[entity] ?? 0) + 1;
+          await _resolveEntityLabel(txn, entity);
           updateStatus(((i + 1) / changes.length * 100).toInt());
         }
 
@@ -317,6 +415,7 @@ class Pulls {
           await process(txn, entity, payload, tableInfos);
 
           _entityCounts[entity] = (_entityCounts[entity] ?? 0) + 1;
+          await _resolveEntityLabel(txn, entity);
           updateStatus(((i + 1) / changes.length * 100).toInt());
         }
 
@@ -651,6 +750,7 @@ class Pulls {
       status: status,
       batch: _currentBatch,
       entityCounts: Map<String, int>.unmodifiable(_entityCounts),
+      entityLabels: Map<String, String>.unmodifiable(_entityLabels),
     );
 
     if (autoCloseAfter != null) {
@@ -979,7 +1079,7 @@ class PullProgressDetailSheet extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: Text(
-                                  entry.key,
+                                  snapshot.entityLabels[entry.key] ?? entry.key,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
