@@ -2671,6 +2671,32 @@ class Offlines {
     return operand ?? "";
   }
 
+  // Each trigger-action condition row renders as "<operand> <key> <op>
+  // <value>" (e.g. "AND id = ?"), meant to chain onto the PRECEDING row -
+  // the first row's operand should be blank. A trigger configured with an
+  // operand on its first row too (admin data issue, not something this
+  // client controls) otherwise leaves a dangling "WHERE AND ..."/
+  // "WHERE OR ...", which is invalid SQL and crashes the whole save.
+  // Stripping a leading AND/OR keeps the query valid regardless of how
+  // the trigger ended up configured; falls back to "TRUE" when there are
+  // no condition rows at all.
+  static String joinTriggerConditions(Iterable<String> fragments) {
+    String joined = fragments.join(" ").trim();
+
+    if (joined.isEmpty) {
+      return "TRUE";
+    }
+
+    RegExpMatch? leadingOperand =
+        RegExp(r"^(AND|OR)\s+", caseSensitive: false).firstMatch(joined);
+
+    if (leadingOperand != null) {
+      joined = joined.substring(leadingOperand.end);
+    }
+
+    return joined;
+  }
+
   static Future<void> handleTriggerActionInsert({
     required Transaction transaction,
     required Map<String, dynamic> oldRow,
@@ -2738,7 +2764,7 @@ class Offlines {
     await transaction.rawInsert("""
         INSERT INTO $tableName ( ${dynamicTableTriggerActionDetailViews.where((element) => element["action_mode"] == "DATA").map((dynamicTableTriggerActionDetailView) => buildData(dynamicTableTriggerActionDetailView)).join(", ")} )
         SELECT ${dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(", ")}
-        WHERE ${dynamicTableTriggerActionDetailViews.any((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION_EXTRA") ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION_EXTRA").map((dynamicTableTriggerActionDetailView) => buildConditionExtra(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}
+        WHERE ${joinTriggerConditions(dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION_EXTRA").map((dynamicTableTriggerActionDetailView) => buildConditionExtra(dynamicTableTriggerActionDetailView)))}
     """);
 
     Map<String, dynamic>? affectedRow = (await transaction.rawQuery("SELECT * FROM $tableName ORDER BY rowid DESC LIMIT 1")).firstOrNull;
@@ -2845,11 +2871,11 @@ class Offlines {
     int affectedCount = await transaction.rawUpdate("""
         UPDATE $tableName
         SET ${dynamicTableTriggerActionDetailViews.where((element) => element["action_mode"] == "DATA").map((dynamicTableTriggerActionDetailView) => buildData(dynamicTableTriggerActionDetailView)).join(", ")}
-        WHERE ${dynamicTableTriggerActionDetailViews.any((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION") ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}
+        WHERE ${joinTriggerConditions(dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)))}
     """);
 
     if (affectedCount > 0) {
-      List<Map<String, dynamic>> affectedRows = await transaction.rawQuery("SELECT * FROM $tableName WHERE ${dynamicTableTriggerActionDetailViews.any((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION") ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}");
+      List<Map<String, dynamic>> affectedRows = await transaction.rawQuery("SELECT * FROM $tableName WHERE ${joinTriggerConditions(dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)))}");
 
       for (Map<String, dynamic> affectedRow in affectedRows) {
         String? sequenceName = (await DMLAssemblers
@@ -2933,11 +2959,11 @@ class Offlines {
         .asc("index_field")
         .all(transaction);
 
-    List<Map<String, dynamic>> affectedRows = await transaction.rawQuery("SELECT * FROM $tableName WHERE ${dynamicTableTriggerActionDetailViews.any((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION") ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}");
+    List<Map<String, dynamic>> affectedRows = await transaction.rawQuery("SELECT * FROM $tableName WHERE ${joinTriggerConditions(dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)))}");
 
     int affectedCount = await transaction.rawDelete("""
       DELETE FROM $tableName
-      WHERE ${dynamicTableTriggerActionDetailViews.any((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION") ? dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)).join(" ") : "TRUE"}
+      WHERE ${joinTriggerConditions(dynamicTableTriggerActionDetailViews.where((dynamicTableTriggerActionDetailView) => dynamicTableTriggerActionDetailView["action_mode"] == "CONDITION").map((dynamicTableTriggerActionDetailView) => buildCondition(dynamicTableTriggerActionDetailView)))}
     """);
 
     if (affectedCount > 0) {
