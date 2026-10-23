@@ -373,14 +373,18 @@ class Dialogs {
                   decoration: boxDecoration,
                   child: InkWell(
                     onTap: () async {
-                      FilePickerResult? filePickerResult =
-                          await FilePicker.platform.pickFiles(
-                        withData: true,
-                        type: FileType.media,
+                      // FilePicker with FileType.media still opens the
+                      // system document browser (just filtered to media
+                      // mimetypes) - indistinguishable from "Jelajahi File"
+                      // to the user. ImagePicker's gallery source is the
+                      // actual native photo-gallery UI.
+                      XFile? xFile = await ImagePicker().pickImage(
+                        source: ImageSource.gallery,
                       );
 
-                      if (filePickerResult != null &&
-                          filePickerResult.files.isNotEmpty) {
+                      if (xFile != null) {
+                        final Uint8List bytes = await xFile.readAsBytes();
+
                         if (BaseSettings.navigatorType ==
                             BaseNavigatorType.legacy) {
                           Navigators.pop();
@@ -388,7 +392,14 @@ class Dialogs {
                           context.pop();
                         }
 
-                        callback.call(filePickerResult.files);
+                        callback.call([
+                          PlatformFile(
+                            name: xFile.name,
+                            size: bytes.length,
+                            bytes: bytes,
+                            path: xFile.path,
+                          ),
+                        ]);
                       }
                     },
                     child: Center(
